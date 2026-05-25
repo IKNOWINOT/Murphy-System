@@ -115,7 +115,10 @@ class HoneypotConfig:
         "/api/health", "/api/auth", "/api/ambient", "/api/lcm",
         "/api/mgmt", "/api/rsc", "/api/hack", "/api/honeypot",
         "/api/mail", "/api/admin", "/api/billing", "/api/demo",
-        "/static", "/ui/", "/_",
+        "/api/growth",          # PATCH-351: public onboarding surface
+        "/api/murphy/",         # PATCH-351: internal Murphy channel
+        "/api/oo/",             # PATCH-351: owner-operator pipeline
+        "/static", "/ui/", "/start", "/founder", "/download", "/_",
     )
 
 _config = HoneypotConfig()

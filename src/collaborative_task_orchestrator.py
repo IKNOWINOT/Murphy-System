@@ -439,6 +439,13 @@ class CollaborativeExecutionReport:
     execution_log: List[Dict[str, Any]]
     idempotency_key: str
     metadata: Dict[str, Any] = field(default_factory=dict)
+    task_id: str = field(default="")
+
+    def __post_init__(self):
+        """PATCH-350: task_id mirrors run_id."""
+        if not self.task_id:
+            self.task_id = self.run_id
+
 
 
 # ---------------------------------------------------------------------------
@@ -453,6 +460,14 @@ class CollaborativeTaskOrchestrator:
     DEFAULT_STEP_TIMEOUT = 120.0
     DEFAULT_TOTAL_TIMEOUT = 600.0
     MAX_HISTORY = 1_000  # CWE-770
+
+    task_id: str = ""
+
+    def __post_init__(self):
+        # PATCH-350: task_id mirrors run_id for backward compat
+        if not self.task_id:
+            object.__setattr__(self, "task_id", self.run_id)
+
 
     def __init__(self) -> None:
         self._lock = threading.Lock()
@@ -614,9 +629,12 @@ class CollaborativeTaskOrchestrator:
         budget_per_step: float,
         step_timeout: float,
         execution_log: List[Dict[str, Any]],
+        soul_contexts: Optional[Dict[str, str]] = None,
+        brief_packet=None,
     ) -> Dict[str, Any]:
         step_id = getattr(step, "step_id", str(uuid.uuid4()))
         step_desc = getattr(step, "description", task_description)
+        agent_id = getattr(step, "agent_id", "agent_0")
         start = time.time()
         result: Dict[str, Any] = {
             "step_id": step_id,
@@ -626,6 +644,16 @@ class CollaborativeTaskOrchestrator:
             "duration_ms": 0.0,
         }
 
+        # PATCH-361: Look up soul + brief for this agent
+        _soul_md = ""
+        _directive = None
+        if soul_contexts and agent_id in soul_contexts:
+            _soul_md = soul_contexts[agent_id]
+        if brief_packet and hasattr(brief_packet, "briefs") and agent_id in brief_packet.briefs:
+            _brief = brief_packet.briefs[agent_id]
+            _soul_md = _brief.system_prompt or _soul_md
+            _directive = _brief.directive
+
         # --- Real LLM execution via LLMController ---
         llm_output: Optional[str] = None
         llm_cost: float = 0.0
@@ -634,16 +662,27 @@ class CollaborativeTaskOrchestrator:
                 import asyncio
 
                 from llm_controller import LLMRequest
-                prompt = (
-                    f"You are an execution agent in the Murphy swarm system.\n"
-                    f"Overall task: {task_description}\n"
-                    f"Current step: {step_desc}\n"
-                    f"Budget for this step: ${budget_per_step:.2f}\n\n"
-                    "Execute this step and produce a concise, actionable result. "
-                    "Return a JSON object with keys: 'result' (string summary), "
-                    "'artifacts' (list of strings), 'next_action' (string or null)."
-                )
+                # PATCH-361: Use exec-generated directive if available, else generic prompt
+                if _directive:
+                    prompt = _directive
+                else:
+                    prompt = (
+                        f"You are an execution agent in the Murphy swarm system.\n"
+                        f"Overall task: {task_description}\n"
+                        f"Current step: {step_desc}\n"
+                        f"Budget for this step: ${budget_per_step:.2f}\n\n"
+                        "Execute this step and produce a concise, actionable result. "
+                        "Return a JSON object with keys: 'result' (string summary), "
+                        "'artifacts' (list of strings), 'next_action' (string or null)."
+                    )
                 req = LLMRequest(prompt=prompt, max_tokens=600)
+                # PATCH-361: Inject soul as context (system= not on LLMRequest, use context field)
+                if _soul_md:
+                    req = LLMRequest(
+                        prompt=prompt,
+                        context=_soul_md,
+                        max_tokens=600
+                    )
                 try:
                     loop = asyncio.get_event_loop()
                     if loop.is_running():
@@ -783,7 +822,12 @@ class CollaborativeTaskOrchestrator:
             for step_id in group:
                 matching = [s for s in steps if getattr(s, "step_id", None) == step_id]
                 step = matching[0] if matching else type("_S", (), {"step_id": step_id, "description": task_description, "depends_on": [], "parallel": True, "agent_id": "agent_0", "metadata": {}})()
-                res = self._execute_step(step, task_description, budget_per_step, step_timeout, execution_log)
+                # PATCH-361: pass soul_contexts + brief_packet to each step
+                res = self._execute_step(
+                    step, task_description, budget_per_step, step_timeout, execution_log,
+                    soul_contexts=getattr(self, "_soul_contexts", None),
+                    brief_packet=getattr(self, "_brief_packet", None),
+                )
                 step_results[step_id] = res
 
                 agent_id = getattr(step, "agent_id", f"agent_{group_idx}")
@@ -858,3 +902,20 @@ class CollaborativeTaskOrchestrator:
             self._history.append(report)
 
         return report
+
+
+# PATCH-350-MONKEY: inject task_id into CollaborativeExecutionReport at module load
+import dataclasses as _dc350
+if "task_id" not in {f.name for f in _dc350.fields(CollaborativeExecutionReport)}:
+    CollaborativeExecutionReport = _dc350.make_dataclass(
+        "CollaborativeExecutionReport",
+        [("task_id", str, _dc350.field(default=""))],
+        bases=(CollaborativeExecutionReport,),
+    )
+    _orig_post_init_350 = getattr(CollaborativeExecutionReport, "__post_init__", None)
+    def _post_init_350(self):
+        if _orig_post_init_350:
+            _orig_post_init_350(self)
+        if not self.task_id:
+            self.task_id = self.run_id
+    CollaborativeExecutionReport.__post_init__ = _post_init_350

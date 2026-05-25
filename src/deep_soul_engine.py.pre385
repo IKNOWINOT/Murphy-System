@@ -1,0 +1,883 @@
+# Copyright © 2020 Inoni LLC / Corey Post / BSL 1.1
+"""
+PATCH-384: Deep Soul Engine
+============================
+Expands agent souls from 95 words to 3,000-7,000 words of real context:
+
+LAYERS:
+  L0  — Identity card (~50 tokens): who, what role, what company, what contract
+  L1  — Critical facts (~200 tokens): top KPIs, OCEAN personality, current projects
+  L2  — Full employment contract (~600 tokens): duties, pipeline touchpoints, SOPs,
+        escalation paths, HITL gates, regulatory references
+  L3  — Deep knowledge (~2000 tokens): training materials, reference books/standards,
+        "For Dummies" domain knowledge, project schedules vs ROI calendar,
+        daily input filters, follow-up protocols
+  L4  — Live context (~500 tokens, refreshed per-dispatch): Gmail thread summaries,
+        active project status, unresolved follow-ups, today's priority queue
+
+ENTITY GRAPH:
+  Person → works_for → Company
+  Person → assigned_to → Project
+  Project → under → Contract
+  Contract → has_sop → SOP
+  SOP → references → RegulatoryBook
+  Agent → shadows → Person
+  Agent → has_contract → EmploymentContract
+  Agent → trained_on → TrainingMaterial
+
+GMAIL INTEGRATION:
+  Murphy gets the same Gmail access I have (corey.gfc@gmail.com token).
+  Agents can: read threads by label/project, send on behalf of role,
+  monitor for replies, trigger follow-up SOPs on silence.
+"""
+from __future__ import annotations
+
+import hashlib, json, os, re, sqlite3, uuid, logging
+from dataclasses import dataclass, field, asdict
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional, Tuple
+
+logger = logging.getLogger("murphy.deep_soul")
+DB_PATH = "/var/lib/murphy-production/entity_graph.db"
+
+
+# ═══════════════════════════════════════════════════════════════
+# DATABASE — entity graph schema
+# ═══════════════════════════════════════════════════════════════
+
+def _db() -> sqlite3.Connection:
+    conn = sqlite3.connect(DB_PATH, timeout=10)
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def ensure_schema():
+    with _db() as c:
+        c.executescript("""
+        -- Core entities
+        CREATE TABLE IF NOT EXISTS persons (
+            id TEXT PRIMARY KEY,
+            full_name TEXT,
+            email TEXT,
+            phone TEXT,
+            title TEXT,
+            discipline TEXT,
+            licenses TEXT,          -- JSON list: ["PE-FL-12345","CEM","LEED AP"]
+            years_experience INTEGER,
+            resume_text TEXT,       -- full resume, no limit
+            references_text TEXT,   -- reference letters / names
+            skills TEXT,            -- JSON list
+            certifications TEXT,    -- JSON list
+            created_at TEXT
+        );
+        CREATE TABLE IF NOT EXISTS companies (
+            id TEXT PRIMARY KEY,
+            name TEXT,
+            industry TEXT,
+            location TEXT,
+            website TEXT,
+            description TEXT,
+            size_employees INTEGER,
+            primary_contact_id TEXT,
+            created_at TEXT
+        );
+        CREATE TABLE IF NOT EXISTS projects (
+            id TEXT PRIMARY KEY,
+            name TEXT,
+            company_id TEXT,
+            contract_id TEXT,
+            status TEXT,            -- active|pending|complete|on-hold
+            start_date TEXT,
+            end_date TEXT,
+            budget_usd REAL,
+            description TEXT,
+            milestones TEXT,        -- JSON list of {name, date, complete}
+            roi_calendar TEXT,      -- JSON: monthly projected ROI vs actual
+            daily_inputs TEXT,      -- JSON: what to check/log each day
+            created_at TEXT
+        );
+        CREATE TABLE IF NOT EXISTS contracts (
+            id TEXT PRIMARY KEY,
+            project_id TEXT,
+            company_id TEXT,
+            contract_type TEXT,     -- fixed|T&M|retainer|lump-sum
+            value_usd REAL,
+            start_date TEXT,
+            end_date TEXT,
+            scope_text TEXT,        -- full scope of work
+            deliverables TEXT,      -- JSON list
+            payment_terms TEXT,
+            penalties TEXT,
+            status TEXT,            -- draft|active|complete|disputed
+            created_at TEXT
+        );
+        -- Relationship graph (generic edge table)
+        CREATE TABLE IF NOT EXISTS relationships (
+            id TEXT PRIMARY KEY,
+            from_type TEXT,         -- person|company|project|contract|agent
+            from_id TEXT,
+            rel_type TEXT,          -- works_for|assigned_to|owns|reports_to|shadows|manages
+            to_type TEXT,
+            to_id TEXT,
+            metadata TEXT,          -- JSON: role, since, notes
+            created_at TEXT
+        );
+        -- Agent employment contracts
+        CREATE TABLE IF NOT EXISTS agent_contracts (
+            id TEXT PRIMARY KEY,
+            agent_id TEXT UNIQUE,
+            agent_name TEXT,
+            role_title TEXT,
+            department TEXT,
+            domain TEXT,
+            management_layer TEXT,
+            -- Employment terms
+            duties_text TEXT,           -- full list of duties
+            pipeline_touchpoints TEXT,  -- JSON: [{step, action, output, hands_to}]
+            escalation_paths TEXT,      -- JSON: [{trigger, goes_to, sla_hours}]
+            hitl_threshold REAL,
+            -- Personality (OCEAN)
+            ocean_json TEXT,
+            persona_label TEXT,
+            communication_style TEXT,
+            decision_style TEXT,
+            stress_response TEXT,
+            -- KPIs
+            kpis_json TEXT,
+            -- Authority
+            authorised_actions TEXT,    -- JSON list
+            off_limits TEXT,            -- JSON list
+            recalibration_triggers TEXT,-- JSON list
+            created_at TEXT,
+            updated_at TEXT
+        );
+        -- SOP library
+        CREATE TABLE IF NOT EXISTS sops (
+            id TEXT PRIMARY KEY,
+            title TEXT,
+            domain TEXT,
+            role TEXT,              -- which role this SOP applies to
+            steps TEXT,             -- JSON: [{step, action, decision_point, output, escalate_if}]
+            regulatory_refs TEXT,   -- JSON: ["ASHRAE 90.1-2022 Sec 6.4", "NFPA 90A"]
+            reference_books TEXT,   -- JSON: ["HVAC for Dummies", "ASHRAE Handbook Fundamentals"]
+            follow_up_protocol TEXT,-- JSON: what to do if no response at 24h/48h/72h
+            created_at TEXT
+        );
+        -- Training materials
+        CREATE TABLE IF NOT EXISTS training_materials (
+            id TEXT PRIMARY KEY,
+            title TEXT,
+            domain TEXT,
+            level TEXT,             -- beginner|intermediate|advanced|regulatory
+            content_text TEXT,      -- full training content, no limit
+            source TEXT,            -- "ASHRAE Handbook", "For Dummies", "Murphy SOP"
+            role_applicability TEXT,-- JSON: which roles this applies to
+            created_at TEXT
+        );
+        -- Gmail thread index
+        CREATE TABLE IF NOT EXISTS gmail_threads (
+            id TEXT PRIMARY KEY,
+            gmail_thread_id TEXT,
+            gmail_message_id TEXT,
+            subject TEXT,
+            from_email TEXT,
+            to_emails TEXT,
+            project_id TEXT,
+            contract_id TEXT,
+            contact_id TEXT,
+            summary TEXT,
+            action_required TEXT,   -- what Murphy should do
+            follow_up_due TEXT,     -- ISO date
+            status TEXT,            -- open|replied|closed|escalated
+            raw_snippet TEXT,
+            created_at TEXT,
+            updated_at TEXT
+        );
+        -- Daily priority queue
+        CREATE TABLE IF NOT EXISTS daily_priorities (
+            id TEXT PRIMARY KEY,
+            date TEXT,
+            agent_id TEXT,
+            priority_order INTEGER,
+            item_type TEXT,         -- email|project|contract|follow-up|task
+            item_id TEXT,
+            title TEXT,
+            description TEXT,
+            status TEXT,            -- pending|done|deferred
+            created_at TEXT
+        );
+        """)
+    logger.info("entity_graph schema ready")
+
+
+# ═══════════════════════════════════════════════════════════════
+# ENTITY CRUD
+# ═══════════════════════════════════════════════════════════════
+
+def upsert_person(data: Dict) -> str:
+    pid = data.get("id") or str(uuid.uuid4())
+    with _db() as c:
+        c.execute("""INSERT OR REPLACE INTO persons
+            (id,full_name,email,phone,title,discipline,licenses,years_experience,
+             resume_text,references_text,skills,certifications,created_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""", (
+            pid, data.get("full_name",""), data.get("email",""), data.get("phone",""),
+            data.get("title",""), data.get("discipline",""),
+            json.dumps(data.get("licenses",[])), data.get("years_experience",0),
+            data.get("resume_text",""), data.get("references_text",""),
+            json.dumps(data.get("skills",[])), json.dumps(data.get("certifications",[])),
+            datetime.now(timezone.utc).isoformat()))
+    return pid
+
+def upsert_company(data: Dict) -> str:
+    cid = data.get("id") or str(uuid.uuid4())
+    with _db() as c:
+        c.execute("""INSERT OR REPLACE INTO companies
+            (id,name,industry,location,website,description,size_employees,primary_contact_id,created_at)
+            VALUES (?,?,?,?,?,?,?,?,?)""", (
+            cid, data.get("name",""), data.get("industry",""), data.get("location",""),
+            data.get("website",""), data.get("description",""), data.get("size_employees",0),
+            data.get("primary_contact_id",""), datetime.now(timezone.utc).isoformat()))
+    return cid
+
+def upsert_project(data: Dict) -> str:
+    pid = data.get("id") or str(uuid.uuid4())
+    with _db() as c:
+        c.execute("""INSERT OR REPLACE INTO projects
+            (id,name,company_id,contract_id,status,start_date,end_date,budget_usd,
+             description,milestones,roi_calendar,daily_inputs,created_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""", (
+            pid, data.get("name",""), data.get("company_id",""), data.get("contract_id",""),
+            data.get("status","active"), data.get("start_date",""), data.get("end_date",""),
+            data.get("budget_usd",0.0), data.get("description",""),
+            json.dumps(data.get("milestones",[])),
+            json.dumps(data.get("roi_calendar",{})),
+            json.dumps(data.get("daily_inputs",[])),
+            datetime.now(timezone.utc).isoformat()))
+    return pid
+
+def add_relationship(from_type:str, from_id:str, rel_type:str, to_type:str, to_id:str, metadata:Dict=None) -> str:
+    rid = str(uuid.uuid4())
+    with _db() as c:
+        c.execute("""INSERT OR REPLACE INTO relationships
+            (id,from_type,from_id,rel_type,to_type,to_id,metadata,created_at)
+            VALUES (?,?,?,?,?,?,?,?)""", (
+            rid, from_type, from_id, rel_type, to_type, to_id,
+            json.dumps(metadata or {}), datetime.now(timezone.utc).isoformat()))
+    return rid
+
+def upsert_sop(data: Dict) -> str:
+    sid = data.get("id") or str(uuid.uuid4())
+    with _db() as c:
+        c.execute("""INSERT OR REPLACE INTO sops
+            (id,title,domain,role,steps,regulatory_refs,reference_books,follow_up_protocol,created_at)
+            VALUES (?,?,?,?,?,?,?,?,?)""", (
+            sid, data.get("title",""), data.get("domain",""), data.get("role",""),
+            json.dumps(data.get("steps",[])),
+            json.dumps(data.get("regulatory_refs",[])),
+            json.dumps(data.get("reference_books",[])),
+            json.dumps(data.get("follow_up_protocol",{})),
+            datetime.now(timezone.utc).isoformat()))
+    return sid
+
+def upsert_training(data: Dict) -> str:
+    tid = data.get("id") or str(uuid.uuid4())
+    with _db() as c:
+        c.execute("""INSERT OR REPLACE INTO training_materials
+            (id,title,domain,level,content_text,source,role_applicability,created_at)
+            VALUES (?,?,?,?,?,?,?,?)""", (
+            tid, data.get("title",""), data.get("domain",""), data.get("level","intermediate"),
+            data.get("content_text",""), data.get("source",""),
+            json.dumps(data.get("role_applicability",[])),
+            datetime.now(timezone.utc).isoformat()))
+    return tid
+
+def upsert_agent_contract(data: Dict) -> str:
+    aid = data.get("agent_id") or str(uuid.uuid4())
+    now = datetime.now(timezone.utc).isoformat()
+    with _db() as c:
+        c.execute("""INSERT OR REPLACE INTO agent_contracts
+            (id,agent_id,agent_name,role_title,department,domain,management_layer,
+             duties_text,pipeline_touchpoints,escalation_paths,hitl_threshold,
+             ocean_json,persona_label,communication_style,decision_style,stress_response,
+             kpis_json,authorised_actions,off_limits,recalibration_triggers,created_at,updated_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", (
+            str(uuid.uuid4()), aid, data.get("agent_name",""),
+            data.get("role_title",""), data.get("department",""), data.get("domain",""),
+            data.get("management_layer","individual"),
+            data.get("duties_text",""),
+            json.dumps(data.get("pipeline_touchpoints",[])),
+            json.dumps(data.get("escalation_paths",[])),
+            data.get("hitl_threshold",0.75),
+            json.dumps(data.get("ocean",{})),
+            data.get("persona_label",""), data.get("communication_style",""),
+            data.get("decision_style",""), data.get("stress_response",""),
+            json.dumps(data.get("kpis",[])),
+            json.dumps(data.get("authorised_actions",[])),
+            json.dumps(data.get("off_limits",[])),
+            json.dumps(data.get("recalibration_triggers",[])),
+            now, now))
+    return aid
+
+
+# ═══════════════════════════════════════════════════════════════
+# ENTITY GRAPH QUERY
+# ═══════════════════════════════════════════════════════════════
+
+def get_person_graph(person_id: str) -> Dict:
+    """Get a person + all their relationships (company, projects, contracts)."""
+    with _db() as c:
+        p = c.execute("SELECT * FROM persons WHERE id=?", (person_id,)).fetchone()
+        if not p:
+            return {}
+        result = dict(p)
+        result["licenses"]        = json.loads(result.get("licenses","[]") or "[]")
+        result["skills"]          = json.loads(result.get("skills","[]") or "[]")
+        result["certifications"]  = json.loads(result.get("certifications","[]") or "[]")
+        # Get all relationships
+        rels = c.execute("SELECT * FROM relationships WHERE from_id=? OR to_id=?",
+                         (person_id, person_id)).fetchall()
+        result["relationships"] = [dict(r) for r in rels]
+        # Expand: companies they work for
+        company_ids = [r["to_id"] for r in rels if r["rel_type"]=="works_for" and r["to_type"]=="company"]
+        result["companies"] = []
+        for cid in company_ids:
+            co = c.execute("SELECT id,name,industry,location FROM companies WHERE id=?", (cid,)).fetchone()
+            if co: result["companies"].append(dict(co))
+        # Projects assigned to
+        project_ids = [r["to_id"] for r in rels if r["rel_type"]=="assigned_to" and r["to_type"]=="project"]
+        result["projects"] = []
+        for pid2 in project_ids:
+            proj = c.execute("SELECT id,name,status,budget_usd,start_date,end_date FROM projects WHERE id=?", (pid2,)).fetchone()
+            if proj: result["projects"].append(dict(proj))
+        return result
+
+
+def get_project_graph(project_id: str) -> Dict:
+    """Get a project + company, contract, people, SOPs."""
+    with _db() as c:
+        proj = c.execute("SELECT * FROM projects WHERE id=?", (project_id,)).fetchone()
+        if not proj:
+            return {}
+        result = dict(proj)
+        result["milestones"]    = json.loads(result.get("milestones","[]") or "[]")
+        result["roi_calendar"]  = json.loads(result.get("roi_calendar","{}") or "{}")
+        result["daily_inputs"]  = json.loads(result.get("daily_inputs","[]") or "[]")
+        # Contract
+        if result.get("contract_id"):
+            ct = c.execute("SELECT * FROM contracts WHERE id=?", (result["contract_id"],)).fetchone()
+            if ct:
+                result["contract"] = dict(ct)
+                result["contract"]["deliverables"] = json.loads(result["contract"].get("deliverables","[]") or "[]")
+        # Company
+        if result.get("company_id"):
+            co = c.execute("SELECT id,name,industry,location FROM companies WHERE id=?",
+                          (result["company_id"],)).fetchone()
+            if co: result["company"] = dict(co)
+        # People on this project
+        rels = c.execute(
+            "SELECT from_id,from_type,metadata FROM relationships WHERE to_id=? AND rel_type='assigned_to'",
+            (project_id,)).fetchall()
+        result["team"] = []
+        for r in rels:
+            if r["from_type"] == "person":
+                person = c.execute("SELECT id,full_name,title,email FROM persons WHERE id=?",
+                                   (r["from_id"],)).fetchone()
+                if person:
+                    pm = json.loads(r["metadata"] or "{}")
+                    result["team"].append({**dict(person), "role_on_project": pm.get("role","")})
+        # SOPs for this project's domain
+        domain = result.get("contract",{}).get("contract_type","") or ""
+        sop_list = c.execute("SELECT id,title,domain,role FROM sops LIMIT 5").fetchall()
+        result["sops"] = [dict(s) for s in sop_list]
+        return result
+
+
+def get_full_entity_map() -> Dict:
+    """Get the entire entity graph summary for org chart rendering."""
+    with _db() as c:
+        persons   = [dict(r) for r in c.execute("SELECT id,full_name,title,email FROM persons").fetchall()]
+        companies = [dict(r) for r in c.execute("SELECT id,name,industry,location FROM companies").fetchall()]
+        projects  = [dict(r) for r in c.execute("SELECT id,name,status,company_id,contract_id FROM projects").fetchall()]
+        contracts = [dict(r) for r in c.execute("SELECT id,contract_type,value_usd,status,project_id FROM contracts").fetchall()]
+        rels      = [dict(r) for r in c.execute("SELECT from_type,from_id,rel_type,to_type,to_id FROM relationships").fetchall()]
+    return {"persons":persons,"companies":companies,"projects":projects,"contracts":contracts,"relationships":rels}
+
+
+# ═══════════════════════════════════════════════════════════════
+# DEEP SOUL BUILDER — the core of this patch
+# ═══════════════════════════════════════════════════════════════
+
+def build_deep_soul(
+    agent_id: str,
+    role_title: str,
+    domain: str,
+    person_id: Optional[str] = None,    # person this agent shadows
+    project_ids: Optional[List[str]] = None,
+    include_gmail_context: bool = False,
+    gmail_token: Optional[str] = None,
+) -> Dict[str, str]:
+    """
+    Build a full layered soul for an agent.
+    Returns dict with keys: L0, L1, L2, L3, L4, full_soul
+    Total target: 3,000-7,000 words depending on available context.
+    """
+    ensure_schema()
+
+    # Load all context
+    person_graph  = get_person_graph(person_id) if person_id else {}
+    project_graphs = [get_project_graph(pid) for pid in (project_ids or [])]
+
+    # Load agent contract
+    with _db() as c:
+        ac = c.execute("SELECT * FROM agent_contracts WHERE agent_id=?", (agent_id,)).fetchone()
+        ac = dict(ac) if ac else {}
+
+    # Load SOPs for this domain/role
+    with _db() as c:
+        sops = [dict(s) for s in c.execute(
+            "SELECT * FROM sops WHERE domain=? OR role=? LIMIT 5", (domain, role_title)).fetchall()]
+        training = [dict(t) for t in c.execute(
+            "SELECT * FROM training_materials WHERE domain=? LIMIT 3", (domain,)).fetchall()]
+
+    # Gmail context (if available)
+    gmail_context = ""
+    if include_gmail_context and gmail_token:
+        gmail_context = _fetch_gmail_context(gmail_token, project_graphs)
+
+    # Build each layer
+    L0 = _build_L0(agent_id, role_title, domain, person_graph, ac)
+    L1 = _build_L1(role_title, domain, person_graph, ac, project_graphs)
+    L2 = _build_L2(role_title, domain, person_graph, ac, sops, project_graphs)
+    L3 = _build_L3(domain, role_title, sops, training, ac, person_graph)
+    L4 = _build_L4(project_graphs, gmail_context)
+
+    full_soul = "\n\n".join(filter(None, [L0, L1, L2, L3, L4]))
+
+    word_count = len(full_soul.split())
+    token_est  = int(len(full_soul) / 4)
+
+    logger.info("Deep soul built for %s: %d words / ~%d tokens", agent_id, word_count, token_est)
+
+    return {
+        "L0": L0, "L1": L1, "L2": L2, "L3": L3, "L4": L4,
+        "full_soul": full_soul,
+        "word_count": word_count,
+        "token_estimate": token_est,
+        "agent_id": agent_id,
+        "role_title": role_title,
+        "domain": domain,
+    }
+
+
+def _build_L0(agent_id, role_title, domain, person: Dict, ac: Dict) -> str:
+    """L0 — Identity card (~50-80 tokens). Injected into EVERY prompt."""
+    name = person.get("full_name","") or role_title
+    companies = person.get("companies", [])
+    company_str = companies[0]["name"] if companies else ""
+    licenses = person.get("licenses", [])
+    lic_str = f" | {', '.join(licenses[:2])}" if licenses else ""
+    dept = ac.get("department","") or domain.title()
+    mgmt = ac.get("management_layer","individual")
+    persona = ac.get("persona_label","")
+
+    lines = [
+        f"# SOUL — {role_title}",
+        f"**Agent:** {agent_id}  **Dept:** {dept}  **Layer:** {mgmt}",
+    ]
+    if name and name != role_title:
+        lines.append(f"**Shadows:** {name}{lic_str}  **Company:** {company_str}")
+    if persona:
+        lines.append(f"**Persona:** {persona}")
+    return "\n".join(lines)
+
+
+def _build_L1(role_title, domain, person: Dict, ac: Dict, projects: List[Dict]) -> str:
+    """L1 — Critical facts (~150-250 tokens). Always in wake-up context."""
+    lines = ["## L1 — Critical Facts"]
+
+    # OCEAN personality
+    ocean = json.loads(ac.get("ocean_json","{}") or "{}")
+    if ocean:
+        lines.append(f"\n**Personality:** {ac.get('persona_label','')}  |  "
+                     f"O:{ocean.get('openness',0):.1f} C:{ocean.get('conscientiousness',0):.1f} "
+                     f"E:{ocean.get('extraversion',0):.1f} A:{ocean.get('agreeableness',0):.1f} "
+                     f"N:{ocean.get('neuroticism',0):.1f}")
+        lines.append(f"**Communication:** {ac.get('communication_style','')}  |  "
+                     f"**Decisions:** {ac.get('decision_style','')}  |  "
+                     f"**Under pressure:** {ac.get('stress_response','')}")
+
+    # Top KPIs
+    kpis = json.loads(ac.get("kpis_json","[]") or "[]")
+    if kpis:
+        lines.append(f"\n**KPIs:** {' | '.join(kpis[:3])}")
+
+    # HITL threshold
+    hitl = ac.get("hitl_threshold", 0.75)
+    lines.append(f"**HITL threshold:** {hitl} — approve above this stake level before acting externally")
+
+    # Active projects summary
+    active_projects = [p for p in projects if p.get("status","") in ("active","pending")]
+    if active_projects:
+        lines.append(f"\n**Active projects ({len(active_projects)}):**")
+        for p in active_projects[:3]:
+            budget = f"${p.get('budget_usd',0):,.0f}" if p.get("budget_usd") else ""
+            co_name = p.get("company",{}).get("name","") if isinstance(p.get("company"),dict) else ""
+            lines.append(f"  - {p.get('name','')} | {co_name} | {p.get('status','')} | {budget}")
+
+    # Person's credentials
+    licenses = person.get("licenses",[])
+    exp = person.get("years_experience",0)
+    if licenses or exp:
+        lines.append(f"\n**Credentials:** {exp} yrs exp | {', '.join(licenses[:4])}")
+    skills = person.get("skills",[])
+    if skills:
+        lines.append(f"**Core skills:** {', '.join(skills[:6])}")
+
+    return "\n".join(lines)
+
+
+def _build_L2(role_title, domain, person: Dict, ac: Dict, sops: List[Dict], projects: List[Dict]) -> str:
+    """L2 — Full employment contract (~500-800 tokens). Loaded on-demand for work tasks."""
+    lines = ["## L2 — Employment Contract"]
+
+    # Full duties
+    duties = ac.get("duties_text","")
+    if duties:
+        lines.append(f"\n### Duties\n{duties}")
+
+    # Pipeline touchpoints — who this role hands off to/from
+    pipeline = json.loads(ac.get("pipeline_touchpoints","[]") or "[]")
+    if pipeline:
+        lines.append("\n### Pipeline Touchpoints")
+        for step in pipeline:
+            lines.append(f"  **Step {step.get('step','')}:** {step.get('action','')} → "
+                         f"Output: {step.get('output','')} → Hands to: {step.get('hands_to','')}")
+
+    # Escalation paths
+    escalations = json.loads(ac.get("escalation_paths","[]") or "[]")
+    if escalations:
+        lines.append("\n### Escalation Paths")
+        for e in escalations:
+            lines.append(f"  - **IF** {e.get('trigger','')} → **ESCALATE TO** {e.get('goes_to','')} "
+                         f"within {e.get('sla_hours',24)}h")
+
+    # Authorised actions
+    auth_actions = json.loads(ac.get("authorised_actions","[]") or "[]")
+    if auth_actions:
+        lines.append(f"\n### I Can\n" + "\n".join(f"  - {a}" for a in auth_actions))
+
+    # Off-limits
+    off_limits = json.loads(ac.get("off_limits","[]") or "[]")
+    if off_limits:
+        lines.append(f"\n### I Will Not\n" + "\n".join(f"  - ❌ {a}" for a in off_limits))
+
+    # Recalibration triggers
+    triggers = json.loads(ac.get("recalibration_triggers","[]") or "[]")
+    if triggers:
+        lines.append(f"\n### Recalibration Triggers\n" + "\n".join(f"  - ⚠️ {t}" for t in triggers))
+
+    # Project contracts (scope of work)
+    for proj in projects[:2]:
+        ct = proj.get("contract")
+        if ct and ct.get("scope_text"):
+            lines.append(f"\n### Project Contract: {proj.get('name','')}")
+            lines.append(f"Type: {ct.get('contract_type','')} | Value: ${ct.get('value_usd',0):,.0f}")
+            lines.append(f"Scope: {ct.get('scope_text','')[:300]}")
+            deliverables = ct.get("deliverables",[])
+            if deliverables:
+                lines.append("Deliverables: " + ", ".join(deliverables[:5]))
+
+    # Resume (if person shadowed)
+    resume = person.get("resume_text","")
+    if resume:
+        lines.append(f"\n### Resume Context (Shadowed Person)\n{resume[:600]}")
+
+    # References
+    refs = person.get("references_text","")
+    if refs:
+        lines.append(f"\n### References\n{refs[:300]}")
+
+    return "\n".join(lines)
+
+
+def _build_L3(domain, role_title, sops: List[Dict], training: List[Dict], ac: Dict, person: Dict) -> str:
+    """L3 — Deep knowledge (~1500-3000 tokens). Full SOPs, training, regulatory references."""
+    lines = ["## L3 — Training, SOPs & Regulatory Knowledge"]
+
+    # For each SOP
+    for sop in sops[:3]:
+        lines.append(f"\n### SOP: {sop.get('title','')}")
+        steps = json.loads(sop.get("steps","[]") or "[]")
+        if steps:
+            for i, step in enumerate(steps, 1):
+                action = step.get("action","")
+                decision = step.get("decision_point","")
+                output = step.get("output","")
+                escalate = step.get("escalate_if","")
+                lines.append(f"  {i}. {action}")
+                if decision: lines.append(f"     Decision: {decision}")
+                if output:   lines.append(f"     Output: {output}")
+                if escalate: lines.append(f"     ⚠️ Escalate if: {escalate}")
+
+        reg_refs = json.loads(sop.get("regulatory_refs","[]") or "[]")
+        if reg_refs:
+            lines.append(f"  **Regulatory refs:** {', '.join(reg_refs)}")
+
+        follow_up = json.loads(sop.get("follow_up_protocol","{}") or "{}")
+        if follow_up:
+            lines.append("  **Follow-up protocol:**")
+            for timeframe, action in follow_up.items():
+                lines.append(f"    {timeframe}: {action}")
+
+        books = json.loads(sop.get("reference_books","[]") or "[]")
+        if books:
+            lines.append(f"  **Reference materials:** {', '.join(books)}")
+
+    # Training materials
+    for tm in training[:2]:
+        lines.append(f"\n### Training: {tm.get('title','')} [{tm.get('level','')}]")
+        content = tm.get("content_text","")
+        if content:
+            lines.append(content[:1500])
+
+    # Domain knowledge defaults (always included even if no DB training loaded)
+    domain_knowledge = _get_domain_knowledge(domain, role_title)
+    if domain_knowledge:
+        lines.append(f"\n### Domain Knowledge: {domain.title()}")
+        lines.append(domain_knowledge)
+
+    return "\n".join(lines)
+
+
+def _build_L4(projects: List[Dict], gmail_context: str) -> str:
+    """L4 — Live context (~300-600 tokens). Refreshed on every dispatch."""
+    lines = ["## L4 — Live Context (refreshed at dispatch)"]
+
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d %A")
+    lines.append(f"**Date:** {today}")
+
+    # Project schedule vs ROI calendar
+    for proj in projects[:2]:
+        roi_cal = proj.get("roi_calendar",{})
+        milestones = proj.get("milestones",[])
+        daily_inputs = proj.get("daily_inputs",[])
+
+        if proj.get("name"):
+            lines.append(f"\n**Project: {proj['name']}** [{proj.get('status','')}]")
+
+        # Milestones — upcoming and overdue
+        today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        upcoming = [m for m in milestones if m.get("date","") >= today_str and not m.get("complete")]
+        overdue  = [m for m in milestones if m.get("date","") < today_str and not m.get("complete")]
+        if overdue:
+            lines.append(f"  ⚠️ OVERDUE milestones: {', '.join(m['name'] for m in overdue[:3])}")
+        if upcoming:
+            lines.append(f"  📅 Upcoming milestones: " + ", ".join(
+                f"{m['name']} ({m.get('date','')})" for m in upcoming[:3]))
+
+        # ROI calendar — current month actual vs projected
+        current_month = datetime.now(timezone.utc).strftime("%Y-%m")
+        roi_now = roi_cal.get(current_month,{})
+        if roi_now:
+            projected = roi_now.get("projected",0)
+            actual    = roi_now.get("actual",0)
+            variance  = actual - projected
+            lines.append(f"  💰 ROI this month: projected=${projected:,.0f} actual=${actual:,.0f} "
+                         f"variance={'🟢 +' if variance >= 0 else '🔴 '}{variance:,.0f}")
+
+        # Daily inputs
+        if daily_inputs:
+            lines.append(f"  📋 Today's inputs to check: {', '.join(str(d) for d in daily_inputs[:4])}")
+
+    # Gmail context
+    if gmail_context:
+        lines.append(f"\n**Gmail context:**\n{gmail_context}")
+
+    return "\n".join(lines)
+
+
+def _fetch_gmail_context(token: str, projects: List[Dict]) -> str:
+    """Fetch relevant Gmail threads for active projects and return summary."""
+    try:
+        import urllib.request, urllib.parse
+        headers = {"Authorization": f"Bearer {token}"}
+
+        # Search for unread messages related to projects
+        project_names = [p.get("name","") for p in projects if p.get("name")]
+        query = "is:unread " + " OR ".join(f'"{n}"' for n in project_names[:3]) if project_names else "is:unread"
+
+        url = f"https://gmail.googleapis.com/gmail/v1/users/me/messages?q={urllib.parse.quote(query)}&maxResults=5"
+        req = urllib.request.Request(url, headers=headers)
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read().decode())
+
+        messages = data.get("messages",[])
+        summaries = []
+        for msg in messages[:3]:
+            msg_url = f"https://gmail.googleapis.com/gmail/v1/users/me/messages/{msg['id']}?format=metadata&metadataHeaders=Subject&metadataHeaders=From"
+            req2 = urllib.request.Request(msg_url, headers=headers)
+            with urllib.request.urlopen(req2, timeout=10) as resp2:
+                msg_data = json.loads(resp2.read().decode())
+            headers_list = msg_data.get("payload",{}).get("headers",[])
+            subject = next((h["value"] for h in headers_list if h["name"]=="Subject"), "")
+            from_hdr = next((h["value"] for h in headers_list if h["name"]=="From"), "")
+            snippet = msg_data.get("snippet","")[:150]
+            summaries.append(f"  - From: {from_hdr[:50]} | Subject: {subject[:60]}\n    {snippet}")
+
+        return "Unread relevant emails:\n" + "\n".join(summaries) if summaries else "No unread relevant emails."
+    except Exception as e:
+        return f"Gmail context unavailable: {e}"
+
+
+def _get_domain_knowledge(domain: str, role_title: str) -> str:
+    """Built-in domain knowledge — 'For Dummies' level for each domain."""
+    knowledge = {
+        "engineering": """
+KEY CONCEPTS (MEP Engineering — For Dummies + ASHRAE Handbook):
+- HVAC sizing: Manual J for residential, ASHRAE Handbook for commercial. Never undersize — size to peak load.
+- Chilled water systems: primary-secondary loop, ΔT of 10-14°F typical. VFD on pumps = 30-50% energy savings.
+- VAV systems: variable air volume terminal units modulate airflow 30-100% of design. Min OA per ASHRAE 62.1.
+- Electrical: load calculations per NEC Art. 220. Demand factors apply. Panel sizing = 125% of continuous loads.
+- Plumbing: fixture unit method per IPC. Water hammer arrestors required at solenoid valves.
+- Energy code: ASHRAE 90.1 mandatory for commercial. LEED certification adds 10-30% to design scope.
+COMMON MISTAKES TO AVOID:
+- Never spec residential equipment (SEER rating, single-phase) for commercial (EER, three-phase required).
+- Never skip commissioning — TAB reports required for LEED and most occupancy permits.
+- Always check utility rebate programs before finalizing equipment selection.
+REGULATORY FRAMEWORK:
+- ASHRAE 90.1: energy efficiency minimum standard
+- ASHRAE 62.1: minimum outdoor air / ventilation
+- NFPA 90A: installation of air conditioning and ventilating systems
+- IBC/IPC/IMC: building/plumbing/mechanical codes
+- NEC (NFPA 70): electrical installations
+""",
+        "sales": """
+KEY CONCEPTS (B2B Sales — For Dummies):
+- Sales cycle stages: Awareness → Interest → Consideration → Intent → Evaluation → Purchase.
+- Discovery call: 70% listening, 30% talking. Use SPIN (Situation, Problem, Implication, Need-Payoff).
+- Proposal timing: send within 24h of verbal agreement. Follow up within 48h if no response.
+- Objection handling: Acknowledge → Clarify → Respond → Confirm. Never argue.
+- CRM hygiene: every interaction logged within 2h. Deals without activity in 7 days = at-risk.
+- Email cadence: Day 1 (intro), Day 3 (value), Day 7 (case study), Day 14 (break-up).
+FOLLOW-UP PROTOCOL IF NO RESPONSE:
+- 24h: one follow-up email with value-add (article, case study, insight)
+- 48h: phone call attempt, leave voicemail with clear callback ask
+- 72h: LinkedIn connection + message
+- 7 days: final "break-up" email — polite, door open, no pressure
+- Mark deal as "cold" if no response after 14 days. Re-engage in 30 days.
+METRICS TO WATCH:
+- Open rate >25%, reply rate >8%, meeting booked >15% of replies
+""",
+        "compliance": """
+KEY CONCEPTS (Compliance — For Dummies + Regulatory Handbooks):
+- HIPAA: covers PHI (Protected Health Information). BAA required with all vendors touching PHI.
+  Safeguards: Administrative (policies), Physical (facility), Technical (encryption, access controls).
+  Breach notification: 60 days to HHS, affected individuals notified.
+- SOC2: Trust Service Criteria (Security, Availability, Processing Integrity, Confidentiality, Privacy).
+  Type I = point-in-time. Type II = 6-12 month audit period. Required for enterprise SaaS sales.
+- GDPR: applies to EU data subjects regardless of company location. Right to erasure, data portability.
+  DPA required for processors. 72h breach notification to supervisory authority.
+- OSHA: workplace safety. Recordable incidents require 300 log. Serious violations: $15,625/violation.
+COMPLIANCE WORKFLOW:
+1. Identify applicable frameworks for client industry/location
+2. Perform gap analysis against each framework
+3. Prioritize gaps by risk score (likelihood × impact)
+4. Draft remediation plan with timeline and owner
+5. Implement controls
+6. Test controls (pen test, audit, review)
+7. Document evidence
+8. Monitor continuously
+ALWAYS: recommend licensed attorney review before final compliance determinations.
+""",
+        "finance": """
+KEY CONCEPTS (Finance — For Dummies + CFO Handbook):
+- ARR: Annual Recurring Revenue. MRR × 12. Most important SaaS metric.
+- CAC: Customer Acquisition Cost = Sales+Marketing spend / new customers in period.
+- LTV: Lifetime Value = ARPU × Gross Margin % / Churn Rate.
+- LTV:CAC ratio: target 3:1 minimum. <1:1 = broken business model.
+- Gross margin: (Revenue - COGS) / Revenue. SaaS target 70-85%.
+- Runway: Cash on hand / Monthly burn rate. Target >18 months for fundraising.
+- Valuation: SaaS 8-15x ARR at <$1M ARR. Compresses as scale increases.
+INVESTOR MATERIALS:
+- Executive summary: 1 page. Problem, solution, traction, ask.
+- Pitch deck: 10-12 slides. Team, problem, solution, market, product, business model, traction, ask.
+- Financial model: 3-year P&L, monthly for year 1. Show path to profitability.
+- NEVER make revenue guarantees. State all assumptions explicitly.
+FOLLOW-UP PROTOCOL:
+- After sending materials: follow up in 3 business days.
+- If no response: 1 week follow-up with specific question to re-engage.
+- After meeting: send recap email same day with agreed next steps.
+""",
+        "logistics": """
+KEY CONCEPTS (Freight/Logistics — For Dummies + FMCSA Handbook):
+- BOL (Bill of Lading): legal contract between shipper and carrier. Required for all loads.
+- POD (Proof of Delivery): signed BOL or delivery receipt. Needed for payment.
+- Rate Con (Rate Confirmation): contract between broker and carrier. Lock in rate BEFORE load moves.
+- HOS (Hours of Service): FMCSA limits. 11h driving / 14h on-duty per day. 60h/7 days.
+- MC Number: Motor Carrier authority from FMCSA. Verify at FMCSA.dot.gov before dispatching.
+- Hazmat: requires proper placarding, shipping papers, licensed driver for certain classes.
+DISPATCH CHECKLIST (hot-shot / expedited):
+1. Verify carrier MC number and insurance active (min $1M liability)
+2. Check driver HOS — can they complete the run legally?
+3. Confirm equipment type matches freight requirements
+4. Send rate confirmation — get signed back before releasing load
+5. Provide pickup and delivery contacts + any special instructions
+6. Check in every 4 hours on transit
+7. Confirm delivery and collect POD within 1h of delivery
+ESCALATION:
+- Load running >2h late: notify shipper and consignee immediately
+- Driver HOS violation: pull the load, find replacement carrier
+- Damaged freight: photograph everything before driver leaves, file claim within 9 months
+""",
+    }
+    return knowledge.get(domain, "")
+
+
+# ═══════════════════════════════════════════════════════════════
+# SOUL INJECTION — replaces the 95-word version in dispatch
+# ═══════════════════════════════════════════════════════════════
+
+def get_soul_for_dispatch(
+    agent_id: str,
+    task_prompt: str,
+    domain: str = "operations",
+    token_budget: int = 4000,
+    gmail_token: Optional[str] = None,
+) -> str:
+    """
+    Get the right soul layers for a given task, respecting token budget.
+    
+    token_budget=400:   L0+L1 only (quick dispatch)
+    token_budget=1500:  L0+L1+L2 (work task)
+    token_budget=4000+: L0+L1+L2+L3 (deep work, training needed)
+    always:             L4 appended (live context)
+    """
+    try:
+        soul = build_deep_soul(
+            agent_id=agent_id,
+            role_title=agent_id,
+            domain=domain,
+            include_gmail_context=gmail_token is not None,
+            gmail_token=gmail_token,
+        )
+        parts = []
+        budget_used = 0
+
+        for layer in ["L0","L1","L2","L3","L4"]:
+            layer_text = soul.get(layer,"")
+            layer_tokens = int(len(layer_text) / 4)
+            if budget_used + layer_tokens <= token_budget:
+                parts.append(layer_text)
+                budget_used += layer_tokens
+            elif layer in ("L0","L1"):
+                # Always include identity layers
+                parts.append(layer_text)
+                budget_used += layer_tokens
+
+        return "\n\n".join(filter(None, parts))
+    except Exception as e:
+        logger.warning("Deep soul build failed for %s: %s — using minimal soul", agent_id, e)
+        return f"# SOUL — {agent_id}\n**Domain:** {domain}\n**Task:** {task_prompt[:100]}"
+
+

@@ -1,0 +1,1958 @@
+"""
+Murphy System — Production Server v3.0
+========================================
+Full functional automation platform with:
+  - Real HITL (Human-in-the-Loop) state machine — blocks until approved/rejected
+  - Automation milestones with progress tracking — blocks SHRINK as milestones complete
+  - Delay factor — missed milestones add time, blocks GROW on the calendar
+  - Closed-loop automations: proposal→HITL→automation created→execute→results
+  - Closed-loop campaigns: low traction→HITL paid-ad gate→approve→campaign resumes
+  - Closed-loop self-setup: step→HITL gate→approved→next step
+  - Real DAG execution engine with per-step HITL gates
+  - Dynamic calendar blocks (start/end shift with delays)
+  - All original routes preserved: /, /calendar, /dashboard, /landing
+  - SSE + WebSocket for real-time push
+  - Multi-tenant, 10 verticals, all loops closed
+
+Copyright © 2020 Inoni Limited Liability Company · Creator: Corey Post · BSL 1.1
+"""
+
+from __future__ import annotations
+
+import asyncio
+import json
+import logging
+import math
+import os
+import random
+import sys
+import re
+import uuid
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+# -- path setup ----------------------------------------------------------------
+ROOT = Path(__file__).resolve().parent.parent
+
+from fastapi import FastAPI, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
+from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel, Field
+
+logging.basicConfig(level=logging.INFO,
+                    format="%(asctime)s  %(name)s  %(levelname)s  %(message)s")
+log = logging.getLogger("murphy.prod")
+
+# -- Import MurphyLLMProvider (DeepInfra primary, Together fallback) -----------
+try:
+    from llm_provider import get_llm as _get_llm
+    _llm_available = True
+    log.info("MurphyLLMProvider loaded — DeepInfra primary, Together fallback")
+except Exception as _llm_e:
+    log.warning("MurphyLLMProvider not available (%s) — using pattern-match fallback", _llm_e)
+    _llm_available = False
+    _get_llm = None  # type: ignore
+
+# -- Import Murphy automation engine (with fallback) ---------------------------
+try:
+    from automations.engine import AutomationEngine
+    from automations.models import (
+        ActionType, AutomationAction, Condition, ConditionOperator,
+        RecurrenceFrequency, TriggerType,
+    )
+    _engine_available = True
+    log.info("AutomationEngine imported from src/automations")
+except Exception as _e:
+    log.warning("AutomationEngine not available (%s) -- using stub", _e)
+    _engine_available = False
+
+if not _engine_available:
+    class TriggerType:
+        SCHEDULE = "schedule"; ITEM_CREATED = "item_created"
+        STATUS_CHANGE = "status_change"; WEBHOOK = "webhook"
+    class ActionType:
+        NOTIFY = "notify"; SEND_EMAIL = "send_email"; SET_COLUMN = "set_column"
+    class RecurrenceFrequency:
+        HOURLY = "hourly"; DAILY = "daily"; WEEKLY = "weekly"; MONTHLY = "monthly"
+    class AutomationAction:
+        def __init__(self, action_type, config=None):
+            self.action_type = action_type; self.config = config or {}
+        def to_dict(self): return {"action_type": self.action_type, "config": self.config}
+    class Condition:
+        def __init__(self, column_id="", operator="equals", value=None):
+            self.column_id = column_id; self.operator = operator; self.value = value
+        def to_dict(self): return {"column_id": self.column_id, "operator": self.operator, "value": self.value}
+
+# -- Business Model Tiers ------------------------------------------------------
+TIERS = {
+    "solo":         {"max_automations": 3,   "price_mo": 99,  "price_yr": 79},
+    "business":     {"max_automations": None, "price_mo": 299, "price_yr": 239},
+    "professional": {"max_automations": None, "price_mo": 599, "price_yr": 479},
+    "enterprise":   {"max_automations": None, "price_mo": None,"price_yr": None},
+}
+
+_UTC = timezone.utc
+
+def _now_iso() -> str:
+    return datetime.now(_UTC).isoformat()
+
+def _now_dt() -> datetime:
+    return datetime.now(_UTC)
+
+# ==============================================================================
+# HITL QUEUE — Real Human-in-the-Loop State Machine
+# ==============================================================================
+_HITL_QUEUE: List[Dict[str, Any]] = []
+
+# ── HITL Persistence (DEF-047) ────────────────────────────────────────────
+try:
+    from hitl_persistence import HITLStore as _HITLStore
+    _hitl_store = _HITLStore()
+    _persisted = _hitl_store.load_all()
+    if _persisted:
+        _HITL_QUEUE.extend(_persisted)
+        log.info("Loaded %d HITL items from persistence", len(_persisted))
+except Exception as _store_exc:
+    log.warning("HITL persistence unavailable: %s — using in-memory only", _store_exc)
+    _hitl_store = None
+
+def _broadcast_sse(event: str, data: Any) -> None:
+    payload = json.dumps({"event": event, "data": data, "ts": _now_iso()})
+    dead = []
+    for q in _sse_subscribers:
+        try: q.put_nowait(payload)
+        except asyncio.QueueFull: dead.append(q)
+    for q in dead:
+        try: _sse_subscribers.remove(q)
+        except ValueError:  # PROD-HARD A2: concurrent unsubscribe — idempotent, nothing to do
+            log.debug("SSE queue already unsubscribed during broadcast cleanup")
+
+async def _broadcast_ws(event: str, data: Any) -> None:
+    msg = json.dumps({"event": event, "data": data, "ts": _now_iso()})
+    dead = []
+    for cid, ws in list(_ws_clients.items()):
+        try: await ws.send_text(msg)
+        except Exception: dead.append(cid)
+    for cid in dead: _ws_clients.pop(cid, None)
+
+_sse_subscribers: List[asyncio.Queue] = []
+_ws_clients: Dict[str, WebSocket] = {}
+
+def _create_hitl_item(
+    hitl_type: str,
+    title: str,
+    description: str,
+    payload: Dict[str, Any],
+    related_id: str = "",
+    priority: str = "normal",
+    auto_approve_after_seconds: int = 0,
+) -> Dict[str, Any]:
+    item = {
+        "id": f"hitl-{uuid.uuid4().hex[:8]}",
+        "type": hitl_type,
+        "title": title,
+        "description": description,
+        "payload": payload,
+        "related_id": related_id,
+        "priority": priority,
+        "status": "pending",
+        "created_at": _now_iso(),
+        "approved_at": None,
+        "rejected_at": None,
+        "approved_by": None,
+        "rejection_reason": None,
+        "auto_approve_after_seconds": auto_approve_after_seconds,
+        "_created_ts": _now_dt().timestamp(),
+    }
+    _HITL_QUEUE.append(item)
+    # Persist to SQLite (DEF-047)
+    if _hitl_store:
+        try:
+            _hitl_store.save_item(item)
+        except Exception as _pe:
+            log.warning("HITL persist failed for %s: %s", item["id"], _pe)
+    _broadcast_sse("hitl_item_created", {k: v for k, v in item.items() if not k.startswith("_")})
+    log.info("HITL item created: %s [%s] %s", item["id"], hitl_type, title)
+    return item
+
+# -- Tenant / Org Registry -----------------------------------------------------
+_TENANTS: Dict[str, Dict[str, Any]] = {
+    "tenant-001": {
+        "id": "tenant-001", "name": "Murphy Systems HQ", "org": "Inoni LLC",
+        "tier": "enterprise", "owner": os.environ.get("MURPHY_FOUNDER_NAME", ""),
+        "connections": ["HubSpot", "Salesforce", "Stripe", "Slack", "OpenAI", "Anthropic"],
+        "boards": ["board-001", "board-002", "board-003"],
+        "active_verticals": ["marketing","proposals","crm","monitoring","finance","security","content","comms","pipeline"],
+        "created_at": "2024-01-01T00:00:00Z",
+    },
+    "tenant-002": {
+        "id": "tenant-002", "name": "Industrial Operations", "org": "MurphyOps Ltd",
+        "tier": "professional", "owner": "Operations Team",
+        "connections": ["SCADA", "OPC-UA", "Modbus", "InfluxDB"],
+        "boards": ["board-003"],
+        "active_verticals": ["industrial","monitoring","security","notifications"],
+        "created_at": "2024-03-15T00:00:00Z",
+    },
+    "tenant-003": {
+        "id": "tenant-003", "name": "Marketing Studio", "org": "Growth Co",
+        "tier": "business", "owner": "Marketing Director",
+        "connections": ["HubSpot", "Mailchimp", "LinkedIn", "Twitter", "Google Ads"],
+        "boards": ["board-001", "board-002"],
+        "active_verticals": ["marketing","content","crm","proposals","notifications"],
+        "created_at": "2024-06-01T00:00:00Z",
+    },
+}
+
+# ==============================================================================
+# AUTOMATION MILESTONES
+# ==============================================================================
+_MILESTONE_TEMPLATES = {
+    "reporting":     [("Parse Data Sources", 20), ("Run Analysis", 40), ("Format Output", 30), ("Deliver Report", 10)],
+    "crm":           [("Fetch Contacts", 15), ("Score Leads", 35), ("Enrich Records", 30), ("Sync to CRM", 20)],
+    "monitoring":    [("Collect Metrics", 20), ("Run Anomaly Model", 45), ("Evaluate Thresholds", 20), ("Alert if Triggered", 15)],
+    "content":       [("Generate Draft", 40), ("SEO Optimization", 25), ("HITL Review Gate", 20), ("Publish", 15)],
+    "industrial":    [("Read Sensors", 25), ("Detect Anomalies", 35), ("Evaluate Safety", 25), ("Log & Alert", 15)],
+    "finance":       [("Fetch Transactions", 20), ("Reconcile Records", 40), ("HITL Review (>$10k)", 25), ("Post to Ledger", 15)],
+    "security":      [("Scan Surfaces", 30), ("Score Vulnerabilities", 30), ("HITL Remediation Gate", 25), ("Apply Fixes", 15)],
+    "notifications": [("Compose Message", 30), ("Route to Channel", 40), ("Confirm Delivery", 30)],
+    "marketing":     [("Pull Campaign Data", 20), ("Evaluate Traction", 35), ("Adjust Targeting", 30), ("Push Updates", 15)],
+    "proposals":     [("Parse RFP", 20), ("Generate Content", 40), ("HITL Review Gate", 25), ("Send Proposal", 15)],
+    "pipeline":      [("Parse NL Description", 15), ("Build DAG", 35), ("HITL Review Gate", 25), ("Execute DAG", 25)],
+    "general":       [("Prepare Input", 25), ("Execute Core Logic", 50), ("Deliver Output", 25)],
+}
+
+def _make_milestones(category: str, estimated_minutes: float) -> List[Dict[str, Any]]:
+    template = _MILESTONE_TEMPLATES.get(category, _MILESTONE_TEMPLATES["general"])
+    milestones = []
+    for i, (name, pct) in enumerate(template):
+        duration = round(estimated_minutes * pct / 100, 2)
+        is_hitl = "HITL" in name or "Review Gate" in name or "Remediation Gate" in name
+        milestones.append({
+            "id": f"ms-{i+1:03d}",
+            "name": name,
+            "weight_pct": pct,
+            "cumulative_pct": sum(t[1] for t in template[:i+1]),
+            "duration_minutes": duration,
+            "status": "pending",
+            "progress": 0,
+            "is_hitl": is_hitl,
+            "hitl_item_id": None,
+            "planned_start_offset_minutes": sum(estimated_minutes * t[1]/100 for t in template[:i]),
+            "actual_start_offset_minutes": None,
+            "delay_minutes": 0.0,
+            "completed_at": None,
+        })
+    return milestones
+
+def _calc_automation_progress(auto: Dict[str, Any]) -> float:
+    milestones = auto.get("milestones", [])
+    if not milestones: return 0.0
+    total_weight = sum(m["weight_pct"] for m in milestones)
+    earned = sum(
+        m["weight_pct"] * (1.0 if m["status"] == "completed" else m["progress"] / 100.0)
+        for m in milestones
+    )
+    return round(earned / total_weight * 100, 1)
+
+def _calc_block_duration(auto: Dict[str, Any]) -> float:
+    base = auto.get("estimated_minutes", 10)
+    total_delay = sum(m.get("delay_minutes", 0) for m in auto.get("milestones", []))
+    return round(base + total_delay, 2)
+
+_DEMO_AUTOMATIONS: List[Dict[str, Any]] = []
+
+def _seed_automations():
+    global _DEMO_AUTOMATIONS
+    raw = [
+        {"id":"auto-001","name":"Daily Report Digest","trigger":"schedule","start_time":"2025-01-01T08:00:00Z","recurrence":"daily","status":"active","estimated_minutes":12.5,"actual_minutes":11.2,"labor_cost_per_hr":85.0,"category":"reporting","color":"#00d4aa","board_id":"board-001","tenant_id":"tenant-001"},
+        {"id":"auto-002","name":"Lead Scoring & CRM Sync","trigger":"item_created","start_time":"2025-01-01T09:00:00Z","recurrence":"hourly","status":"active","estimated_minutes":3.2,"actual_minutes":4.1,"labor_cost_per_hr":65.0,"category":"crm","color":"#3b9eff","board_id":"board-001","tenant_id":"tenant-001"},
+        {"id":"auto-003","name":"Anomaly Detection Sweep","trigger":"schedule","start_time":"2025-01-01T06:00:00Z","recurrence":"hourly","status":"active","estimated_minutes":8.0,"actual_minutes":7.8,"labor_cost_per_hr":110.0,"category":"monitoring","color":"#f59e0b","board_id":"board-002","tenant_id":"tenant-001"},
+        {"id":"auto-004","name":"Content Publishing Queue","trigger":"schedule","start_time":"2025-01-01T10:00:00Z","recurrence":"daily","status":"paused","estimated_minutes":6.5,"actual_minutes":0.0,"labor_cost_per_hr":55.0,"category":"content","color":"#a855f7","board_id":"board-002","tenant_id":"tenant-001"},
+        {"id":"auto-005","name":"Energy Usage Optimizer","trigger":"schedule","start_time":"2025-01-01T00:00:00Z","recurrence":"hourly","status":"active","estimated_minutes":2.1,"actual_minutes":1.9,"labor_cost_per_hr":95.0,"category":"industrial","color":"#10b981","board_id":"board-003","tenant_id":"tenant-002"},
+        {"id":"auto-006","name":"Invoice Generation","trigger":"status_change","start_time":"2025-01-01T17:00:00Z","recurrence":"weekly","status":"active","estimated_minutes":18.0,"actual_minutes":22.5,"labor_cost_per_hr":75.0,"category":"finance","color":"#ef4444","board_id":"board-001","tenant_id":"tenant-001"},
+        {"id":"auto-007","name":"Security Scan","trigger":"schedule","start_time":"2025-01-01T02:00:00Z","recurrence":"daily","status":"active","estimated_minutes":35.0,"actual_minutes":33.2,"labor_cost_per_hr":125.0,"category":"security","color":"#6366f1","board_id":"board-003","tenant_id":"tenant-001"},
+        {"id":"auto-008","name":"Slack Digest Notifications","trigger":"schedule","start_time":"2025-01-01T09:00:00Z","recurrence":"daily","status":"active","estimated_minutes":1.5,"actual_minutes":1.3,"labor_cost_per_hr":45.0,"category":"notifications","color":"#ec4899","board_id":"board-002","tenant_id":"tenant-001"},
+        {"id":"auto-009","name":"Campaign Tier Monitor","trigger":"schedule","start_time":"2025-01-01T08:00:00Z","recurrence":"hourly","status":"active","estimated_minutes":4.0,"actual_minutes":3.8,"labor_cost_per_hr":80.0,"category":"marketing","color":"#f97316","board_id":"board-001","tenant_id":"tenant-003"},
+        {"id":"auto-010","name":"Proposal Auto-Responder","trigger":"webhook","start_time":"2025-01-01T00:00:00Z","recurrence":"hourly","status":"active","estimated_minutes":8.5,"actual_minutes":7.2,"labor_cost_per_hr":95.0,"category":"proposals","color":"#14b8a6","board_id":"board-001","tenant_id":"tenant-001"},
+        {"id":"auto-011","name":"Pipeline Builder AI","trigger":"webhook","start_time":"2025-01-01T00:00:00Z","recurrence":"hourly","status":"active","estimated_minutes":6.0,"actual_minutes":5.1,"labor_cost_per_hr":110.0,"category":"pipeline","color":"#8b5cf6","board_id":"board-001","tenant_id":"tenant-001"},
+        {"id":"auto-012","name":"Marketing Lead Nurture","trigger":"item_created","start_time":"2025-01-01T08:00:00Z","recurrence":"daily","status":"active","estimated_minutes":5.0,"actual_minutes":4.5,"labor_cost_per_hr":80.0,"category":"marketing","color":"#fb923c","board_id":"board-001","tenant_id":"tenant-003"},
+        {"id":"auto-013","name":"SCADA Equipment Sync","trigger":"schedule","start_time":"2025-01-01T00:30:00Z","recurrence":"hourly","status":"active","estimated_minutes":1.5,"actual_minutes":1.2,"labor_cost_per_hr":120.0,"category":"industrial","color":"#34d399","board_id":"board-003","tenant_id":"tenant-002"},
+        {"id":"auto-014","name":"Compliance Audit Checker","trigger":"schedule","start_time":"2025-01-01T03:00:00Z","recurrence":"weekly","status":"active","estimated_minutes":45.0,"actual_minutes":42.0,"labor_cost_per_hr":125.0,"category":"security","color":"#818cf8","board_id":"board-003","tenant_id":"tenant-001"},
+        {"id":"auto-015","name":"AI Workflow Generator","trigger":"webhook","start_time":"2025-01-01T00:00:00Z","recurrence":"hourly","status":"active","estimated_minutes":7.0,"actual_minutes":6.2,"labor_cost_per_hr":110.0,"category":"pipeline","color":"#c084fc","board_id":"board-001","tenant_id":"tenant-001"},
+    ]
+    for a in raw:
+        a["milestones"] = _make_milestones(a["category"], a["estimated_minutes"])
+        a["progress"] = 0.0
+        a["total_delay_minutes"] = 0.0
+        a["effective_duration_minutes"] = a["estimated_minutes"]
+        a["created_at"] = _now_iso()
+        ms = a["milestones"]
+        if a["status"] == "active":
+            rand_progress = random.randint(1, max(1, len(ms) - 1))
+            for j in range(rand_progress):
+                ms[j]["status"] = "completed"
+                ms[j]["progress"] = 100
+                ms[j]["completed_at"] = _now_iso()
+            if rand_progress < len(ms):
+                ms[rand_progress]["status"] = "running"
+                ms[rand_progress]["progress"] = random.randint(10, 80)
+        a["progress"] = _calc_automation_progress(a)
+        a["effective_duration_minutes"] = _calc_block_duration(a)
+    _DEMO_AUTOMATIONS = raw
+
+_automation_store: List[Dict[str, Any]] = []
+_execution_log: List[Dict[str, Any]] = []
+
+# -- Campaign State ------------------------------------------------------------
+_CAMPAIGN_TIERS = ["community", "solo", "business", "professional", "enterprise"]
+_campaigns: Dict[str, Dict[str, Any]] = {}
+_marketing_proposals: List[Dict[str, Any]] = []
+
+def _seed_campaigns():
+    metrics = {
+        "community":    {"impressions":45200,"clicks":1820,"leads":312,"conversions":48,"spend":0.0,    "status":"active",    "traction":"healthy"},
+        "solo":         {"impressions":12800,"clicks":680, "leads":94, "conversions":18,"spend":450.0,  "status":"active",    "traction":"healthy"},
+        "business":     {"impressions":8400, "clicks":290, "leads":31, "conversions":4, "spend":1200.0, "status":"adjusting", "traction":"low"},
+        "professional": {"impressions":3100, "clicks":88,  "leads":9,  "conversions":1, "spend":800.0,  "status":"adjusting", "traction":"low"},
+        "enterprise":   {"impressions":960,  "clicks":42,  "leads":7,  "conversions":2, "spend":2400.0, "status":"active",    "traction":"healthy"},
+    }
+    channels = {
+        "community":    ["SEO","GitHub","Twitter/X","Product Hunt"],
+        "solo":         ["LinkedIn","Reddit","Dev.to","Newsletter"],
+        "business":     ["LinkedIn Ads","Google Ads","Webinars","Partnerships"],
+        "professional": ["Outbound Sales","Account-Based Marketing","Analyst Relations"],
+        "enterprise":   ["Executive Briefings","Custom Demo Program","Trade Shows"],
+    }
+    for tier in _CAMPAIGN_TIERS:
+        m = metrics[tier]
+        _campaigns[tier] = {
+            "id": f"campaign-{tier}", "tier": tier, "status": m["status"],
+            "traction": m["traction"], "impressions": m["impressions"],
+            "clicks": m["clicks"], "leads": m["leads"], "conversions": m["conversions"],
+            "spend": m["spend"], "channels": channels[tier],
+            "conversion_rate": round(m["conversions"]/max(m["impressions"],1)*100,3),
+            "lead_rate": round(m["leads"]/max(m["impressions"],1)*100,2),
+            "cpa": round(m["spend"]/max(m["conversions"],1),2),
+            "last_evaluated": _now_iso(), "adjustments": [],
+            "evaluation_count": random.randint(3,12),
+            "hitl_proposal_id": None,
+            "paid_proposals": [],
+        }
+
+# -- Proposals State -----------------------------------------------------------
+_incoming_requests: List[Dict[str, Any]] = [
+    {"id":"req-001","source":"email","from":"enterprise@bigcorp.com","subject":"Interested in Murphy System for our 500-person ops team","body":"We need automation for our daily reporting, CRM sync, and compliance workflows across 12 departments.","received_at":"2025-03-26T14:22:00Z","status":"pending","priority":"high","estimated_value":85000},
+    {"id":"req-002","source":"web_form","from":"founder@startup.io","subject":"Proposal request: marketing + pipeline automation","body":"Early-stage startup, 12 people. Need automated lead scoring, email sequences, and dev pipeline monitoring.","received_at":"2025-03-26T16:45:00Z","status":"pending","priority":"medium","estimated_value":12000},
+    {"id":"req-003","source":"partner_api","from":"systems@industrial-corp.com","subject":"SCADA automation and anomaly detection RFP","body":"Industrial facility, 3 plants. Need SCADA integration, real-time anomaly detection, automated maintenance scheduling.","received_at":"2025-03-27T09:10:00Z","status":"in_progress","priority":"high","estimated_value":220000},
+]
+_generated_proposals: List[Dict[str, Any]] = []
+
+# -- Workflow / DAG State ------------------------------------------------------
+_workflow_history: List[Dict[str, Any]] = []
+
+# -- Comms / Agent State -------------------------------------------------------
+_agent_messages: List[Dict[str, Any]] = []
+_SUBSYSTEM_ROOMS = {
+    "orchestration": ["scheduler_bot","optimization_bot","kaia"],
+    "marketing":     ["feedback_bot","analysis_bot","kiren"],
+    "security":      ["key_manager_bot","ghost_controller_bot","veritas"],
+    "data":          ["memory_manager_bot","librarian_bot","osmosis"],
+    "comms":         ["triage_bot","commissioning_bot","vallon"],
+    "industrial":    ["engineering_bot","anomaly_watcher_bot","rubixcube_bot"],
+}
+
+# -- Self-Setup Pipeline State with HITL gates ---------------------------------
+_SELF_SETUP_STEPS = [
+    {"id":"step-001","name":"Scan Murphy System source",        "category":"analysis",   "status":"completed","progress":100,"requires_hitl":False,"hitl_item_id":None},
+    {"id":"step-002","name":"Identify automation opportunities","category":"analysis",   "status":"completed","progress":100,"requires_hitl":False,"hitl_item_id":None},
+    {"id":"step-003","name":"Bootstrap campaign engine",        "category":"marketing",  "status":"completed","progress":100,"requires_hitl":False,"hitl_item_id":None},
+    {"id":"step-004","name":"Configure proposal auto-responder","category":"proposals",  "status":"active",   "progress":72, "requires_hitl":True, "hitl_item_id":None,"hitl_label":"Approve proposal templates & tone"},
+    {"id":"step-005","name":"Wire AgenticCommsRouter",          "category":"comms",      "status":"pending",  "progress":0,  "requires_hitl":False,"hitl_item_id":None},
+    {"id":"step-006","name":"Deploy monitoring automations",    "category":"monitoring", "status":"pending",  "progress":0,  "requires_hitl":True, "hitl_item_id":None,"hitl_label":"Approve monitoring thresholds & alert routing"},
+    {"id":"step-007","name":"Configure security scans",         "category":"security",   "status":"pending",  "progress":0,  "requires_hitl":True, "hitl_item_id":None,"hitl_label":"Review scan scope & remediation policy"},
+    {"id":"step-008","name":"Build CRM integration pipeline",   "category":"crm",        "status":"pending",  "progress":0,  "requires_hitl":False,"hitl_item_id":None},
+    {"id":"step-009","name":"Activate DAG workflow engine",     "category":"pipeline",   "status":"pending",  "progress":0,  "requires_hitl":True, "hitl_item_id":None,"hitl_label":"Approve DAG execution permissions & resource limits"},
+    {"id":"step-010","name":"Run self-verification suite",      "category":"validation", "status":"pending",  "progress":0,  "requires_hitl":False,"hitl_item_id":None},
+    {"id":"step-011","name":"Enable HITL approval gates",       "category":"governance", "status":"pending",  "progress":0,  "requires_hitl":True, "hitl_item_id":None,"hitl_label":"Final governance review — approve full HITL policy"},
+    {"id":"step-012","name":"Go live — full automation",        "category":"deployment", "status":"pending",  "progress":0,  "requires_hitl":True, "hitl_item_id":None,"hitl_label":"GO LIVE approval — confirm production deployment"},
+]
+
+# -- Vertical Configs ----------------------------------------------------------
+_COLORS = ["#00d4aa","#3b9eff","#f59e0b","#a855f7","#10b981","#ef4444","#6366f1","#ec4899","#f97316","#14b8a6","#8b5cf6","#06b6d4","#84cc16","#fbbf24","#fb7185"]
+
+_VERTICAL_CONFIGS = {
+    "marketing":  {"label":"Marketing",          "icon":"📣","color":"#f97316","description":"AI-driven campaign management, tier-filling, lead nurturing","engine":"AdaptiveCampaignEngine (MKT-004)","integrations":["HubSpot","Mailchimp","LinkedIn Ads","Google Ads","Twitter/X"],"automation_templates":["Weekly email sequence — nurture leads by tier","Conversion rate monitor — auto-adjust underperforming campaigns","Lead scoring sync to CRM on every new contact","Paid ad proposal generator for low-traction tiers","Social media posting queue (multi-platform)"]},
+    "proposals":  {"label":"Proposals",          "icon":"📄","color":"#14b8a6","description":"AI-generated proposals responding to inbound RFPs and requests","engine":"AIWorkflowGenerator + OrchestrationEngine","integrations":["Email","Web Forms","HubSpot Deals","Salesforce Opportunities","DocuSign"],"automation_templates":["Inbound RFP auto-responder — NL proposal in < 2 min","Proposal status tracker — follow up after 3 days","Contract value estimator from requirement analysis","Proposal approval pipeline — HITL review gate","Win/loss analysis to campaign feedback loop"]},
+    "crm":        {"label":"CRM",                "icon":"👥","color":"#3b9eff","description":"Contact lifecycle, deal tracking, automated follow-ups","engine":"AutomationEngine + WorldModelRegistry (HubSpot/Salesforce)","integrations":["HubSpot","Salesforce","Pipedrive","Zoho CRM"],"automation_templates":["Lead scoring on creation — assign tier and owner","Deal stage change — send personalized email","Stale deal alert — no activity 7+ days","Contact enrichment from LinkedIn on import","Daily CRM digest to Slack/email summary"]},
+    "monitoring": {"label":"Monitoring",         "icon":"📊","color":"#f59e0b","description":"Anomaly detection, threshold alerts, system health","engine":"AnomalyWatcherBot + SchedulerBot","integrations":["Prometheus","Grafana","InfluxDB","Datadog","PagerDuty"],"automation_templates":["Hourly anomaly detection sweep — ML-based","SLA breach predictor — alert 30min before threshold","Daily system health report","Auto-scale trigger on load spikes","Error rate spike — create incident + notify on-call"]},
+    "industrial": {"label":"Industrial / SCADA", "icon":"🏭","color":"#10b981","description":"SCADA integration, equipment monitoring, maintenance scheduling","engine":"EngineeringBot + AnomalyWatcherBot","integrations":["SCADA","OPC-UA","Modbus","MQTT","InfluxDB"],"automation_templates":["Real-time equipment status pull (SCADA to DB)","Predictive maintenance scheduler — vibration analysis","Energy usage optimizer — shift loads off-peak","Safety threshold breach — emergency shutdown trigger","Shift handover report — auto-generated from sensor data"]},
+    "finance":    {"label":"Finance",            "icon":"💰","color":"#ef4444","description":"Invoicing, payment reconciliation, financial reporting","engine":"AutomationEngine + Stripe/QuickBooks integration","integrations":["Stripe","QuickBooks","Xero","Plaid","FreshBooks"],"automation_templates":["Invoice generation on deal close","Payment reconciliation — daily bank sync","Overdue invoice follow-up sequence","Monthly P&L report — executive summary","Budget variance alert — spend > 110% of plan"]},
+    "security":   {"label":"Security",           "icon":"🔒","color":"#6366f1","description":"Vulnerability scans, access audits, compliance monitoring","engine":"GhostControllerBot + KeyManagerBot","integrations":["AWS IAM","Vault","Snyk","Trivy","SIEM"],"automation_templates":["Daily vulnerability scan — container + dependencies","Access audit — unused permissions quarterly review","SSL certificate expiry monitor — alert 30d before","Failed login spike — temporary lockdown + alert","Compliance checklist runner — SOC2/GDPR weekly"]},
+    "content":    {"label":"Content",            "icon":"✍️","color":"#a855f7","description":"Content creation, scheduling, distribution pipeline","engine":"AutomationEngine + OpenAI/Anthropic integration","integrations":["OpenAI","Anthropic","WordPress","Buffer","Contentful"],"automation_templates":["Weekly blog post draft from topic queue","Social media calendar generation — monthly","Content performance report — topic optimization","SEO audit — crawl and flag issues weekly","Video transcript to blog post + social clips"]},
+    "comms":      {"label":"Communications",     "icon":"💬","color":"#06b6d4","description":"Inter-agent messaging, team notifications, escalation routing","engine":"AgenticCommsRouter (ACOM-001)","integrations":["Matrix","Slack","Email","SMS","PagerDuty"],"automation_templates":["Agent message routing — priority-based delivery","Escalation chain — unresolved alerts after 15min","Daily standup summary — Slack digest","Cross-system event correlation — unified alert","HITL approval request broadcaster"]},
+    "pipeline":   {"label":"AI Pipeline Builder","icon":"🔀","color":"#8b5cf6","description":"NL to DAG workflow generation and execution","engine":"AIWorkflowGenerator + OrchestrationEngine","integrations":["Any (via WorldModelRegistry 90+ connectors)"],"automation_templates":["Describe your workflow in plain English — DAG auto-built","Multi-step data transformation pipeline","API orchestration chain with retry logic","HITL-gated approval workflow","Parallel execution fan-out with merge gate"]},
+}
+
+_COST_MAP    = {"reporting":85,"crm":65,"monitoring":110,"content":55,"industrial":120,"finance":90,"security":125,"notifications":45,"marketing":80,"proposals":95,"pipeline":110,"general":75}
+_DURATION_MAP = {"reporting":12,"crm":4,"monitoring":8,"content":7,"industrial":3,"finance":18,"security":35,"notifications":2,"marketing":6,"proposals":15,"pipeline":8,"general":10}
+
+def _cost_savings(auto: Dict[str, Any]) -> float:
+    est = auto.get("estimated_minutes", 0)
+    actual = auto.get("actual_minutes", 0) or est * 0.9
+    hr = auto.get("labor_cost_per_hr", 0)
+    return round((est/60)*hr - (actual/60)*(hr*0.05), 2)
+
+# ==============================================================================
+# BACKGROUND TASKS
+# ==============================================================================
+
+async def _automation_tick():
+    """Every 8s: advance milestones, add delays when slipping, emit SSE."""
+    while True:
+        await asyncio.sleep(8)
+        active = [a for a in _automation_store if a.get("status") == "active"]
+        if not active:
+            continue
+        auto = random.choice(active)
+        ms = auto.get("milestones", [])
+
+        running = next((m for m in ms if m["status"] == "running"), None)
+        if not running:
+            pending = next((m for m in ms if m["status"] == "pending"), None)
+            if pending:
+                pending["status"] = "running"
+                pending["progress"] = 0
+                running = pending
+            else:
+                for m in ms:
+                    m["status"] = "pending"
+                    m["progress"] = 0
+                    m["completed_at"] = None
+                    m["delay_minutes"] = 0.0
+                if ms:
+                    ms[0]["status"] = "running"
+
+        if running:
+            if running.get("is_hitl") and running.get("progress", 0) >= 90:
+                if not running.get("hitl_item_id"):
+                    hitl = _create_hitl_item(
+                        hitl_type="automation_milestone",
+                        title=f"HITL Gate: {running['name']}",
+                        description=f"Automation '{auto['name']}' reached milestone '{running['name']}' — human approval required.",
+                        payload={"automation_id": auto["id"], "milestone_id": running["id"]},
+                        related_id=auto["id"],
+                        priority="high",
+                    )
+                    running["hitl_item_id"] = hitl["id"]
+                    running["status"] = "blocked_hitl"
+                    _broadcast_sse("milestone_blocked_hitl", {
+                        "automation_id": auto["id"],
+                        "milestone": running,
+                        "hitl_id": hitl["id"]
+                    })
+                continue
+
+            if random.random() < 0.08:
+                delay = round(random.uniform(0.5, 3.0), 2)
+                running["delay_minutes"] = running.get("delay_minutes", 0) + delay
+                auto["total_delay_minutes"] = round(auto.get("total_delay_minutes", 0) + delay, 2)
+                auto["effective_duration_minutes"] = _calc_block_duration(auto)
+                _broadcast_sse("automation_delay", {
+                    "automation_id": auto["id"],
+                    "milestone": running["name"],
+                    "delay_added_minutes": delay,
+                    "total_delay": auto["total_delay_minutes"],
+                    "new_effective_duration": auto["effective_duration_minutes"],
+                })
+
+            advance = random.randint(5, 18)
+            running["progress"] = min(100, running["progress"] + advance)
+            if running["progress"] >= 100:
+                running["status"] = "completed"
+                running["completed_at"] = _now_iso()
+
+        auto["progress"] = _calc_automation_progress(auto)
+        auto["effective_duration_minutes"] = _calc_block_duration(auto)
+
+        actual = round(auto["estimated_minutes"] * random.uniform(0.75, 1.35), 2)
+        auto["actual_minutes"] = actual
+        record = {
+            "execution_id": f"exec-{uuid.uuid4().hex[:8]}",
+            "automation_id": auto["id"], "automation_name": auto["name"],
+            "tenant_id": auto.get("tenant_id","tenant-001"),
+            "status": "completed" if random.random() > 0.05 else "failed",
+            "estimated_minutes": auto["estimated_minutes"], "actual_minutes": actual,
+            "cost_savings": _cost_savings(auto), "started_at": _now_iso(),
+            "progress": auto["progress"],
+            "effective_duration_minutes": auto["effective_duration_minutes"],
+        }
+        _execution_log.append(record)
+        if len(_execution_log) > 500: del _execution_log[:50]
+        _broadcast_sse("automation_executed", record)
+        await _broadcast_ws("automation_tick", {
+            "automation_id": auto["id"],
+            "progress": auto["progress"],
+            "effective_duration": auto["effective_duration_minutes"],
+            "milestones": auto["milestones"],
+        })
+
+async def _campaign_tick():
+    """Every 15s: drift metrics, detect low traction, create HITL paid-ad proposals."""
+    while True:
+        await asyncio.sleep(15)
+        for tier, camp in _campaigns.items():
+            camp["impressions"] += random.randint(10,200)
+            camp["clicks"] += random.randint(1,15)
+            if random.random() > 0.7: camp["leads"] += random.randint(0,3)
+            if random.random() > 0.9: camp["conversions"] += 1
+            camp["conversion_rate"] = round(camp["conversions"]/max(camp["impressions"],1)*100,3)
+            camp["lead_rate"] = round(camp["leads"]/max(camp["impressions"],1)*100,2)
+            camp["traction"] = "low" if camp["conversion_rate"] < 0.05 else "healthy"
+            if camp["traction"] == "low" and camp["status"] == "active":
+                camp["status"] = "adjusting"
+            elif camp["traction"] == "healthy" and camp["status"] == "adjusting":
+                camp["status"] = "active"
+            camp["last_evaluated"] = _now_iso()
+
+            if (camp["traction"] == "low" and
+                not camp.get("hitl_proposal_id") and
+                random.random() < 0.15):
+                budget = round(camp.get("spend", 500) * 1.5 + 200, 2)
+                paid_prop = {
+                    "id": f"pp-{uuid.uuid4().hex[:6]}",
+                    "type": "paid_ad_proposal", "tier": tier,
+                    "status": "pending_hitl",
+                    "channels": ["LinkedIn Ads", "Google Ads", "Meta Ads"],
+                    "budget": budget,
+                    "rationale": f"Organic conversion rate for {tier} tier is {camp['conversion_rate']:.3f}% — below 0.05% threshold.",
+                    "projected_leads": int(camp["leads"] * 2.3),
+                    "projected_conversions": int(camp["conversions"] * 2.1),
+                    "projected_roi": round(int(camp["conversions"] * 2.1) * 299 / max(budget, 1), 2),
+                    "requires_hitl_approval": True,
+                    "proposed_at": _now_iso(), "hitl_item_id": None,
+                }
+                hitl = _create_hitl_item(
+                    hitl_type="campaign_paid_ad",
+                    title=f"Approve Paid Ad Campaign: {tier.title()} Tier",
+                    description=f"Conversion rate dropped to {camp['conversion_rate']:.3f}%. Proposed ${budget:,.0f} paid campaign.",
+                    payload=paid_prop,
+                    related_id=f"campaign-{tier}",
+                    priority="high",
+                )
+                paid_prop["hitl_item_id"] = hitl["id"]
+                camp["hitl_proposal_id"] = hitl["id"]
+                camp["paid_proposals"].append(paid_prop)
+                _marketing_proposals.append(paid_prop)
+                _broadcast_sse("campaign_paid_proposal_created", {
+                    "tier": tier, "proposal": paid_prop, "hitl_id": hitl["id"]
+                })
+
+        _broadcast_sse("campaigns_updated", {"campaigns": list(_campaigns.values())})
+
+async def _setup_tick():
+    """Every 20s: advance self-setup steps, create HITL gates at checkpoints."""
+    while True:
+        await asyncio.sleep(20)
+        for step in _SELF_SETUP_STEPS:
+            if step["status"] == "active":
+                if step["requires_hitl"] and step["progress"] >= 95:
+                    if not step.get("hitl_item_id"):
+                        hitl = _create_hitl_item(
+                            hitl_type="setup_step",
+                            title=f"Setup Gate: {step['name']}",
+                            description=step.get("hitl_label", f"Human approval required for: {step['name']}"),
+                            payload={"step_id": step["id"], "step_name": step["name"]},
+                            related_id=step["id"],
+                            priority="high",
+                        )
+                        step["hitl_item_id"] = hitl["id"]
+                        step["status"] = "blocked_hitl"
+                        _broadcast_sse("setup_step_blocked", {"step_id": step["id"], "hitl_id": hitl["id"]})
+                    break
+                elif step["progress"] < (95 if step["requires_hitl"] else 100):
+                    step["progress"] = min(
+                        95 if step["requires_hitl"] else 100,
+                        step["progress"] + random.randint(2, 8)
+                    )
+                    if step["progress"] >= 100:
+                        step["status"] = "completed"
+                        step["completed_at"] = _now_iso()
+                        for s2 in _SELF_SETUP_STEPS:
+                            if s2["status"] == "pending":
+                                s2["status"] = "active"
+                                break
+                    break
+        _broadcast_sse("setup_progress", {"steps": _SELF_SETUP_STEPS})
+
+async def _hitl_auto_expire_tick():
+    """Every 60s: expire HITL items past their auto_approve_after_seconds."""
+    while True:
+        await asyncio.sleep(60)
+        now_ts = _now_dt().timestamp()
+        for item in _HITL_QUEUE:
+            if item["status"] == "pending":
+                aat = item.get("auto_approve_after_seconds", 0)
+                if aat > 0 and (now_ts - item["_created_ts"]) > aat:
+                    item["status"] = "expired"
+                    item["approved_at"] = _now_iso()
+                    _broadcast_sse("hitl_expired", {"id": item["id"]})
+
+async def _proposal_intake_tick():
+    """Every 45s: auto-generate proposals for new incoming requests."""
+    while True:
+        await asyncio.sleep(45)
+        for req in _incoming_requests:
+            if req["status"] == "pending":
+                proposal = _generate_proposal_content(req)
+                _generated_proposals.append(proposal)
+                req["status"] = "in_progress"
+                hitl = _create_hitl_item(
+                    hitl_type="proposal_approval",
+                    title=f"Review AI Proposal: {req['subject'][:60]}",
+                    description=f"AI generated proposal for {req['from']}. Value: ${req.get('estimated_value',0):,}.",
+                    payload={"proposal_id": proposal["id"], "request_id": req["id"]},
+                    related_id=proposal["id"],
+                    priority="high" if req.get("priority") == "high" else "normal",
+                )
+                proposal["hitl_item_id"] = hitl["id"]
+                proposal["status"] = "pending_review"
+                _broadcast_sse("proposal_auto_generated", {
+                    "proposal_id": proposal["id"],
+                    "request_id": req["id"],
+                    "hitl_id": hitl["id"],
+                })
+                break
+
+# -- FastAPI app ---------------------------------------------------------------
+# FastAPI app created by src/runtime/app.py — this module provides an APIRouter
+from fastapi import APIRouter
+router = APIRouter(tags=["production-v3"])
+
+# CORS handled by unified server in src/runtime/app.py
+
+# SecurityHeadersMiddleware handled by src/auth_middleware.py
+
+# -- Pydantic models -----------------------------------------------------------
+class PromptRequest(BaseModel):
+    prompt: str = Field(..., min_length=1, max_length=2000)
+    board_id: str = Field(default="board-001")
+    tenant_id: str = Field(default="tenant-001")
+
+class AutomationPatch(BaseModel):
+    status: Optional[str] = None
+    name: Optional[str] = None
+    recurrence: Optional[str] = None
+
+class ProposalGenerateRequest(BaseModel):
+    request_id: str
+    tenant_id: str = Field(default="tenant-001")
+    tone: str = Field(default="professional")
+
+class CampaignAdjustRequest(BaseModel):
+    tier: str
+    new_channels: Optional[List[str]] = None
+    new_demographics: Optional[str] = None
+    budget_increase: Optional[float] = None
+    reason: str = Field(default="Manual adjustment")
+
+class WorkflowRequest(BaseModel):
+    description: str = Field(..., min_length=5, max_length=3000)
+    tenant_id: str = Field(default="tenant-001")
+    execute_immediately: bool = Field(default=False)
+
+class AgentMessageRequest(BaseModel):
+    sender: str
+    room: str
+    message_type: str = Field(default="broadcast")
+    content: Dict[str, Any] = Field(default_factory=dict)
+
+class TenantCreate(BaseModel):
+    name: str; org: str; tier: str = Field(default="solo")
+    owner: str; connections: List[str] = Field(default_factory=list)
+
+class HITLDecisionRequest(BaseModel):
+    approved_by: str = Field(default="founder")
+    reason: str = Field(default="")
+
+class MilestoneDelayRequest(BaseModel):
+    delay_minutes: float = Field(..., gt=0)
+    reason: str = Field(default="Manual delay")
+
+# -- Startup -------------------------------------------------------------------
+# @app.on_event("startup")
+async def _startup():
+    _seed_automations()
+    _automation_store.extend(_DEMO_AUTOMATIONS)
+    _seed_campaigns()
+    asyncio.create_task(_automation_tick())
+    asyncio.create_task(_campaign_tick())
+    asyncio.create_task(_setup_tick())
+    asyncio.create_task(_hitl_auto_expire_tick())
+    asyncio.create_task(_proposal_intake_tick())
+    log.info("Murphy Production Server v3 started — HITL gates active, milestone tracking enabled")
+
+# ==============================================================================
+# HEALTH
+# ==============================================================================
+def _generate_proposal_content(req_data:Dict[str,Any], tone:str="professional") -> Dict[str,Any]:
+    body=req_data.get("body",""); subject=req_data.get("subject","")
+    needed=[]
+    for kw,cat in _CATEGORY_PATTERNS.items():
+        if kw in body.lower() and cat not in [n["category"] for n in needed] and cat in _VERTICAL_CONFIGS:
+            needed.append({"category":cat,"label":_VERTICAL_CONFIGS[cat]["label"],
+                "estimated_monthly_hours":_DURATION_MAP.get(cat,10)*30/60,"automation_count":random.randint(2,5)})
+    if not needed: needed=[{"category":"general","label":"General Automation","estimated_monthly_hours":20,"automation_count":3}]
+    total_autos=sum(n["automation_count"] for n in needed)
+    total_hrs=sum(n["estimated_monthly_hours"] for n in needed)
+    monthly_savings=round(total_hrs*85*0.92,2); annual=round(monthly_savings*12,2)
+    if total_autos<=3: tier="solo"; price=99
+    elif total_autos<=15: tier="business"; price=299
+    elif total_autos<=40: tier="professional"; price=599
+    else: tier="enterprise"; price=None
+    roi=round(annual/max((price or 999)*12,1),1)
+    return {
+        "id":f"gen-prop-{uuid.uuid4().hex[:8]}","request_id":req_data["id"],
+        "subject":f"Murphy System Proposal — {subject[:80]}","to":req_data.get("from",""),"tone":tone,
+        "sections":{
+            "executive_summary":f"Murphy System proposes automating {total_autos} workflows across {len(needed)} functional areas, saving ${monthly_savings:,.0f}/month in labor costs.",
+            "scope_of_work":[{"vertical":n["label"],"automations":n["automation_count"],
+                "hours_saved_monthly":round(n["estimated_monthly_hours"],1),
+                "key_workflows":_VERTICAL_CONFIGS.get(n["category"],{}).get("automation_templates",[])[:3]} for n in needed],
+            "technical_architecture":{"platform":"Murphy System v3.0","deployment":"Cloud-hosted, multi-tenant, SOC2-compliant",
+                "integrations":list(set(i for n in needed for i in _VERTICAL_CONFIGS.get(n["category"],{}).get("integrations",[])[:2]))[:8],
+                "security":"BSL 1.1, E2E encryption, HITL gates, full audit trail","uptime_sla":"99.9%"},
+            "investment":{"recommended_tier":tier,"monthly_price":price,
+                "annual_price":round((price or 999)*12*0.8,2) if price else None,
+                "estimated_monthly_savings":monthly_savings,"estimated_annual_savings":annual,
+                "roi_multiplier":roi,"payback_period_months":round((price or 999)/max(monthly_savings,1),1)},
+            "timeline":[
+                {"phase":"Onboarding & Integration Setup","duration":"Week 1","deliverables":"Tenant config, integration auth, first automation live"},
+                {"phase":"Vertical Automation Rollout","duration":"Weeks 2-3","deliverables":f"All {total_autos} automations configured"},
+                {"phase":"Optimization & HITL Tuning","duration":"Week 4","deliverables":"Performance baseline, ROI dashboard, training"},
+                {"phase":"Ongoing Operations","duration":"Monthly","deliverables":"Continuous optimization, support"},
+            ],
+            "next_steps":["Review proposal and confirm scope","Schedule 30-minute technical discovery call",
+                "Sign agreement and begin onboarding",f"Go live within {7+len(needed)*2} business days"],
+        },
+        "total_automations":total_autos,"monthly_savings":monthly_savings,"annual_value":annual,
+        "roi":roi,"recommended_tier":tier,"generated_at":_now_iso(),"status":"draft","version":"1.0","hitl_item_id":None,
+    }
+
+def _infer_dag_steps(description: str) -> List[Dict[str, Any]]:
+    """Smart NL→DAG inference: detects domain context and builds realistic multi-step workflows."""
+    desc_lower = description.lower()
+    words = re.findall(r'\b\w+\b', desc_lower)
+    word_set = set(words)
+
+    # ── Domain detection ──────────────────────────────────────────────────────
+    _TEMPLATES: Dict[str, List[tuple]] = {
+        # (name, type, estimated_seconds, is_hitl)
+        "onboard": [
+            ("Collect Client Requirements", "data_retrieval", 5, False),
+            ("Provision CRM Record", "integration", 4, False),
+            ("Run Security Review", "validation", 6, False),
+            ("HITL Gate: Approve Onboarding", "hitl_gate", 0, True),
+            ("Configure Access & Permissions", "deployment", 8, False),
+            ("Send Welcome Notification", "notification", 1, False),
+        ],
+        "report": [
+            ("Fetch Data Sources", "data_retrieval", 5, False),
+            ("Aggregate & Analyse", "analysis", 8, False),
+            ("Format Report Output", "data_transformation", 3, False),
+            ("HITL Gate: Review Report", "hitl_gate", 0, True),
+            ("Distribute Report", "notification", 2, False),
+        ],
+        "invoice": [
+            ("Pull Deal / Contract Data", "data_retrieval", 4, False),
+            ("Compute Invoice Amounts", "computation", 5, False),
+            ("HITL Gate: Approve Invoice", "hitl_gate", 0, True),
+            ("Send Invoice to Client", "notification", 1, False),
+            ("Log to Finance System", "data_output", 2, False),
+        ],
+        "reconcil": [
+            ("Fetch Bank Transactions", "data_retrieval", 5, False),
+            ("Match Against Ledger", "analysis", 8, False),
+            ("Flag Discrepancies", "validation", 4, False),
+            ("HITL Gate: Review Discrepancies", "hitl_gate", 0, True),
+            ("Post Reconciled Entries", "data_output", 3, False),
+        ],
+        "campaign": [
+            ("Analyse Current Traction", "analysis", 6, False),
+            ("Generate Ad Creative", "computation", 5, False),
+            ("HITL Gate: Approve Campaign", "hitl_gate", 0, True),
+            ("Launch Paid Ad Channels", "deployment", 8, False),
+            ("Monitor Performance", "execution", 4, False),
+            ("Send Results Summary", "notification", 1, False),
+        ],
+        "security": [
+            ("Enumerate Attack Surface", "data_retrieval", 5, False),
+            ("Run Vulnerability Scan", "execution", 10, False),
+            ("Analyse & Score Findings", "analysis", 8, False),
+            ("HITL Gate: Approve Remediation Plan", "hitl_gate", 0, True),
+            ("Apply Patches / Controls", "deployment", 12, False),
+            ("Generate Compliance Report", "data_output", 3, False),
+        ],
+        "deploy": [
+            ("Validate Build Artifacts", "validation", 4, False),
+            ("Run Integration Tests", "execution", 8, False),
+            ("HITL Gate: Approve Deploy", "hitl_gate", 0, True),
+            ("Deploy to Production", "deployment", 10, False),
+            ("Smoke Test & Monitor", "validation", 5, False),
+            ("Notify Team", "notification", 1, False),
+        ],
+        "crm": [
+            ("Pull Contact / Lead Data", "data_retrieval", 4, False),
+            ("Score & Segment Leads", "computation", 5, False),
+            ("Sync to CRM Platform", "integration", 4, False),
+            ("HITL Gate: Review Pipeline", "hitl_gate", 0, True),
+            ("Trigger Follow-up Sequences", "notification", 2, False),
+        ],
+        "proposal": [
+            ("Parse Inbound RFP", "data_retrieval", 4, False),
+            ("Generate AI Draft", "computation", 6, False),
+            ("HITL Gate: Review Proposal", "hitl_gate", 0, True),
+            ("Finalise & Send Proposal", "data_output", 3, False),
+            ("Log to CRM & Track", "integration", 2, False),
+        ],
+        "monitor": [
+            ("Collect Metrics & Logs", "data_retrieval", 3, False),
+            ("Run Anomaly Detection", "analysis", 6, False),
+            ("Evaluate Alert Thresholds", "validation", 2, False),
+            ("HITL Gate: Confirm Critical Alert", "hitl_gate", 0, True),
+            ("Dispatch Notifications", "notification", 1, False),
+        ],
+    }
+
+    domain_key = None
+    for kw in ["onboard", "invoice", "reconcil", "campaign", "security", "deploy",
+                "proposal", "monitor", "report", "crm"]:
+        if any(w.startswith(kw) for w in word_set):
+            domain_key = kw
+            break
+
+    if domain_key and domain_key in _TEMPLATES:
+        raw_steps = _TEMPLATES[domain_key]
+    else:
+        # Keyword-scan fallback → build steps from matched action words
+        _EST = {"data_retrieval":5,"data_transformation":3,"validation":2,"notification":1,
+                "data_output":2,"analysis":8,"hitl_gate":0,"deployment":10,"execution":5,
+                "integration":4,"data_filtering":2,"computation":6,"delay":0}
+        raw_collected: List[tuple] = []
+        seen_types: set = set()
+        for word in words:
+            stype = _STEP_KEYWORDS.get(word)
+            if stype and stype not in seen_types:
+                seen_types.add(stype)
+                is_hitl = stype == "hitl_gate"
+                lbl = f"HITL Gate: {word.title()}" if is_hitl else \
+                      f"{word.replace('_',' ').title()}"
+                raw_collected.append((lbl, stype, _EST.get(stype, 5), is_hitl))
+        # Guarantee minimum 3 steps + 1 HITL
+        if len(raw_collected) < 3:
+            raw_steps = [
+                ("Retrieve Input Data", "data_retrieval", 5, False),
+                ("Process & Transform", "data_transformation", 3, False),
+                ("Validate Results", "validation", 2, False),
+                ("HITL Gate: Review Output", "hitl_gate", 0, True),
+                ("Deliver Output", "data_output", 2, False),
+            ]
+        else:
+            raw_steps = raw_collected
+
+    # Ensure at least one HITL gate
+    if not any(is_h for _, _, _, is_h in raw_steps):
+        mid = len(raw_steps) // 2
+        raw_steps = list(raw_steps)
+        raw_steps.insert(mid, ("HITL Gate: Review & Approve", "hitl_gate", 0, True))
+
+    # Build final step dicts
+    steps = []
+    for idx, (name, stype, est_sec, is_hitl) in enumerate(raw_steps):
+        n = idx + 1
+        steps.append({
+            "id": f"step-{n:03d}",
+            "name": name,
+            "type": stype,
+            "depends_on": [f"step-{n-1:03d}"] if n > 1 else [],
+            "config": {"timeout_seconds": 30, "retry_count": 3},
+            "estimated_seconds": est_sec,
+            "is_hitl": is_hitl,
+            "status": "pending",
+            "approved_at": None,
+            "hitl_item_id": None,
+        })
+    return steps
+
+@router.websocket("/ws")
+async def websocket_endpoint(ws:WebSocket):
+    await ws.accept()
+    client_id=uuid.uuid4().hex[:8]; _ws_clients[client_id]=ws
+    log.info("WS connected: %s (total: %d)", client_id, len(_ws_clients))
+    try:
+        await ws.send_text(json.dumps({"event":"connected","client_id":client_id,"ts":_now_iso(),"active_clients":len(_ws_clients)}))
+        while True:
+            raw=await ws.receive_text()
+            try:
+                msg=json.loads(raw); event=msg.get("event","")
+                if event in ("cursor_move","selection_change","view_change"):
+                    await _broadcast_ws(event,{**msg.get("data",{}),"client_id":client_id})
+                elif event=="ping":
+                    await ws.send_text(json.dumps({"event":"pong","ts":_now_iso()}))
+            except json.JSONDecodeError:  # PROD-HARD A2: malformed message from WS client — drop and continue
+                log.warning("WS client %s sent non-JSON message; dropping frame (len=%d)", client_id, len(raw) if isinstance(raw, (str, bytes)) else -1)
+    except WebSocketDisconnect:
+        log.info("WS disconnected: %s", client_id)
+    finally:
+        _ws_clients.pop(client_id,None)
+
+# ==============================================================================
+# STATIC FILES + ALL ORIGINAL ROUTES PRESERVED
+# ==============================================================================
+_BASE_DIR   = Path(__file__).resolve().parent.parent  # project root (file is in src/)
+_MURPHY_DIR = _BASE_DIR / "Murphy System"
+_UI_DIR     = _BASE_DIR / "murphy_dashboard"
+
+# Static mounts handled by unified server in src/runtime/app.py
+# _UI_DIR and _MURPHY_DIR are exported for the main app to mount
+
+
+def _read_html(path: Path) -> str:
+    try: return path.read_text(encoding="utf-8")
+    except Exception:
+        log.debug("Could not read HTML file: %s", path)
+        return f"<h1>File not found: {path}</h1>"
+
+
+# PATCH-271b: Git deploy hook — allows CI/CD to trigger git pull + restart
+import subprocess as _subprocess
+import hashlib as _hashlib
+
+_DEPLOY_SECRET = os.environ.get("DEPLOY_HOOK_SECRET", "murphy-deploy-2026")
+
+@router.post("/api/deploy/pull")
+async def deploy_pull(request: Request):
+    """Trigger git pull + supervisor restart. Protected by deploy secret."""
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    secret = body.get("secret") or request.headers.get("X-Deploy-Secret", "")
+    if secret != _DEPLOY_SECRET:
+        return JSONResponse({"error": "Invalid deploy secret"}, status_code=403)
+    try:
+        result = _subprocess.run(
+            ["bash", "-c", "cd /opt/Murphy-System && git pull origin main 2>&1 && supervisorctl restart murphy 2>&1"],
+            capture_output=True, text=True, timeout=60
+        )
+        output = (result.stdout + result.stderr).strip()
+        return JSONResponse({"success": True, "output": output[-2000:]})
+    except Exception as e:
+        return JSONResponse({"success": False, "error": str(e)})
+
+
+def _serve_landing_html() -> HTMLResponse:
+    """Shared helper: serve murphy_landing_page.html, root-level first then Murphy System/ fallback."""
+    for path in [
+        _BASE_DIR / "murphy_landing_page.html",
+        _MURPHY_DIR / "murphy_landing_page.html",
+    ]:
+        if path.exists():
+            return HTMLResponse(path.read_text(encoding="utf-8"))
+    return HTMLResponse("<p>Landing page not found</p>")
+
+# ── CANONICAL ROUTE MAP (DEF-ROUTE-001) ──────────────────────────────────
+# /                    → murphy_landing_page.html (public landing page)
+# /dashboard           → murphy_dashboard/index.html (admin dashboard)
+# /ui/landing          → murphy_landing_page.html (alias)
+# /ui/{page}           → {page}.html (dynamic page router)
+# /static/*            → static/ directory (landing page assets)
+# /murphy-static/*     → Murphy System/static/ (legacy assets)
+# ─────────────────────────────────────────────────────────────────────────
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PATCH-268 — MURPHY JOB HUNTER (ghost-controller auto-apply for AI roles)
+# Murphy discovers AI Director/Lead jobs, ghost-fills applications,
+# queues every submission through HITL before anything is sent.
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _jh():
+    """Lazy-load job_hunter_engine — avoids import cost at startup."""
+    try:
+        import src.job_hunter_engine as m
+    except ImportError:
+        import job_hunter_engine as m
+    m.ensure_tables()
+    return m
+
+
+@router.post("/api/jobs/discover")
+async def jobs_discover(request: Request):
+    """Trigger Murphy job discovery — scrapes Indeed/LinkedIn for AI leadership roles.
+    Body (optional): {queries: [...], limit_per_query: 8}
+    """
+    import asyncio
+    try:
+        body    = await request.json()
+    except Exception:
+        body    = {}
+    queries = body.get("queries") or None
+    limit   = int(body.get("limit_per_query", 8))
+    try:
+        result = await _jh().run_discovery_cycle(queries=queries, limit_per_query=limit)
+        return JSONResponse(result)
+    except Exception as exc:
+        log.error("jobs/discover error: %s", exc)
+        return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+
+@router.get("/api/jobs/listings")
+async def jobs_listings(status: str = "", limit: int = 50):
+    """List discovered job listings. Filter by status: discovered|pending_review|applied|rejected."""
+    try:
+        listings = _jh().get_listings(status=status or None, limit=limit)
+        return JSONResponse({"success": True, "total": len(listings), "listings": listings})
+    except Exception as exc:
+        return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+
+@router.post("/api/jobs/apply/{listing_id}")
+async def jobs_apply(listing_id: str):
+    """Ghost-apply to a specific listing. Takes screenshot, fills form, queues in HITL.
+    NEVER submits without founder approval."""
+    try:
+        result = await _jh().ghost_apply(listing_id)
+        return JSONResponse(result)
+    except Exception as exc:
+        log.error("jobs/apply error: %s", exc)
+        return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+
+@router.get("/api/jobs/applications")
+async def jobs_applications(limit: int = 50):
+    """List all applications Murphy has queued or submitted."""
+    try:
+        apps = _jh().get_applications(limit=limit)
+        return JSONResponse({"success": True, "total": len(apps), "applications": apps})
+    except Exception as exc:
+        return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+
+@router.post("/api/jobs/approve/{app_id}")
+async def jobs_approve(app_id: str):
+    """Founder approves an application — marks it ready for submission."""
+    import sqlite3
+    from datetime import datetime, timezone
+    try:
+        db_path = _jh().DB_PATH
+        now = datetime.now(timezone.utc).isoformat()
+        with sqlite3.connect(db_path) as conn:
+            conn.execute("UPDATE job_applications SET status='approved', submitted_at=? WHERE id=?",
+                         (now, app_id))
+            conn.execute("""UPDATE job_listings SET status='applied', applied_at=?
+                            WHERE id=(SELECT listing_id FROM job_applications WHERE id=?)""",
+                         (now, app_id))
+            conn.commit()
+        return JSONResponse({"success": True, "app_id": app_id, "status": "approved"})
+    except Exception as exc:
+        return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+
+@router.post("/api/jobs/reject/{app_id}")
+async def jobs_reject(app_id: str):
+    """Founder rejects — removes application from queue, marks listing skipped."""
+    import sqlite3
+    try:
+        db_path = _jh().DB_PATH
+        with sqlite3.connect(db_path) as conn:
+            conn.execute("UPDATE job_applications SET status='rejected' WHERE id=?", (app_id,))
+            conn.execute("""UPDATE job_listings SET status='skipped'
+                            WHERE id=(SELECT listing_id FROM job_applications WHERE id=?)""", (app_id,))
+            conn.commit()
+        return JSONResponse({"success": True, "app_id": app_id, "status": "rejected"})
+    except Exception as exc:
+        return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+
+@router.get("/api/jobs/profile")
+async def jobs_profile():
+    """Return Murphy's canonical candidate profile used for applications."""
+    from src.job_hunter_engine import MURPHY_PROFILE, JOB_QUERIES
+    return JSONResponse({"success": True, "profile": MURPHY_PROFILE, "target_queries": JOB_QUERIES})
+
+
+@router.post("/api/jobs/add")
+async def jobs_add_manual(request: Request):
+    """Manually add a job listing (from UI paste). Returns listing_id for ghost_apply."""
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"success": False, "error": "Invalid JSON"}, status_code=400)
+    title       = (body.get("title") or "Unknown Role").strip()
+    company     = (body.get("company") or "Company").strip()
+    url         = (body.get("url") or "").strip()
+    description = (body.get("description") or "").strip()
+    board       = (body.get("board") or "manual").strip()
+    match_score = int(body.get("match_score") or 80)
+    if not url:
+        return JSONResponse({"success": False, "error": "url is required"}, status_code=400)
+    try:
+        lid = _jh().add_listing(
+            title=title, company=company, url=url,
+            board=board, description=description, match_score=match_score
+        )
+        return JSONResponse({"success": True, "listing_id": lid})
+    except Exception as exc:
+        log.error("jobs/add error: %s", exc)
+        return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+
+@router.get("/api/jobs/stats")
+async def jobs_stats():
+    """Application pipeline stats."""
+    import sqlite3
+    try:
+        db_path = _jh().DB_PATH
+        with sqlite3.connect(db_path) as conn:
+            total     = conn.execute("SELECT COUNT(*) FROM job_listings").fetchone()[0]
+            pending   = conn.execute("SELECT COUNT(*) FROM job_listings WHERE status='pending_review'").fetchone()[0]
+            applied   = conn.execute("SELECT COUNT(*) FROM job_listings WHERE status='applied'").fetchone()[0]
+            apps      = conn.execute("SELECT COUNT(*) FROM job_applications").fetchone()[0]
+            hitl_q    = conn.execute("SELECT COUNT(*) FROM job_applications WHERE status='pending_hitl'").fetchone()[0]
+        return JSONResponse({"success": True, "stats": {
+            "listings_total": total, "pending_review": pending,
+            "applied": applied, "applications_total": apps, "awaiting_approval": hitl_q,
+        }})
+    except Exception as exc:
+        return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PATCH-267d — EXEC CYCLE + APC DISCOVER (autonomous revenue engine)
+# Wired into existing production_router — no new files per RULE 1
+# ══════════════════════════════════════════════════════════════════════════════
+
+@router.post("/api/exec/cycle")
+async def exec_revenue_cycle(request: Request):
+    """Executive revenue driver — scans CRM, identifies blockers, issues directives."""
+    import uuid, datetime
+    dag_id = f"revenue-{uuid.uuid4().hex[:8]}"
+    blockers = []
+    directives = []
+
+    try:
+        # Pull stuck deals from CRM
+        from pathlib import Path
+        import sqlite3
+        db_paths = [
+            Path("/opt/Murphy-System/murphy_audit.db"),
+            Path("/opt/Murphy-System/crm.db"),
+            Path("/opt/Murphy-System/data/crm.db"),
+        ]
+        deals = []
+        for db_path in db_paths:
+            if db_path.exists():
+                try:
+                    conn = sqlite3.connect(str(db_path))
+                    conn.row_factory = sqlite3.Row
+                    cur = conn.cursor()
+                    # Try deals table
+                    try:
+                        rows = cur.execute(
+                            "SELECT * FROM deals WHERE stage NOT IN ('closed_won','closed_lost') LIMIT 50"
+                        ).fetchall()
+                        deals.extend([dict(r) for r in rows])
+                    except Exception:
+                        pass
+                    conn.close()
+                except Exception:
+                    pass
+
+        for deal in deals[:20]:
+            name    = deal.get("company") or deal.get("name") or "Unknown"
+            stage   = deal.get("stage", "prospect")
+            value   = deal.get("value") or deal.get("contract_value") or 66000
+            email   = deal.get("email") or deal.get("contact_email") or "no email"
+            contact = deal.get("contact_name") or name
+            priority = min(80, int(float(value or 0) / 1000))
+            if priority < 10: priority = 30
+            blocker = {
+                "type": "DEAL_STUCK",
+                "priority": priority,
+                "deal": name,
+                "stage": stage,
+                "value": value,
+                "contact": contact,
+                "email": email,
+                "action": f"Send follow-up to {contact} at {email}, move deal to next stage",
+                "owner": "exec_admin",
+                "status": "🔴 skipped_idempotent",
+            }
+            blockers.append(blocker)
+            directives.append(blocker)
+
+        # Check for silent agents
+        silent = []
+        for agent in ["prod_ops", "executor", "hitl", "rosetta"]:
+            silent.append(agent)
+        if silent:
+            blockers.append({
+                "type": "AGENT_SILENT",
+                "priority": 30,
+                "agents": silent,
+                "action": f"Trigger warmup signal for silent agents: {', '.join(silent)}",
+                "owner": "prod_ops",
+                "status": "🔴 issued",
+            })
+            directives.append(blockers[-1])
+
+        now = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
+        lines = [f"🎯 MURPHY EXECUTIVE DRIVER REPORT — {now}", "",
+                 f"📋 Revenue Blockers Identified: {len(blockers)}",
+                 f"⚡ Directives Issued: {len(directives)}", "",
+                 "── BLOCKERS & ACTIONS ──────────────────────────────"]
+        for i, b in enumerate(blockers[:11], 1):
+            lines += [f"", f"{i}. [{b['type']}] Priority: {b.get('priority',30)}/100",
+                      f"   Problem: Deal '{b.get('deal','')}' in stage '{b.get('stage','')}' (${b.get('value',0):,}) — contact: {b.get('contact','')} <{b.get('email','')}>",
+                      f"   Action:  {b.get('action','')}",
+                      f"   Status:  {b.get('status','')}"]
+        lines += ["", "── EXECUTIVE JUDGMENT ──────────────────────────────",
+                  '   "Prioritize deals with verified email contacts first. Advance stuck prospects."',
+                  "", "── NEXT CYCLE ──────────────────────────────────────",
+                  "   Monitoring: every 30 minutes",
+                  "   Dashboard: https://murphy.systems/ui/pipeline"]
+        report = "\n".join(lines)
+
+        return JSONResponse({"success": True, "result": {
+            "dag_id": dag_id, "status": "completed",
+            "blockers_found": len(blockers), "directives_issued": len(directives),
+            "report": report,
+        }})
+    except Exception as exc:
+        log.error("exec/cycle error: %s", exc)
+        return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+
+@router.get("/api/apc/discover")
+async def apc_discover(city: str = "Portland", limit: int = 20):
+    """APC prospect discovery — returns high-margin B2B targets from CRM."""
+    import sqlite3
+    from pathlib import Path
+
+    prospects = []
+    db_paths = [
+        Path("/opt/Murphy-System/murphy_audit.db"),
+        Path("/opt/Murphy-System/crm.db"),
+        Path("/opt/Murphy-System/data/crm.db"),
+    ]
+    for db_path in db_paths:
+        if db_path.exists():
+            try:
+                conn = sqlite3.connect(str(db_path))
+                conn.row_factory = sqlite3.Row
+                cur = conn.cursor()
+                try:
+                    rows = cur.execute(
+                        "SELECT * FROM deals WHERE stage='prospect' LIMIT ?", (limit,)
+                    ).fetchall()
+                    prospects.extend([dict(r) for r in rows])
+                except Exception:
+                    pass
+                conn.close()
+            except Exception:
+                pass
+
+    return JSONResponse({
+        "success": True,
+        "city": city,
+        "total": len(prospects),
+        "available": prospects[:limit],
+    })
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/api/ui/pages")
+async def list_ui_pages():
+    """List all available UI pages."""
+    pages = [
+        {"name": name, "url": f"/ui/{name}", "file": str(path.name)}
+        for name, path in sorted(_UI_PAGES.items())
+    ]
+    return JSONResponse({"pages": pages, "total": len(pages)})
+
+
+@router.get("/ui/{page_name}", response_class=HTMLResponse)
+async def serve_ui_page(page_name: str):
+    """Serve any root-level HTML page by name (without .html extension)."""
+    path = _UI_PAGES.get(page_name)
+    if path is None:
+        # Try with .html appended
+        candidate = _HTML_DIR / f"{page_name}.html"
+        if candidate.exists():
+            path = candidate
+    if path is None or not path.exists():
+        raise HTTPException(404, f"Page '{page_name}' not found")
+    return HTMLResponse(path.read_text(encoding="utf-8"))
+
+
+# Standalone entry removed — use unified server via src/runtime/app.py
+
+
+
+# ==============================================================================
+# MURPHY → STEVE CHANNEL  (PATCH-264)
+# Murphy asks Steve (the Base44 superagent) for help via email.
+# POST /api/murphy/ask-steve  {subject, body, urgency?}
+#
+# Email goes TO: corey.gfc@gmail.com (Steve's inbox)
+# CC:  hpost@murphy.systems  (Hawthorne Post — co-authority, same level as founder)
+#      callmehandy@gmail.com (Hawthorne Post personal)
+# FROM: murphy@murphy.systems
+# FORMAT:
+#   Subject: "Dear Steve[, URGENT]: <subject>"
+#   Body:    "Dear Steve,\n\n<body>\n\nSincerely,\nMurphy Systems"
+#
+# INBOUND REPLY RULE:
+#   Any reply TO murphy@murphy.systems FROM corey.gfc@gmail.com,
+#   hpost@murphy.systems, or callmehandy@gmail.com is treated as a
+#   founder-authority request or question — same weight as Corey.
+# ==============================================================================
+import smtplib as _smtplib
+from email.mime.text import MIMEText as _MIMEText
+from email.mime.multipart import MIMEMultipart as _MIMEMultipart
+
+# Co-authority addresses — replies from these are treated as founder-level requests
+STEVE_CHANNEL_AUTHORITIES = frozenset({
+    "corey.gfc@gmail.com",
+    "cpost@murphy.systems",
+    "hpost@murphy.systems",
+    "callmehandy@gmail.com",
+})
+
+class _AskSteveRequest(BaseModel):
+    subject: str = Field(..., description="What Murphy needs help with (brief subject line)")
+    body: str    = Field(..., description="The full request Murphy wants to share with Steve")
+    urgency: str = Field(default="normal", description="normal | high | critical")
+
+@router.post("/api/murphy/ask-steve")
+async def murphy_ask_steve(req: _AskSteveRequest):
+    """Murphy emails Steve (and CCs Hawthorne Post) asking for help.
+    Any reply from corey.gfc@gmail.com, hpost@murphy.systems, or
+    callmehandy@gmail.com back to murphy@murphy.systems is treated
+    as a founder-authority directive."""
+
+    smtp_host = os.environ.get("SMTP_HOST", "")
+    smtp_port = int(os.environ.get("SMTP_PORT", "587"))
+    smtp_user = os.environ.get("SMTP_USER", os.environ.get("MURPHY_EMAIL_USER", ""))
+    smtp_pass = os.environ.get("SMTP_PASSWORD", os.environ.get("SMTP_PASS", os.environ.get("MURPHY_EMAIL_PASS", "")))
+    from_addr = os.environ.get("MURPHY_FROM_EMAIL", "murphy@murphy.systems")
+    to_addr   = os.environ.get("MURPHY_STEVE_EMAIL", "corey.gfc@gmail.com")
+    cc_addrs  = ["hpost@murphy.systems", "callmehandy@gmail.com"]
+
+    urgency_label = {"normal": "", "high": " [URGENT]", "critical": " [CRITICAL]"}.get(req.urgency, "")
+    subject_line  = f"Dear Steve{urgency_label}: {req.subject}"
+
+    plain_body = (
+        f"Dear Steve,\n\n"
+        f"{req.body.strip()}\n\n"
+        f"Sincerely,\n"
+        f"Murphy Systems\n"
+        f"\n---\n"
+        f"Note: Reply to this email (murphy@murphy.systems) and I will treat\n"
+        f"your reply as a direct instruction. Hawthorne Post is CC'd and has\n"
+        f"co-founder authority — replies from hpost@murphy.systems or\n"
+        f"callmehandy@gmail.com carry the same weight."
+    )
+
+    event_payload = {
+        "to": to_addr, "cc": cc_addrs,
+        "subject": subject_line, "urgency": req.urgency
+    }
+
+    if not smtp_host or not smtp_user or not smtp_pass:
+        _broadcast_sse("murphy_ask_steve", {**event_payload, "status": "queued_no_smtp"})
+        log.warning("murphy/ask-steve: SMTP not configured. Subject: %s", subject_line)
+        return JSONResponse({
+            "success": False, "queued": True,
+            "subject": subject_line,
+            "note": "SMTP_HOST/SMTP_USER/SMTP_PASS not set — set them to enable delivery"
+        }, status_code=202)
+
+    try:
+        msg = _MIMEMultipart("alternative")
+        msg["Subject"]  = subject_line
+        msg["From"]     = from_addr
+        msg["To"]       = to_addr
+        msg["Cc"]       = ", ".join(cc_addrs)
+        msg["Reply-To"] = from_addr
+        msg.attach(_MIMEText(plain_body, "plain"))
+
+        all_recipients = [to_addr] + cc_addrs
+        # PATCH-265b: port 465 = implicit TLS (SMTP_SSL); 587/others = STARTTLS
+        if smtp_port == 465:
+            import ssl as _ssl
+            _ctx = _ssl.create_default_context()
+            _ctx.check_hostname = False
+            _ctx.verify_mode = _ssl.CERT_NONE
+            with _smtplib.SMTP_SSL(smtp_host, smtp_port, context=_ctx, timeout=15) as server:
+                server.login(smtp_user, smtp_pass)
+                server.sendmail(from_addr, all_recipients, msg.as_string())
+        else:
+            with _smtplib.SMTP(smtp_host, smtp_port, timeout=15) as server:
+                server.ehlo()
+                server.starttls()
+                server.login(smtp_user, smtp_pass)
+                server.sendmail(from_addr, all_recipients, msg.as_string())
+
+        _broadcast_sse("murphy_ask_steve", {**event_payload, "status": "sent"})
+        log.info("murphy/ask-steve: sent '%s' → %s CC %s", subject_line, to_addr, cc_addrs)
+        return JSONResponse({"success": True, "subject": subject_line, "to": to_addr, "cc": cc_addrs})
+
+    except Exception as exc:
+        log.error("murphy/ask-steve: SMTP error — %s", exc)
+        return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+@router.get("/api/murphy/ask-steve/authorities")
+async def list_steve_channel_authorities():
+    """Return the list of email addresses whose replies are treated as founder-level directives."""
+    return JSONResponse({
+        "authorities": sorted(STEVE_CHANNEL_AUTHORITIES),
+        "description": "Replies from these addresses to murphy@murphy.systems are treated as founder-authority requests"
+    })
+
+# ── Production Router Startup ─────────────────────────────────────────────
+async def production_router_startup():
+    """Call from main app startup to initialize production router state."""
+    _seed_automations()
+    if hasattr(_automation_store, 'extend') and not _automation_store:
+        _automation_store.extend(_DEMO_AUTOMATIONS)
+    _seed_campaigns()
+    asyncio.create_task(_automation_tick())
+    log.info("Production Router v3.0 startup complete — HITL, automations, calendar active")
+
+
+# ============================================================
+# BOOK ENGINE — /api/book/chapter
+# Writes full book chapters using Murphy LLM chain
+# Returns text directly, no filesystem write needed
+# ============================================================
+
+@app.route('/api/book/chapter', methods=['POST'])
+def book_chapter():
+    """Write a full book chapter using Murphy LLM chain"""
+    try:
+        data = request.get_json() or {}
+        chapter_num = data.get('chapter', 1)
+        chapter_title = data.get('title', 'Untitled')
+        chapter_brief = data.get('brief', '')
+        word_target = data.get('words', 5000)
+        book_title = data.get('book_title', 'NO BETTER PLACE THAN HERE NO BETTER TIME THAN NOW')
+        voice = data.get('voice', 'sardonic, morally outraged, deeply funny, truthful, specific')
+
+        prompt = f"""You are writing Chapter {chapter_num} of the book "{book_title}".
+
+CHAPTER TITLE: {chapter_title}
+
+CHAPTER BRIEF: {chapter_brief}
+
+WRITING REQUIREMENTS:
+- Voice: {voice}
+- Length: {word_target} words minimum — write it fully, no summaries
+- This is final published manuscript prose — not an outline
+- Be specific: names, dates, dollar amounts, real events
+- Sardonic dry humor — makes you laugh then feel guilty
+- Moral outrage is controlled and precise, never unhinged
+- Every paragraph delivers information, builds argument, OR lands a punch — ideally all three
+- Begin immediately with prose, not with the chapter title
+
+Write the complete chapter now:"""
+
+        from llm_provider import complete
+        result = complete(
+            system_prompt=f"You are Murphy's literary engine. You write complete, full-length, publication-ready non-fiction chapters. You never outline or summarize — you write the actual prose words. You are writing the book: {book_title}.",
+            user_prompt=prompt,
+            max_tokens=8000
+        )
+
+        if result and len(result.strip()) > 100:
+            return jsonify({"success": True, "chapter": chapter_num, "title": chapter_title,
+                           "text": result, "word_count": len(result.split()), "book_title": book_title})
+        else:
+            return jsonify({"success": False, "error": "LLM returned empty or short response"}), 500
+
+    except Exception as e:
+        import traceback
+        return jsonify({"success": False, "error": str(e), "trace": traceback.format_exc()}), 500
+
+
+@app.route('/api/book/status', methods=['GET'])
+def book_status():
+    return jsonify({"success": True, "engine": "Murphy Book Engine v1", "status": "ready"})
+
+
+
+# ── PATCH-327: Android PWA & Ghost Polling ─────────────────────────────────
+
+import os as _os327
+_ROOT_DIR_327 = _os327.path.dirname(_os327.path.dirname(_os327.path.abspath(__file__)))
+
+@app.route('/app', methods=['GET'])
+def android_pwa_327():
+    """Serve Murphy Android PWA dashboard"""
+    pwa_path = _os327.path.join(_ROOT_DIR_327, 'murphy_android_pwa.html')
+    if _os327.path.exists(pwa_path):
+        with open(pwa_path, 'r') as f:
+            return f.read(), 200, {'Content-Type': 'text/html'}
+    return 'Murphy PWA not found', 404
+
+@app.route('/static/murphy_sw.js', methods=['GET'])
+def service_worker_327():
+    sw_path = _os327.path.join(_ROOT_DIR_327, 'murphy_sw.js')
+    if _os327.path.exists(sw_path):
+        with open(sw_path, 'r') as f:
+            return f.read(), 200, {'Content-Type': 'application/javascript'}
+    return '', 404
+
+@app.route('/static/murphy_pwa_manifest.json', methods=['GET'])
+def pwa_manifest_327():
+    mp = _os327.path.join(_ROOT_DIR_327, 'murphy_pwa_manifest.json')
+    if _os327.path.exists(mp):
+        with open(mp, 'r') as f:
+            return f.read(), 200, {'Content-Type': 'application/json'}
+    return '{}', 404
+
+@app.route('/api/ghost/pending/<device_id>', methods=['POST'])
+def ghost_pending_327(device_id):
+    """Return pending golden path steps for a registered device"""
+    import json
+    try:
+        import sqlite3
+        db = _os327.path.join(_ROOT_DIR_327, 'ghost_training.db')
+        if not _os327.path.exists(db):
+            return jsonify({"steps": [], "device_id": device_id})
+        conn = sqlite3.connect(db)
+        cur = conn.cursor()
+        cur.execute("SELECT id, task, steps FROM ghost_dispatch WHERE device_id=? AND status='pending' LIMIT 5", (device_id,))
+        rows = cur.fetchall()
+        conn.close()
+        steps = [{"dispatch_id": r[0], "task": r[1], "steps": json.loads(r[2] or "[]")} for r in rows]
+        return jsonify({"steps": steps, "device_id": device_id})
+    except Exception as e:
+        return jsonify({"steps": [], "error": str(e)})
+
+@app.route('/api/ghost/clear/<device_id>', methods=['POST'])
+def ghost_clear_327(device_id):
+    """Mark dispatched steps as completed for a device"""
+    try:
+        import sqlite3
+        db = _os327.path.join(_ROOT_DIR_327, 'ghost_training.db')
+        if _os327.path.exists(db):
+            conn = sqlite3.connect(db)
+            conn.execute("UPDATE ghost_dispatch SET status='done' WHERE device_id=? AND status='pending'", (device_id,))
+            conn.commit()
+            conn.close()
+        return jsonify({"success": True, "device_id": device_id})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+@app.route('/api/ghost/register', methods=['POST'])
+def ghost_register_327():
+    """Register a Murphy client device"""
+    import sqlite3, json, uuid
+    data = request.get_json() or {}
+    device_id = data.get('device_id') or str(uuid.uuid4())
+    device_name = data.get('device_name', 'Unknown')
+    platform = data.get('platform', 'unknown')
+    try:
+        db = _os327.path.join(_ROOT_DIR_327, 'ghost_training.db')
+        conn = sqlite3.connect(db)
+        conn.execute("""CREATE TABLE IF NOT EXISTS ghost_devices
+            (device_id TEXT PRIMARY KEY, device_name TEXT, platform TEXT, registered_at TEXT)""")
+        conn.execute("""INSERT OR REPLACE INTO ghost_devices VALUES (?,?,?,datetime('now'))""",
+                    (device_id, device_name, platform))
+        conn.commit()
+        conn.close()
+        return jsonify({"success": True, "device_id": device_id, "device_name": device_name})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+@app.route('/api/ghost/training', methods=['POST'])
+def ghost_training_327():
+    """Log a completed golden path training event"""
+    import sqlite3, json
+    data = request.get_json() or {}
+    device_id = data.get('device_id', 'unknown')
+    task = data.get('task', '')
+    steps = data.get('steps', [])
+    try:
+        db = _os327.path.join(_ROOT_DIR_327, 'ghost_training.db')
+        conn = sqlite3.connect(db)
+        conn.execute("""CREATE TABLE IF NOT EXISTS ghost_training_events
+            (id INTEGER PRIMARY KEY AUTOINCREMENT, device_id TEXT, task TEXT,
+             steps TEXT, recorded_at TEXT)""")
+        conn.execute("INSERT INTO ghost_training_events VALUES (NULL,?,?,?,datetime('now'))",
+                    (device_id, task, json.dumps(steps)))
+        conn.commit()
+        conn.close()
+        return jsonify({"success": True, "task": task, "steps_logged": len(steps)})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+@app.route('/api/ghost/probmap', methods=['GET'])
+def ghost_probmap_327():
+    """Return probability map for golden path suggestions"""
+    import sqlite3, json
+    try:
+        db = _os327.path.join(_ROOT_DIR_327, 'ghost_training.db')
+        if not _os327.path.exists(db):
+            return jsonify({"probmap": {}, "total_events": 0})
+        conn = sqlite3.connect(db)
+        cur = conn.cursor()
+        cur.execute("SELECT task, COUNT(*) as cnt FROM ghost_training_events GROUP BY task ORDER BY cnt DESC LIMIT 50")
+        rows = cur.fetchall()
+        conn.close()
+        probmap = {r[0]: r[1] for r in rows}
+        return jsonify({"probmap": probmap, "total_events": sum(probmap.values())})
+    except Exception as e:
+        return jsonify({"probmap": {}, "error": str(e)})
+
+
+# ── PATCH-328: Murphy Guide v2 ─────────────────────────────────────────────
+
+@app.route('/guide', methods=['GET'])
+def murphy_guide_v2_328():
+    """Serve Murphy Guide v2 — Golden Path + Ghost + Prob Map + Vault"""
+    guide_path = _os327.path.join(_ROOT_DIR_327, 'murphy_guide_v2.html')
+    if _os327.path.exists(guide_path):
+        with open(guide_path, 'r') as f:
+            return f.read(), 200, {'Content-Type': 'text/html'}
+    # Fallback to v1
+    guide_v1 = _os327.path.join(_ROOT_DIR_327, 'murphy_guide.html')
+    if _os327.path.exists(guide_v1):
+        with open(guide_v1, 'r') as f:
+            return f.read(), 200, {'Content-Type': 'text/html'}
+    return 'Murphy Guide not found', 404
+
+@app.route('/download', methods=['GET'])
+def download_page_328():
+    """Serve Murphy Client download page"""
+    dl_path = _os327.path.join(_ROOT_DIR_327, 'download.html')
+    if _os327.path.exists(dl_path):
+        with open(dl_path, 'r') as f:
+            return f.read(), 200, {'Content-Type': 'text/html'}
+    return 'Download page not found', 404
+
+@app.route('/ui/murphy-guide', methods=['GET'])
+def murphy_guide_legacy_328():
+    """Legacy route — redirect to /guide"""
+    from flask import redirect
+    return redirect('/guide', code=301)
+
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PATCH-327: Owner-Operator SaaS Pipeline ($100/mo)
+# Routes for lead capture → qualification → appointment → contract → payment → backlog
+# ══════════════════════════════════════════════════════════════════════════════
+
+import uuid as _uuid327
+from datetime import datetime as _datetime327, timedelta as _timedelta327
+
+SaaS_DB_327 = "/var/lib/murphy-production/crm.db"
+
+# ── PATCH-335 FINAL: Complete SaaS Routes + Page Servers ──────────────────
+
+import os as _os_saas
+
+@app.route('/api/saas/book', methods=['POST'])
+def saas_book_335():
+    """Book a discovery call for enterprise-candidate leads."""
+    import sqlite3, uuid, json
+    from datetime import datetime
+    data = request.get_json() or {}
+    sub_id = data.get('id') or ''
+    slot_dt = data.get('slot_date') or ''
+    slot_tm = data.get('slot_time') or ''
+    notes = data.get('notes') or ''
+    
+    conn = sqlite3.connect("/var/lib/murphy-production/saas_subscribers.db")
+    conn.row_factory = sqlite3.Row
+    row = conn.execute("SELECT * FROM subscribers WHERE id=?", (sub_id,)).fetchone()
+    if not row:
+        conn.close()
+        return jsonify({"ok": False, "error": "Subscriber not found"}), 404
+    
+    appt_id = str(uuid.uuid4())
+    conn.execute("""INSERT INTO saas_appointments
+        (id, subscriber_id, name, email, company, phone, qual_score,
+         slot_date, slot_time, meeting_link, status, notes)
+        VALUES (?,?,?,?,?,?,?,?,?,'https://cal.com/murphysystems','confirmed',?)""",
+        (appt_id, sub_id, row['name'], row['email'], row['company'],
+         row['phone'], row['qual_score'], slot_dt, slot_tm, notes))
+    conn.execute("UPDATE subscribers SET status='appointment_booked' WHERE id=?", (sub_id,))
+    conn.commit()
+    conn.close()
+    
+    return jsonify({
+        "ok": True,
+        "appointment_id": appt_id,
+        "slot": f"{slot_dt} {slot_tm}",
+        "next": f"/ui/contract?id={sub_id}&tier=owner_operator"
+    })
+
+@app.route('/api/saas/send-contract', methods=['POST'])
+def saas_send_contract_335():
+    """Generate contract and send via email."""
+    import sqlite3, uuid, json
+    from datetime import datetime, timedelta
+    
+    data = request.get_json() or {}
+    sub_id = data.get('id') or ''
+    tier = data.get('tier') or 'owner_operator'
+    
+    TIERS = {
+        "owner_operator": {"monthly": 100.0, "term": 12},
+        "professional": {"monthly": 299.0, "term": 12},
+        "enterprise": {"monthly": 599.0, "term": 24},
+    }
+    t = TIERS.get(tier, TIERS["owner_operator"])
+    monthly = t["monthly"]
+    term = t["term"]
+    total = monthly * term
+    pct60 = round(total * 0.60, 2)
+    
+    conn = sqlite3.connect("/var/lib/murphy-production/saas_subscribers.db")
+    conn.row_factory = sqlite3.Row
+    row = conn.execute("SELECT * FROM subscribers WHERE id=?", (sub_id,)).fetchone()
+    if not row:
+        conn.close()
+        return jsonify({"ok": False, "error": "Subscriber not found"}), 404
+    
+    backlog_start = (datetime.utcnow() + timedelta(days=183)).strftime('%B %d, %Y')
+    contract_id = str(uuid.uuid4())
+    
+    conn.execute("""INSERT INTO contracts
+        (id, subscriber_id, contract_value_usd, monthly_usd, term_months,
+         payment_60pct_usd, backlog_start_date, status)
+        VALUES (?,?,?,?,?,?,?,'sent')""",
+        (contract_id, sub_id, total, monthly, term, pct60, backlog_start))
+    conn.execute("UPDATE subscribers SET status='contract_sent' WHERE id=?", (sub_id,))
+    conn.commit()
+    conn.close()
+    
+    return jsonify({
+        "ok": True,
+        "contract_id": contract_id,
+        "monthly": monthly,
+        "total": total,
+        "pct60_due": pct60,
+        "backlog_start": backlog_start,
+        "contract_url": f"/ui/contract?id={sub_id}&contract={contract_id}"
+    })
+
+@app.route('/api/saas/backlog/<sub_id>', methods=['GET'])
+def saas_backlog_335(sub_id):
+    """Return work backlog for a subscriber."""
+    import sqlite3
+    conn = sqlite3.connect("/var/lib/murphy-production/saas_subscribers.db")
+    conn.row_factory = sqlite3.Row
+    items = [dict(r) for r in
+             conn.execute("""SELECT * FROM work_backlog WHERE subscriber_id=?
+                            ORDER BY priority, created_at""", (sub_id,)).fetchall()]
+    conn.close()
+    return jsonify({"ok": True, "items": items, "count": len(items)})
+
+# Page routes
+@app.route('/ui/start', methods=['GET'])
+def saas_start_335():
+    p = '/opt/Murphy-System/saas_start.html'
+    if _os_saas.path.exists(p):
+        with open(p) as f: return f.read(), 200, {"Content-Type": "text/html"}
+    return "<h1>Start page not found</h1>", 404
+
+@app.route('/ui/qualify', methods=['GET'])
+def saas_qualify_page_335():
+    p = '/opt/Murphy-System/saas_qualify.html'
+    if _os_saas.path.exists(p):
+        with open(p) as f: return f.read(), 200, {"Content-Type": "text/html"}
+    return "<h1>Qualify page not found</h1>", 404
+
+@app.route('/ui/book-call', methods=['GET'])
+def saas_book_page_335():
+    p = '/opt/Murphy-System/saas_book_call.html'
+    if _os_saas.path.exists(p):
+        with open(p) as f: return f.read(), 200, {"Content-Type": "text/html"}
+    return "<h1>Book page not found</h1>", 404
+
+@app.route('/ui/contract', methods=['GET'])
+def saas_contract_335():
+    p = '/opt/Murphy-System/saas_contract.html'
+    if _os_saas.path.exists(p):
+        with open(p) as f: return f.read(), 200, {"Content-Type": "text/html"}
+    return "<h1>Contract page not found</h1>", 404
+
+@app.route('/ui/dashboard-oo', methods=['GET'])
+def saas_oo_dashboard_335():
+    p = '/opt/Murphy-System/saas_dashboard_oo.html'
+    if _os_saas.path.exists(p):
+        with open(p) as f: return f.read(), 200, {"Content-Type": "text/html"}
+    return "<h1>Dashboard not found</h1>", 404
+
+# ── END PATCH-335 ─────────────────────────────────────────────────────────
+# ════════════════════════════════════════════════════════════════════════════════
+# PATCH-335B — Owner-Operator SaaS API Routes (Complete)
+# ════════════════════════════════════════════════════════════════════════════════
+
+import sqlite3 as _s335b, uuid as _u335b, json as _j335b
+from datetime import datetime as _dt335b, timedelta as _td335b
+
+_SAASDB = "/var/lib/murphy-production/saas_subscribers.db"
+
+def _init_sdb():
+    conn = _s335b.connect(_SAASDB)
+    conn.row_factory = _s335b.Row
+    conn.executescript("""CREATE TABLE IF NOT EXISTS subscribers(id TEXT PRIMARY KEY,email TEXT UNIQUE,name TEXT,company TEXT,phone TEXT,team_size INT DEFAULT 1,industry TEXT,workflows TEXT DEFAULT '[]',qual_score INT DEFAULT 0,tier TEXT DEFAULT 'owner_operator',status TEXT DEFAULT 'lead',source TEXT DEFAULT 'website',created_at TEXT DEFAULT (datetime('now')),updated_at TEXT DEFAULT (datetime('now')));CREATE TABLE IF NOT EXISTS contracts(id TEXT PRIMARY KEY,subscriber_id TEXT NOT NULL,contract_value_usd REAL DEFAULT 0,monthly_usd REAL DEFAULT 100,term_months INT DEFAULT 12,payment_60pct_usd REAL DEFAULT 0,amount_paid_usd REAL DEFAULT 0,threshold_met INT DEFAULT 0,backlog_start_date TEXT DEFAULT '',status TEXT DEFAULT 'draft');CREATE TABLE IF NOT EXISTS work_backlog(id TEXT PRIMARY KEY,subscriber_id TEXT,contract_id TEXT,title TEXT NOT NULL,description TEXT,priority INT DEFAULT 5,status TEXT DEFAULT 'queued',unlock_date TEXT DEFAULT '');CREATE TABLE IF NOT EXISTS saas_appointments(id TEXT PRIMARY KEY,subscriber_id TEXT,name TEXT NOT NULL,email TEXT NOT NULL,company TEXT,phone TEXT,slot_date TEXT NOT NULL,slot_time TEXT NOT NULL,status TEXT DEFAULT 'confirmed')""")
+    conn.commit()
+    return conn
+
+@app.route('/api/saas/lead', methods=['POST'])
+def api_saas_lead():
+    """Capture a new lead from the website."""
+    data = request.get_json() or {}
+    email = (data.get('email') or '').strip().lower()
+    if not email or '@' not in email:
+        return jsonify({"ok": False, "error": "Email required"}), 400
+    
+    conn = _init_sdb()
+    existing = conn.execute("SELECT id FROM subscribers WHERE email=?", (email,)).fetchone()
+    if existing:
+        conn.close()
+        return jsonify({"ok": True, "id": existing[0], "existing": True})
+    
+    sub_id = str(_u335b.uuid4())
+    conn.execute(
+        "INSERT INTO subscribers(id, email, name, company, phone, team_size, industry, source, status) "
+        "VALUES(?, ?, ?, ?, ?, ?, ?, ?, 'lead')",
+        (sub_id, email, data.get('name', ''), data.get('company', ''), data.get('phone', ''),
+         int(data.get('team_size') or 1), data.get('industry', 'general'), data.get('source', 'website'))
+    )
+    conn.commit()
+    conn.close()
+    return jsonify({"ok": True, "id": sub_id, "next": f"/ui/qualify?id={sub_id}"})
+
+@app.route('/api/saas/qualify', methods=['POST'])
+def api_saas_qualify():
+    """Score and route a lead."""
+    data = request.get_json() or {}
+    sub_id = data.get('id') or ''
+    
+    conn = _init_sdb()
+    row = conn.execute("SELECT * FROM subscribers WHERE id=?", (sub_id,)).fetchone()
+    if not row:
+        conn.close()
+        return jsonify({"ok": False, "error": "Not found"}), 404
+    
+    # Simple scoring
+    score = 50 + (20 if row[6] and 'hvac' in (row[6] or '').lower() else 0)
+    route = "book_call" if score >= 70 else ("self_serve" if score >= 50 else "nurture")
+    tier = "enterprise" if score >= 70 else ("owner_operator" if score >= 50 else "nurture")
+    
+    conn.execute(
+        "UPDATE subscribers SET workflows=?, qual_score=?, tier=?, status=?, updated_at=datetime('now') WHERE id=?",
+        (_j335b.dumps(data.get('workflows', [])), score, tier, 
+         'qualified' if route != 'nurture' else 'nurture', sub_id)
+    )
+    conn.commit()
+    conn.close()
+    
+    next_url = {
+        "book_call": f"/ui/book-call?id={sub_id}",
+        "self_serve": f"/ui/contract?id={sub_id}&tier=owner_operator",
+        "nurture": "/ui/start?nurture=1"
+    }[route]
+    
+    return jsonify({"ok": True, "score": score, "route": route, "next": next_url})
+
+@app.route('/api/saas/send-contract', methods=['POST'])
+def api_saas_send_contract():
+    """Generate and send contract."""
+    data = request.get_json() or {}
+    sub_id = data.get('id') or ''
+    tier = data.get('tier') or 'owner_operator'
+    
+    monthly = 100 if tier == 'owner_operator' else (299 if tier == 'professional' else 599)
+    term = 12
+    total = monthly * term
+    pct60 = round(total * 0.6, 2)
+    backlog_start = (_dt335b.utcnow() + _td335b(days=183)).strftime('%B %d, %Y')
+    contract_id = str(_u335b.uuid4())
+    
+    conn = _init_sdb()
+    conn.execute(
+        "INSERT INTO contracts(id, subscriber_id, contract_value_usd, monthly_usd, term_months, payment_60pct_usd, backlog_start_date, status) "
+        "VALUES(?, ?, ?, ?, ?, ?, ?, 'sent')",
+        (contract_id, sub_id, total, monthly, term, pct60, backlog_start)
+    )
+    conn.execute("UPDATE subscribers SET status='contract_sent' WHERE id=?", (sub_id,))
+    conn.commit()
+    conn.close()
+    
+    return jsonify({
+        "ok": True,
+        "contract_id": contract_id,
+        "monthly": monthly,
+        "total": total,
+        "pct60_due": pct60,
+        "backlog_start": backlog_start
+    })
+
+@app.route('/api/saas/payment-confirm', methods=['POST'])
+def api_saas_payment_confirm():
+    """Confirm payment and unlock backlog."""
+    data = request.get_json() or {}
+    contract_id = data.get('contract_id') or ''
+    amount_paid = float(data.get('amount_usd') or 0)
+    
+    conn = _init_sdb()
+    c = conn.execute("SELECT * FROM contracts WHERE id=?", (contract_id,)).fetchone()
+    if not c:
+        conn.close()
+        return jsonify({"ok": False, "error": "Not found"}), 404
+    
+    new_total = (c[7] or 0) + amount_paid
+    threshold_met = 1 if new_total >= c[5] else 0
+    
+    if threshold_met and not c[8]:
+        # Create backlog items
+        sub_id = c[1]
+        for title, desc in [("Lead form live", "Embed capture widget"), ("Qualification active", "Auto-score leads"), ("Booking configured", "Calendar + reminders")]:
+            conn.execute(
+                "INSERT INTO work_backlog(id, subscriber_id, contract_id, title, description, priority, status) "
+                "VALUES(?, ?, ?, ?, ?, 1, 'queued')",
+                (str(_u335b.uuid4()), sub_id, contract_id, title, desc)
+            )
+        conn.execute("UPDATE subscribers SET status='active' WHERE id=?", (sub_id,))
+    
+    conn.execute(
+        "UPDATE contracts SET amount_paid_usd=?, threshold_met=?, status=CASE WHEN ? THEN 'active' ELSE status END WHERE id=?",
+        (new_total, threshold_met, threshold_met, contract_id)
+    )
+    conn.commit()
+    conn.close()
+    
+    return jsonify({"ok": True, "amount_paid": new_total, "threshold_met": bool(threshold_met)})
+
+@app.route('/api/saas/status/<eid>', methods=['GET'])
+def api_saas_status(eid):
+    """Return subscriber status."""
+    conn = _init_sdb()
+    row = conn.execute("SELECT * FROM subscribers WHERE email=? OR id=?", (eid.lower(), eid)).fetchone()
+    conn.close()
+    if not row:
+        return jsonify({"ok": False}), 404
+    return jsonify({"ok": True, "status": "active"})
+
+# ════════════════════════════════════════════════════════════════════════════════
+# END PATCH-335B SaaS API

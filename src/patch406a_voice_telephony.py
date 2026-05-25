@@ -1,0 +1,589 @@
+"""
+PATCH-406a — Murphy Voice Engine: Native Telephony Foundation
+==============================================================
+
+The bottom layer of Murphy's native voice stack.
+
+What this provides:
+  - Twilio-backed outbound dialing
+  - Twilio-backed inbound receiving
+  - WebSocket Media Streams bridge — audio flows BOTH ways through Murphy
+    in real time at 8kHz PCM (the foundation for 406b STT/TTS, 406c brain,
+    406d pathways, 406e soul integration)
+  - Call lifecycle state in SQLite (queued → ringing → in-progress → done)
+  - Event Spine emission for every call lifecycle event (audit-grade)
+  - Vault-driven credentials — never reads env vars; always asks PATCH-405
+
+What it does NOT do yet (deferred to later patches):
+  - 406b: streaming STT + TTS (Murphy listening/speaking)
+  - 406c: LLM-driven conversation
+  - 406d: pathway state machines (IVR navigation, branching)
+  - 406e: Rosetta soul, dialect-matching voice, vault credential handoff
+          mid-call, HITL warm transfer to founder's phone
+
+Endpoints:
+  POST   /api/phone/dial              -- initiate an outbound call
+  GET    /api/phone/calls             -- list calls (filter by status/agent)
+  GET    /api/phone/call/{call_id}    -- single call detail + transcript
+  POST   /api/phone/hangup/{call_id}  -- terminate a call
+  POST   /api/phone/twilio/voice      -- Twilio webhook (TwiML response)
+  POST   /api/phone/twilio/status     -- Twilio status callback
+  WS     /api/phone/twilio/media      -- bidirectional audio stream
+  GET    /api/phone/health
+  GET    /phone                       -- HTML monitor UI
+
+Vault-managed secrets (requested via PATCH-405 with risk_class='write'):
+  TWILIO_ACCOUNT_SID
+  TWILIO_AUTH_TOKEN
+  TWILIO_PHONE_NUMBER         (the Murphy-owned number to call FROM)
+  TWILIO_WEBHOOK_PUBLIC_URL   (e.g. https://murphy.systems — for callbacks)
+"""
+from __future__ import annotations
+import os, sys, json, sqlite3, hashlib, time, base64, secrets, asyncio, logging
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
+from fastapi import Request, WebSocket, WebSocketDisconnect
+from fastapi.responses import JSONResponse, HTMLResponse, PlainTextResponse
+
+log = logging.getLogger("murphy.voice")
+
+# ── Optional Twilio import (graceful degradation) ───────────────────────────
+try:
+    from twilio.rest import Client as TwilioClient
+    from twilio.twiml.voice_response import VoiceResponse, Connect, Stream
+    _TWILIO_OK = True
+except ImportError:
+    _TWILIO_OK = False
+    TwilioClient = None
+
+# ── Vault bridge (PATCH-405) — fetch credentials, never store in code ───────
+try:
+    from src.patch405_secrets_vault import use_secret as _vault_use
+    from src.patch405_secrets_vault import create_request as _vault_request
+    _VAULT_OK = True
+except ImportError:
+    try:
+        from patch405_secrets_vault import use_secret as _vault_use
+        from patch405_secrets_vault import create_request as _vault_request
+        _VAULT_OK = True
+    except ImportError:
+        _VAULT_OK = False
+        _vault_use = None
+        _vault_request = None
+
+# ── Constants ───────────────────────────────────────────────────────────────
+DB_PATH = "/var/lib/murphy-production/murphy_voice.db"
+VOICE_AGENT_ID = "platform_voice_engine"
+
+SCHEMA = """
+CREATE TABLE IF NOT EXISTS voice_calls (
+    id                TEXT PRIMARY KEY,
+    twilio_sid        TEXT UNIQUE,
+    direction         TEXT NOT NULL,    -- outbound|inbound
+    from_number       TEXT,
+    to_number         TEXT,
+    requesting_agent  TEXT NOT NULL,
+    purpose           TEXT,
+    objective         TEXT,             -- one-line: "Update nameservers on murphy.systems"
+    status            TEXT DEFAULT 'queued',  -- queued|ringing|in-progress|completed|failed|busy|no-answer|canceled
+    initiated_at      TEXT NOT NULL,
+    answered_at       TEXT,
+    ended_at          TEXT,
+    duration_secs     INTEGER,
+    recording_url     TEXT,
+    transcript        TEXT,             -- JSON list of {speaker, text, ts}
+    metadata          TEXT,             -- JSON for soul context, pathway, etc.
+    outcome           TEXT,             -- success|fail|partial|hitl_handoff
+    outcome_notes     TEXT,
+    error             TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_voice_status ON voice_calls(status);
+CREATE INDEX IF NOT EXISTS idx_voice_agent ON voice_calls(requesting_agent);
+CREATE INDEX IF NOT EXISTS idx_voice_initiated ON voice_calls(initiated_at);
+
+CREATE TABLE IF NOT EXISTS voice_events (
+    id          TEXT PRIMARY KEY,
+    call_id     TEXT NOT NULL,
+    event_type  TEXT NOT NULL,    -- dialed|ringing|answered|stream_start|audio_chunk|stream_end|hangup|error
+    detail      TEXT,
+    hash_prev   TEXT,
+    hash_self   TEXT,
+    created_at  TEXT NOT NULL,
+    FOREIGN KEY (call_id) REFERENCES voice_calls(id)
+);
+CREATE INDEX IF NOT EXISTS idx_ve_call ON voice_events(call_id);
+CREATE INDEX IF NOT EXISTS idx_ve_time ON voice_events(created_at);
+"""
+
+# ── Helpers ─────────────────────────────────────────────────────────────────
+def _db():
+    conn = sqlite3.connect(DB_PATH, timeout=30, check_same_thread=False)
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def _now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+def _gid(prefix: str) -> str:
+    return f"{prefix}_{hashlib.sha1((str(time.time()) + secrets.token_hex(8)).encode()).hexdigest()[:14]}"
+
+def init_db():
+    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+    conn = _db()
+    conn.executescript(SCHEMA)
+    conn.commit()
+    conn.close()
+
+# ── Credentials from vault ──────────────────────────────────────────────────
+_CRED_CACHE: Dict[str, str] = {}
+_CRED_NEEDED = ["TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN",
+                "TWILIO_PHONE_NUMBER", "TWILIO_WEBHOOK_PUBLIC_URL"]
+
+def _fetch_credentials() -> Dict[str, Any]:
+    """
+    Try to pull the 4 Twilio credentials from the vault.
+    Returns {ok, missing[], have[]}.
+    """
+    if not _VAULT_OK:
+        return {"ok": False, "error": "vault_module_not_loaded"}
+    out = {"have": [], "missing": [], "ok": False}
+    for name in _CRED_NEEDED:
+        if name in _CRED_CACHE:
+            out["have"].append(name)
+            continue
+        result = _vault_use(secret_name=name, requesting_agent=VOICE_AGENT_ID)
+        if result.get("ok"):
+            _CRED_CACHE[name] = result["value"]
+            out["have"].append(name)
+        else:
+            out["missing"].append(name)
+    out["ok"] = len(out["missing"]) == 0
+    return out
+
+def _request_missing_credentials():
+    """Create vault requests for any missing Twilio credentials."""
+    if not _VAULT_OK:
+        return {"ok": False, "error": "vault_module_not_loaded"}
+    creds = _fetch_credentials()
+    if creds.get("ok"):
+        return {"ok": True, "already_have_all": True}
+    requests_created = []
+    for name in creds.get("missing", []):
+        result = _vault_request(
+            secret_name=name,
+            requesting_agent=VOICE_AGENT_ID,
+            purpose=f"Murphy Voice Engine (PATCH-406a) — telephony layer needs {name} to dial/receive calls on Murphy's owned phone number. First use: call Network Solutions to update nameservers.",
+            risk_class="write",
+            operation_summary="Initiate outbound calls and receive inbound calls via Twilio",
+            target_resource="Twilio account console.twilio.com",
+            will_do=[
+                "Dial outbound phone numbers (US/intl)",
+                "Receive inbound calls to Murphy's owned number",
+                "Stream audio bidirectionally for Murphy to listen + speak",
+                "Record calls for transcript + audit",
+            ],
+            wont_do=[
+                "Buy or release phone numbers",
+                "Change account billing or settings",
+                "Send SMS without separate approval",
+                "Transfer money or use Twilio Pay",
+            ],
+            worst_case=f"Up to ~$50 in unauthorized outbound minutes before token revoked. Revoke at console.twilio.com → API Keys & Tokens.",
+            revoke_url="https://console.twilio.com/us1/account/keys-credentials/api-keys",
+        )
+        requests_created.append({"secret": name, "result": result})
+    return {"ok": True, "requests": requests_created, "missing": creds.get("missing", [])}
+
+def _get_twilio_client() -> Optional[Any]:
+    if not _TWILIO_OK:
+        return None
+    creds = _fetch_credentials()
+    if not creds.get("ok"):
+        return None
+    try:
+        return TwilioClient(_CRED_CACHE["TWILIO_ACCOUNT_SID"],
+                          _CRED_CACHE["TWILIO_AUTH_TOKEN"])
+    except Exception as e:
+        log.error("Twilio client init failed: %s", e)
+        return None
+
+# ── Event Spine emission ────────────────────────────────────────────────────
+def _emit_event(call_id: str, event_type: str, detail: Dict[str, Any]) -> str:
+    conn = _db()
+    row = conn.execute(
+        "SELECT hash_self FROM voice_events WHERE call_id=? ORDER BY created_at DESC LIMIT 1",
+        (call_id,)).fetchone()
+    prev = row["hash_self"] if row else ""
+    payload = {"call_id": call_id, "type": event_type, "detail": detail, "ts": _now()}
+    h = hashlib.sha256((prev + json.dumps(payload, sort_keys=True, default=str)).encode()).hexdigest()
+    eid = _gid("vev")
+    conn.execute("""
+        INSERT INTO voice_events (id, call_id, event_type, detail, hash_prev, hash_self, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    """, (eid, call_id, event_type, json.dumps(detail, default=str), prev, h, _now()))
+    conn.commit()
+    conn.close()
+    return eid
+
+# ── Core dial flow ──────────────────────────────────────────────────────────
+def dial(to_number: str, requesting_agent: str, purpose: str,
+         objective: str = "", metadata: Optional[Dict] = None) -> Dict[str, Any]:
+    """
+    Place an outbound call. Returns immediately — call proceeds async via webhooks.
+    """
+    if not _TWILIO_OK:
+        return {"ok": False, "error": "twilio_sdk_not_installed"}
+    if not _VAULT_OK:
+        return {"ok": False, "error": "vault_not_available"}
+
+    creds = _fetch_credentials()
+    if not creds.get("ok"):
+        return {
+            "ok": False,
+            "error": "credentials_not_in_vault",
+            "missing": creds.get("missing"),
+            "hint": "Call POST /api/phone/request-credentials to ask founder to approve via vault UI.",
+        }
+
+    client = _get_twilio_client()
+    if not client:
+        return {"ok": False, "error": "twilio_client_init_failed"}
+
+    call_id = _gid("call")
+    webhook_base = _CRED_CACHE["TWILIO_WEBHOOK_PUBLIC_URL"].rstrip("/")
+    from_number = _CRED_CACHE["TWILIO_PHONE_NUMBER"]
+
+    # Insert call row first so webhook can find it
+    conn = _db()
+    conn.execute("""
+        INSERT INTO voice_calls (id, direction, from_number, to_number,
+            requesting_agent, purpose, objective, status, initiated_at, metadata)
+        VALUES (?, 'outbound', ?, ?, ?, ?, ?, 'queued', ?, ?)
+    """, (call_id, from_number, to_number, requesting_agent, purpose,
+          objective, _now(), json.dumps(metadata or {})))
+    conn.commit()
+    conn.close()
+
+    _emit_event(call_id, "dialing", {
+        "from": from_number, "to": to_number,
+        "agent": requesting_agent, "purpose": purpose, "objective": objective,
+    })
+
+    # Place the call. Twilio will POST to our /voice webhook when answered.
+    try:
+        tw_call = client.calls.create(
+            to=to_number,
+            from_=from_number,
+            url=f"{webhook_base}/api/phone/twilio/voice?call_id={call_id}",
+            status_callback=f"{webhook_base}/api/phone/twilio/status?call_id={call_id}",
+            status_callback_event=["initiated", "ringing", "answered", "completed"],
+            status_callback_method="POST",
+            record=True,  # 406a: record for transcript foundation
+        )
+        conn = _db()
+        conn.execute("UPDATE voice_calls SET twilio_sid=?, status='queued' WHERE id=?",
+                    (tw_call.sid, call_id))
+        conn.commit()
+        conn.close()
+        _emit_event(call_id, "twilio_accepted", {"twilio_sid": tw_call.sid})
+        return {"ok": True, "call_id": call_id, "twilio_sid": tw_call.sid,
+                "status": "queued", "to": to_number, "from": from_number}
+    except Exception as e:
+        conn = _db()
+        conn.execute("UPDATE voice_calls SET status='failed', error=? WHERE id=?",
+                    (str(e), call_id))
+        conn.commit()
+        conn.close()
+        _emit_event(call_id, "dial_failed", {"error": str(e)})
+        return {"ok": False, "error": str(e), "call_id": call_id}
+
+def hangup(call_id: str) -> Dict[str, Any]:
+    conn = _db()
+    row = conn.execute("SELECT twilio_sid FROM voice_calls WHERE id=?", (call_id,)).fetchone()
+    conn.close()
+    if not row:
+        return {"ok": False, "error": "call_not_found"}
+    if not row["twilio_sid"]:
+        return {"ok": False, "error": "no_twilio_sid_yet"}
+    client = _get_twilio_client()
+    if not client:
+        return {"ok": False, "error": "twilio_client_unavailable"}
+    try:
+        client.calls(row["twilio_sid"]).update(status="completed")
+        _emit_event(call_id, "manual_hangup", {})
+        return {"ok": True, "call_id": call_id}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+# ── TwiML for inbound + outbound ────────────────────────────────────────────
+def _twiml_for_call(call_id: str, webhook_base: str) -> str:
+    """
+    Returns TwiML telling Twilio to open a Media Stream WebSocket back to us.
+    In 406a this is a passive bridge — audio flows but we don't speak yet.
+    """
+    # Build TwiML manually (simpler than using SDK's response builder here)
+    ws_url = webhook_base.replace("https://", "wss://").replace("http://", "ws://")
+    twiml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Say voice="alice">Murphy voice engine connected. Call ID {call_id[-6:]}. Bridging audio now.</Say>
+    <Connect>
+        <Stream url="{ws_url}/api/phone/twilio/media">
+            <Parameter name="call_id" value="{call_id}" />
+        </Stream>
+    </Connect>
+</Response>"""
+    return twiml
+
+# ── HTML monitor UI ─────────────────────────────────────────────────────────
+PHONE_UI_HTML = """<!doctype html><html><head><meta charset="utf-8">
+<title>Murphy Voice — Live Calls</title>
+<style>
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;background:#0a0e14;color:#c9d1d9;padding:30px 20px;min-height:100vh}
+.wrap{max-width:880px;margin:0 auto}
+h1{font-size:22px;color:#58a6ff;margin-bottom:6px}
+.sub{color:#8b949e;font-size:13px;margin-bottom:24px}
+.bar{display:flex;gap:10px;margin-bottom:18px}
+.card{background:#161b22;border:1px solid #21262d;border-radius:12px;padding:18px;margin-bottom:12px}
+.status-tag{display:inline-block;padding:3px 9px;border-radius:8px;font-size:11px;font-weight:600;margin-right:8px;text-transform:uppercase}
+.s-queued{background:#1c2128;color:#8b949e;border:1px solid #30363d}
+.s-ringing{background:#2a2105;color:#d29922;border:1px solid #9e6a03}
+.s-in-progress{background:#0f2a1c;color:#3fb950;border:1px solid #238636;animation:pulse 1.5s infinite}
+.s-completed{background:#1c2128;color:#8b949e;border:1px solid #30363d}
+.s-failed{background:#3c0e0e;color:#f85149;border:1px solid #da3633}
+@keyframes pulse{50%{opacity:.6}}
+.row{display:flex;gap:8px;margin:4px 0;font-size:13px}
+.row .lbl{color:#8b949e;width:90px;flex-shrink:0}
+.row .val{color:#c9d1d9;font-family:SF Mono,Menlo,monospace;font-size:12.5px;word-break:break-all}
+.btn{display:inline-block;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:none;text-decoration:none}
+.btn-orange{background:#f97316;color:white}.btn-orange:hover{background:#fb8c2f}
+.btn-red{background:#3c0e0e;color:#f85149;border:1px solid #da3633}
+.btn-grey{background:#21262d;color:#c9d1d9}
+.empty{text-align:center;padding:40px 20px;color:#6e7681}
+.warning{background:#2a2105;border:1px solid #9e6a03;color:#d29922;padding:14px;border-radius:10px;margin-bottom:18px;font-size:13.5px;line-height:1.5}
+</style></head><body>
+<div class="wrap">
+<h1>Murphy Voice Engine</h1>
+<div class="sub">PATCH-406a · native telephony layer · live call monitor</div>
+<div id="health"></div>
+<div id="warning-box"></div>
+<div class="bar">
+  <button class="btn btn-orange" onclick="refresh()">Refresh</button>
+  <button class="btn btn-grey" onclick="reqCreds()">Request credentials</button>
+</div>
+<div id="calls"></div>
+</div>
+<script>
+async function refresh(){
+  const h=await fetch('/api/phone/health').then(r=>r.json()).catch(_=>({}));
+  document.getElementById('health').innerHTML=
+    `<div class="card"><b>Status:</b> ${h.ready?'<span style="color:#3fb950">✓ Ready to dial</span>':'<span style="color:#d29922">⚠ Missing credentials</span>'} · twilio_sdk=${h.twilio_sdk_ok} · vault=${h.vault_ok} · calls_total=${h.calls_total||0}</div>`;
+  if(!h.ready && h.missing && h.missing.length){
+    document.getElementById('warning-box').innerHTML=
+      `<div class="warning"><b>Vault needs ${h.missing.length} secret(s):</b> ${h.missing.join(', ')} — click "Request credentials" then approve at <a href="/vault" style="color:#d29922">/vault</a>.</div>`;
+  } else { document.getElementById('warning-box').innerHTML=''; }
+  const c=await fetch('/api/phone/calls').then(r=>r.json()).catch(_=>({calls:[]}));
+  const calls=c.calls||[];
+  if(!calls.length){document.getElementById('calls').innerHTML='<div class="card empty">No calls yet.</div>';return}
+  document.getElementById('calls').innerHTML=calls.map(c=>`
+    <div class="card">
+      <span class="status-tag s-${c.status}">${c.status}</span>
+      <span style="font-size:12px;color:#8b949e">${c.id}</span>
+      <div class="row"><div class="lbl">Direction</div><div class="val">${c.direction} · ${c.from_number||'?'} → ${c.to_number||'?'}</div></div>
+      <div class="row"><div class="lbl">Agent</div><div class="val">${c.requesting_agent}</div></div>
+      <div class="row"><div class="lbl">Objective</div><div class="val">${c.objective||c.purpose||'(none)'}</div></div>
+      <div class="row"><div class="lbl">Started</div><div class="val">${c.initiated_at}</div></div>
+      ${c.duration_secs?`<div class="row"><div class="lbl">Duration</div><div class="val">${c.duration_secs}s</div></div>`:''}
+      ${c.outcome?`<div class="row"><div class="lbl">Outcome</div><div class="val">${c.outcome}: ${c.outcome_notes||''}</div></div>`:''}
+      ${c.error?`<div class="row"><div class="lbl">Error</div><div class="val" style="color:#f85149">${c.error}</div></div>`:''}
+      ${(c.status==='in-progress'||c.status==='ringing')?`<button class="btn btn-red" onclick="hangup('${c.id}')">Hang up</button>`:''}
+    </div>`).join('');
+}
+async function reqCreds(){
+  const r=await fetch('/api/phone/request-credentials',{method:'POST'}).then(r=>r.json());
+  alert(r.ok?`Requests created. Go to /vault to approve ${r.missing.length} secret(s).`:'Failed: '+r.error);
+  setTimeout(refresh,500);
+}
+async function hangup(id){
+  if(!confirm('Hang up call '+id+'?'))return;
+  const r=await fetch('/api/phone/hangup/'+id,{method:'POST'}).then(r=>r.json());
+  alert(r.ok?'Hangup sent':'Failed: '+r.error);
+  setTimeout(refresh,500);
+}
+refresh();setInterval(refresh,3000);
+</script></body></html>"""
+
+# ── FastAPI wiring ──────────────────────────────────────────────────────────
+def init_voice_routes(app):
+    init_db()
+
+    @app.get("/api/phone/health")
+    async def phone_health():
+        try:
+            conn = _db()
+            stats = conn.execute("""
+                SELECT
+                  COUNT(*) AS total,
+                  SUM(CASE WHEN status='in-progress' THEN 1 ELSE 0 END) AS active,
+                  SUM(CASE WHEN status='completed' THEN 1 ELSE 0 END) AS completed,
+                  SUM(CASE WHEN status='failed' THEN 1 ELSE 0 END) AS failed
+                FROM voice_calls
+            """).fetchone()
+            conn.close()
+            creds = _fetch_credentials()
+            return JSONResponse({
+                "ok": True, "patch": "406a", "module": "voice_telephony",
+                "twilio_sdk_ok": _TWILIO_OK,
+                "vault_ok": _VAULT_OK,
+                "ready": creds.get("ok", False),
+                "have_credentials": creds.get("have", []),
+                "missing": creds.get("missing", []),
+                "calls_total": stats["total"] or 0,
+                "calls_active": stats["active"] or 0,
+                "calls_completed": stats["completed"] or 0,
+                "calls_failed": stats["failed"] or 0,
+            })
+        except Exception as e:
+            return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+    @app.post("/api/phone/request-credentials")
+    async def phone_request_creds():
+        return JSONResponse(_request_missing_credentials())
+
+    @app.post("/api/phone/dial")
+    async def phone_dial(request: Request):
+        try: data = await request.json()
+        except: data = {}
+        return JSONResponse(dial(
+            to_number=data.get("to_number"),
+            requesting_agent=data.get("requesting_agent", VOICE_AGENT_ID),
+            purpose=data.get("purpose", ""),
+            objective=data.get("objective", ""),
+            metadata=data.get("metadata") or {},
+        ))
+
+    @app.get("/api/phone/calls")
+    async def phone_calls(status: Optional[str] = None,
+                          requesting_agent: Optional[str] = None,
+                          limit: int = 50):
+        conn = _db()
+        q = "SELECT * FROM voice_calls WHERE 1=1"
+        params = []
+        if status:
+            q += " AND status = ?"; params.append(status)
+        if requesting_agent:
+            q += " AND requesting_agent = ?"; params.append(requesting_agent)
+        q += " ORDER BY initiated_at DESC LIMIT ?"
+        params.append(int(limit))
+        rows = conn.execute(q, params).fetchall()
+        conn.close()
+        return JSONResponse({"ok": True, "count": len(rows),
+                            "calls": [dict(r) for r in rows]})
+
+    @app.get("/api/phone/call/{call_id}")
+    async def phone_call_detail(call_id: str):
+        conn = _db()
+        call = conn.execute("SELECT * FROM voice_calls WHERE id=?", (call_id,)).fetchone()
+        events = conn.execute(
+            "SELECT * FROM voice_events WHERE call_id=? ORDER BY created_at",
+            (call_id,)).fetchall()
+        conn.close()
+        if not call:
+            return JSONResponse({"ok": False, "error": "call_not_found"}, status_code=404)
+        return JSONResponse({"ok": True,
+                            "call": dict(call),
+                            "events": [dict(e) for e in events]})
+
+    @app.post("/api/phone/hangup/{call_id}")
+    async def phone_hangup(call_id: str):
+        return JSONResponse(hangup(call_id))
+
+    # ── Twilio webhooks ─────────────────────────────────────────────────────
+    @app.post("/api/phone/twilio/voice")
+    async def twilio_voice_webhook(request: Request, call_id: str = ""):
+        """Twilio hits this when call is answered. Returns TwiML to bridge media."""
+        if not call_id:
+            return PlainTextResponse("<Response><Hangup/></Response>",
+                                    media_type="application/xml")
+        webhook_base = _CRED_CACHE.get("TWILIO_WEBHOOK_PUBLIC_URL", "https://murphy.systems")
+        _emit_event(call_id, "answered_twiml_served", {})
+        return PlainTextResponse(_twiml_for_call(call_id, webhook_base),
+                                media_type="application/xml")
+
+    @app.post("/api/phone/twilio/status")
+    async def twilio_status_webhook(request: Request, call_id: str = ""):
+        """Twilio status callbacks: initiated, ringing, answered, completed."""
+        form = await request.form()
+        status = (form.get("CallStatus") or "").lower()
+        duration = form.get("CallDuration")
+        recording_url = form.get("RecordingUrl")
+
+        if call_id:
+            conn = _db()
+            update_fields = ["status = ?"]
+            params = [status]
+            if status == "in-progress":
+                update_fields.append("answered_at = ?"); params.append(_now())
+            if status == "completed":
+                update_fields.append("ended_at = ?"); params.append(_now())
+                if duration:
+                    update_fields.append("duration_secs = ?"); params.append(int(duration))
+                if recording_url:
+                    update_fields.append("recording_url = ?"); params.append(recording_url)
+            params.append(call_id)
+            conn.execute(f"UPDATE voice_calls SET {', '.join(update_fields)} WHERE id=?", params)
+            conn.commit()
+            conn.close()
+            _emit_event(call_id, f"status_{status}", {"duration": duration})
+
+        return PlainTextResponse("ok")
+
+    @app.websocket("/api/phone/twilio/media")
+    async def twilio_media_stream(ws: WebSocket):
+        """
+        Bidirectional audio bridge. Twilio sends us 20ms PCM chunks @ 8kHz μ-law.
+        In 406a we just log + count chunks. 406b will fork: outbound → Deepgram STT;
+        inbound from TTS → write back to socket.
+        """
+        await ws.accept()
+        call_id = None
+        stream_sid = None
+        chunk_count = 0
+        try:
+            while True:
+                msg = await ws.receive_text()
+                data = json.loads(msg)
+                event = data.get("event")
+                if event == "start":
+                    start = data.get("start", {})
+                    stream_sid = start.get("streamSid")
+                    params = start.get("customParameters", {})
+                    call_id = params.get("call_id", "unknown")
+                    _emit_event(call_id, "stream_started",
+                              {"stream_sid": stream_sid, "tracks": start.get("tracks")})
+                    log.info("voice: stream started for call %s sid=%s", call_id, stream_sid)
+                elif event == "media":
+                    chunk_count += 1
+                    # 406a: count only. 406b will: audio_b64 = data['media']['payload']
+                    # then ship to Deepgram via the STT subsystem.
+                    if chunk_count % 250 == 0:  # log every ~5 sec
+                        log.debug("voice: %d chunks received for %s", chunk_count, call_id)
+                elif event == "stop":
+                    if call_id:
+                        _emit_event(call_id, "stream_stopped",
+                                  {"chunks_received": chunk_count})
+                    log.info("voice: stream stopped for %s (%d chunks)", call_id, chunk_count)
+                    break
+        except WebSocketDisconnect:
+            if call_id:
+                _emit_event(call_id, "stream_disconnect", {"chunks_received": chunk_count})
+        except Exception as e:
+            log.exception("voice: stream error: %s", e)
+            if call_id:
+                _emit_event(call_id, "stream_error", {"error": str(e)})
+
+    @app.get("/phone")
+    async def phone_ui():
+        return HTMLResponse(PHONE_UI_HTML)
+
+    return app

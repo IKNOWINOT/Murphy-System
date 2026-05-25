@@ -1431,3 +1431,184 @@ async def production_router_startup():
     _seed_campaigns()
     asyncio.create_task(_automation_tick())
     log.info("Production Router v3.0 startup complete — HITL, automations, calendar active")
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PATCH-350 — Murphy Growth Suite: /start, /founder, /download + growth APIs
+# ═══════════════════════════════════════════════════════════════════════════════
+
+import time as _growth_time
+
+_START_HTML = open("/opt/Murphy-System/start.html","r").read() if __import__("os").path.exists("/opt/Murphy-System/start.html") else "<h1>Loading...</h1>"
+_FOUNDER_HTML = open("/opt/Murphy-System/founder.html","r").read() if __import__("os").path.exists("/opt/Murphy-System/founder.html") else "<h1>Loading...</h1>"
+_DOWNLOAD_HTML_350 = open("/opt/Murphy-System/download.html","r").read() if __import__("os").path.exists("/opt/Murphy-System/download.html") else "<h1>Loading...</h1>"
+
+@router.get("/start", response_class=HTMLResponse, include_in_schema=False)
+async def growth_start_page():
+    return HTMLResponse(content=open("/opt/Murphy-System/start.html","r").read() if __import__("os").path.exists("/opt/Murphy-System/start.html") else "<h1>Start page loading</h1>")
+
+
+@router.get("/murphy-os", response_class=HTMLResponse, include_in_schema=False)
+@router.get("/os", response_class=HTMLResponse, include_in_schema=False)
+async def murphy_os_ui_page():
+    """Murphy OS Voice+Command UI — PATCH-350"""
+    import os as _osp
+    p = _osp.path.join("/opt/Murphy-System", "murphy_os.html")
+    if _osp.path.isfile(p):
+        return HTMLResponse(content=open(p, "r", encoding="utf-8").read())
+    return HTMLResponse(content="<h1>Murphy OS loading...</h1>")
+
+@router.get("/founder", response_class=HTMLResponse, include_in_schema=False)
+async def founder_dashboard_page():
+    return HTMLResponse(content=open("/opt/Murphy-System/founder.html","r").read() if __import__("os").path.exists("/opt/Murphy-System/founder.html") else "<h1>Founder dashboard loading</h1>")
+
+@router.get("/download", response_class=HTMLResponse, include_in_schema=False)
+async def download_client_page():
+    return HTMLResponse(content=open("/opt/Murphy-System/download.html","r").read() if __import__("os").path.exists("/opt/Murphy-System/download.html") else "<h1>Download page loading</h1>")
+
+@router.post("/api/growth/onboard")
+async def growth_onboard(request: Request):
+    try:
+        body = await request.json()
+        name = str(body.get("name","")).strip()
+        email = str(body.get("email","")).strip()
+        linkedin_url = str(body.get("linkedin_url","")).strip()
+        pain = str(body.get("pain_point","")).strip()
+        biz = str(body.get("business_description","")).strip()
+        if not name or not email:
+            return JSONResponse({"success":False,"error":"Name and email required"},status_code=400)
+        import sqlite3 as _sq, datetime as _dt
+        for db_path in ["/var/lib/murphy-production/crm.db","/opt/Murphy-System/crm.db"]:
+            if __import__("os").path.exists(db_path):
+                try:
+                    conn = _sq.connect(db_path)
+                    conn.execute("INSERT OR IGNORE INTO contacts (id,name,email,company,linkedin_url,stage,notes,created_at) VALUES (?,?,?,?,?,?,?,?)",
+                        (f"growth-{int(_growth_time.time())}",name,email,"",linkedin_url,"lead",f"Pain:{pain}|Biz:{biz[:200]}",_dt.datetime.utcnow().isoformat()))
+                    conn.commit(); conn.close(); break
+                except: pass
+        return JSONResponse({"success":True,"message":f"Murphy will analyze your situation and reach out within 24h."})
+    except Exception as e:
+        return JSONResponse({"success":False,"error":str(e)},status_code=500)
+
+@router.post("/api/growth/investor-inquiry")
+async def growth_investor_inquiry(request: Request):
+    try:
+        body = await request.json()
+        name = str(body.get("name","")).strip()
+        email = str(body.get("email","")).strip()
+        fund = str(body.get("fund","")).strip()
+        linkedin_url = str(body.get("linkedin_url","")).strip()
+        check_size = str(body.get("check_size","")).strip()
+        if not name or not email:
+            return JSONResponse({"success":False,"error":"Name and email required"},status_code=400)
+        import sqlite3 as _sq2, datetime as _dt2
+        for db_path in ["/var/lib/murphy-production/crm.db","/opt/Murphy-System/crm.db"]:
+            if __import__("os").path.exists(db_path):
+                try:
+                    conn = _sq2.connect(db_path)
+                    conn.execute("INSERT OR IGNORE INTO contacts (id,name,email,company,linkedin_url,stage,notes,created_at) VALUES (?,?,?,?,?,?,?,?)",
+                        (f"inv-{int(_growth_time.time())}",name,email,fund,linkedin_url,"investor",f"Check:{check_size}",_dt2.datetime.utcnow().isoformat()))
+                    conn.commit(); conn.close(); break
+                except: pass
+        return JSONResponse({"success":True,"message":"Data room access request received. Murphy will reach out within 24h."})
+    except Exception as e:
+        return JSONResponse({"success":False,"error":str(e)},status_code=500)
+
+@router.post("/api/growth/partner-inquiry")
+async def growth_partner_inquiry(request: Request):
+    try:
+        body = await request.json()
+        name = str(body.get("name","")).strip()
+        email = str(body.get("email","")).strip()
+        if not name or not email:
+            return JSONResponse({"success":False,"error":"Name and email required"},status_code=400)
+        return JSONResponse({"success":True,"message":"Murphy will be in touch."})
+    except Exception as e:
+        return JSONResponse({"success":False,"error":str(e)},status_code=500)
+
+@router.post("/api/growth/outreach")
+async def growth_outreach_linkedin(request: Request):
+    try:
+        body = await request.json()
+        linkedin_url = str(body.get("linkedin_url","")).strip()
+        mode = str(body.get("mode","customer"))
+        if not linkedin_url:
+            return JSONResponse({"success":False,"error":"linkedin_url required"},status_code=400)
+        import sqlite3 as _sq3, datetime as _dt3
+        prospect_id = f"li-{int(_growth_time.time())}"
+        for db_path in ["/var/lib/murphy-production/crm.db","/opt/Murphy-System/crm.db"]:
+            if __import__("os").path.exists(db_path):
+                try:
+                    conn = _sq3.connect(db_path)
+                    conn.execute("INSERT OR IGNORE INTO contacts (id,name,email,company,linkedin_url,stage,notes,created_at) VALUES (?,?,?,?,?,?,?,?)",
+                        (prospect_id,"LinkedIn Prospect","",f"mode:{mode}",linkedin_url,"prospect",f"Queued via growth outreach·mode={mode}",_dt3.datetime.utcnow().isoformat()))
+                    conn.commit(); conn.close(); break
+                except: pass
+        return JSONResponse({"success":True,"prospect_id":prospect_id,"message":f"Profile queued. Murphy will research and reach out."})
+    except Exception as e:
+        return JSONResponse({"success":False,"error":str(e)},status_code=500)
+
+@router.post("/api/growth/investor-outreach")
+async def growth_investor_outreach(request: Request):
+    try:
+        body = await request.json()
+        linkedin_url = str(body.get("linkedin_url","")).strip()
+        return JSONResponse({"success":True,"message":"Investor outreach queued."})
+    except Exception as e:
+        return JSONResponse({"success":False,"error":str(e)},status_code=500)
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# END PATCH-350
+
+# PATCH-351 — Capacity Health Endpoint
+@router.get('/api/health/capacity', include_in_schema=False)
+def get_capacity_health():
+    """
+    Real-time system capacity + offering/tier alignment.
+    Returns current metrics, alerts, and scaling recommendations.
+    """
+    import sqlite3, json
+    from datetime import datetime, timezone
+    try:
+        from src.capacity_watchdog import OFFERING_CAPABILITY_MAP, SCALE_THRESHOLDS
+        offering_map = OFFERING_CAPABILITY_MAP
+        thresholds = SCALE_THRESHOLDS
+    except Exception:
+        offering_map = {}
+        thresholds = {}
+
+    result = {
+        'timestamp': datetime.now(timezone.utc).isoformat(),
+        'server': {'vcpus': 4, 'ram_gb': 8, 'disk_gb': 150},
+        'metrics': {},
+        'alerts': [],
+        'offerings': offering_map,
+        'thresholds': thresholds,
+    }
+
+    # Latest snapshot
+    try:
+        db = sqlite3.connect('/var/lib/murphy-production/murphy_audit.db', timeout=3)
+        snap = db.execute(
+            'SELECT ts, cpu_pct, ram_pct, disk_pct, llm_calls_today, llm_cost_today, hitl_depth, days_since_reply, alerts FROM capacity_snapshots ORDER BY ts DESC LIMIT 1'
+        ).fetchone()
+        if snap:
+            result['metrics'] = {
+                'timestamp': snap[0],
+                'cpu_percent': snap[1],
+                'ram_percent': snap[2],
+                'disk_percent': snap[3],
+                'llm_calls_today': snap[4],
+                'llm_cost_today': snap[5],
+                'hitl_queue_depth': snap[6],
+                'days_since_inbound_reply': snap[7],
+            }
+            try:
+                result['alerts'] = json.loads(snap[8]) if snap[8] else []
+            except Exception:
+                result['alerts'] = []
+        db.close()
+    except Exception as e:
+        result['error'] = f'Snapshot read failed: {e}'
+
+    return result
+

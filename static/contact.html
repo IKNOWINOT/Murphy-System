@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Contact — Murphy Systems</title>
+  <link rel="icon" href="/static/favicon.ico" />
+  <style>
+    :root { color-scheme: light dark; }
+    body { font-family: -apple-system, system-ui, sans-serif; max-width: 880px;
+            margin: 0 auto; padding: 2rem 1rem; line-height: 1.55;
+            color: #1a1a1a; background: #fafafa; }
+    h1 { font-size: 2.25rem; margin-bottom: 0.5rem; }
+    .sub { color: #666; margin-bottom: 2rem; }
+    table { width: 100%; border-collapse: collapse; background: white;
+             border-radius: 12px; overflow: hidden;
+             box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+    th, td { text-align: left; padding: 1rem 1.25rem;
+              border-bottom: 1px solid #eee; }
+    th { background: #f4f4f5; font-size: 0.85rem; text-transform: uppercase;
+          letter-spacing: 0.05em; color: #555; }
+    tr:last-child td { border-bottom: none; }
+    .dept { font-weight: 600; width: 22%; }
+    .num a { font-family: ui-monospace, SF Mono, Menlo, monospace;
+              font-size: 1.05rem; color: #0066cc; text-decoration: none;
+              font-weight: 600; }
+    .num a:hover { text-decoration: underline; }
+    .desc { color: #555; font-size: 0.95rem; }
+    .footer { margin-top: 2rem; font-size: 0.9rem; color: #666; }
+    .footer a { color: #0066cc; }
+    @media (max-width: 600px) {
+      table, thead, tbody, tr, th, td { display: block; }
+      thead { display: none; }
+      tr { margin-bottom: 1rem; border-radius: 12px; overflow: hidden; }
+      td { padding: 0.5rem 1rem; }
+      .dept { background: #f4f4f5; font-size: 1.05rem; }
+    }
+  </style>
+</head>
+<body>
+  <h1>Contact Murphy</h1>
+  <p class="sub">Reach the right department directly. Every line is
+     answered by Murphy first; complex requests escalate to the founder.</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Department</th>
+        <th>Phone</th>
+        <th>What it's for</th>
+      </tr>
+    </thead>
+    <tbody>
+        <tr>
+          <td class="dept">Sales</td>
+          <td class="num"><a href="tel:+17165763872">(716) 576-3872</a></td>
+          <td class="desc">Murphy Sales — autonomous prospecting & inbound demos</td>
+        </tr>
+        <tr>
+          <td class="dept">Engineering</td>
+          <td class="num"><a href="tel:+17165266207">(716) 526-6207</a></td>
+          <td class="desc">Murphy Engineering — RFI, RFQ, technical questions</td>
+        </tr>
+        <tr>
+          <td class="dept">Support</td>
+          <td class="num"><a href="tel:+17163171164">(716) 317-1164</a></td>
+          <td class="desc">Murphy Support — existing customer help</td>
+        </tr>
+        <tr>
+          <td class="dept">Operations</td>
+          <td class="num"><a href="tel:+17166413445">(716) 641-3445</a></td>
+          <td class="desc">Murphy Ops — billing, account, admin</td>
+        </tr>
+        <tr>
+          <td class="dept">Founder</td>
+          <td class="num"><a href="tel:+17164195325">(716) 419-5325</a></td>
+          <td class="desc">Corey Post direct — escalations only</td>
+        </tr>
+    </tbody>
+  </table>
+
+  <p class="footer">
+    Email: <a href="mailto:hello@murphy.systems">hello@murphy.systems</a>
+    &nbsp;·&nbsp; Pricing: <a href="/static/pricing.html">/pricing</a>
+    &nbsp;·&nbsp; Numbers powered by Twilio. Calls may be recorded
+    for quality and training.
+  </p>
+</body>
+</html>

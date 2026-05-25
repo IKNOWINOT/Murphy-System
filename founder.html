@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Murphy — Founder View</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#080808;color:#e0e0e0;font-family:'Inter',system-ui,sans-serif;min-height:100vh;padding:24px}
+h1{font-size:1.5rem;font-weight:700;color:#fff;margin-bottom:4px}
+.sub{color:#444;font-size:.85rem;margin-bottom:28px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:24px}
+.metric{background:#0f0f0f;border:1px solid #1a1a1a;border-radius:10px;padding:20px}
+.metric-label{font-size:.75rem;color:#444;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.metric-val{font-size:1.8rem;font-weight:700;color:#00D4AA}
+.metric-sub{font-size:.75rem;color:#333;margin-top:4px}
+.section{background:#0f0f0f;border:1px solid #1a1a1a;border-radius:10px;padding:20px;margin-bottom:12px}
+.section h2{font-size:.9rem;font-weight:600;color:#fff;margin-bottom:14px;text-transform:uppercase;letter-spacing:.05em}
+table{width:100%;border-collapse:collapse;font-size:.82rem}
+th{text-align:left;color:#333;font-weight:500;padding:6px 0;border-bottom:1px solid #111}
+td{padding:9px 0;border-bottom:1px solid #0d0d0d;color:#bbb}
+.stage{display:inline-block;padding:2px 7px;border-radius:4px;font-size:.72rem;font-weight:600}
+.stage-closed_won{background:#0d2b1a;color:#00D4AA}.stage-prospect{background:#111;color:#555}
+.stage-booked,.stage-appointment_booked{background:#0d1a2b;color:#4aa3ff}
+.stage-proposal{background:#2b1a0d;color:#ff9944}.stage-negotiation{background:#2b0d1a;color:#ff6b9d}
+.stage-trial{background:#1a0d2b;color:#b44aff}.stage-qualified{background:#1a1a0d;color:#aaaa00}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px}
+.btn{background:#111;border:1px solid #1e1e1e;color:#888;padding:9px 18px;border-radius:7px;cursor:pointer;font-size:.82rem;transition:all .2s;text-decoration:none;display:inline-block}
+.btn:hover{border-color:#00D4AA;color:#00D4AA}
+.btn-go{border-color:#00D4AA44;color:#00D4AA;background:#00D4AA0a}
+input{background:#050505;border:1px solid #1a1a1a;border-radius:6px;padding:9px 13px;color:#fff;font-size:.85rem;outline:none;transition:border-color .2s}
+input:focus{border-color:#00D4AA}
+.log{background:#050505;border:1px solid #0d0d0d;border-radius:6px;padding:12px;font-size:.78rem;font-family:monospace;max-height:180px;overflow-y:auto}
+.ok{color:#00D4AA}.warn{color:#ff9944}.dim{color:#333}
+.dot{width:7px;height:7px;border-radius:50%;background:#00D4AA;display:inline-block;margin-right:6px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.two-col{display:grid;grid-template-columns:2fr 1fr;gap:12px}
+@media(max-width:700px){.two-col{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:20px">
+  <div>
+    <h1><span class="dot"></span>Murphy — Founder View</h1>
+    <div class="sub">Live metrics · <span id="ts">loading...</span> · <a href="/start" style="color:#333;text-decoration:none">Start page</a> · <a href="/dashboard" style="color:#333;text-decoration:none">Full dashboard</a></div>
+  </div>
+  <div class="actions">
+    <button class="btn btn-go" onclick="runOutreach()">▶ Run outreach</button>
+    <button class="btn" onclick="runProspect()">🔍 Find prospects</button>
+    <a href="/book" class="btn">📅 Book audit</a>
+    <a href="/download" class="btn">↓ Downloads</a>
+  </div>
+</div>
+
+<div class="grid">
+  <div class="metric"><div class="metric-label">Pipeline</div><div class="metric-val" id="m-pipeline">—</div><div class="metric-sub">All deals</div></div>
+  <div class="metric"><div class="metric-label">Total Deals</div><div class="metric-val" id="m-deals">—</div><div class="metric-sub">In CRM</div></div>
+  <div class="metric"><div class="metric-label">Closed Won</div><div class="metric-val" id="m-won">—</div><div class="metric-sub" id="m-wonval">revenue</div></div>
+  <div class="metric"><div class="metric-label">Prospects</div><div class="metric-val" id="m-pros">—</div><div class="metric-sub">Uncontacted</div></div>
+  <div class="metric"><div class="metric-label">Booked</div><div class="metric-val" id="m-book">—</div><div class="metric-sub">Audits scheduled</div></div>
+  <div class="metric"><div class="metric-label">Shield</div><div class="metric-val" id="m-shield">—</div><div class="metric-sub">Security layers</div></div>
+</div>
+
+<div class="two-col">
+  <div class="section">
+    <h2>Recent Deals</h2>
+    <table><thead><tr><th>Title</th><th>Stage</th><th>Value</th><th>Date</th></tr></thead>
+    <tbody id="deals-body"><tr><td colspan="4" style="color:#222">Loading...</td></tr></tbody></table>
+  </div>
+  <div>
+    <div class="section">
+      <h2>System Activity</h2>
+      <div class="log" id="activity-log"><div class="dim">Loading agents...</div></div>
+    </div>
+    <div class="section" style="margin-top:0">
+      <h2>APC Status</h2>
+      <div id="apc-status" style="font-size:.82rem;color:#444">—</div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top:12px">
+  <h2>🎯 Target Outreach — LinkedIn Profile</h2>
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+    <input id="li-url" style="flex:1;min-width:220px" placeholder="https://linkedin.com/in/corey-post-aab22548"/>
+    <select id="li-mode" style="background:#050505;border:1px solid #1a1a1a;border-radius:6px;padding:9px 13px;color:#fff;font-size:.85rem;outline:none">
+      <option value="customer">Customer outreach</option>
+      <option value="investor">Investor outreach</option>
+      <option value="partner">Partner outreach</option>
+    </select>
+    <button class="btn btn-go" onclick="outreachToLinkedIn()">Send Murphy →</button>
+  </div>
+  <div id="li-result" style="margin-top:10px;font-size:.82rem;color:#00D4AA;display:none"></div>
+</div>
+
+<script>
+async function loadData(){
+  document.getElementById('ts').textContent=new Date().toLocaleTimeString();
+  const dr=await fetch('/api/crm/deals').then(r=>r.json()).catch(()=>[]);
+  const deals=Array.isArray(dr)?dr:dr.deals||[];
+  const stages={};let tv=0,wv=0;
+  deals.forEach(d=>{stages[d.stage]=(stages[d.stage]||0)+1;tv+=parseFloat(d.value||0);if(d.stage==='closed_won')wv+=parseFloat(d.value||0);});
+  document.getElementById('m-pipeline').textContent='$'+Math.round(tv/1e6*10)/10+'M';
+  document.getElementById('m-deals').textContent=deals.length;
+  document.getElementById('m-won').textContent=stages.closed_won||0;
+  document.getElementById('m-wonval').textContent='$'+Math.round(wv/1e3)+'K revenue';
+  document.getElementById('m-pros').textContent=stages.prospect||0;
+  document.getElementById('m-book').textContent=(stages.booked||0)+(stages.appointment_booked||0);
+  const recent=[...deals].sort((a,b)=>b.created_at>a.created_at?1:-1).slice(0,8);
+  document.getElementById('deals-body').innerHTML=recent.map(d=>`<tr><td>${(d.title||'—').slice(0,40)}</td><td><span class="stage stage-${d.stage}">${d.stage}</span></td><td>$${Math.round(d.value||0).toLocaleString()}</td><td>${(d.created_at||'').slice(0,10)}</td></tr>`).join('');
+  fetch('/api/shield/status').then(r=>r.json()).then(d=>{const s=d.summary||{};document.getElementById('m-shield').textContent=(s.active||'?')+'/'+( s.total||20);}).catch(()=>{});
+  fetch('/api/apc/status').then(r=>r.json()).then(d=>{document.getElementById('apc-status').textContent=d.success?'✓ Active · discovery:'+d.discovery_enabled+' outreach:'+d.outreach_enabled:'status unknown';}).catch(()=>{});
+  fetch('/api/swarm/agents/status').then(r=>r.json()).then(d=>{
+    const agents=d.agents||[];
+    document.getElementById('activity-log').innerHTML=agents.slice(0,6).map(a=>`<div class="ok">▸ ${a.name} · runs:${a.runs_total||0}</div>`).join('')||'<div class="dim">No agents found</div>';
+  }).catch(()=>{});
+}
+async function runOutreach(){document.getElementById('apc-status').textContent='Running...';const r=await fetch('/api/prospector/cadence',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}).then(x=>x.json()).catch(e=>({error:e.message}));document.getElementById('apc-status').textContent=JSON.stringify(r).slice(0,200);}
+async function runProspect(){document.getElementById('apc-status').textContent='Discovering...';const r=await fetch('/api/prospector/run',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}).then(x=>x.json()).catch(e=>({error:e.message}));document.getElementById('apc-status').textContent=JSON.stringify(r).slice(0,200);}
+async function outreachToLinkedIn(){
+  const url=document.getElementById('li-url').value.trim();const mode=document.getElementById('li-mode').value;
+  if(!url){alert('Paste a LinkedIn URL');return;}
+  const el=document.getElementById('li-result');el.style.display='block';el.textContent='Analyzing and queuing...';
+  const r=await fetch('/api/growth/outreach',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({linkedin_url:url,mode})}).then(x=>x.json()).catch(e=>({error:e.message}));
+  el.textContent=r.success?'✓ '+(r.message||'Queued'):'⚠ '+(r.error||JSON.stringify(r));
+}
+loadData();setInterval(loadData,30000);
+</script>
+</body>
+</html>

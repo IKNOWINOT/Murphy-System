@@ -402,7 +402,7 @@ class SwarmScheduler:
         self._jobs["prospect_discovery"] = {"name": "Prospect Discovery", "interval": "6h", "type": "builtin"}
 
         # PATCH-195: Autonomous lead prospector — every 6 hours
-        scheduler.add_job(
+        self._scheduler.add_job(
             func=_run_prospecting,
             trigger="interval",
             hours=6,
@@ -411,7 +411,7 @@ class SwarmScheduler:
             misfire_grace_time=600,
         )
         # PATCH-195: Follow-up cadence — every 24 hours
-        scheduler.add_job(
+        self._scheduler.add_job(
             func=_run_followup_cadence,
             trigger="interval",
             hours=24,
@@ -421,7 +421,7 @@ class SwarmScheduler:
         )
 
         # PATCH-196: Twitter prospect discovery — every 4 hours
-        scheduler.add_job(
+        self._scheduler.add_job(
             func=_run_twitter_discover,
             trigger="interval",
             hours=4,
@@ -430,7 +430,7 @@ class SwarmScheduler:
             misfire_grace_time=600,
         )
         # PATCH-196: Twitter DM outreach cadence — every 6 hours
-        scheduler.add_job(
+        self._scheduler.add_job(
             func=_run_twitter_outreach,
             trigger="interval",
             hours=6,
@@ -439,7 +439,7 @@ class SwarmScheduler:
             misfire_grace_time=600,
         )
         # PATCH-197: Prospect enrichment — every 2 hours
-        scheduler.add_job(
+        self._scheduler.add_job(
             func=_run_enrichment,
             trigger="interval",
             hours=2,
@@ -517,6 +517,39 @@ class SwarmScheduler:
             "jobs": len(self._jobs),
             "job_list": self.list_jobs(),
         }
+
+
+
+# ── PATCH-365: CRM cadence functions ─────────────────────────────────────────
+def _run_followup_cadence():
+    """Fire the 24h CRM follow-up cadence against all auto-prospected leads."""
+    try:
+        from src.lead_prospector import run_followup_cadence
+        result = run_followup_cadence()
+        import logging as _l
+        _l.getLogger("murphy.swarm_scheduler").info(
+            "[Scheduler] CRM cadence: sent=%s skipped=%s archived=%s",
+            result.get("sent", 0), result.get("skipped", 0), result.get("archived", 0)
+        )
+    except Exception as _e:
+        import logging as _l
+        _l.getLogger("murphy.swarm_scheduler").warning("[Scheduler] CRM cadence error: %s", _e)
+
+
+def _run_prospecting():
+    """Run autonomous lead prospecting cycle."""
+    try:
+        from src.lead_prospector import run_prospecting_cycle
+        result = run_prospecting_cycle()
+        import logging as _l
+        _l.getLogger("murphy.swarm_scheduler").info(
+            "[Scheduler] Prospecting: added=%s dnc_blocked=%s",
+            result.get("added", 0), result.get("dnc_blocked", 0)
+        )
+    except Exception as _e:
+        import logging as _l
+        _l.getLogger("murphy.swarm_scheduler").warning("[Scheduler] Prospecting error: %s", _e)
+# ── END PATCH-365 ─────────────────────────────────────────────────────────────
 
 
 # ── Singleton ─────────────────────────────────────────────────────────────────

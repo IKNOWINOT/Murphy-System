@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy — Dashboard</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0a0a;color:#e8e8e8;min-height:100vh}
+  nav{background:#111827;border-bottom:1px solid #1e2535;padding:0 24px;display:flex;align-items:center;height:56px;justify-content:space-between}
+  .logo{font-size:20px;font-weight:800;color:#fff}.logo span{color:#3b82f6}
+  .nav-right{display:flex;align-items:center;gap:16px;font-size:14px;color:#9ca3af}
+  .status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px}
+  .dot-green{background:#22c55e}.dot-yellow{background:#eab308}.dot-red{background:#ef4444}
+  .main{max-width:1100px;margin:0 auto;padding:32px 20px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin-bottom:24px}
+  .card{background:#111827;border:1px solid #1e2535;border-radius:12px;padding:20px}
+  .card h3{font-size:13px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px}
+  .big-num{font-size:36px;font-weight:700;color:#fff}
+  .big-label{font-size:13px;color:#6b7280;margin-top:4px}
+  .section{margin-bottom:32px}
+  .section-title{font-size:16px;font-weight:600;color:#fff;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+  table{width:100%;border-collapse:collapse}
+  th{text-align:left;font-size:12px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;padding:8px 12px;border-bottom:1px solid #1e2535}
+  td{padding:12px;border-bottom:1px solid #1e2535;font-size:14px;color:#d1d5db;vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  .badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:500}
+  .badge-green{background:#14532d;color:#4ade80}
+  .badge-yellow{background:#422006;color:#fbbf24}
+  .badge-blue{background:#1e3a5f;color:#60a5fa}
+  .badge-purple{background:#2d1a3a;color:#c084fc}
+  .badge-gray{background:#1e2535;color:#9ca3af}
+  .approve-btn{padding:6px 14px;background:#22c55e;color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer;margin-right:6px}
+  .reject-btn{padding:6px 14px;background:#ef4444;color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer}
+  .clock-bar{background:#111827;border:1px solid #3b82f6;border-radius:12px;padding:16px 20px;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between}
+  .clock-label{font-size:14px;color:#9ca3af}
+  .clock-days{font-size:28px;font-weight:700;color:#60a5fa}
+  .pattern-bar{height:6px;background:#1e2535;border-radius:3px;overflow:hidden;margin-top:6px}
+  .pattern-fill{height:100%;background:#3b82f6;border-radius:3px;transition:width .5s}
+  #account-id-input{background:#111827;border:1px solid #1e2535;border-radius:6px;padding:8px 12px;color:#e8e8e8;font-size:14px;width:300px;outline:none}
+  .load-btn{padding:8px 16px;background:#3b82f6;color:#fff;border:none;border-radius:6px;font-size:14px;cursor:pointer;margin-left:8px}
+  .empty{color:#6b7280;font-size:14px;padding:20px;text-align:center}
+  .weekly-rec{background:#1e2535;border-radius:8px;padding:12px;font-size:14px;color:#d1d5db;margin-bottom:8px}
+</style>
+</head>
+<body>
+<nav>
+  <div class="logo">murphy<span>.</span>systems</div>
+  <div class="nav-right">
+    <span><span class="status-dot dot-green"></span>System active</span>
+  </div>
+</nav>
+
+<div class="main">
+  <div style="margin-bottom:24px;display:flex;align-items:center;gap:12px">
+    <input type="text" id="account-id-input" placeholder="Enter your Account ID">
+    <button class="load-btn" onclick="loadDashboard()">Load Dashboard</button>
+  </div>
+
+  <div id="dashboard-content" style="display:none">
+
+    <!-- Backlog clock -->
+    <div class="clock-bar" id="clock-bar" style="display:none">
+      <div>
+        <div class="clock-label">Work backlog activates in</div>
+        <div class="clock-days" id="clock-days">—</div>
+        <div class="clock-label" id="clock-date"></div>
+      </div>
+      <div style="font-size:13px;color:#6b7280;max-width:300px;text-align:right">
+        6 months from your first signed contract.<br>
+        Requires 60% of contract paid.
+      </div>
+    </div>
+
+    <!-- KPI cards -->
+    <div class="grid" id="kpi-grid"></div>
+
+    <!-- HITL queue -->
+    <div class="section">
+      <div class="section-title">⚡ Pending Approvals (HITL)</div>
+      <div class="card" id="hitl-table-wrap">
+        <div class="empty">Loading...</div>
+      </div>
+    </div>
+
+    <!-- Shadow patterns -->
+    <div class="section">
+      <div class="section-title">🧠 Shadow Agent — Learned Patterns</div>
+      <div class="card" id="patterns-wrap">
+        <div class="empty">Loading...</div>
+      </div>
+    </div>
+
+    <!-- Work backlog -->
+    <div class="section">
+      <div class="section-title">📋 Work Backlog</div>
+      <div class="card" id="backlog-wrap">
+        <div class="empty">Loading...</div>
+      </div>
+    </div>
+
+    <!-- Contracts -->
+    <div class="section">
+      <div class="section-title">📄 Contracts</div>
+      <div class="card" id="contracts-wrap">
+        <div class="empty">Loading...</div>
+      </div>
+    </div>
+
+    <!-- Weekly metrics -->
+    <div class="section">
+      <div class="section-title">📊 Weekly Report</div>
+      <div class="card" id="metrics-wrap">
+        <div class="empty">Loading...</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+let currentAccountId = '';
+
+// Auto-load from URL param
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('id')) {
+  document.getElementById('account-id-input').value = urlParams.get('id');
+  setTimeout(loadDashboard, 100);
+}
+
+async function loadDashboard() {
+  const aid = document.getElementById('account-id-input').value.trim();
+  if (!aid) return;
+  currentAccountId = aid;
+  document.getElementById('dashboard-content').style.display = 'block';
+
+  try {
+    const [dash, weekly] = await Promise.all([
+      fetch('/api/oo/dashboard/' + aid).then(r=>r.json()),
+      fetch('/api/oo/metrics/weekly/' + aid).then(r=>r.json())
+    ]);
+    renderDashboard(dash, weekly);
+  } catch(e) {
+    document.getElementById('dashboard-content').innerHTML = '<p style="color:#f87171;padding:20px">Failed to load. Check your Account ID.</p>';
+  }
+}
+
+function renderDashboard(d, weekly) {
+  // Backlog clock
+  if (d.backlog && d.backlog.clock) {
+    const clk = d.backlog.clock;
+    document.getElementById('clock-bar').style.display = 'flex';
+    document.getElementById('clock-days').textContent = clk.days_remaining + ' days';
+    document.getElementById('clock-date').textContent = 'Activation: ' + clk.activation_date;
+  }
+
+  // KPIs
+  const kpis = [
+    {label:'Account Status', val: badge(d.account.status), sub:''},
+    {label:'Shadow Patterns', val: d.shadow_agent.patterns_learned, sub:'learned behaviors'},
+    {label:'HITL Pending', val: d.hitl_queue.pending, sub:'awaiting your approval'},
+    {label:'Backlog Items', val: d.backlog.total, sub: d.backlog.queued+' queued, '+d.backlog.active+' active'},
+  ];
+  document.getElementById('kpi-grid').innerHTML = kpis.map(k=>`
+    <div class="card">
+      <h3>${k.label}</h3>
+      <div class="big-num">${k.val}</div>
+      <div class="big-label">${k.sub}</div>
+    </div>
+  `).join('');
+
+  // HITL table
+  if (d.hitl_queue.items && d.hitl_queue.items.length) {
+    document.getElementById('hitl-table-wrap').innerHTML = `
+      <table>
+        <tr><th>Action</th><th>Description</th><th>Created</th><th>Respond</th></tr>
+        ${d.hitl_queue.items.map(h=>`
+          <tr>
+            <td><span class="badge badge-yellow">${h.action}</span></td>
+            <td>${h.description}</td>
+            <td style="color:#6b7280;font-size:12px">${h.created ? h.created.substring(0,16) : ''}</td>
+            <td>
+              <button class="approve-btn" onclick="respond('${h.id}','approve')">✓ Approve</button>
+              <button class="reject-btn" onclick="respond('${h.id}','reject')">✗ Reject</button>
+            </td>
+          </tr>`).join('')}
+      </table>`;
+  } else {
+    document.getElementById('hitl-table-wrap').innerHTML = '<div class="empty">No pending approvals — Murphy is running clean ✓</div>';
+  }
+
+  // Patterns
+  if (d.shadow_agent.top_patterns && d.shadow_agent.top_patterns.length) {
+    document.getElementById('patterns-wrap').innerHTML = d.shadow_agent.top_patterns.map(p=>`
+      <div style="margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+          <span style="font-size:14px;color:#d1d5db">${p.type}</span>
+          <span style="font-size:13px;color:#60a5fa">${p.confidence} confidence</span>
+        </div>
+        <div class="pattern-bar"><div class="pattern-fill" style="width:${p.confidence}"></div></div>
+        <div style="font-size:12px;color:#6b7280;margin-top:4px">${p.observations} observations · ${p.approved?'<span style=color:#4ade80>automation approved</span>':p.proposed?'<span style=color:#fbbf24>proposal pending</span>':'observing'}</div>
+      </div>`).join('');
+  } else {
+    document.getElementById('patterns-wrap').innerHTML = '<div class="empty">Shadow agent is observing — patterns will appear as you use the system</div>';
+  }
+
+  // Backlog
+  if (d.backlog.items && d.backlog.items.length) {
+    document.getElementById('backlog-wrap').innerHTML = `
+      <table>
+        <tr><th>Task</th><th>Phase</th><th>Priority</th><th>Status</th><th>Activates</th></tr>
+        ${d.backlog.items.map(b=>`
+          <tr>
+            <td>${b.task}</td>
+            <td><span class="badge badge-blue">${b.phase}</span></td>
+            <td>${'★'.repeat(4-Math.min(3,b.priority))}</td>
+            <td>${statusBadge(b.status)}</td>
+            <td style="font-size:12px;color:#6b7280">${b.activates||'—'}</td>
+          </tr>`).join('')}
+      </table>`;
+  } else {
+    document.getElementById('backlog-wrap').innerHTML = '<div class="empty">Backlog will populate after contract is signed and 60% paid</div>';
+  }
+
+  // Contracts
+  if (d.contracts && d.contracts.length) {
+    document.getElementById('contracts-wrap').innerHTML = `
+      <table>
+        <tr><th>Value</th><th>Paid</th><th>Status</th><th>Signed</th><th>Backlog Activates</th></tr>
+        ${d.contracts.map(c=>`
+          <tr>
+            <td>$${(c.value||0).toLocaleString()}</td>
+            <td>${(c.payment_pct||0).toFixed(1)}%</td>
+            <td>${statusBadge(c.status)}</td>
+            <td style="font-size:12px;color:#6b7280">${c.signed_date||'—'}</td>
+            <td style="font-size:12px;color:#60a5fa">${c.backlog_activates||'—'}</td>
+          </tr>`).join('')}
+      </table>`;
+  } else {
+    document.getElementById('contracts-wrap').innerHTML = '<div class="empty">No contracts yet</div>';
+  }
+
+  // Weekly metrics
+  if (weekly) {
+    const healthColor = {green:'#4ade80',yellow:'#fbbf24',red:'#f87171'}[weekly.health] || '#9ca3af';
+    document.getElementById('metrics-wrap').innerHTML = `
+      <div style="display:flex;gap:24px;margin-bottom:20px;flex-wrap:wrap">
+        <div><div style="font-size:24px;font-weight:700;color:#fff">${weekly.shadow_learning.observations}</div><div style="font-size:12px;color:#6b7280">observations this week</div></div>
+        <div><div style="font-size:24px;font-weight:700;color:#fff">${weekly.shadow_learning.automations_approved}</div><div style="font-size:12px;color:#6b7280">automations approved</div></div>
+        <div><div style="font-size:24px;font-weight:700;color:#fff">${weekly.hitl_activity.total_resolved}</div><div style="font-size:12px;color:#6b7280">HITL resolved</div></div>
+        <div><div style="font-size:24px;font-weight:700;color:${healthColor}">${weekly.health.toUpperCase()}</div><div style="font-size:12px;color:#6b7280">system health</div></div>
+      </div>
+      ${(weekly.recommendations||[]).map(r=>`<div class="weekly-rec">${r}</div>`).join('')}
+    `;
+  }
+}
+
+function badge(status) {
+  const map = {lead:'badge-gray',demo_booked:'badge-yellow',proposal_sent:'badge-blue',contract_signed:'badge-blue',active:'badge-green',nurture:'badge-gray',book:'badge-blue',enterprise:'badge-purple'};
+  return `<span class="badge ${map[status]||'badge-gray'}">${status||'—'}</span>`;
+}
+function statusBadge(s) {
+  const map = {pending:'badge-gray',queued:'badge-yellow',active:'badge-blue',completed:'badge-green',draft:'badge-gray',sent:'badge-yellow',signed:'badge-blue',churned:'badge-gray'};
+  return `<span class="badge ${map[s]||'badge-gray'}">${s||'—'}</span>`;
+}
+
+async function respond(hitlId, response) {
+  const r = await fetch('/api/oo/hitl/respond', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({hitl_id:hitlId,response:response})
+  });
+  if (r.ok) loadDashboard();
+}
+</script>
+</body>
+</html>

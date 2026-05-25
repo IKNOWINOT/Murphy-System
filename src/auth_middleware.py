@@ -35,6 +35,7 @@ logger = logging.getLogger("murphy.auth")
 _DEFAULT_EXEMPT: Set[str] = {
     "/health",
     "/api/health",
+        "/api/health/capacity",
     "/api/readiness",
     "/api/status/public",
     "/api/self/health",
@@ -44,6 +45,15 @@ _DEFAULT_EXEMPT: Set[str] = {
     "/favicon.ico",
     "/",
     "/trippingpenguins",
+    "/start",
+    "/vault",
+    "/phone",
+    "/audit",
+    "/household",
+    "/picarx",
+    "/devices",  # PATCH-410: device manager UI
+    "/founder",
+    "/download",
     "/penguins",
     "/voteforsteve2028",
     "/steve2028merch",
@@ -54,8 +64,26 @@ _EXEMPT_PREFIXES = (
     "/static",
     "/murphy-static",
     "/ui/",
+        "/start",
+        "/founder",
+        "/download",
     "/api/ui/",
     "/api/auth/",
+        "/api/client-solutions/",  # PATCH-403
+        "/api/identity/",  # PATCH-410: identity (claim/refresh endpoints — handlers verify themselves)
+        "/api/household/",  # PATCH-408: household profiles
+        "/api/picarx/",  # PATCH-408: PiCar-X
+        "/api/audit/",  # PATCH-407: security audit
+        "/api/vault/",  # PATCH-405: secrets vault
+        "/devices",  # PATCH-410: devices UI
+        "/household",  # PATCH-408: household UI
+        "/picarx",  # PATCH-408: PiCar-X UI: customer-facing triage
+    "/api/vault/",  # PATCH-405: secrets vault (caller verified inside)
+    "/api/phone/",  # PATCH-406a: voice telephony (Twilio webhooks)
+    "/api/audit/",  # PATCH-407: security audit engine
+    "/api/household/",  # PATCH-408: household profiles
+    "/api/picarx/",  # PATCH-408: PiCar-X
+    "/api/identity/",  # PATCH-410: identity (most endpoints check bearer themselves)
     "/api/demo",
     "/api/manga",
     "/api/v1/",          # PATCH-065a: public API
@@ -71,6 +99,12 @@ _EXEMPT_PREFIXES = (
     "/api/billing/plans",
     "/api/billing/currencies",
     "/api/billing/checkout",
+    # PATCH-434: policy routes (GET public, POST founder-only)
+    "/api/policy/",
+    # PATCH-426: NOWPayments — webhook has HMAC-SHA512 verification,
+    # checkout is a public pricing-page action (mirrors Stripe pattern)
+    "/api/payments/",
+    "/api/payments",
     # PATCH-097: Foundation modules — conduct, ledger, front-of-line
     "/api/conduct/",
     "/api/conduct",
@@ -88,8 +122,10 @@ _EXEMPT_PREFIXES = (
     "/api/self/restore",
     "/api/self/vision",
     # PATCH-098: RROM monitoring
+        "/api/growth/",
+        "/api/growth",
     "/api/rrom/",
-    "/api/rrom",
+        "/api/rrom",
     # PATCH-099: PCC
     "/api/pcc/",
     "/api/pcc",
@@ -378,6 +414,7 @@ class OIDCAuthMiddleware(BaseHTTPMiddleware):
         "/api/automation/prefight/status",   # PATCH-177: engine availability — public
         "/api/billing/prices",               # PATCH-179b: public pricing endpoint for landing page
         "/api/health",
+        "/api/health/capacity",
         "/api/info",
         "/api/manifest",
         "/api/readiness",
@@ -413,6 +450,9 @@ class OIDCAuthMiddleware(BaseHTTPMiddleware):
         "/api/wallet/addresses",
         "/api/wallet/transactions",
         # PATCH-158: CRM/Boards/Time-tracking public read
+        "/start",
+        "/founder",
+        "/download",
         "/api/crm/deals",
         "/api/crm/contacts",
         "/api/crm/activities",
@@ -445,8 +485,12 @@ class OIDCAuthMiddleware(BaseHTTPMiddleware):
         "/static",
         "/murphy-static",
         "/ui/",
+        "/start",
+        "/founder",
+        "/download",
         "/api/ui/",
         "/api/auth/",
+        "/api/client-solutions/",  # PATCH-403
         "/api/v1/auth/",
         "/api/demo",
         "/api/manga",
@@ -465,7 +509,9 @@ class OIDCAuthMiddleware(BaseHTTPMiddleware):
         "/api/matrix/chat",
         "/api/system/",
         # PATCH-098: RROM monitoring (public)
-        "/api/rrom/",
+        "/api/growth/",
+        "/api/growth",
+    "/api/rrom/",
         "/api/rrom",
         # PATCH-099: PCC (public)
         "/api/pcc/",
@@ -530,6 +576,11 @@ class OIDCAuthMiddleware(BaseHTTPMiddleware):
         "/api/billing/plans",
         "/api/billing/currencies",
         "/api/billing/checkout",
+        # PATCH-434: policy routes
+        "/api/policy/",
+        # PATCH-426: NOWPayments public routes (HMAC + pricing-page)
+        "/api/payments/",
+        "/api/payments",
         # PATCH-065: Public API, OAuth AS, Connector Agent
         "/api/v1/",
         "/oauth/",
@@ -545,7 +596,9 @@ class OIDCAuthMiddleware(BaseHTTPMiddleware):
         "/api/self/patch",
         "/api/self/vision",   # PATCH-163: vision loop — has own bearer check
         # PATCH-098: RROM monitoring
-        "/api/rrom/",
+        "/api/growth/",
+        "/api/growth",
+    "/api/rrom/",
         "/api/rrom",
         # PATCH-099: PCC
         "/api/pcc/",
@@ -658,6 +711,14 @@ class OIDCAuthMiddleware(BaseHTTPMiddleware):
         # always exempt — same set the inline middleware honoured.
         if self._is_exempt(path):
             return await call_next(request)
+
+        # PATCH-351: also check MURPHY_AUTH_EXEMPT env var (comma-separated prefixes)
+        _env_exempt = os.environ.get("MURPHY_AUTH_EXEMPT", "")
+        if _env_exempt:
+            for _ep in _env_exempt.split(","):
+                _ep = _ep.strip()
+                if _ep and path.startswith(_ep):
+                    return await call_next(request)
 
         # Only enforce on /api/* (back-compat with the old inline mount).
         if not path.startswith("/api/"):

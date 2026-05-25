@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy Operator Guide — Confidential</title>
+<style>
+:root{--bg:#000;--bg2:#0a0a0a;--bg3:#111;--border:#1e1e1e;--border2:#2a2a2a;--text:#fff;--text2:#aaa;--text3:#555;--live:#ff5a00;--teal:#0db4a3;--green:#00e676;--yellow:#ffcc00;--red:#ff4444;--mono:"JetBrains Mono","Fira Code","Courier New",monospace;--sans:system-ui,-apple-system,sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;min-height:100vh}
+#auth-gate{position:fixed;inset:0;background:var(--bg);z-index:1000;display:flex;align-items:center;justify-content:center;flex-direction:column}
+.auth-box{background:var(--bg2);border:1px solid var(--border2);border-radius:4px;padding:32px;width:320px;text-align:center}
+.auth-title{font-size:22px;font-weight:700;margin-bottom:4px}
+.auth-sub{font-size:11px;color:var(--text3);margin-bottom:20px;font-family:var(--mono);letter-spacing:1px}
+.auth-input{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:3px;padding:10px 12px;color:var(--text);font-size:13px;font-family:var(--mono);outline:none;margin-bottom:10px}
+.auth-input:focus{border-color:var(--text3)}
+.auth-btn{width:100%;padding:10px;background:var(--live);color:#000;font-weight:700;font-size:13px;border:none;border-radius:3px;cursor:pointer}
+.auth-err{color:var(--red);font-size:11px;font-family:var(--mono);margin-top:8px;height:16px}
+#doc{display:none;max-width:800px;margin:0 auto;padding:48px 24px 80px}
+.doc-header{border-bottom:1px solid var(--border);padding-bottom:20px;margin-bottom:32px}
+.doc-title{font-size:28px;font-weight:700;letter-spacing:-0.5px;margin-bottom:6px}
+.doc-meta{font-size:11px;font-family:var(--mono);color:var(--text3)}
+.badge-conf{display:inline-block;padding:3px 8px;background:#ff444420;border:1px solid var(--red);border-radius:2px;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--red);text-transform:uppercase;margin-bottom:12px}
+h2{font-size:18px;font-weight:700;margin:36px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+h3{font-size:14px;font-weight:700;margin:20px 0 8px;color:var(--live)}
+p{color:var(--text2);line-height:1.8;margin-bottom:12px}
+ul,ol{color:var(--text2);line-height:1.8;margin-bottom:12px;padding-left:20px}
+li{margin-bottom:4px}
+strong{color:var(--text);font-weight:600}
+em{color:var(--text3);font-style:italic}
+code{font-family:var(--mono);font-size:12px;background:var(--bg3);padding:1px 5px;border-radius:2px;color:var(--teal);border:1px solid var(--border2)}
+blockquote{border-left:2px solid var(--live);padding:10px 14px;margin:12px 0;background:var(--bg2);border-radius:0 3px 3px 0}
+blockquote p{margin:0;color:var(--text2);font-style:italic}
+hr{border:none;border-top:1px solid var(--border);margin:28px 0}
+table{width:100%;border-collapse:collapse;margin-bottom:16px;font-size:12px}
+th{text-align:left;padding:7px 10px;border-bottom:1px solid var(--border2);color:var(--text3);font-size:10px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;font-family:var(--mono)}
+td{padding:8px 10px;border-bottom:1px solid var(--border);color:var(--text2);vertical-align:top}
+.warn{background:#ffcc0008;border:1px solid var(--yellow);border-radius:3px;padding:12px 14px;margin:12px 0;color:var(--yellow);font-size:12px}
+</style>
+</head>
+<body>
+<div id="auth-gate">
+  <div class="auth-box">
+    <div class="auth-title">Murphy OS</div>
+    <div class="auth-sub">OPERATOR ACCESS &mdash; CONFIDENTIAL</div>
+    <input class="auth-input" id="pw" type="password" placeholder="Operator passphrase"
+      onkeydown="if(event.key==='Enter')checkAuth()" autofocus />
+    <button class="auth-btn" onclick="checkAuth()">Access Operator Guide &rarr;</button>
+    <div class="auth-err" id="auth-err"></div>
+  </div>
+</div>
+<div id="doc">
+  <div class="doc-header">
+    <div class="badge-conf">Confidential &mdash; Authorized Operators Only</div>
+    <div class="doc-title">Murphy Operator Guide</div>
+    <div class="doc-meta">Version 1.0 &nbsp;&middot;&nbsp; May 2026 &nbsp;&middot;&nbsp; murphy.systems</div>
+  </div>
+  <div id="md-content"></div>
+</div>
+<script>
+const RAW_MD = '# Murphy Operator Guide\n**Confidential — For Authorized Operators Only**\nVersion 1.0 | May 2026 | murphy.systems\n\n---\n\n## What You\'re Operating\n\nMurphy is an autonomous AI operating system. It is not a chatbot, not a dashboard, not a tool. It is a running system — 9 parallel AI graphs executing simultaneously, every minute of every day. Your job as an operator is not to run it. It runs itself. Your job is to direct it, interpret its outputs, and intervene when it asks you to.\n\nThe system is live at **https://murphy.systems** and the command interface is at **https://murphy.systems/static/murphy-os.html**\n\n---\n\n## The Dashboard at a Glance\n\nWhen you open Murphy OS, you\'ll see five things immediately:\n\n**1. Terminal strip (top of page)**\nGreen monospace text scrolling in real time. This is live agent stdout — what Murphy is actually doing right now. If it\'s moving, the system is running. If it\'s frozen, something is wrong.\n\n**2. LIVE pill (top left)**\nOrange dot + "LIVE". Always on when Murphy is operational.\n\n**3. Agent face (left column)**\nAn ASCII character with changing expressions. States mean:\n- `Ready & Waiting` — idle, no active tasks\n- `Running` — task executing now\n- `Thinking…` — analyzing, waiting for LLM response\n- `Triumphant` — task completed successfully\n- `Investigating` — something needs attention\n\n**4. 9 Graphs strip (left column)**\nNine colored dots: Soul, MFGC, MSS, Rubix, Causality, Emergence, Compliance, Chain, Knowledge.\n- 🟢 Green = active and healthy\n- 🟡 Yellow = degraded or idle\n- 🔴 Red = error state\n\n**5. Ask Murphy bar (pinned bottom)**\nAlways visible. Type anything and hit Enter. This is your primary control surface.\n\n---\n\n## The Five Pages\n\n### Overview\nYour mission control. Three columns, all live:\n\n**Left column** — System health: confidence score, mind cycle count, deals, gates, shield status. Check this first when you sit down. If Swarm Confidence is below 70%, the system is running degraded. Below 50%, something is broken.\n\n**Center column** — What Murphy is working on right now. Each card shows the exact task name, type tag (Mind / prod_ops / exec_admin), and a timer counting up. Below that: live activity feed. Every event that flows through the swarm bus appears here in real time.\n\n**Right column** — Swarm Mind status, CRM recent deals, ads performance. The priority gap box (yellow left border) tells you the single most important thing Murphy thinks it should be fixing. Read this every session.\n\n---\n\n### Dispatch\nHow you give Murphy a task. Two ways:\n\n**Quick Actions (one-click):**\n- ⚡ Brief Me — system status right now\n- 📊 CRM Review — analyze all deals, recommend top 3 actions\n- 🎯 Top Gap — what\'s the single most important fix today\n- 📝 Exec Summary — weekly report of all activity\n- 📧 Outreach — cold campaign to top pipeline prospects\n- 🔷 Graph Audit — which of the 9 graphs are live vs dead\n\n**Custom task (text box):**\nType exactly what you want. Be specific. "Analyze the three oldest pipeline deals and draft a follow-up email for each" works better than "do outreach."\n\n**Pipeline trace** shows Murphy\'s full execution path as it runs:\n`Soul → Rosetta → MFGC → Rubix → MSS → Swarm → Learn → Transcript`\n\nEach step turns orange when active, white when complete. If a step stays orange for more than 2 minutes, the LLM chain is under load — wait, it will complete.\n\n**Reading the result:**\nEvery task returns:\n- `status: completed` — worked\n- `status: failed` — something broke, check the console log above the result\n- `run_id` — use this to find the task in Murphy\'s logs (`/api/exec/history`)\n- `duration` — anything under 30s is fast. 30–120s is normal for complex tasks. Over 120s means the LLM fell back to Ollama (local, slower but functional)\n- `cost` — what the LLM call cost in USD. Normal range: $0.0001–$0.05\n\n---\n\n### Agents\nThe 9 agents that make up Murphy\'s swarm. Each card shows:\n- Name and role\n- Department (Intelligence / Engineering / Operations / Compliance / Governance / Safety)\n- Runs: how many times it\'s executed (0 = never run — this is a gap)\n- HITL threshold: what percentage confidence Murphy needs before acting without asking you\n- Reports to: chain of command\n\n**Agents you\'ll interact with most:**\n- **ExecAdmin** — routes tasks, makes operational decisions\n- **Executor** — actually runs tasks and calls external APIs\n- **HITL Gate** — the one that pauses and asks you before high-stakes actions\n- **Auditor** — compliance checks, never bypassed\n- **Rosetta** — the Chief Alignment Officer, final word on soul-critical decisions\n\n**If an agent shows "Not yet run"** — it hasn\'t been exercised. Run a task that matches its domain to wake it up.\n\n---\n\n### Pipeline\nYour CRM in Kanban view. 5 stages: Prospect → Qualified → Proposal → Negotiation → Closed Won.\n\n**Right now** everything is in Prospect. Murphy\'s cadence automation runs daily and is supposed to move deals forward. If deals aren\'t moving:\n1. Go to Dispatch\n2. Run "Analyze all CRM deals and recommend top 3 outreach actions"\n3. Murphy will tell you exactly which deals to prioritize and why\n\nTotal pipeline value is shown in the header. $8,755K across 187 deals means Murphy has been prospecting — the job now is to qualify and move those deals.\n\n---\n\n### Soul\nMurphy\'s core identity. Not configuration — this is what Murphy believes and what it will and won\'t do.\n\n- **North star** (quoted, orange left border) — Murphy\'s foundational purpose\n- **Team Covenant** — behavioral rules all agents follow (dedup_before_act, report_to_auditor, no_isolation, past_informs_present)\n- **Harm Thresholds** — probability limits. If P_harm_physical or P_harm_autonomy would exceed 65%, Murphy stops and escalates to HITL before acting\n- **World Context** — Murphy\'s current read of the macro environment (sentiment, topics). Sentiment 0.10 = cautious/neutral world view\n\nYou don\'t edit Soul directly. To update Murphy\'s values, use Dispatch: "Update Murphy\'s north star to emphasize [X]" and Murphy will route it through Rosetta for review.\n\n---\n\n## HITL — When Murphy Asks for Help\n\nHITL (Human In The Loop) is Murphy pausing on purpose. When you see a non-zero number on the HITL sidebar badge, Murphy is waiting for you.\n\nClick HITL in the sidebar. You\'ll see each intervention with:\n- Description of what Murphy wants to do\n- Stake level (low / medium / high / critical)\n- Why it\'s pausing (what threshold was hit)\n\n**To respond:**\n1. Go to Dispatch\n2. Type: "Approve HITL intervention [description]" or "Reject — [reason]"\n3. Murphy will proceed or stand down\n\n**Stake levels:**\n- Low (green) — Murphy will usually just inform you, not block\n- Medium (yellow) — Murphy paused and is waiting. Has a 4-hour auto-timeout then escalates\n- High (orange) — Hard stop. Requires explicit approval before anything happens\n- Critical (red) — Founder-level decision required. Murphy will not proceed under any circumstances without explicit sign-off from cpost@murphy.systems\n\n---\n\n## Shield — The Security Layer\n\nMurphy runs a 19-layer Shield Wall. You\'ll see it in the sidebar under Intelligence. The status should always show `19/20 layers active`. If it drops below 15, there is a security event — check `/api/security/events` and the Shield page for details.\n\nThe layers protect against: prompt injection, data exfiltration, unauthorized external calls, hallucinated credentials, compliance violations, and more. You cannot disable them. If a task you gave Murphy seems stuck, check Shield — it may have blocked an action that would have violated a compliance rule.\n\n---\n\n## Reading System Health in 30 Seconds\n\nEvery time you open the dashboard, scan these five things in order:\n\n1. **Terminal strip moving?** → Yes = system alive. No = check if Murphy service is running\n2. **Swarm Confidence %?** → >75% good, 60–75% degraded, <60% investigate\n3. **Priority gap (yellow box, right column)?** → This is what Murphy thinks is most broken. Address it\n4. **HITL badge?** → Any number means Murphy is waiting for you. Don\'t leave it waiting\n5. **9-graph dots?** → Count the yellows. More than 3 yellow means something needs a push\n\n---\n\n## Common Tasks\n\n**"Brief me before a meeting"**\nAsk bar → "Give me a 3-sentence executive brief on system status and top business priority"\n\n**"Check if outreach is working"**\nDispatch → CRM Review quick action\n\n**"Something feels broken"**\nDispatch → type: "Run full system audit across all 9 graphs and report all errors"\n\n**"I want Murphy to do something tonight"**\nDispatch → type your task → Murphy routes it, executes it, logs it. Check Overview next morning for results.\n\n**"What did Murphy do today?"**\nDispatch → Exec Summary quick action\n\n**"A deal needs attention now"**\nDispatch → type: "Deal [company name] — draft and send a follow-up email, then move to Qualified stage"\n\n---\n\n## LLM Chain — What It Means\n\nThe topbar shows `llm: ollama` or `llm: together` or `llm: deepinfra`. This is which AI model Murphy is currently using.\n\n- `llm: deepinfra` — fastest, premium, primary model\n- `llm: together` — solid fallback, slightly slower\n- `llm: ollama` — local model, slowest, but completely offline — works even if the internet is down\n\nMurphy auto-selects based on availability and speed. You never need to change this. If you see `llm: ollama` consistently it means the cloud APIs are timing out — tasks will still complete, just slower (30–90s instead of 8–15s).\n\n---\n\n## Things You Should Never Do\n\n1. **Don\'t SSH into the server and edit files manually.** Murphy\'s codebase is managed through Corey and the engineering pipeline. Random edits break things in ways that are hard to trace.\n\n2. **Don\'t try to bypass HITL.** If Murphy paused, it paused for a reason. The intervention system exists specifically to protect you and the business from automated mistakes.\n\n3. **Don\'t restart the Murphy service without cause.** Restarting drops in-flight tasks and resets agent memory. Use Dispatch to fix issues first.\n\n4. **Don\'t delete CRM records directly.** Use Murphy: "Archive deal [name] — reason: [X]". Murphy logs it and updates downstream systems.\n\n5. **Don\'t share the API key.** The founder key (`founder_ad6b...`) has full access to everything including the ability to override HITL. It stays with authorized operators only.\n\n---\n\n## Escalation Path\n\n| Situation | What to do |\n|---|---|\n| Dashboard not loading | Wait 2 min, refresh. If still down: notify Corey |\n| Terminal strip frozen | Check if HITL is blocking. If not: notify Corey |\n| Confidence below 50% | Run "System audit" dispatch. Notify Corey with result |\n| HITL backlog > 5 items | Work through them in order. Oldest first |\n| LLM stuck on ollama only | Normal. Tasks still complete. Monitor |\n| Security event in Shield | Do not proceed with any tasks. Notify Corey immediately |\n| Critical HITL stake | Notify Corey immediately — do not approve without him |\n\n**Corey Post** — cpost@murphy.systems — founder, all critical escalations\n\n---\n\n## Quick Reference\n\n| Thing | Where |\n|---|---|\n| Main dashboard | murphy.systems/static/murphy-os.html |\n| Give Murphy a task | Ask bar (bottom) or Dispatch tab |\n| System health | Overview left column |\n| What Murphy is doing | Overview center column (tasks + feed) |\n| CRM deals | Pipeline tab |\n| Pending approvals | HITL sidebar badge |\n| Agent status | Agents tab |\n| Murphy\'s values | Soul tab |\n| Security | Shield sidebar item |\n| LLM status | Topbar badge |\n| Logs (raw) | murphy.systems/api/exec/history |\n| HITL queue (raw) | murphy.systems/api/hitl/interventions/pending |\n\n---\n\n*This is the only document you need. If something isn\'t covered here, ask Murphy — "How do I [X]?" is a valid Dispatch task and Murphy will walk you through it.*\n\n*Murphy Operator Guide v1.0 — Confidential — murphy.systems*\n';
+
+function md2html(md) {
+  let html = md;
+  // Strip front matter
+  html = html.replace(/^# .+\n\*\*Confidential.*?\n\n/, "");
+  // h2
+  html = html.replace(/^## (.+)$/gm, "<h2>$1</h2>");
+  // h3
+  html = html.replace(/^### (.+)$/gm, "<h3>$1</h3>");
+  // tables
+  html = html.replace(/^\|(.+)\|$/gm, (line) => {
+    if (line.includes("---")) return "";
+    const cells = line.split("|").filter((c,i,a)=>i>0&&i<a.length-1).map(c=>c.trim());
+    return "<tr>" + cells.map(c=>"<td>"+c+"</td>").join("") + "</tr>";
+  });
+  html = html.replace(/(<tr>.*<\/tr>\n?)+/g, (block) => {
+    const rows = block.trim().split("\n");
+    const head = rows[0].replace(/<td>/g,"<th>").replace(/<\/td>/g,"</th>");
+    const body = rows.slice(1).join("\n");
+    return "<table><thead>"+head+"</thead><tbody>"+body+"</tbody></table>\n";
+  });
+  // hr
+  html = html.replace(/^---$/gm, "<hr>");
+  // bold
+  html = html.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+  // italic
+  html = html.replace(/\*(.+?)\*/g, "<em>$1</em>");
+  // code
+  html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
+  // blockquote
+  html = html.replace(/^> (.+)$/gm, "<blockquote><p>$1</p></blockquote>");
+  // ul
+  html = html.replace(/^- (.+)$/gm, "<li>$1</li>");
+  html = html.replace(/(<li>.*<\/li>\n?)+/g, (block) => "<ul>"+block+"</ul>");
+  // ol
+  html = html.replace(/^\d+\. (.+)$/gm, "<li>$1</li>");
+  // paragraphs
+  const lines = html.split("\n");
+  const out = [];
+  let inBlock = false;
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) { inBlock = false; out.push(""); continue; }
+    if (trimmed.startsWith("<")) { inBlock = false; out.push(trimmed); continue; }
+    if (!inBlock) { out.push("<p>" + trimmed); inBlock = true; }
+    else { out[out.length-1] += " " + trimmed; }
+  }
+  return out.map(l => l.startsWith("<p>") ? l + "</p>" : l).join("\n");
+}
+
+document.getElementById("md-content").innerHTML = md2html(RAW_MD);
+
+function checkAuth() {
+  const pw = document.getElementById("pw").value;
+  const err = document.getElementById("auth-err");
+  if (pw === "Sputnik12!" || pw === "hpost-operator-2026") {
+    document.getElementById("auth-gate").style.display = "none";
+    document.getElementById("doc").style.display = "block";
+    sessionStorage.setItem("murphy-op", "1");
+  } else {
+    err.textContent = "Invalid passphrase";
+    setTimeout(()=>err.textContent="", 3000);
+  }
+}
+if (sessionStorage.getItem("murphy-op") === "1") {
+  document.getElementById("auth-gate").style.display = "none";
+  document.getElementById("doc").style.display = "block";
+}
+</script>
+</body>
+</html>

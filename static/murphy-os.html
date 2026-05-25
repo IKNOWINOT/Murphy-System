@@ -1,0 +1,2676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy OS — Autonomous Operations</title>
+<style>
+/* ─────────────────────────────────────────────
+   DESIGN LANGUAGE — Murphy Landing Page System
+   - Background: #0d1117 (dark GitHub-like near-black)
+   - Primary accent: #00d4ff (cyan — Murphy brand)
+   - Secondary: #39d353 (green — live/healthy indicator)
+   - Font: Inter (exact landing page match)
+   - Headings: bold, tight letter-spacing, cyan
+   - Labels: 10px, mono, 1.5px letter-spacing, uppercase
+   - Eye: SVG iris tracker — color = agent state
+   ───────────────────────────────────────────── */
+
+:root {
+  /* ── MURPHY LANDING PAGE DESIGN SYSTEM ── */
+  --bg:       #0d1117;
+  --bg2:      #131920;
+  --bg3:      #161b22;
+  --bg4:      #1c2128;
+  --border:   #21262d;
+  --border2:  #30363d;
+
+  --text:     #e6edf3;
+  --text2:    #8b949e;
+  --text3:    #484f58;
+
+  /* PRIMARY accent — Murphy cyan (exact landing page) */
+  --live:     #00d4ff;
+  --live-dim: #00d4ff18;
+
+  /* Secondary — landing page green (nav, badges, live indicator) */
+  --teal:     #39d353;
+  --teal-dim: #39d35312;
+
+  /* Signal colors */
+  --green:    #39d353;
+  --yellow:   #e3b341;
+  --red:      #f85149;
+  --orange:   #ff7b72;
+
+  /* Terminal green */
+  --term:     #39d353;
+
+  --mono: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+  --sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --serif: Georgia, 'Times New Roman', serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-feature-settings: 'cv01','cv02','cv03';
+  font-size: 13px;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── TERMINAL STRIP (top — THE most important element) ── */
+.terminal-strip {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  padding: 6px 16px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--term);
+  height: 32px;
+  overflow: hidden;
+  white-space: nowrap;
+  position: relative;
+}
+
+.terminal-strip::before {
+  content: '> ';
+  color: var(--teal);
+}
+
+#term-text {
+  display: inline;
+}
+
+.term-cursor {
+  display: inline-block;
+  width: 7px;
+  height: 11px;
+  background: var(--term);
+  vertical-align: middle;
+  margin-left: 2px;
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* ── TOPBAR ── */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  height: 48px;
+  background: var(--bg3);
+  border-bottom: 1px solid var(--border2);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.brand {
+  font-family: var(--sans);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--teal);
+}
+
+.live-pill {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  background: var(--live-dim);
+  border: 1px solid var(--live);
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--live);
+  text-transform: uppercase;
+}
+
+.live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--teal);
+  animation: pulse-live 1.5s infinite;
+}
+
+@keyframes pulse-live {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.topbar-center {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.nav-tab {
+  padding: 5px 12px;
+  border-radius: 3px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text3);
+  cursor: pointer;
+  border: none;
+  background: none;
+  transition: all 0.1s;
+  font-family: var(--sans);
+}
+.nav-tab:hover { color: var(--text2); }
+.nav-tab.active { color: var(--live); background: var(--bg3); }
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.llm-badge {
+  font-size: 10px;
+  font-family: var(--mono);
+  color: var(--text3);
+  padding: 3px 8px;
+  border: 1px solid var(--border2);
+  border-radius: 3px;
+}
+
+.dispatch-btn-top {
+  padding: 6px 14px;
+  background: var(--live);
+  color: #0d1117;
+  font-weight: 700;
+  font-size: 12px;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  font-family: var(--sans);
+  transition: opacity 0.1s;
+}
+.dispatch-btn-top:hover { opacity: 0.85; }
+
+/* ── MAIN SHELL ── */
+.shell {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  height: calc(100vh - 80px);
+}
+
+/* ── SIDEBAR ── */
+.sidebar {
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  padding: 12px 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-section {
+  padding: 16px 12px 4px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--text3);
+}
+
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  font-size: 12px;
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.1s;
+  border-left: 2px solid transparent;
+}
+.sidebar-item:hover { color: var(--text); background: var(--bg3); }
+.sidebar-item.active {
+  color: var(--text);
+  border-left-color: var(--live);
+  background: var(--bg3);
+}
+
+.sidebar-icon { font-size: 13px; width: 16px; text-align: center; flex-shrink: 0; }
+
+.sidebar-badge {
+  margin-left: auto;
+  font-size: 9px;
+  font-weight: 700;
+  font-family: var(--mono);
+  color: var(--live);
+}
+
+/* ── PAGES ── */
+.main { overflow-y: auto; }
+.page { display: none; }
+.page.active { display: block; }
+
+/* ── OVERVIEW: 3-COLUMN (Polsia-inspired) ── */
+.overview-grid {
+  display: grid;
+  grid-template-columns: 220px 1fr 260px;
+  height: 100%;
+  min-height: calc(100vh - 80px);
+}
+
+.col {
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  padding: 20px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.col:last-child { border-right: none; }
+
+/* ── MURPHY EYE (cursor-tracking) ── */
+.agent-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.eye-container {
+  width: 120px;
+  height: 120px;
+  position: relative;
+  cursor: none;
+}
+
+.eye-svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* Outer glow ring — state color */
+.eye-outer-glow {
+  filter: drop-shadow(0 0 8px var(--eye-color, var(--live)));
+  transition: filter 0.4s ease;
+}
+
+.agent-state {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--live);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  font-family: var(--mono);
+}
+
+/* ── BUSINESS METRICS ── */
+.section-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text3);
+  margin-bottom: 10px;
+  font-family: var(--mono);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 8px;
+}
+
+.metric-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+.metric-row:last-child { border-bottom: none; }
+
+.metric-label { color: var(--text2); }
+
+.metric-value {
+  font-weight: 700;
+  font-family: var(--mono);
+  font-size: 13px;
+}
+
+.metric-delta {
+  font-size: 10px;
+  color: var(--green);
+  font-family: var(--mono);
+  margin-left: 4px;
+}
+.metric-delta.warn { color: var(--yellow); }
+
+/* ── SPARKLINE ── */
+.sparkline-wrap {
+  height: 60px;
+  position: relative;
+}
+
+.sparkline-label {
+  font-size: 10px;
+  font-family: var(--mono);
+  color: var(--text3);
+  position: absolute;
+  bottom: 0;
+  right: 0;
+}
+
+/* ── 9-GRAPH STRIP ── */
+.graph-strip {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.graph-dot-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: 3px;
+  font-size: 10px;
+  font-family: var(--mono);
+  color: var(--text2);
+  cursor: pointer;
+  transition: border-color 0.1s;
+}
+.graph-dot-item:hover { border-color: var(--text3); }
+
+.gdot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.gdot.green { background: var(--green); }
+.gdot.yellow { background: var(--yellow); }
+.gdot.red { background: var(--red); animation: none; }
+.gdot.dim { background: var(--text3); }
+
+/* ── TASK CARDS (center column) ── */
+.task-card {
+  border: 1px solid var(--border2);
+  border-radius: 4px;
+  padding: 10px 12px;
+  background: var(--bg3);
+  margin-bottom: 6px;
+  transition: border-color 0.1s;
+}
+.task-card:hover { border-color: var(--border2); background: var(--bg4); }
+
+.task-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.task-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--live);
+  flex-shrink: 0;
+  margin-top: 3px;
+  animation: pulse-live 1.5s infinite;
+}
+.task-dot.done { background: var(--green); animation: none; }
+
+.task-name {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+  flex: 1;
+}
+
+.task-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.task-tag {
+  font-size: 10px;
+  font-family: var(--mono);
+  padding: 2px 6px;
+  background: var(--bg4);
+  border: 1px solid var(--border2);
+  border-radius: 2px;
+  color: var(--text2);
+}
+
+.task-timer {
+  font-size: 10px;
+  font-family: var(--mono);
+  color: var(--live);
+}
+
+.volume-line {
+  font-size: 11px;
+  color: var(--text3);
+  font-family: var(--mono);
+  margin-top: 4px;
+}
+
+/* ── LIVE FEED ROWS ── */
+.feed-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border);
+  gap: 8px;
+}
+.feed-row:last-of-type { border-bottom: none; }
+
+.feed-text {
+  font-size: 12px;
+  color: var(--text2);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.feed-time {
+  font-size: 10px;
+  font-family: var(--mono);
+  color: var(--text3);
+  flex-shrink: 0;
+}
+
+.feed-arrow {
+  color: var(--live);
+  margin-right: 4px;
+  flex-shrink: 0;
+}
+
+/* ── ADS TABLE ── */
+.ads-header {
+  font-size: 11px;
+  color: var(--text2);
+  margin-bottom: 8px;
+}
+
+.ads-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--mono);
+  font-size: 10px;
+}
+
+.ads-table th {
+  text-align: left;
+  color: var(--text3);
+  padding: 3px 6px;
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+}
+
+.ads-table td {
+  padding: 4px 6px;
+  color: var(--text2);
+  border-bottom: 1px solid var(--border);
+}
+
+/* ── COMMAND BOX (dispatch) ── */
+.command-box-wrap {
+  padding: 16px;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.command-row {
+  display: flex;
+  gap: 8px;
+}
+
+.command-input {
+  flex: 1;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: 3px;
+  padding: 10px 14px;
+  color: var(--text);
+  font-size: 13px;
+  font-family: var(--sans);
+  outline: none;
+  transition: border-color 0.1s;
+}
+.command-input:focus { border-color: var(--text3); }
+.command-input::placeholder { color: var(--text3); }
+
+.command-execute {
+  padding: 10px 18px;
+  background: var(--live);
+  color: #0d1117;
+  font-weight: 700;
+  font-size: 12px;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  font-family: var(--sans);
+  white-space: nowrap;
+  transition: opacity 0.1s;
+}
+.command-execute:hover { opacity: 0.85; }
+.command-execute:disabled { opacity: 0.4; cursor: default; }
+
+.quick-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.qa-btn {
+  padding: 4px 10px;
+  background: none;
+  border: 1px solid var(--border2);
+  border-radius: 3px;
+  color: var(--text3);
+  font-size: 11px;
+  cursor: pointer;
+  font-family: var(--sans);
+  transition: all 0.1s;
+}
+.qa-btn:hover { color: var(--live); border-color: var(--live); }
+
+/* ── DISPATCH PAGE CONTENT ── */
+.dispatch-content {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.pipeline-trace {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  font-size: 10px;
+  font-family: var(--mono);
+  flex-wrap: wrap;
+  gap: 2px;
+}
+
+.pipe-step {
+  padding: 3px 8px;
+  border: 1px solid var(--border2);
+  border-radius: 2px;
+  color: var(--text3);
+  background: var(--bg3);
+}
+.pipe-step.active { color: var(--live); border-color: var(--live); }
+.pipe-step.done { color: var(--green); border-color: var(--border2); }
+
+.pipe-arrow {
+  color: var(--text3);
+  padding: 0 2px;
+}
+
+.console-box {
+  background: var(--bg);
+  border: 1px solid var(--border2);
+  border-radius: 3px;
+  padding: 12px;
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.7;
+  min-height: 140px;
+  max-height: 260px;
+  overflow-y: auto;
+  color: var(--text3);
+}
+
+.c-info { color: var(--teal); }
+.c-success { color: var(--green); }
+.c-error { color: var(--red); }
+.c-warn { color: var(--yellow); }
+.c-live { color: var(--live); }
+
+.result-box {
+  border: 1px solid var(--border2);
+  border-radius: 3px;
+  background: var(--bg3);
+  padding: 14px;
+  display: none;
+}
+
+.result-box.show { display: block; }
+
+.result-title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--text3);
+  margin-bottom: 8px;
+}
+
+.result-text {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text2);
+}
+
+.result-meta {
+  display: flex;
+  gap: 16px;
+  margin-top: 10px;
+  font-size: 10px;
+  font-family: var(--mono);
+  color: var(--text3);
+}
+
+.result-meta span { color: var(--text2); }
+
+/* ── AGENTS PAGE ── */
+.agents-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 16px;
+}
+
+.agent-row-card {
+  border: 1px solid var(--border2);
+  border-radius: 4px;
+  padding: 12px;
+  background: var(--bg3);
+  transition: border-color 0.1s;
+}
+.agent-row-card:hover { border-color: var(--text3); }
+
+.arc-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.arc-emoji { font-size: 18px; }
+
+.arc-name { font-weight: 700; font-size: 13px; }
+.arc-role { font-size: 10px; color: var(--text3); }
+
+.arc-dept {
+  margin-left: auto;
+  font-size: 9px;
+  font-family: var(--mono);
+  padding: 2px 6px;
+  border: 1px solid var(--border2);
+  border-radius: 2px;
+  color: var(--text3);
+}
+
+.arc-stats {
+  display: flex;
+  gap: 10px;
+  font-size: 10px;
+  font-family: var(--mono);
+  color: var(--text3);
+}
+
+.arc-stat-val { color: var(--text2); font-weight: 600; }
+
+.arc-last {
+  margin-top: 6px;
+  font-size: 10px;
+  color: var(--text3);
+  font-style: italic;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── PIPELINE PAGE ── */
+.pipeline-page {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pipeline-stage-cols {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+}
+
+.pipeline-stage {
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: 3px;
+  padding: 10px;
+}
+
+.ps-header {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--text3);
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 6px;
+}
+
+.ps-count { color: var(--text2); font-family: var(--mono); }
+
+.deal-card {
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+.deal-card:last-child { border-bottom: none; }
+
+.deal-name {
+  font-size: 11px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-bottom: 2px;
+}
+
+.deal-value {
+  font-size: 10px;
+  font-family: var(--mono);
+  color: var(--teal);
+}
+
+/* ── GATE/MIND SECTION ── */
+.gate-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.gate-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: 3px;
+  font-size: 11px;
+  font-family: var(--mono);
+}
+
+.gate-indicator {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.gate-indicator.open { background: var(--green); }
+.gate-indicator.closed { background: var(--red); }
+
+.gate-label { color: var(--text2); flex: 1; text-transform: capitalize; }
+.gate-state-text { font-size: 9px; color: var(--text3); }
+
+/* ── SOUL PAGE ── */
+.soul-page {
+  padding: 24px;
+  max-width: 680px;
+}
+
+.soul-north-star {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--text2);
+  font-style: italic;
+  border-left: 2px solid var(--live);
+  padding-left: 14px;
+  margin-bottom: 20px;
+}
+
+.covenant-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 20px;
+}
+
+.covenant-chip {
+  padding: 4px 10px;
+  border: 1px solid var(--border2);
+  border-radius: 2px;
+  font-size: 11px;
+  font-family: var(--mono);
+  color: var(--text2);
+}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+/* ── BOTTOM CHAT BAR (fixed) ── */
+.ask-bar {
+  position: fixed;
+  bottom: 0;
+  right: 0;
+  width: calc(100% - 180px);
+  background: var(--bg3);
+  border-top: 1px solid var(--border2);
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 200;
+}
+
+.ask-input {
+  flex: 1;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: 3px;
+  padding: 8px 12px;
+  color: var(--text);
+  font-size: 12px;
+  font-family: var(--sans);
+  outline: none;
+}
+.ask-input:focus { border-color: var(--text3); }
+.ask-input::placeholder { color: var(--text3); }
+
+.ask-go {
+  padding: 8px 16px;
+  background: var(--live);
+  color: #0d1117;
+  font-weight: 700;
+  font-size: 12px;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* Pad main content above ask bar */
+.main { padding-bottom: 48px; }
+
+/* ── SECTION WRAPPER ── */
+.section {
+  margin-bottom: 20px;
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 960px) {
+  .shell { grid-template-columns: 1fr; }
+  .sidebar { display: none; }
+  .overview-grid { grid-template-columns: 1fr; }
+  .agents-grid { grid-template-columns: 1fr; }
+  .pipeline-stage-cols { grid-template-columns: repeat(2, 1fr); }
+  .ask-bar { width: 100%; }
+}
+</style>
+</head>
+<body>
+<div class="sidebar-backdrop" onclick="toggleMobileMenu()"></div>
+
+
+<!-- TERMINAL STRIP -->
+<div class="terminal-strip">
+  <span id="term-text">Loading soul contexts (L0+L1) for swarm agents...</span><span class="term-cursor"></span>
+</div>
+
+<!-- TOPBAR -->
+<nav class="topbar">
+  <div class="brand">
+    <button class="mobile-menu-btn" onclick="toggleMobileMenu()" aria-label="Menu">☰</button>
+    
+    <div class="brand-dot"></div>
+    Murphy
+    <div class="live-pill">
+      <div class="live-dot"></div>
+      LIVE
+    </div>
+  </div>
+
+  <div class="topbar-center">
+    <button class="nav-tab active" onclick="switchPage('overview')">Overview</button>
+    <button class="nav-tab" onclick="switchPage('dispatch')">Dispatch</button>
+    <button class="nav-tab" onclick="switchPage('agents')">Agents</button>
+    <button class="nav-tab" onclick="switchPage('pipeline')">Pipeline</button>
+    <button class="nav-tab" onclick="switchPage('soul')">Soul</button>
+  </div>
+
+  <div class="topbar-right">
+    <span class="llm-badge" id="llm-badge">llm: —</span>
+    <button class="dispatch-btn-top" onclick="switchPage('dispatch'); document.getElementById('cmd-input').focus()">
+      ▶ Ask Murphy
+    </button>
+  </div>
+</nav>
+
+<!-- PATCH-413: WorldState + Channels strip -->
+<div class="world-strip" style="display:flex;gap:18px;align-items:center;padding:6px 14px;background:linear-gradient(90deg,#0a0e1a 0%,#0d1428 100%);border-bottom:1px solid rgba(255,255,255,0.06);font-size:11px;color:#8aa;">
+  <span style="color:#5ee0c4;font-weight:600;">WORLD</span>
+  <span id="ws-wsi" title="World State Index">WSI —</span>
+  <span id="ws-markets" title="Markets">📈 —</span>
+  <span id="ws-weather" title="Weather">☁ —</span>
+  <span id="ws-news" title="News pulse">📰 —</span>
+  <span id="ws-regs" title="Regulatory">⚖ —</span>
+  <span style="flex:1"></span>
+  <span style="color:#5ee0c4;font-weight:600;">CHANNELS</span>
+  <span id="ch-web" class="ch-dot ch-on" title="Web UI (you're here)">🌐</span>
+  <span id="ch-email" class="ch-dot ch-off" title="Email — Phase 7">📧</span>
+  <span id="ch-phone" class="ch-dot ch-off" title="Phone — Phase 8">📞</span>
+  <span id="ch-voice" class="ch-dot ch-off" title="Voice mic — Phase 9">🎤</span>
+  <span id="ws-jur" style="margin-left:18px;color:#5ee0c4;font-weight:600;">JUR: US</span>
+</div>
+<style>
+  .ch-dot { font-size:14px; padding:0 4px; }
+  .ch-on { filter: drop-shadow(0 0 4px #5ee0c4); opacity:1; }
+  .ch-off { opacity:0.3; filter: grayscale(1); }
+</style>
+
+<!-- SHELL -->
+<div class="shell">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-section">System</div>
+    <div class="sidebar-item active" onclick="switchPage('overview')">
+      <span class="sidebar-icon">⚡</span> Overview
+    </div>
+    <div class="sidebar-item" onclick="switchPage('dispatch')">
+      <span class="sidebar-icon">🚀</span> Dispatch
+    </div>
+    <div class="sidebar-item" onclick="switchPage('agents')">
+      <span class="sidebar-icon">🤖</span> Agents
+    </div>
+
+    <div class="sidebar-section">Business</div>
+    <div class="sidebar-item" onclick="switchPage('pipeline')">
+      <span class="sidebar-icon">💼</span> Pipeline
+      <span class="sidebar-badge" id="sidebar-deals">—</span>
+    </div>
+    <div class="sidebar-item" onclick="switchPage('hitl')">
+      <span class="sidebar-icon">🙋</span> HITL
+      <span class="sidebar-badge" id="sidebar-hitl">0</span>
+    </div>
+
+    <div class="sidebar-section">Intelligence</div>
+    <div class="sidebar-item" onclick="switchPage('mail')">
+      <span class="sidebar-icon">📧</span>
+      <span>Mail</span>
+      <span class="sidebar-count" id="sidebar-mail-pending" style="background:#ffd166;color:#0a0e1a;">·</span>
+    </div>
+
+    <div class="sidebar-item" onclick="switchPage('soul')">
+      <span class="sidebar-icon">✨</span> Soul
+    </div>
+    <div class="sidebar-item" onclick="switchPage('shield')">
+      <span class="sidebar-icon">🛡️</span> Shield
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- ═══ OVERVIEW ═══ -->
+    <div class="page active" id="page-overview">
+      <div class="overview-grid">
+
+        <!-- LEFT: Identity + Business -->
+        <div class="col">
+          <!-- Agent face -->
+          <div class="agent-card">
+            <!-- Murphy Eye — iris tracks cursor, color = state -->
+            <div class="eye-container" id="eye-container">
+              <svg class="eye-svg" id="murphy-eye" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <radialGradient id="sclera-grad" cx="50%" cy="45%" r="50%">
+                    <stop offset="0%" stop-color="#1a2332"/>
+                    <stop offset="100%" stop-color="#0d1117"/>
+                  </radialGradient>
+                  <radialGradient id="iris-grad" cx="40%" cy="35%" r="60%">
+                    <stop offset="0%" stop-color="#00f0ff" stop-opacity="0.9"/>
+                    <stop offset="60%" stop-color="#00a8cc" stop-opacity="1"/>
+                    <stop offset="100%" stop-color="#005f7a" stop-opacity="1"/>
+                  </radialGradient>
+                  <radialGradient id="pupil-grad" cx="35%" cy="30%" r="70%">
+                    <stop offset="0%" stop-color="#1a2a3a"/>
+                    <stop offset="100%" stop-color="#000810"/>
+                  </radialGradient>
+                  <filter id="glow-filter">
+                    <feGaussianBlur stdDeviation="2.5" result="blur"/>
+                    <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+                  </filter>
+                  <filter id="iris-glow">
+                    <feGaussianBlur stdDeviation="3" result="blur"/>
+                    <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+                  </filter>
+                  <clipPath id="eye-clip">
+                    <ellipse cx="60" cy="60" rx="52" ry="36"/>
+                  </clipPath>
+                </defs>
+                <!-- Outer eyelid shape -->
+                <ellipse cx="60" cy="60" rx="56" ry="40" fill="none" stroke="#00d4ff" class="eye-stroke" stroke-width="1.5" opacity="0.3"/>
+                <!-- Eye white / sclera -->
+                <ellipse cx="60" cy="60" rx="52" ry="36" fill="url(#sclera-grad)" clip-path="url(#eye-clip)"/>
+                <!-- Iris group — moves with cursor -->
+                <g id="iris-group" transform="translate(60,60)">
+                  <!-- Iris outer ring glow -->
+                  <circle r="18" fill="none" stroke="#00d4ff" class="eye-stroke" stroke-width="1" opacity="0.5" filter="url(#glow-filter)"/>
+                  <!-- Iris body -->
+                  <circle r="16" fill="url(#iris-grad)" filter="url(#iris-glow)"/>
+                  <!-- Iris detail rings -->
+                  <circle r="13" fill="none" stroke="#00d4ff" class="eye-stroke" stroke-width="0.4" opacity="0.3"/>
+                  <circle r="10" fill="none" stroke="#00d4ff" class="eye-stroke" stroke-width="0.3" opacity="0.2"/>
+                  <!-- Pupil -->
+                  <circle r="7" fill="url(#pupil-grad)"/>
+                  <!-- Pupil inner depth -->
+                  <circle r="4" fill="#000510"/>
+                  <!-- Specular highlight -->
+                  <circle r="2.5" cx="-3" cy="-3" fill="white" opacity="0.7"/>
+                  <circle r="1" cx="2" cy="-1" fill="white" opacity="0.3"/>
+                </g>
+                <!-- Eyelid top -->
+                <path d="M8,60 Q60,10 112,60" fill="none" stroke="#00d4ff" class="eye-stroke" stroke-width="1.5" opacity="0.6"/>
+                <!-- Eyelid bottom -->
+                <path d="M8,60 Q60,110 112,60" fill="none" stroke="#00d4ff" class="eye-stroke" stroke-width="1.5" opacity="0.6"/>
+                <!-- Corner accent marks -->
+                <line x1="4" y1="60" x2="12" y2="60" stroke="#00d4ff" class="eye-stroke" stroke-width="1" opacity="0.4"/>
+                <line x1="108" y1="60" x2="116" y2="60" stroke="#00d4ff" class="eye-stroke" stroke-width="1" opacity="0.4"/>
+              </svg>
+            </div>
+            <div class="agent-state" id="agent-state">Ready</div>
+          </div>
+
+          <!-- Business metrics -->
+          <div class="section">
+            <div class="section-title">Business</div>
+            <div class="metric-row" id="roi-metric-1">
+              <span class="metric-label">Total ROI</span>
+              <span class="metric-value" id="m-roi-total">—</span>
+            </div>
+            <div class="metric-row" id="roi-metric-2">
+              <span class="metric-label">Active tasks</span>
+              <span class="metric-value" id="m-roi-active">—</span>
+            </div>
+            <div class="metric-row" id="roi-metric-3">
+              <span class="metric-label">Complete</span>
+              <span class="metric-value" id="m-roi-complete">—</span>
+            </div>
+            <div class="metric-row" id="roi-metric-4">
+              <span class="metric-label">ROI %</span>
+              <span class="metric-value" id="m-roi-pct">—</span>
+            </div>
+
+
+            <div class="metric-row">
+              <span class="metric-label">Swarm Confidence</span>
+              <span>
+                <span class="metric-value" id="m-conf">—</span>
+                <span class="metric-delta" id="m-conf-d">—</span>
+              </span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-label">Mind Cycle</span>
+              <span class="metric-value" id="m-cycle">—</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-label">CRM Deals</span>
+              <span>
+                <span class="metric-value" id="m-deals">—</span>
+                <span class="metric-delta" id="m-pipeline">—</span>
+              </span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-label">Gates Open</span>
+              <span class="metric-value" id="m-gates">—</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-label">Shield</span>
+              <span class="metric-value" id="m-shield">—</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-label">Signals Today</span>
+              <span class="metric-value" id="m-signals">—</span>
+            </div>
+          </div>
+
+          <!-- 9-Graph health strip -->
+          <div class="section">
+            <div class="section-title">9 Graphs</div>
+            <div class="graph-strip" id="graph-strip"></div>
+          </div>
+
+          <!-- MFGC Gates -->
+          <div class="section">
+            <div class="section-title">MFGC Gates</div>
+            <div class="gate-grid" id="gate-grid">
+              <!-- injected -->
+            </div>
+          </div>
+        </div>
+
+        <!-- CENTER: Live tasks + activity -->
+        <div class="col">
+          <!-- Currently running tasks -->
+          <div class="section">
+            <div class="section-title" id="tasks-title">Tasks</div>
+            <div id="tasks-list">
+              <!-- injected -->
+            </div>
+          </div>
+
+          <!-- Live activity from SSE -->
+          <div class="section">
+            <div class="section-title">Live Activity Feed</div>
+            <div id="activity-feed">
+              <div class="feed-row">
+                <span class="feed-text" style="color:var(--text3);font-style:italic">Connecting to swarm bus…</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Signals -->
+          <div class="section">
+            <div class="section-title">Recent Signals</div>
+            <div id="signals-list"></div>
+          </div>
+        </div>
+
+        <!-- RIGHT: CRM + Emails + Mind -->
+        <div class="col">
+
+          <!-- Swarm Mind -->
+          <div class="section">
+            <div class="section-title">Swarm Mind</div>
+            <div class="metric-row">
+              <span class="metric-label">Cycle</span>
+              <span class="metric-value" id="r-cycle">—</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-label">Total Cycles</span>
+              <span class="metric-value" id="r-total">—</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-label">Avg Confidence</span>
+              <span class="metric-value" id="r-conf">—</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-label">Status</span>
+              <span class="metric-value" style="color:var(--green)" id="r-status">—</span>
+            </div>
+            <div style="margin-top:10px;padding:8px 10px;background:var(--bg3);border-left:2px solid var(--yellow);font-size:11px;color:var(--text2);line-height:1.5;border-radius:0 3px 3px 0" id="priority-gap">
+              Loading priority gap…
+            </div>
+          </div>
+
+          <!-- CRM recent deals -->
+          <div class="section">
+            <div class="section-title">CRM — Recent Deals</div>
+            <div id="crm-recent"></div>
+            <div class="volume-line" id="crm-total"></div>
+          </div>
+
+          <!-- Scheduled Jobs — PATCH-365 -->
+          <div class="section">
+            <div class="section-title">Scheduled Jobs</div>
+            <div id="sched-jobs-list"><span style="color:var(--text3);font-size:11px">Loading…</span></div>
+          </div>
+
+          <!-- Ads summary -->
+          <div class="section">
+            <div class="section-title">Ads</div>
+            <div class="ads-header" id="ads-header">—</div>
+            <table class="ads-table">
+              <thead>
+                <tr>
+                  <th>Spend</th>
+                  <th>Impr</th>
+                  <th>CTR</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="ads-body">
+                <tr><td colspan="4" style="color:var(--text3)">No live ads data</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ DISPATCH ═══ -->
+    <div class="page" id="page-dispatch">
+      <div class="command-box-wrap">
+        <div class="command-row">
+          <input class="command-input" id="cmd-input"
+            placeholder="What should Murphy do? Be specific — 'Analyze top 3 CRM deals and recommend next outreach'"
+            onkeydown="if(event.key==='Enter') runDispatch()" />
+          <button class="command-execute" id="cmd-btn" onclick="runDispatch()">▶ Execute</button>
+        </div>
+        <div class="quick-actions">
+          <button class="qa-btn" onclick="setTask('Brief me on system status right now')">⚡ Brief Me</button>
+          <button class="qa-btn" onclick="setTask('Analyze all CRM deals and recommend top 3 outreach actions')">📊 CRM Review</button>
+          <button class="qa-btn" onclick="setTask('What is the single most important gap Murphy should fix today?')">🎯 Top Gap</button>
+          <button class="qa-btn" onclick="setTask('Generate a weekly executive summary of all system activity')">📝 Exec Summary</button>
+          <button class="qa-btn" onclick="setTask('Run cold outreach campaign to top 5 pipeline prospects')">📧 Outreach</button>
+          <button class="qa-btn" onclick="setTask('Audit all 9 graphs and report what is running vs idle')">🔷 Graph Audit</button>
+        </div>
+      </div>
+
+      <div class="dispatch-content">
+        <!-- Pipeline trace -->
+        <div>
+          <div class="section-title" style="margin-bottom:8px">Execution Pipeline</div>
+          <div class="pipeline-trace" id="pipe-trace">
+            <span class="pipe-step" id="ps-soul">Soul</span>
+            <span class="pipe-arrow">→</span>
+            <span class="pipe-step" id="ps-rosetta">Rosetta</span>
+            <span class="pipe-arrow">→</span>
+            <span class="pipe-step" id="ps-mfgc">MFGC</span>
+            <span class="pipe-arrow">→</span>
+            <span class="pipe-step" id="ps-rubix">Rubix</span>
+            <span class="pipe-arrow">→</span>
+            <span class="pipe-step" id="ps-mss">MSS</span>
+            <span class="pipe-arrow">→</span>
+            <span class="pipe-step" id="ps-swarm">Swarm</span>
+            <span class="pipe-arrow">→</span>
+            <span class="pipe-step" id="ps-learn">Learn</span>
+            <span class="pipe-arrow">→</span>
+            <span class="pipe-step" id="ps-transcript">Transcript</span>
+          </div>
+        </div>
+
+        <!-- Console -->
+        <div class="console-box" id="dispatch-console">
+          <span style="color:var(--text3)">// Ready. Enter task above or pick a quick action.</span>
+        </div>
+
+        <!-- Result -->
+        <div class="result-box" id="result-box">
+          <div class="result-title">Result</div>
+          <div class="result-text" id="result-text"></div>
+          <div class="result-meta">
+            <div>status: <span id="res-status">—</span></div>
+            <div>run_id: <span id="res-runid">—</span></div>
+            <div>duration: <span id="res-duration">—</span></div>
+            <div>cost: <span id="res-cost">—</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ AGENTS ═══ -->
+    <div class="page" id="page-agents">
+      <div style="padding:16px">
+        <div class="section-title" style="margin-bottom:12px">Swarm Agents — Soul-Aware</div>
+        <div class="agents-grid" id="agents-grid">
+          <!-- injected by loadAgents() -->
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ PIPELINE ═══ -->
+    <div class="page" id="page-pipeline">
+      <div id="pipeline-list" style="padding:16px;display:flex;flex-direction:column;gap:6px;"></div>
+      <div class="pipeline-page">
+        <div class="section-title" id="pipe-title">CRM Pipeline</div>
+        <div class="pipeline-stage-cols" id="pipeline-cols">
+          <!-- injected -->
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ SOUL ═══ -->
+    <div class="page" id="page-soul">
+      <div class="soul-page">
+        <div class="section-title" style="margin-bottom:16px">Murphy Soul</div>
+        <div class="soul-north-star" id="soul-star">Loading…</div>
+        <div class="section-title" style="margin-bottom:8px">Team Covenant</div>
+        <div class="covenant-grid" id="covenant-grid"></div>
+        <div class="section-title" style="margin-bottom:8px;margin-top:16px">Harm Thresholds</div>
+        <div class="gate-grid" id="harm-grid"></div>
+        <div class="section-title" style="margin-bottom:8px;margin-top:16px">World Context</div>
+        <div id="world-ctx" style="font-size:12px;color:var(--text2);line-height:1.7"></div>
+      </div>
+    </div>
+
+    <!-- ═══ HITL ═══ -->
+    <div class="page" id="page-hitl">
+      <div style="padding:16px">
+        <div class="section-title" style="margin-bottom:12px">HITL — Human In The Loop</div>
+        <div id="hitl-content" style="font-size:13px;color:var(--text2)">Loading…</div>
+      </div>
+    </div>
+
+    <!-- ═══ SHIELD ═══ -->
+    <div class="page" id="page-shield">
+      <div style="padding:16px">
+        <div class="section-title" style="margin-bottom:12px">Shield Wall</div>
+        <div id="shield-content" style="font-size:12px;color:var(--text2)">Loading…</div>
+      </div>
+    </div>
+
+  
+    <!-- PATCH-413d: Mail tab stub (full impl in Phase 7a) -->
+    <div class="page" id="page-mail">
+      <div style="padding:24px;max-width:900px;">
+        <h2 style="color:#5ee0c4;margin:0 0 8px;">📧 Mail</h2>
+        <div style="color:#8aa;margin-bottom:24px;">Direct connection to murphy.systems mail stack. Founder sees all 18 mailboxes; outbound emails require review before send.</div>
+        <!-- PATCH-417c: live outbound review queue -->
+        <div style="background:#0d1428;border:1px solid rgba(94,224,196,0.2);border-radius:8px;padding:20px;margin-bottom:16px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <h3 style="color:#5ee0c4;margin:0;font-size:14px;">📤 Outbound review queue</h3>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <span id="mail-stats-pending" style="background:rgba(255,200,80,0.15);color:#fc8;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600;">— pending</span>
+              <span id="mail-stats-sent" style="background:rgba(94,224,196,0.15);color:#5ee0c4;padding:3px 10px;border-radius:12px;font-size:11px;">— sent</span>
+              <span id="mail-stats-rejected" style="background:rgba(255,100,100,0.15);color:#f88;padding:3px 10px;border-radius:12px;font-size:11px;">— rejected</span>
+              <button onclick="mailRefresh()" style="background:transparent;border:1px solid rgba(94,224,196,0.3);color:#5ee0c4;padding:3px 10px;border-radius:4px;font-size:11px;cursor:pointer;">↻</button>
+            </div>
+          </div>
+          <div id="mail-outbound-queue" style="display:flex;flex-direction:column;gap:10px;color:#cde;">
+            <div style="color:#8aa;font-style:italic;">Loading queue…</div>
+          </div>
+        </div>
+        <div style="background:#0d1428;border:1px solid rgba(94,224,196,0.2);border-radius:8px;padding:20px;margin-bottom:16px;">
+          <h3 style="color:#5ee0c4;margin:0 0 12px;font-size:14px;">📥 All mailboxes (founder view)</h3>
+          <div id="mail-inbox-all" style="display:flex;flex-direction:column;gap:6px;color:#cde;">
+            <div style="color:#8aa;font-style:italic;">Phase 7a will unify all 18 murphy.systems mailboxes here with role context per message.</div>
+          </div>
+        </div>
+        <div style="background:#0d1428;border:1px solid rgba(94,224,196,0.2);border-radius:8px;padding:20px;">
+          <h3 style="color:#5ee0c4;margin:0 0 12px;font-size:14px;">🛡️ Safety net (always on)</h3>
+          <div style="color:#cde;font-size:12px;line-height:1.6;">
+            Server-side BCC rule on the Postfix box copies every in/out message to
+            <code style="background:#0a0e1a;padding:2px 6px;border-radius:3px;color:#5ee0c4;">founder-shadow@murphy.systems</code>.
+            This is the lower-level safety net — even if this app crashes, no email Murphy sends is invisible to you.
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- FIXED BOTTOM: Ask Murphy bar -->
+<div class="ask-bar">
+  <input class="ask-input" id="ask-input"
+    placeholder="Ask Murphy anything →"
+    onkeydown="if(event.key==='Enter'){ setTask(this.value); switchPage('dispatch'); runDispatch(); this.value=''; }" />
+  <button class="ask-go" onclick="setTask(document.getElementById('ask-input').value); switchPage('dispatch'); runDispatch(); document.getElementById('ask-input').value=''">
+    Ask Murphy →
+  </button>
+</div>
+
+<script>
+// ─── CONFIG ───────────────────────────────────────
+const BASE = 'https://murphy.systems';
+const KEY  = 'founder_ad6b1fade355dc1c6dfa89db96d77608886bf63b01b4fb70';
+const H    = { 'x-api-key': KEY, 'Content-Type': 'application/json' };
+
+async function api(method, path, body, timeout=30000) {
+  try {
+    const ctrl = new AbortController();
+    const tid = setTimeout(() => ctrl.abort(), timeout);
+    const r = await fetch(BASE + path, {
+      method, headers: H,
+      body: body ? JSON.stringify(body) : undefined,
+      signal: ctrl.signal
+    });
+    clearTimeout(tid);
+    return await r.json();
+  } catch(e) {
+    return { error: e.message };
+  }
+}
+
+// ─── TERMINAL STRIP ───────────────────────────────
+const TERM_LINES = [
+  'Loading soul contexts (L0+L1) for swarm agents...',
+  'Checking MFGC gate states...',
+  'Rosetta assembling org chart from live state...',
+  'Swarm Mind cycle running — confidence 0.792...',
+  'Rubix evidence battery: all checks pass...',
+  'Shield wall raised — 19/20 layers active...',
+  'Causality sandbox: ready for pre-execution simulation...',
+  'Emergence feedback loop: OutcomeTracker monitoring...',
+  'Collector: scanning external signals...',
+  'Librarian: knowledge base indexed, 0 pending queries...',
+  'Translator: NL→DAG pipeline warm...',
+  'Scheduler: APScheduler jobs registered...',
+  'ExecAdmin: triage queue empty, ready...',
+  'ProdOps: health watchdog active, 0 incidents...',
+  'Murphy is ready.',
+];
+let termIdx = 0;
+function rotateTerminal(msg) {
+  const el = document.getElementById('term-text');
+  el.textContent = msg || TERM_LINES[termIdx % TERM_LINES.length];
+  if (!msg) termIdx++;
+}
+setInterval(() => rotateTerminal(), 3500);
+
+// ─── MURPHY EYE — cursor tracking + state color ───
+const EYE_STATES = {
+  running:       { color: '#00d4ff', label: 'Running',         pupil: 8  },
+  thinking:      { color: '#e3b341', label: 'Thinking…',       pupil: 6  },
+  done:          { color: '#39d353', label: 'Triumphant',       pupil: 7  },
+  idle:          { color: '#484f58', label: 'Ready & Waiting',  pupil: 7  },
+  investigating: { color: '#f85149', label: 'Investigating',    pupil: 9  },
+  alert:         { color: '#ff7b72', label: 'Alert',            pupil: 10 },
+};
+
+let currentEyeState = 'idle';
+let eyeMouseX = window.innerWidth / 2;
+let eyeMouseY = window.innerHeight / 2;
+let eyeAnimFrame = null;
+
+function initEyeTracker() {
+  const eyeContainer = document.getElementById('eye-container');
+  const irisGroup    = document.getElementById('iris-group');
+  const eyeSVG       = document.getElementById('murphy-eye');
+  if (!eyeContainer || !irisGroup) return;
+
+  // Track mouse globally
+  document.addEventListener('mousemove', (e) => {
+    eyeMouseX = e.clientX;
+    eyeMouseY = e.clientY;
+    if (!eyeAnimFrame) eyeAnimFrame = requestAnimationFrame(updateEyePosition);
+  });
+
+  // Also track if user is typing (no mouse movement)
+  document.addEventListener('keydown', () => {
+    eyeMouseX = window.innerWidth * 0.5;
+    eyeMouseY = window.innerHeight * 0.5;
+    if (!eyeAnimFrame) eyeAnimFrame = requestAnimationFrame(updateEyePosition);
+  });
+
+  function updateEyePosition() {
+    eyeAnimFrame = null;
+    const rect   = eyeSVG.getBoundingClientRect();
+    const cx     = rect.left + rect.width  / 2;
+    const cy     = rect.top  + rect.height / 2;
+    const dx     = eyeMouseX - cx;
+    const dy     = eyeMouseY - cy;
+    const dist   = Math.sqrt(dx * dx + dy * dy);
+    const angle  = Math.atan2(dy, dx);
+    // Max iris travel — constrained inside sclera
+    const maxTravel = 12;
+    const travel = Math.min(dist / 12, maxTravel);
+    const ix = Math.cos(angle) * travel;
+    const iy = Math.sin(angle) * travel;
+    irisGroup.setAttribute('transform', `translate(${60 + ix},${60 + iy})`);
+  }
+}
+
+function setEyeColor(color) {
+  const svg = document.getElementById('murphy-eye');
+  if (!svg) return;
+  svg.style.setProperty('--eye-color', color);
+  // Update iris gradient too
+  const stop0 = svg.querySelector('#iris-grad stop:first-child');
+  const stop1 = svg.querySelector('#iris-grad stop:nth-child(2)');
+  if (stop0) stop0.setAttribute('stop-color', color);
+  if (stop1) {
+    // Darken color for mid stop
+    stop1.setAttribute('stop-color', color);
+    stop1.setAttribute('stop-opacity', '0.7');
+  }
+  // Update eyelid stroke color via CSS custom property
+  document.querySelectorAll('.eye-svg [stroke]').forEach(el => {
+    if (el.getAttribute('stroke') && el.getAttribute('stroke').includes('eye-color')) {
+      el.style.stroke = color;
+    }
+  });
+}
+
+function setFace(state) {
+  currentEyeState = state;
+  const cfg = EYE_STATES[state] || EYE_STATES.idle;
+  // Update color
+  const svg = document.getElementById('murphy-eye');
+  if (svg) {
+    // Update CSS var on the SVG element
+    svg.style.cssText = `--eye-color: ${cfg.color}`;
+    // Re-color all eye strokes
+    svg.querySelectorAll('.eye-stroke').forEach(el => {
+      el.setAttribute('stroke', cfg.color);
+    });
+    svg.querySelectorAll('circle[r="18"], circle[r="16"]').forEach(el => {
+      if (el.getAttribute('fill') && el.getAttribute('fill').includes('iris')) {
+        // keep gradient
+      }
+    });
+    // Update iris outer ring
+    const outerRing = svg.querySelector('#iris-group circle[r="18"]');
+    if (outerRing) outerRing.setAttribute('stroke', cfg.color);
+    const innerRing = svg.querySelector('#iris-group circle[r="13"]');
+    if (innerRing) innerRing.setAttribute('stroke', cfg.color);
+    const innerRing2 = svg.querySelector('#iris-group circle[r="10"]');
+    if (innerRing2) innerRing2.setAttribute('stroke', cfg.color);
+    // Update eyelid paths
+    svg.querySelectorAll('path, line, ellipse[fill="none"]').forEach(el => {
+      el.setAttribute('stroke', cfg.color);
+    });
+    // Update glow filter color
+    setEyeGlow(cfg.color);
+  }
+  document.getElementById('agent-state').textContent = cfg.label;
+  document.getElementById('agent-state').style.color = cfg.color;
+}
+
+function setEyeGlow(color) {
+  const svg = document.getElementById('murphy-eye');
+  if (!svg) return;
+  // Add/update a colored glow on the iris group
+  let glowEl = document.getElementById('eye-state-glow');
+  if (!glowEl) {
+    glowEl = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    glowEl.id = 'eye-state-glow';
+    glowEl.setAttribute('r', '16');
+    glowEl.setAttribute('fill', 'none');
+    glowEl.setAttribute('stroke-width', '2');
+    glowEl.setAttribute('opacity', '0.4');
+    const irisGroup = document.getElementById('iris-group');
+    if (irisGroup) irisGroup.appendChild(glowEl);
+  }
+  glowEl.setAttribute('stroke', color);
+  glowEl.setAttribute('filter', 'url(#glow-filter)');
+}
+
+// Start tracker after DOM ready
+document.addEventListener('DOMContentLoaded', () => {
+  initEyeTracker();
+  setFace('idle');
+});
+
+// ─── NAVIGATION ───────────────────────────────────
+
+// ── PATCH-415: Mobile sidebar drawer toggle ──────────────────────────────
+function toggleMobileMenu() {
+  const sb = document.querySelector('.sidebar');
+  const bd = document.querySelector('.sidebar-backdrop');
+  if (!sb) return;
+  const isOpen = sb.classList.contains('open');
+  if (isOpen) {
+    sb.classList.remove('open');
+    bd && bd.classList.remove('open');
+  } else {
+    sb.classList.add('open');
+    bd && bd.classList.add('open');
+  }
+}
+// Auto-close sidebar when a sidebar item is tapped on mobile
+document.addEventListener('click', function(e) {
+  const item = e.target.closest('.sidebar-item');
+  if (item && window.innerWidth <= 960) {
+    setTimeout(() => {
+      const sb = document.querySelector('.sidebar');
+      const bd = document.querySelector('.sidebar-backdrop');
+      sb && sb.classList.remove('open');
+      bd && bd.classList.remove('open');
+    }, 100);
+  }
+});
+
+function switchPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab, .sidebar-item').forEach(b => b.classList.remove('active'));
+  const page = document.getElementById('page-' + name);
+  if (page) page.classList.add('active');
+  document.querySelectorAll('[onclick*="switchPage(\'' + name + '\'"]').forEach(b => b.classList.add('active'));
+  if (name === 'agents')   loadAgents();
+  if (name === 'pipeline') loadPipeline();
+  if (name === 'soul')     loadSoul();
+  if (name === 'hitl')     loadHITL();
+  if (name === 'shield')   loadShield();
+  if (name === 'dispatch') loadRosettaStatus();
+}
+
+// ─── LOAD ALL ─────────────────────────────────────
+async function loadAll() {
+  initEyeTracker();
+  setFace('running');
+  await Promise.all([
+    loadMind(),
+    loadGates(),
+    loadCRM(),
+    loadSignals(),
+    loadLLMStatus(),
+  ]);
+  setFace('idle');
+  startActivityFeed();
+}
+
+// ─── MIND ─────────────────────────────────────────
+async function loadMind() {
+  const d = await api('GET', '/api/swarm/mind/status');
+  if (d.error) return;
+  const conf = d.avg_confidence || d.latest_cycle?.confidence || 0;
+  const confPct = Math.round(conf * 100);
+  const cycle = d.cycle || 0;
+  const total = d.total_cycles || 0;
+  document.getElementById('m-conf').textContent = confPct + '%';
+  document.getElementById('m-conf-d').textContent = d.running ? '+running' : 'idle';
+  document.getElementById('m-conf-d').className = 'metric-delta' + (d.running ? '' : ' warn');
+  document.getElementById('m-cycle').textContent = cycle.toLocaleString();
+  document.getElementById('r-cycle').textContent = cycle.toLocaleString();
+  document.getElementById('r-total').textContent = total.toLocaleString();
+  document.getElementById('r-conf').textContent = (d.avg_confidence||0).toFixed(3);
+  document.getElementById('r-status').textContent = d.running ? '● Running' : '○ Idle';
+  const gap = d.latest_cycle?.priority_gap || 'No priority gap identified.';
+  document.getElementById('priority-gap').textContent = '⚠ ' + gap.slice(0, 180);
+  rotateTerminal('Swarm Mind: cycle ' + cycle + ' — ' + gap.slice(0, 60) + '...');
+}
+
+// ─── GATES ────────────────────────────────────────
+async function loadGates() {
+  const d = await api('GET', '/api/mfgc/gates');
+  if (d.error) return;
+  const gates = d.gates || {};
+  const openCount = Object.values(gates).filter(v => v === 'open').length;
+  document.getElementById('m-gates').textContent = openCount + '/' + Object.keys(gates).length;
+  const grid = document.getElementById('gate-grid');
+  grid.innerHTML = Object.entries(gates).map(([name, state]) => `
+    <div class="gate-item">
+      <div class="gate-indicator ${state}"></div>
+      <span class="gate-label">${name}</span>
+      <span class="gate-state-text">${state}</span>
+    </div>
+  `).join('');
+}
+
+// ─── CRM ──────────────────────────────────────────
+async function loadCRM() {
+  const deals = await api('GET', '/api/crm/deals');
+  if (!Array.isArray(deals)) return;
+  const total = deals.reduce((s, d) => s + (d.value||0), 0);
+  document.getElementById('m-deals').textContent = deals.length;
+  document.getElementById('m-pipeline').textContent = '$' + (total/1000).toFixed(0) + 'K';
+  document.getElementById('sidebar-deals').textContent = deals.length;
+
+  const crm = document.getElementById('crm-recent');
+  crm.innerHTML = deals.slice(0, 6).map(d => `
+    <div class="feed-row">
+      <span class="feed-text">${d.title || d.id}</span>
+      <span class="feed-time" style="color:var(--teal)">$${((d.value||0)/1000).toFixed(1)}K</span>
+    </div>
+  `).join('');
+  document.getElementById('crm-total').textContent = '+ ' + deals.length + ' deals total in pipeline';
+}
+
+// ─── SIGNALS ──────────────────────────────────────
+async function loadSignals() {
+  const d = await api('GET', '/api/signals/latest');
+  const signals = d.signals || [];
+  document.getElementById('m-signals').textContent = signals.length;
+  const list = document.getElementById('signals-list');
+  if (!signals.length) {
+    list.innerHTML = '<div class="feed-row"><span class="feed-text" style="color:var(--text3)">No signals</span></div>';
+    return;
+  }
+  list.innerHTML = signals.slice(0, 6).map(s => `
+    <div class="feed-row">
+      <span class="feed-arrow">→</span>
+      <span class="feed-text">${s.signal_type || 'signal'}: ${s.intent_hint || s.domain || '—'}</span>
+      <span class="feed-time">${s.urgency || ''}</span>
+    </div>
+  `).join('');
+}
+
+// ─── LLM STATUS ───────────────────────────────────
+async function loadLLMStatus() {
+  const d = await api('GET', '/api/llm/status');
+  if (d.error) return;
+  const badge = document.getElementById('llm-badge');
+  badge.textContent = 'llm: ' + (d.provider || '?');
+  badge.style.color = d.healthy ? 'var(--green)' : 'var(--yellow)';
+}
+
+// ─── 9-GRAPH STRIP ────────────────────────────────
+const GRAPHS = [
+  { name: 'Soul',       state: 'green' },
+  { name: 'MFGC',      state: 'green' },
+  { name: 'MSS',       state: 'green' },
+  { name: 'Rubix',     state: 'yellow' },
+  { name: 'Causality', state: 'yellow' },
+  { name: 'Emergence', state: 'yellow' },
+  { name: 'Compliance',state: 'green' },
+  { name: 'Chain',     state: 'green' },
+  { name: 'Knowledge', state: 'yellow' },
+];
+function renderGraphStrip() {
+  const strip = document.getElementById('graph-strip');
+  strip.innerHTML = GRAPHS.map(g => `
+    <div class="graph-dot-item" title="${g.name}: ${g.state}">
+      <div class="gdot ${g.state}"></div>
+      <span>${g.name}</span>
+    </div>
+  `).join('');
+}
+renderGraphStrip();
+
+// ─── CURRENTLY RUNNING TASKS (simulated from signals + mind) ──
+let taskTimers = {};
+function renderTasks(tasks) {
+  const list = document.getElementById('tasks-list');
+  const title = document.getElementById('tasks-title');
+  if (!tasks || !tasks.length) {
+    title.textContent = 'Tasks — Idle';
+    list.innerHTML = '<div class="feed-row"><span class="feed-text" style="color:var(--text3)">No active tasks</span></div>';
+    return;
+  }
+  title.textContent = 'Tasks — ' + tasks.length + ' active';
+  list.innerHTML = tasks.map((t, i) => `
+    <div class="task-card" id="task-${i}">
+      <div class="task-header">
+        <div class="task-dot" style="background:${t.status==='complete'?'var(--green)':t.status==='failed'?'var(--red)':'var(--live)'}"></div>
+        <div class="task-name">${t.name}</div>
+      </div>
+      <div class="task-footer">
+        <span class="task-tag">${t.type || 'Agent'}</span>
+        <span style="font-size:10px;color:var(--text3);font-family:monospace">${t.dag_id ? '#'+t.dag_id : ''}</span>
+        <span style="font-size:10px;color:${t.status==='complete'?'var(--green)':t.status==='failed'?'var(--red)':'var(--yellow)'}">${t.status||'running'}</span>
+      </div>
+    </div>
+  `).join('');
+
+  // Start timers
+  tasks.forEach((t, i) => {
+    let secs = 0;
+    clearInterval(taskTimers[i]);
+    taskTimers[i] = setInterval(() => {
+      secs++;
+      const m = Math.floor(secs/60);
+      const s = secs % 60;
+      const el = document.getElementById('timer-' + i);
+      if (el) el.textContent = `Running for ${m}m ${s}s`;
+    }, 1000);
+  });
+}
+
+// PATCH-365: pull live tasks from /api/work/list
+async function loadTasks() {
+  try {
+    const d = await api('GET', '/api/work/list');
+    const items = (d.items || []).slice(0, 5);
+    const tasks = items.map(w => ({
+      name: (w.prompt || 'Task').slice(0, 80),
+      type: (w.assigned_agents || ['agent'])[0] || 'Agent',
+      dag_id: (w.dag_id || '').slice(0, 8),
+      status: w.status || 'running',
+      created: w.created_at || ''
+    }));
+    renderTasks(tasks);
+  } catch(e) {
+    // fallback to signals
+    const d = await api('GET', '/api/signals/latest');
+    const signals = (d.signals || []).slice(0, 3);
+    renderTasks(signals.map(s => ({
+      name: s.intent_hint ? `${s.intent_hint} [${s.domain}]` : (s.signal_type || 'Processing signal'),
+      type: s.domain || 'Signal'
+    })));
+  }
+}
+loadTasks();
+// Refresh tasks every 15s
+setInterval(loadTasks, 15000);
+
+// ─── ACTIVITY FEED (live from SSE bus) ────────────
+const activityLog = [];
+function addActivity(msg, type='dim') {
+  const feed = document.getElementById('activity-feed');
+  const now = new Date().toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+  activityLog.unshift({ msg, type, time: now });
+  if (activityLog.length > 30) activityLog.pop();
+
+  feed.innerHTML = activityLog.slice(0, 15).map(a => `
+    <div class="feed-row">
+      <span class="feed-arrow" style="color:var(--${a.type==='success'?'green':a.type==='error'?'red':a.type==='live'?'live':'text3'})">→</span>
+      <span class="feed-text">${a.msg}</span>
+      <span class="feed-time">${a.time}</span>
+    </div>
+  `).join('');
+}
+
+function startActivityFeed() {
+  // Try SSE first
+  try {
+    const src = new EventSource(BASE + '/api/swarm/bus/feed');
+    src.onmessage = (e) => {
+      try {
+        const d = JSON.parse(e.data);
+        const msg = d.msg || d.message || JSON.stringify(d).slice(0, 80);
+        addActivity(msg, 'live');
+        rotateTerminal(msg);
+        setFace('running');
+        setTimeout(() => setFace('idle'), 2000);
+      } catch {}
+    };
+    src.onerror = () => {
+      src.close();
+      pollActivity();
+    };
+    addActivity('Connected to swarm bus SSE feed', 'success');
+  } catch(e) {
+    pollActivity();
+  }
+}
+
+// Fallback: poll mind + signals every 15s
+let pollCount = 0;
+function pollActivity() {
+  setInterval(async () => {
+    pollCount++;
+    const mind = await api('GET', '/api/swarm/mind/status');
+    if (mind.cycle) {
+      addActivity('Mind cycle ' + mind.cycle + ' — conf: ' + (mind.avg_confidence||0).toFixed(3), 'live');
+    }
+    if (mind.latest_cycle?.priority_gap) {
+      addActivity('Priority: ' + mind.latest_cycle.priority_gap.slice(0, 70), 'info');
+    }
+    if (pollCount % 3 === 0) {
+      const d = await api('GET', '/api/signals/latest');
+      const sigs = d.signals || [];
+      if (sigs.length) addActivity(sigs.length + ' signals in queue — latest: ' + (sigs[0]?.intent_hint||sigs[0]?.signal_type||'unknown'), 'info');
+    }
+    if (pollCount % 6 === 0) loadGates();
+  }, 15000);
+  addActivity('Polling mode — SSE unavailable, refreshing every 15s', 'warn');
+}
+
+// ─── DISPATCH ─────────────────────────────────────
+function setTask(task) {
+  document.getElementById('cmd-input').value = task;
+}
+
+function logConsole(msg, cls='') {
+  const c = document.getElementById('dispatch-console');
+  const now = new Date().toLocaleTimeString();
+  c.innerHTML += `\n<span class="c-${cls||'dim'}">[${now}] ${msg}</span>`;
+  c.scrollTop = c.scrollHeight;
+}
+
+function setPipeStep(id, state) {
+  const el = document.getElementById('ps-' + id);
+  if (el) { el.className = 'pipe-step ' + state; }
+}
+
+async function runDispatch() {
+  const task = document.getElementById('cmd-input').value.trim();
+  if (!task) return;
+  const btn = document.getElementById('cmd-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳…';
+  document.getElementById('result-box').classList.remove('show');
+  document.getElementById('dispatch-console').innerHTML = '';
+
+  // Reset pipe
+  ['soul','rosetta','mfgc','rubix','mss','swarm','learn','transcript'].forEach(s => setPipeStep(s, ''));
+
+  setFace('thinking');
+  logConsole('Task: "' + task + '"', 'info');
+
+  // Animate pipeline steps
+  const steps = [
+    ['soul',       'Soul context loading (L0+L1)…'],
+    ['rosetta',    'Rosetta assembling org chart…'],
+    ['mfgc',       'MFGC gates evaluating…'],
+    ['rubix',      'Rubix evidence battery running…'],
+    ['mss',        'MSS scoring resolution…'],
+    ['swarm',      'Swarm executing with soul-aware agents…'],
+    ['learn',      'Learning: recording to pattern library…'],
+    ['transcript', 'Transcript: logging to SystemLibrarian…'],
+  ];
+  // PATCH-413b: REAL stage polling — each step observes a live endpoint
+  //   soul    → /api/soul/entity-map        (must respond)
+  //   rosetta → /api/rosetta/soul           (must show context)
+  //   mfgc    → /api/mfgc/state             (gate count > 0)
+  //   rubix   → simulated (no rubix endpoint surfaced yet)
+  //   mss     → /api/swarm/mind/status      (proxy: shows confidence)
+  //   swarm   → /api/swarm/status           (must show running)
+  //   learn   → /api/events/feed            (new event added since dispatch start)
+  //   transcript → simulated (logged automatically)
+  const dispatchStartTs = Date.now();
+  const realCheckers = {
+    soul:    () => api('GET','/api/soul/entity-map').then(r => r && !r.error),
+    rosetta: () => api('GET','/api/rosetta/soul').then(r => r && !r.error),
+    mfgc:    () => api('GET','/api/mfgc/state').then(r => r && !r.error),
+    rubix:   () => Promise.resolve(true),  // placeholder until rubix surface exists
+    mss:     () => api('GET','/api/swarm/mind/status').then(r => r && r.running !== false),
+    swarm:   () => api('GET','/api/swarm/status').then(r => r && !r.error),
+    learn:   () => api('GET','/api/events/feed?limit=5').then(r => {
+                     if (!r || !r.events) return false;
+                     return r.events.some(e => new Date(e.occurred_at).getTime() > dispatchStartTs - 5000);
+                   }),
+    transcript: () => Promise.resolve(true),
+  };
+  let stepIdx = 0;
+  const advance = async () => {
+    if (stepIdx >= steps.length) return;
+    const [stageId, stageLabel] = steps[stepIdx];
+    setPipeStep(stageId, 'active');
+    logConsole(stageLabel, 'live');
+    const checker = realCheckers[stageId];
+    let ok = false;
+    try { ok = await checker(); } catch(_) { ok = false; }
+    setPipeStep(stageId, ok ? 'done' : 'warn');
+    if (!ok) logConsole('  ⚠ ' + stageId + ' did not confirm — continuing', 'warn');
+    stepIdx++;
+  };
+  const stepTimer = setInterval(advance, 700);
+
+  try {
+    const result = await api('POST', '/api/swarm/execute', { task, budget: 50 }, 180000);
+    clearInterval(stepTimer);
+    steps.forEach(s => setPipeStep(s[0], 'done'));
+    setFace('done');
+
+    if (result.success !== false) {
+      logConsole('✅ Complete — run_id: ' + (result.task_id||'').slice(0,16) + ' status: ' + (result.status||'ok'), 'success');
+      const rb = document.getElementById('result-box');
+      rb.classList.add('show');
+      document.getElementById('result-text').textContent = result.synthesis || result.result || 'Task completed.';
+      document.getElementById('res-status').textContent = result.status || 'completed';
+      document.getElementById('res-runid').textContent = (result.task_id||result.run_id||'').slice(0,20);
+      document.getElementById('res-duration').textContent = ((result.duration_ms||0)/1000).toFixed(2) + 's';
+      document.getElementById('res-cost').textContent = '$' + (result.total_cost||0).toFixed(4);
+      addActivity('Dispatch complete: "' + task.slice(0,40) + '"', 'success');
+    } else {
+      logConsole('❌ Error: ' + (result.error||'unknown'), 'error');
+      setFace('investigating');
+    }
+  } catch(e) {
+    clearInterval(stepTimer);
+    logConsole('❌ ' + e.message, 'error');
+    setFace('investigating');
+  }
+
+  btn.disabled = false;
+  btn.textContent = '▶ Execute';
+  setTimeout(() => setFace('idle'), 4000);
+}
+
+// ─── AGENTS ───────────────────────────────────────
+async function loadAgents() {
+  const d = await api('GET', '/api/swarm/agents/status');
+  const agents = d.agents || [];
+  const grid = document.getElementById('agents-grid');
+  if (!agents.length) {
+    grid.innerHTML = '<div style="color:var(--text3);font-size:12px;grid-column:1/-1">No agents registered.</div>';
+    return;
+  }
+  grid.innerHTML = agents.map(a => `
+    <div class="agent-row-card">
+      <div class="arc-top">
+        <span class="arc-emoji">${a.emoji||'🤖'}</span>
+        <div>
+          <div class="arc-name">${a.name||a.agent_id}</div>
+          <div class="arc-role">${a.role||''}</div>
+        </div>
+        <div class="arc-dept">${a.department||'—'}</div>
+      </div>
+      <div class="arc-stats">
+        <span>Runs: <span class="arc-stat-val">${a.runs_total||0}</span></span>
+        <span>HITL: <span class="arc-stat-val">${((a.hitl_threshold||0)*100).toFixed(0)}%</span></span>
+        <span>Rpts→: <span class="arc-stat-val">${a.reports_to||'—'}</span></span>
+      </div>
+      <div class="arc-last">${a.last_outcome ? '✓ '+a.last_outcome : (a.last_trigger ? '⏱ '+a.last_trigger : 'Not yet run')}</div>
+    </div>
+  `).join('');
+}
+
+// ─── PIPELINE ─────────────────────────────────────
+async function loadPipeline() {
+  const deals = await api('GET', '/api/crm/deals');
+  if (!Array.isArray(deals)) return;
+  const total = deals.reduce((s, d) => s + (d.value||0), 0);
+  document.getElementById('pipe-title').textContent = 'CRM Pipeline — ' + deals.length + ' deals · $' + (total/1000).toFixed(0) + 'K';
+
+  const stageOrder = ['prospect','qualified','proposal','negotiation','closed_won'];
+  const stageMap = {};
+  deals.forEach(d => {
+    const s = d.stage || 'prospect';
+    if (!stageMap[s]) stageMap[s] = [];
+    stageMap[s].push(d);
+  });
+
+  const cols = document.getElementById('pipeline-cols');
+  cols.innerHTML = stageOrder.map(stage => {
+    const stageDls = stageMap[stage] || [];
+    const sv = stageDls.reduce((s,d)=>s+(d.value||0),0);
+    return `
+      <div class="pipeline-stage">
+        <div class="ps-header">
+          <span>${stage}</span>
+          <span class="ps-count">${stageDls.length}</span>
+        </div>
+        ${stageDls.slice(0,6).map(d=>`
+          <div class="deal-card">
+            <div class="deal-name">${d.title||d.id}</div>
+            <div class="deal-value">$${((d.value||0)/1000).toFixed(1)}K</div>
+          </div>
+        `).join('')}
+        ${!stageDls.length ? '<div style="font-size:10px;color:var(--text3);padding:4px 0">Empty</div>' : ''}
+        <div style="font-size:10px;font-family:var(--mono);color:var(--text3);margin-top:6px;border-top:1px solid var(--border);padding-top:4px">
+          $${(sv/1000).toFixed(0)}K
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ─── SOUL ─────────────────────────────────────────
+async function loadSoul() {
+  const d = await api('GET', '/api/rosetta/soul');
+  if (d.error) return;
+  document.getElementById('soul-star').textContent = '"' + (d.north_star||'') + '"';
+  const cov = document.getElementById('covenant-grid');
+  cov.innerHTML = (d.team_covenant||[]).map(c=>`<div class="covenant-chip">${c}</div>`).join('');
+  const harm = document.getElementById('harm-grid');
+  const ht = d.harm_thresholds || {};
+  harm.innerHTML = Object.entries(ht).filter(([k,v])=>typeof v==='number').map(([k,v])=>`
+    <div class="gate-item">
+      <div class="gate-indicator" style="background:var(--yellow)"></div>
+      <span class="gate-label">${k}</span>
+      <span class="gate-state-text">${(v*100).toFixed(0)}%</span>
+    </div>
+  `).join('');
+  const wc = document.getElementById('world-ctx');
+  wc.innerHTML = `
+    World context loaded: <strong style="color:var(--text)">${d.world_context_loaded?'Yes':'No'}</strong><br>
+    Sentiment: <strong style="color:var(--text)">${(d.world_sentiment||0).toFixed(2)}</strong><br>
+    Topic count: <strong style="color:var(--text)">${d.world_topics_count||0}</strong><br>
+    Audit entries: <strong style="color:var(--text)">${(d.audit_entries||[]).length}</strong>
+  `;
+}
+
+// ─── HITL ─────────────────────────────────────────
+async function loadHITL() {
+  const d = await api('GET', '/api/hitl/interventions/pending');
+  const stats = await api('GET', '/api/hitl/statistics');
+  const count = d.count || 0;
+  document.getElementById('sidebar-hitl').textContent = count;
+  const el = document.getElementById('hitl-content');
+  if (count === 0) {
+    el.innerHTML = `
+      <div style="color:var(--green);margin-bottom:12px">● No pending interventions</div>
+      <div class="metric-row"><span class="metric-label">Total interventions</span> <span class="metric-value">${stats.statistics?.total_interventions||0}</span></div>
+      <div class="metric-row"><span class="metric-label">Pending</span> <span class="metric-value">${stats.statistics?.pending_count||0}</span></div>
+    `;
+  } else {
+    el.innerHTML = (d.interventions||[]).map(i=>`
+      <div class="task-card" style="margin-bottom:8px">
+        <div class="task-header">
+          <div class="task-dot" style="background:var(--yellow)"></div>
+          <div class="task-name">${i.description||i.id||'Intervention required'}</div>
+        </div>
+        <div class="task-footer">
+          <span class="task-tag">${i.type||'hitl'}</span>
+          <span class="task-timer" style="color:var(--yellow)">${i.stake||'medium'} stake</span>
+        </div>
+      </div>
+    `).join('');
+  }
+}
+
+// ─── SHIELD ───────────────────────────────────────
+async function loadShield() {
+  const d = await api('GET', '/api/shield/status');
+  const layers = d.layers || [];
+  document.getElementById('m-shield').textContent = layers.length + '/20';
+  const el = document.getElementById('shield-content');
+  el.innerHTML = `
+    <div style="color:var(--green);font-size:16px;font-weight:700;margin-bottom:12px">🛡 ${(d.shield_wall||'').toUpperCase()}</div>
+    <div style="font-style:italic;color:var(--text2);margin-bottom:16px;border-left:2px solid var(--live);padding-left:12px">"${d.murphys_law||''}"</div>
+    <div class="section-title" style="margin-bottom:8px">Active Layers (${layers.length})</div>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px">
+      ${layers.slice(0,20).map(l=>`
+        <div class="gate-item">
+          <div class="gate-indicator open"></div>
+          <span class="gate-label" style="font-size:10px">${l.layer||String(l)}</span>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+// ─── ROSETTA STATUS (dispatch page) ───────────────
+async function loadRosettaStatus() {
+  const d = await api('GET', '/api/rosetta/status');
+  // Just adds a line to console
+  if (!d.error) {
+    logConsole('Rosetta: ' + JSON.stringify(d).slice(0, 100), 'dim');
+  }
+}
+
+// ─── BOOT ─────────────────────────────────────────
+addActivity('Murphy OS booting...', 'live');
+loadAll();
+setInterval(loadAll, 60000);
+
+// PATCH-365: Scheduled jobs from /api/swarm/scheduler
+async function loadSchedulerJobs() {
+  try {
+    const d = await api('GET', '/api/swarm/scheduler');
+    const jobs = d.job_list || [];
+    const el = document.getElementById('sched-jobs-list');
+    if (!el) return;
+    if (!jobs.length) { el.innerHTML = '<span style="color:var(--text3);font-size:11px">No jobs registered</span>'; return; }
+    el.innerHTML = jobs.map(j => `
+      <div class="metric-row" style="margin-bottom:4px">
+        <span style="font-size:11px;color:var(--text1)">${j.name}</span>
+        <span style="font-size:10px;color:var(--text3)">${j.interval}</span>
+      </div>
+    `).join('');
+  } catch(e) {}
+}
+loadSchedulerJobs();
+setInterval(loadSchedulerJobs, 60000);
+</script>
+
+<!-- PATCH-413: Drill panel -->
+<aside id="drill-panel" style="position:fixed;top:0;right:-560px;width:540px;height:100vh;background:#0a0e1a;border-left:1px solid rgba(94,224,196,0.3);box-shadow:-8px 0 32px rgba(0,0,0,0.6);transition:right 0.3s ease;z-index:10000;overflow-y:auto;color:#cde;">
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid rgba(255,255,255,0.06);background:#0d1428;">
+    <h3 id="drill-title" style="margin:0;font-size:14px;color:#5ee0c4;">Drill</h3>
+    <button onclick="closeDrill()" style="background:none;border:none;color:#8aa;font-size:20px;cursor:pointer;">×</button>
+  </div>
+  <div id="drill-body" style="padding:16px;font-size:12px;line-height:1.55;"></div>
+</aside>
+<style>
+  #drill-panel.open { right: 0 !important; }
+  .drill-section { margin-bottom:14px; }
+  .drill-section h4 { color:#5ee0c4; font-size:11px; text-transform:uppercase; letter-spacing:0.08em; margin:0 0 6px; }
+  .drill-kv { display:grid; grid-template-columns:120px 1fr; gap:4px 10px; font-family:'JetBrains Mono',monospace; }
+  .drill-kv .k { color:#8aa; }
+  .drill-kv .v { color:#cde; word-break:break-word; }
+  .drill-iframe { width:100%; height:480px; border:1px solid rgba(94,224,196,0.2); border-radius:6px; background:#fff; }
+
+/* ── PATCH-415: Mobile + tablet responsive layer ─────────────────────── */
+
+/* Tablet: 641-960px — sidebar becomes overlay drawer */
+@media (max-width: 960px) {
+  .sidebar {
+    display: block !important;
+    position: fixed;
+    top: 80px;
+    left: 0;
+    bottom: 60px;
+    width: 220px;
+    z-index: 80;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    background: var(--panel-bg, #0a0e1a);
+    border-right: 1px solid rgba(255,255,255,0.08);
+    overflow-y: auto;
+    padding-top: 8px;
+  }
+  .sidebar.open { transform: translateX(0); }
+
+  .mobile-menu-btn {
+    display: flex !important;
+    background: transparent;
+    border: 1px solid rgba(94,224,196,0.3);
+    color: #5ee0c4;
+    font-size: 18px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    align-items: center;
+  }
+
+  .topbar { padding: 0 12px; }
+  .topbar-center { overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .topbar-center::-webkit-scrollbar { display: none; }
+  .nav-tab { white-space: nowrap; flex-shrink: 0; }
+
+  /* Drill panel: still side drawer on tablet but narrower */
+  #drill-panel { width: 90vw !important; max-width: 480px; }
+
+  /* World strip wraps to multiple lines */
+  .world-strip { flex-wrap: wrap; padding: 8px 12px; row-gap: 4px; }
+}
+
+/* Phone: ≤640px — total layout reflow */
+@media (max-width: 640px) {
+  /* Hide brand text, keep dot */
+  .brand { gap: 6px; }
+  .brand-dot { width: 16px; height: 16px; }
+  .live-pill { display: none; }
+
+  /* Topbar nav becomes horizontal scroll strip */
+  .topbar { padding: 0 8px; height: 56px; }
+  .topbar-center { gap: 4px; padding: 0 6px; }
+  .nav-tab { padding: 6px 10px; font-size: 12px; }
+
+  .topbar-right { gap: 6px; }
+  .llm-badge { display: none; }
+  .dispatch-btn-top { padding: 6px 10px; font-size: 11px; }
+  .dispatch-btn-top::before { content: "▶ "; }
+
+  /* World strip: smaller, more compact */
+  .world-strip {
+    font-size: 10px !important;
+    padding: 6px 10px !important;
+    gap: 10px !important;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+  .world-strip::-webkit-scrollbar { display: none; }
+
+  /* Terminal strip: shrink */
+  .terminal-strip {
+    font-size: 10px !important;
+    padding: 4px 10px !important;
+    height: 24px;
+  }
+
+  /* Shell: single column always */
+  .shell {
+    grid-template-columns: 1fr !important;
+    padding-bottom: 70px; /* room for fixed ask-bar */
+  }
+
+  /* Sidebar drawer covers more on phone */
+  .sidebar {
+    top: 90px;
+    bottom: 60px;
+    width: 80vw;
+    max-width: 280px;
+    box-shadow: 4px 0 24px rgba(0,0,0,0.6);
+  }
+
+  /* Sidebar items: bigger touch targets */
+  .sidebar-item {
+    padding: 14px 16px !important;
+    font-size: 14px !important;
+  }
+  .sidebar-icon { font-size: 18px !important; }
+
+  /* Main content padding */
+  .page { padding: 12px !important; }
+  .col { padding: 14px 12px; }
+
+  /* Overview: stack all 3 cols */
+  .overview-grid {
+    grid-template-columns: 1fr !important;
+    grid-template-rows: auto auto auto;
+  }
+  .overview-grid .col { border-right: none; border-bottom: 1px solid var(--border, rgba(255,255,255,0.08)); }
+
+  /* Agents grid: single column, full-width cards */
+  .agents-grid { grid-template-columns: 1fr !important; gap: 12px; }
+
+  /* Pipeline stages: 1 col on phone */
+  .pipeline-stage-cols { grid-template-columns: 1fr !important; }
+
+  /* Generic 3-col / 5-col grids → 1-col */
+  [style*="grid-template-columns: repeat(3"],
+  [style*="grid-template-columns: repeat(5"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Drill panel: full-screen modal on phone */
+  #drill-panel {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    top: 0 !important;
+    height: 100vh;
+    border-radius: 0;
+    border-left: none;
+    z-index: 200;
+  }
+  /* Drill close button bigger on phone */
+  .drill-close { font-size: 22px !important; padding: 10px 14px !important; }
+
+  /* Ask Murphy bar: always pinned, bigger touch */
+  .ask-bar {
+    width: 100% !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    padding: 10px 12px !important;
+    border-radius: 0 !important;
+    border-top: 1px solid rgba(94,224,196,0.3);
+    background: rgba(10,14,26,0.98);
+    backdrop-filter: blur(10px);
+  }
+  .ask-input { font-size: 14px !important; }
+  .ask-go { padding: 10px 14px !important; }
+
+  /* Buttons in pipeline / cards: stack vertically */
+  .pipeline-card-actions { flex-direction: column !important; gap: 6px !important; }
+  .pipeline-card-actions button { width: 100%; }
+
+  /* Tables: scroll horizontally */
+  table { display: block; overflow-x: auto; white-space: nowrap; }
+}
+
+/* The hamburger button only renders on tablet/phone */
+.mobile-menu-btn { display: none; }
+
+/* Backdrop behind open sidebar on mobile */
+.sidebar-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 70;
+}
+.sidebar-backdrop.open { display: block; }
+@media (min-width: 961px) {
+  .sidebar-backdrop { display: none !important; }
+}
+
+</style>
+
+<script>
+async function loadWorldState() {
+  const d = await api('GET', '/api/world/snapshot');
+  if (!d || !d.success || !d.snapshot) return;
+  const s = d.snapshot;
+  const setT = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+  setT('ws-wsi', 'WSI ' + (s.wsi||0).toFixed(3) + ' · ' + (s.wsi_label||'—'));
+  const dom = s.domains || {};
+  const fmt = (k, p) => { const v = dom[k]; return v ? p + ' ' + (v.stability_score||0).toFixed(2) : p + ' —'; };
+  setT('ws-markets', fmt('markets', '📈'));
+  setT('ws-weather', fmt('weather', '☁'));
+  setT('ws-news', fmt('news', '📰'));
+  setT('ws-regs', fmt('regulatory', '⚖'));
+}
+async function loadChannels() {
+  try { const e = await api('GET','/api/channels/email/status'); if (e&&e.ok&&e.live) document.getElementById('ch-email')?.classList.replace('ch-off','ch-on'); } catch(_){}
+  try { const p = await api('GET','/api/channels/phone/status'); if (p&&p.ok&&p.live) document.getElementById('ch-phone')?.classList.replace('ch-off','ch-on'); } catch(_){}
+  try { const v = await api('GET','/api/channels/voice/status'); if (v&&v.ok&&v.live) document.getElementById('ch-voice')?.classList.replace('ch-off','ch-on'); } catch(_){}
+}
+async function loadROILive() {
+  const d = await api('GET', '/api/roi-calendar/live-v2');
+  if (!d || !d.ok) return;
+  const s = d.summary || {};
+  const setT = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+  setT('m-roi-total', '$' + (s.total_roi||0).toLocaleString());
+  setT('m-roi-active', s.active_tasks || 0);
+  setT('m-roi-complete', s.complete_tasks || 0);
+  setT('m-roi-pct', (s.roi_pct||0) + '%');
+  const pip = document.getElementById('pipeline-list');
+  if (pip && Array.isArray(d.events)) {
+    pip.innerHTML = d.events.slice(0,50).map(e => '<div class="feed-row" onclick="openROIDrill(\''+e.event_id+'\')" style="cursor:pointer;"><span class="feed-text">'+((e.title||'').slice(0,60))+'</span><span class="feed-time" style="color:'+(e.status==='complete'?'#5ee0c4':'#ffd166')+'">'+e.status+' · $'+((e.roi||0).toFixed(0))+'</span></div>').join('');
+  }
+}
+async function loadActivity() {
+  const d = await api('GET', '/api/events/feed?limit=30');
+  if (!d || d.status !== 'OK') return;
+  const feed = document.getElementById('activity-feed');
+  if (!feed) return;
+  feed.innerHTML = (d.events||[]).slice(0,30).map(e => {
+    const when = new Date(e.occurred_at).toLocaleString();
+    const sev = e.severity === 'warning' ? '#ffd166' : (e.outcome === 'success' || e.outcome === 'approved' ? '#5ee0c4' : '#8aa');
+    return '<div class="feed-row" onclick="openEventDrill(\''+e.id+'\')" style="cursor:pointer;"><span class="feed-text" style="color:'+sev+'">'+e.actor_type+'/'+e.actor_id+' — '+e.action_verb+'</span><span class="feed-time">'+when+'</span></div>';
+  }).join('');
+}
+function openDrill(title, html) {
+  document.getElementById('drill-title').textContent = title;
+  document.getElementById('drill-body').innerHTML = html;
+  document.getElementById('drill-panel').classList.add('open');
+}
+function closeDrill() { document.getElementById('drill-panel').classList.remove('open'); }
+async function openEventDrill(eventId) {
+  openDrill('Event ' + eventId.slice(0,16), '<div style="color:#8aa">Loading...</div>');
+  const d = await api('GET', '/api/events/feed?limit=200');
+  if (!d || !d.events) return;
+  const evt = d.events.find(e => e.id === eventId);
+  if (!evt) { document.getElementById('drill-body').innerHTML = '<div style="color:#f88">Not found.</div>'; return; }
+  const kv = (k, v) => v ? '<div class="k">'+k+'</div><div class="v">'+v+'</div>' : '';
+  const body = '<div class="drill-section"><h4>Event</h4><div class="drill-kv">' +
+    kv('id', evt.id) + kv('occurred', new Date(evt.occurred_at).toLocaleString()) +
+    kv('actor', evt.actor_type + ' / ' + evt.actor_id) +
+    kv('action', evt.action_verb + (evt.action_object ? ' → ' + evt.action_object : '')) +
+    kv('pipeline', evt.pipeline) + kv('outcome', evt.outcome) + kv('severity', evt.severity) +
+    '</div></div>' +
+    (evt.reasoning_text ? '<div class="drill-section"><h4>Reasoning</h4><div style="color:#cde;background:#0d1428;padding:10px;border-radius:6px;">'+evt.reasoning_text+'</div></div>' : '') +
+    (evt.inputs_json ? '<div class="drill-section"><h4>Inputs</h4><pre style="background:#0d1428;padding:10px;border-radius:6px;overflow-x:auto;font-size:11px;">'+escapeHtml(JSON.stringify(JSON.parse(evt.inputs_json), null, 2))+'</pre></div>' : '') +
+    (evt.outputs_json ? '<div class="drill-section"><h4>Outputs</h4><pre style="background:#0d1428;padding:10px;border-radius:6px;overflow-x:auto;font-size:11px;">'+escapeHtml(JSON.stringify(JSON.parse(evt.outputs_json), null, 2))+'</pre></div>' : '');
+  document.getElementById('drill-body').innerHTML = body;
+}
+async function openROIDrill(eventId) {
+  openDrill('ROI ' + eventId.slice(0,20), '<div style="color:#8aa">Loading...</div>');
+  const d = await api('GET', '/api/roi-calendar/live-v2');
+  if (!d || !d.events) return;
+  const evt = d.events.find(e => e.event_id === eventId);
+  if (!evt) { document.getElementById('drill-body').innerHTML = '<div style="color:#f88">Not found.</div>'; return; }
+  const kv = (k, v) => v!==undefined ? '<div class="k">'+k+'</div><div class="v">'+v+'</div>' : '';
+  document.getElementById('drill-body').innerHTML =
+    '<div class="drill-section"><h4>'+evt.title+'</h4><div style="color:#8aa">'+(evt.description||'')+'</div></div>' +
+    '<div class="drill-section"><h4>Economics</h4><div class="drill-kv">' +
+      kv('human est', '$' + (evt.human_cost_estimate||0).toFixed(2)) +
+      kv('human time', (evt.human_time_estimate_hours||0).toFixed(2)+' h') +
+      kv('agent cost', '$' + (evt.agent_compute_cost||0).toFixed(4)) +
+      kv('overhead', '$' + (evt.overhead_cost||0).toFixed(2)) +
+      kv('ROI', '$' + (evt.roi||0).toFixed(2)) +
+    '</div></div>' +
+    '<div class="drill-section"><h4>Execution</h4><div class="drill-kv">' +
+      kv('status', evt.status) + kv('progress', (evt.progress_pct||0)+'%') +
+      kv('type', evt.task_type) + kv('source', evt.source) +
+    '</div></div>' +
+    '<div class="drill-section"><h4>Agents</h4><div style="color:#cde">'+((evt.agents||[]).join(' · ') || '—')+'</div></div>' +
+    '<div class="drill-section" style="margin-top:18px;border-top:1px solid rgba(94,224,196,0.2);padding-top:14px;"><h4>Open in canvas</h4>' +
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
+    '<button onclick="openPageDrill(\'workflow-canvas\',\'Workflow Canvas\')" style="background:#0d1428;border:1px solid #5ee0c4;color:#5ee0c4;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:11px;">→ Workflow Canvas</button>' +
+    '<button onclick="openPageDrill(\'roi-calendar\',\'ROI Calendar\')" style="background:#0d1428;border:1px solid #5ee0c4;color:#5ee0c4;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:11px;">→ Full ROI Calendar</button>' +
+    '<button onclick="openPageDrill(\'forge\',\'Forge\')" style="background:#0d1428;border:1px solid #5ee0c4;color:#5ee0c4;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:11px;">→ Forge</button>' +
+    '</div></div>';
+}
+function escapeHtml(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+// PATCH-413c: Embed any /ui/<slug> page as drill content
+function openPageDrill(slug, title) {
+  openDrill(title || slug, '<iframe class="drill-iframe" src="/ui/' + slug + '" style="width:100%;height:calc(100vh - 100px);border:1px solid rgba(94,224,196,0.2);border-radius:6px;background:#0a0e1a;"></iframe>');
+  // Expand drill to full width for embedded pages
+  document.getElementById('drill-panel').style.width = '720px';
+}
+// Restore drill width on close (in addition to closing)
+const _origCloseDrill = closeDrill;
+closeDrill = function() {
+  _origCloseDrill();
+  setTimeout(() => { document.getElementById('drill-panel').style.width = '540px'; }, 350);
+};
+// Wire drill triggers — clicking a sidebar item with data-page opens it as drill
+window.openPageDrill = openPageDrill;
+setInterval(loadWorldState, 60000);
+setInterval(loadROILive,    30000);
+setInterval(loadActivity,   30000);
+setInterval(loadChannels,   60000);
+window.addEventListener('load', () => {
+  setTimeout(() => { loadWorldState(); loadChannels(); loadROILive(); loadActivity(); }, 1500);
+});
+
+// ── PATCH-417c: Mail outbound review queue ─────────────────────────
+async function mailRefresh() {
+  const container = document.getElementById('mail-outbound-queue');
+  if (!container) return;
+
+  try {
+    // Stats
+    const statsResp = await fetch(BASE + '/api/mail/outbound/stats', {credentials: 'include'});
+    if (statsResp.ok) {
+      const s = await statsResp.json();
+      document.getElementById('mail-stats-pending').textContent = (s.pending_review || 0) + ' pending';
+      document.getElementById('mail-stats-sent').textContent = (s.sent || 0) + ' sent';
+      document.getElementById('mail-stats-rejected').textContent = (s.rejected || 0) + ' rejected';
+    }
+
+    // Queue items
+    const resp = await fetch(BASE + '/api/mail/outbound/queue?status=pending_review&limit=50', {credentials: 'include'});
+    if (!resp.ok) {
+      container.innerHTML = '<div style="color:#f88;">Could not load queue: HTTP ' + resp.status + '</div>';
+      return;
+    }
+    const data = await resp.json();
+    const items = data.items || [];
+    if (items.length === 0) {
+      container.innerHTML = '<div style="color:#8aa;font-style:italic;padding:8px;">Queue is empty. No emails awaiting review.</div>';
+      return;
+    }
+
+    container.innerHTML = items.map(it => {
+      const urgencyColor = it.urgency === 'high' ? '#f88' : (it.urgency === 'low' ? '#8aa' : '#fc8');
+      const toStr = Array.isArray(it.to) ? it.to.join(', ') : (it.to || '');
+      const agentLabel = it.agent_class ? (it.agent_class + ' / ' + (it.agent_role || '')) : (it.agent_role || 'unknown');
+      const safeBody = (it.body_preview || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const safeSubject = (it.subject || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      return `
+        <div style="border:1px solid rgba(94,224,196,0.12);border-radius:6px;padding:12px;background:rgba(10,14,26,0.6);">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <span style="font-size:11px;color:${urgencyColor};font-weight:600;text-transform:uppercase;">${it.urgency}</span>
+            <span style="font-size:10px;color:#8aa;">${agentLabel} · ${new Date(it.created_at).toLocaleTimeString()}</span>
+          </div>
+          <div style="font-size:11px;color:#8aa;margin-bottom:4px;">To: ${toStr}</div>
+          <div style="font-size:13px;color:#cde;font-weight:600;margin-bottom:6px;">${safeSubject}</div>
+          <div style="font-size:12px;color:#aab;line-height:1.5;margin-bottom:10px;font-style:italic;">${safeBody}${(it.body_preview||'').length>=200?'…':''}</div>
+          <div style="display:flex;gap:8px;">
+            <button onclick="mailApprove('${it.queue_id}')"
+              style="background:rgba(94,224,196,0.15);color:#5ee0c4;border:1px solid rgba(94,224,196,0.4);padding:5px 14px;border-radius:4px;font-size:11px;cursor:pointer;">✓ Approve & send</button>
+            <button onclick="mailReject('${it.queue_id}')"
+              style="background:rgba(255,100,100,0.1);color:#f88;border:1px solid rgba(255,100,100,0.3);padding:5px 14px;border-radius:4px;font-size:11px;cursor:pointer;">✗ Reject</button>
+            <button onclick="mailViewFull('${it.queue_id}')"
+              style="background:transparent;color:#8aa;border:1px solid rgba(255,255,255,0.1);padding:5px 14px;border-radius:4px;font-size:11px;cursor:pointer;margin-left:auto;">↗ Full view</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  } catch (err) {
+    console.error('mailRefresh failed', err);
+    container.innerHTML = '<div style="color:#f88;">Error: ' + err.message + '</div>';
+  }
+}
+
+async function mailApprove(queueId) {
+  if (!confirm('Approve and send this email?')) return;
+  try {
+    const resp = await fetch(BASE + '/api/mail/outbound/' + queueId + '/approve', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      credentials: 'include',
+      body: '{}',
+    });
+    const data = await resp.json();
+    if (data.ok) {
+      mailRefresh();
+    } else {
+      alert('Approve failed: ' + (data.error || JSON.stringify(data)));
+    }
+  } catch (err) {
+    alert('Network error: ' + err.message);
+  }
+}
+
+async function mailReject(queueId) {
+  const reason = prompt('Reason for rejection (will be shown to the swarm agent for learning):', '');
+  if (reason === null) return;  // user hit cancel
+  try {
+    const resp = await fetch(BASE + '/api/mail/outbound/' + queueId + '/reject', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      credentials: 'include',
+      body: JSON.stringify({reason: reason || 'no_reason'}),
+    });
+    const data = await resp.json();
+    if (data.ok) {
+      mailRefresh();
+    } else {
+      alert('Reject failed: ' + (data.error || JSON.stringify(data)));
+    }
+  } catch (err) {
+    alert('Network error: ' + err.message);
+  }
+}
+
+async function mailViewFull(queueId) {
+  try {
+    const resp = await fetch(BASE + '/api/mail/outbound/' + queueId, {credentials: 'include'});
+    const data = await resp.json();
+    if (!data.ok) {
+      alert('Could not load: ' + (data.error || 'unknown'));
+      return;
+    }
+    // Use the existing drill panel
+    if (typeof openDrillPanel === 'function') {
+      const it = data.item;
+      const bodyHTML = '<div style="padding:18px;color:#cde;font-size:13px;line-height:1.6;">' +
+        '<h3 style="color:#5ee0c4;margin:0 0 12px;">' + (it.subject || '') + '</h3>' +
+        '<div style="font-size:11px;color:#8aa;margin-bottom:14px;">' +
+        'From: ' + (it.from_address || '') + '<br>' +
+        'To: ' + (Array.isArray(it.to_addresses) ? it.to_addresses.join(', ') : '') + '<br>' +
+        'Agent: ' + (it.agent_class || '') + ' / ' + (it.agent_role || '') + '<br>' +
+        'Submitted: ' + it.created_at +
+        '</div>' +
+        '<pre style="background:#0a0e1a;padding:12px;border-radius:4px;white-space:pre-wrap;color:#cde;font-family:inherit;font-size:12px;">' +
+        (it.body || '').replace(/</g, '&lt;') + '</pre>' +
+        '</div>';
+      openDrillPanel(bodyHTML, 'Email — ' + (it.subject || queueId));
+    } else {
+      alert(JSON.stringify(data.item, null, 2).substring(0, 800));
+    }
+  } catch (err) {
+    alert('Error: ' + err.message);
+  }
+}
+
+// Auto-refresh when Mail tab becomes visible. Hooks into switchPage if it exists.
+(function() {
+  let mailPollTimer = null;
+  const origSwitch = window.switchPage;
+  if (typeof origSwitch === 'function') {
+    window.switchPage = function(page) {
+      origSwitch(page);
+      if (page === 'mail') {
+        mailRefresh();
+        if (mailPollTimer) clearInterval(mailPollTimer);
+        mailPollTimer = setInterval(mailRefresh, 30000);
+      } else if (mailPollTimer) {
+        clearInterval(mailPollTimer);
+        mailPollTimer = null;
+      }
+    };
+  }
+  // Also do an initial fetch in case mail tab is the default
+  setTimeout(() => { if (document.getElementById('mail-outbound-queue')) mailRefresh(); }, 1500);
+})();
+
+</script>
+
+</body>
+</html>

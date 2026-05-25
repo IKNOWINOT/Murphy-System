@@ -439,6 +439,13 @@ class CollaborativeExecutionReport:
     execution_log: List[Dict[str, Any]]
     idempotency_key: str
     metadata: Dict[str, Any] = field(default_factory=dict)
+    task_id: str = field(default="")
+
+    def __post_init__(self):
+        """PATCH-350: task_id mirrors run_id."""
+        if not self.task_id:
+            self.task_id = self.run_id
+
 
 
 # ---------------------------------------------------------------------------
@@ -453,6 +460,14 @@ class CollaborativeTaskOrchestrator:
     DEFAULT_STEP_TIMEOUT = 120.0
     DEFAULT_TOTAL_TIMEOUT = 600.0
     MAX_HISTORY = 1_000  # CWE-770
+
+    task_id: str = ""
+
+    def __post_init__(self):
+        # PATCH-350: task_id mirrors run_id for backward compat
+        if not self.task_id:
+            object.__setattr__(self, "task_id", self.run_id)
+
 
     def __init__(self) -> None:
         self._lock = threading.Lock()
@@ -858,3 +873,20 @@ class CollaborativeTaskOrchestrator:
             self._history.append(report)
 
         return report
+
+
+# PATCH-350-MONKEY: inject task_id into CollaborativeExecutionReport at module load
+import dataclasses as _dc350
+if "task_id" not in {f.name for f in _dc350.fields(CollaborativeExecutionReport)}:
+    CollaborativeExecutionReport = _dc350.make_dataclass(
+        "CollaborativeExecutionReport",
+        [("task_id", str, _dc350.field(default=""))],
+        bases=(CollaborativeExecutionReport,),
+    )
+    _orig_post_init_350 = getattr(CollaborativeExecutionReport, "__post_init__", None)
+    def _post_init_350(self):
+        if _orig_post_init_350:
+            _orig_post_init_350(self)
+        if not self.task_id:
+            self.task_id = self.run_id
+    CollaborativeExecutionReport.__post_init__ = _post_init_350

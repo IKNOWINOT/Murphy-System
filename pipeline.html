@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy — Pipeline</title>
+<style>
+  :root {
+    --bg: #0a0a0a; --surface: #111; --border: #1e1e1e;
+    --green: #00ff41; --cyan: #00D4AA; --gold: #FFD700;
+    --text: #e0e0e0; --muted: #666; --red: #ff4444;
+    --font: 'SF Mono', 'Fira Code', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 13px; min-height: 100vh; }
+
+  /* Top bar */
+  .topbar { display: flex; align-items: center; gap: 16px; padding: 14px 24px; border-bottom: 1px solid var(--border); background: var(--surface); }
+  .logo { color: var(--cyan); font-weight: 700; font-size: 15px; letter-spacing: 1px; }
+  .mode-tabs { display: flex; gap: 4px; margin-left: auto; }
+  .mode-tab { padding: 5px 12px; border-radius: 4px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; font-family: var(--font); font-size: 11px; transition: all 0.15s; }
+  .mode-tab:hover { border-color: var(--cyan); color: var(--cyan); }
+  .mode-tab.active { background: var(--cyan); color: #000; border-color: var(--cyan); font-weight: 700; }
+
+  /* Main layout */
+  .layout { display: grid; grid-template-columns: 1fr 340px; height: calc(100vh - 53px); }
+
+  /* Left: input + output */
+  .main-col { display: flex; flex-direction: column; padding: 20px; gap: 16px; overflow: hidden; }
+  
+  /* Input area */
+  .input-wrap { position: relative; }
+  .input-area {
+    width: 100%; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 14px 120px 14px 16px;
+    color: var(--text); font-family: var(--font); font-size: 13px;
+    resize: none; min-height: 80px; outline: none; line-height: 1.5;
+    transition: border-color 0.2s;
+  }
+  .input-area:focus { border-color: var(--cyan); }
+  .input-area::placeholder { color: var(--muted); }
+  .run-btn {
+    position: absolute; right: 12px; top: 12px;
+    background: var(--cyan); color: #000; border: none;
+    padding: 8px 18px; border-radius: 6px; cursor: pointer;
+    font-family: var(--font); font-weight: 700; font-size: 12px;
+    transition: opacity 0.2s;
+  }
+  .run-btn:hover { opacity: 0.85; }
+  .run-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* Clarification panel */
+  .clarify-panel { background: #1a1200; border: 1px solid var(--gold); border-radius: 8px; padding: 16px; display: none; }
+  .clarify-panel.active { display: block; }
+  .clarify-title { color: var(--gold); font-weight: 700; margin-bottom: 12px; font-size: 12px; }
+  .clarify-q { margin-bottom: 10px; }
+  .clarify-q label { display: block; color: var(--text); margin-bottom: 4px; font-size: 12px; }
+  .clarify-q input {
+    width: 100%; background: var(--bg); border: 1px solid var(--border);
+    border-radius: 4px; padding: 7px 10px; color: var(--text);
+    font-family: var(--font); font-size: 12px; outline: none;
+  }
+  .clarify-q input:focus { border-color: var(--gold); }
+  .clarify-submit { background: var(--gold); color: #000; border: none; padding: 8px 20px; border-radius: 5px; cursor: pointer; font-weight: 700; font-size: 12px; font-family: var(--font); margin-top: 8px; }
+
+  /* Pipeline trace */
+  .trace { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+  .trace-item { display: flex; align-items: center; gap: 10px; padding: 7px 12px; border-radius: 5px; border: 1px solid var(--border); background: var(--surface); font-size: 11px; color: var(--muted); transition: all 0.2s; }
+  .trace-item.active { border-color: var(--cyan); color: var(--cyan); background: #001a14; }
+  .trace-item.done { border-color: #1a4a30; color: #4CAF50; background: #0a1a0f; }
+  .trace-item.error { border-color: var(--red); color: var(--red); }
+  .trace-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+  .trace-dot.pulse { animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  /* Output area */
+  .output-area { flex: 1; overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
+  .output-tabs { display: flex; gap: 4px; margin-bottom: 10px; flex-shrink: 0; }
+  .out-tab { padding: 5px 12px; border-radius: 4px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; font-family: var(--font); font-size: 11px; }
+  .out-tab.active { background: var(--surface); color: var(--text); border-color: var(--muted); }
+  .out-panel { flex: 1; overflow-y: auto; display: none; padding: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; }
+  .out-panel.active { display: block; }
+  .out-panel::-webkit-scrollbar { width: 4px; }
+  .out-panel::-webkit-scrollbar-track { background: transparent; }
+  .out-panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* Synthesis output */
+  #synthesis-out { white-space: pre-wrap; line-height: 1.7; color: var(--text); font-size: 13px; }
+  #synthesis-out.empty { color: var(--muted); font-style: italic; }
+
+  /* Agent outputs */
+  .agent-card { margin-bottom: 16px; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+  .agent-card-head { display: flex; align-items: center; gap: 8px; padding: 9px 12px; background: #141414; font-size: 12px; font-weight: 700; }
+  .agent-zoom { font-size: 10px; color: var(--muted); margin-left: auto; border: 1px solid var(--border); padding: 2px 7px; border-radius: 3px; }
+  .agent-card-body { padding: 12px; white-space: pre-wrap; line-height: 1.6; font-size: 12px; color: #ccc; }
+
+  /* Right panel: org chart */
+  .right-col { border-left: 1px solid var(--border); padding: 16px; overflow-y: auto; background: var(--surface); display: flex; flex-direction: column; gap: 12px; }
+  .right-col::-webkit-scrollbar { width: 4px; }
+  .right-col::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .panel-title { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; }
+
+  /* Org cards */
+  .org-card { border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; background: var(--bg); transition: border-color 0.2s; }
+  .org-card.active-agent { border-color: var(--cyan); background: #001a14; }
+  .org-card-top { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .org-emoji { font-size: 16px; }
+  .org-title { font-size: 12px; font-weight: 700; color: var(--text); }
+  .org-zoom-badge { font-size: 9px; margin-left: auto; padding: 2px 6px; border-radius: 3px; font-weight: 700; text-transform: uppercase; }
+  .zoom-macro { background: #1a0030; color: #c084fc; }
+  .zoom-mid { background: #001a2a; color: var(--cyan); }
+  .zoom-micro { background: #0a1a0a; color: #4CAF50; }
+  .zoom-cross { background: #1a1000; color: var(--gold); }
+  .org-soul-l0 { font-size: 10px; color: var(--muted); line-height: 1.5; margin-top: 2px; }
+  .org-status { font-size: 10px; color: var(--muted); margin-top: 5px; display: flex; align-items: center; gap: 5px; }
+  .org-status.working { color: var(--cyan); }
+  .org-status.done { color: #4CAF50; }
+
+  /* RM badge */
+  .rm-badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 4px; border: 1px solid var(--border); font-size: 10px; background: var(--bg); }
+  .rm-bar { height: 4px; border-radius: 2px; background: linear-gradient(to right, var(--red), var(--gold), var(--green)); }
+
+  .empty-state { color: var(--muted); font-size: 12px; text-align: center; padding: 40px 20px; line-height: 1.7; }
+
+  /* Amplification notice */
+  .amp-notice { font-size: 10px; color: var(--gold); padding: 6px 12px; background: #1a1200; border: 1px solid #3a2a00; border-radius: 4px; display: none; }
+  .amp-notice.show { display: block; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">⚡ MURPHY PIPELINE</div>
+  <div class="mode-tabs">
+    <button class="mode-tab active" onclick="setMode('auto')">auto</button>
+    <button class="mode-tab" onclick="setMode('executive')">executive</button>
+    <button class="mode-tab" onclick="setMode('architect')">architect</button>
+    <button class="mode-tab" onclick="setMode('forge')">forge</button>
+    <button class="mode-tab" onclick="setMode('research')">research</button>
+    <button class="mode-tab" onclick="setMode('single')">single</button>
+  </div>
+</div>
+
+<div class="layout">
+  <div class="main-col">
+
+    <!-- Input -->
+    <div class="input-wrap">
+      <textarea class="input-area" id="inputArea" 
+        placeholder="Describe anything — vague or specific. Murphy will amplify, assemble the right org positions, and execute.&#10;&#10;e.g. 'build a quoting tool for HVAC contractors' or 'I need something for MEP engineers on mobile'"
+        rows="4"></textarea>
+      <button class="run-btn" id="runBtn" onclick="runPipeline()">▶ RUN</button>
+    </div>
+
+    <!-- Amplification notice -->
+    <div class="amp-notice" id="ampNotice"></div>
+
+    <!-- Clarification panel -->
+    <div class="clarify-panel" id="clarifyPanel">
+      <div class="clarify-title">⚡ Murphy needs a bit more context to assemble the right team:</div>
+      <div id="clarifyQuestions"></div>
+      <button class="clarify-submit" onclick="submitClarification()">Continue →</button>
+    </div>
+
+    <!-- Pipeline trace -->
+    <div class="trace" id="traceLog"></div>
+
+    <!-- Output -->
+    <div class="output-area">
+      <div class="output-tabs">
+        <button class="out-tab active" onclick="showTab('synthesis')">Synthesis</button>
+        <button class="out-tab" onclick="showTab('agents')">By Agent</button>
+        <button class="out-tab" onclick="showTab('debug')">Debug</button>
+      </div>
+      <div class="out-panel active" id="panel-synthesis">
+        <div id="synthesis-out" class="empty">Output will appear here...</div>
+      </div>
+      <div class="out-panel" id="panel-agents">
+        <div id="agents-out"><div class="empty-state">Agent outputs will appear here after execution.</div></div>
+      </div>
+      <div class="out-panel" id="panel-debug">
+        <div id="debug-out" style="font-size:11px;color:#888;white-space:pre-wrap;"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Right: Org chart -->
+  <div class="right-col">
+    <div class="panel-title">Live Org</div>
+    <div id="orgCards"><div class="empty-state">Org will assemble here when you run the pipeline.</div></div>
+
+    <div style="margin-top:8px;">
+      <div class="panel-title">Resolution</div>
+      <div id="rmDisplay">
+        <div class="rm-badge"><span>RM—</span></div>
+      </div>
+    </div>
+
+    <div style="margin-top:8px;">
+      <div class="panel-title">Mode</div>
+      <div id="modeDisplay" style="font-size:12px;color:var(--cyan);">auto</div>
+    </div>
+  </div>
+</div>
+
+<script>
+let currentMode = 'auto';
+let pendingClarifyAnswers = {};
+let lastRunId = null;
+const TOKEN = localStorage.getItem('murphy_token') || '';
+
+function setMode(m) {
+  currentMode = m;
+  document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('modeDisplay').textContent = m;
+}
+
+function showTab(name) {
+  document.querySelectorAll('.out-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.out-panel').forEach(p => p.classList.remove('active'));
+  document.querySelector(`[onclick="showTab('${name}')"]`).classList.add('active');
+  document.getElementById(`panel-${name}`).classList.add('active');
+}
+
+function addTrace(stage, msg, state='active') {
+  const log = document.getElementById('traceLog');
+  // Update existing or add new
+  let existing = log.querySelector(`[data-stage="${stage}"]`);
+  if (existing) {
+    existing.className = `trace-item ${state}`;
+    existing.querySelector('.trace-msg').textContent = msg;
+    const dot = existing.querySelector('.trace-dot');
+    dot.className = state === 'active' ? 'trace-dot pulse' : 'trace-dot';
+  } else {
+    const el = document.createElement('div');
+    el.className = `trace-item ${state}`;
+    el.dataset.stage = stage;
+    el.innerHTML = `<span class="trace-dot ${state==='active'?'pulse':''}"></span><span class="trace-msg">${msg}</span>`;
+    log.appendChild(el);
+  }
+}
+
+function clearTrace() {
+  document.getElementById('traceLog').innerHTML = '';
+}
+
+function setOrgCards(positions) {
+  const container = document.getElementById('orgCards');
+  if (!positions || !positions.length) return;
+  container.innerHTML = positions.map(p => {
+    const zoomClass = p.zoom.includes('macro') ? 'zoom-macro' : 
+                      p.zoom.includes('micro') ? 'zoom-micro' :
+                      p.zoom === 'cross' ? 'zoom-cross' : 'zoom-mid';
+    return `
+      <div class="org-card" id="org-${p.id}">
+        <div class="org-card-top">
+          <span class="org-emoji">${p.emoji}</span>
+          <span class="org-title">${p.title}</span>
+          <span class="org-zoom-badge ${zoomClass}">${p.zoom}</span>
+        </div>
+        ${p.l0 ? `<div class="org-soul-l0">${p.l0}</div>` : ''}
+        <div class="org-status" id="org-status-${p.id}">⏳ waiting</div>
+      </div>`;
+  }).join('');
+}
+
+function setAgentWorking(id) {
+  const card = document.getElementById(`org-${id}`);
+  if (card) card.classList.add('active-agent');
+  const status = document.getElementById(`org-status-${id}`);
+  if (status) { status.className = 'org-status working'; status.textContent = '⚡ working...'; }
+}
+
+function setAgentDone(id) {
+  const card = document.getElementById(`org-${id}`);
+  if (card) card.classList.remove('active-agent');
+  const status = document.getElementById(`org-status-${id}`);
+  if (status) { status.className = 'org-status done'; status.textContent = '✓ complete'; }
+}
+
+function setRM(level) {
+  const el = document.getElementById('rmDisplay');
+  const pct = (level / 9) * 100;
+  el.innerHTML = `
+    <div class="rm-badge"><span style="color:var(--text)">RM${level}</span> / 9</div>
+    <div class="rm-bar" style="width:${pct}%;margin-top:6px;"></div>
+  `;
+}
+
+function showClarifyPanel(questions) {
+  const panel = document.getElementById('clarifyPanel');
+  const container = document.getElementById('clarifyQuestions');
+  panel.classList.add('active');
+  container.innerHTML = questions.map((q, i) => `
+    <div class="clarify-q">
+      <label>${i+1}. ${q}</label>
+      <input type="text" id="cq-${i}" placeholder="Your answer..." />
+    </div>
+  `).join('');
+}
+
+function submitClarification() {
+  const inputs = document.querySelectorAll('[id^="cq-"]');
+  const answers = Array.from(inputs).map(inp => inp.value).filter(Boolean);
+  const original = document.getElementById('inputArea').value;
+  const combined = original + '\n\nAdditional context:\n' + answers.join('\n');
+  document.getElementById('clarifyPanel').classList.remove('active');
+  document.getElementById('inputArea').value = combined;
+  runPipeline(true); // skip clarification on retry
+}
+
+async function runPipeline(skipClarify=false) {
+  const input = document.getElementById('inputArea').value.trim();
+  if (!input) return;
+
+  const btn = document.getElementById('runBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳';
+  document.getElementById('synthesis-out').textContent = '';
+  document.getElementById('synthesis-out').className = 'empty';
+  document.getElementById('agents-out').innerHTML = '<div class="empty-state">Working...</div>';
+  document.getElementById('debug-out').textContent = '';
+  document.getElementById('orgCards').innerHTML = '<div class="empty-state">Assembling org...</div>';
+  document.getElementById('ampNotice').classList.remove('show');
+  clearTrace();
+
+  addTrace('mss', 'MSS amplifying input...');
+
+  try {
+    const payload = {
+      input,
+      mode: currentMode,
+      clarify: !skipClarify,
+      stream: false,
+    };
+
+    const headers = { 'Content-Type': 'application/json' };
+    if (TOKEN) headers['Authorization'] = `Bearer ${TOKEN}`;
+
+    const resp = await fetch('/api/pipeline/execute', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(payload),
+    });
+
+    const data = await resp.json();
+    document.getElementById('debug-out').textContent = JSON.stringify(data, null, 2);
+
+    if (data.needs_clarification && data.questions) {
+      addTrace('mss', `RM${data.resolution_level} — clarification needed`, 'active');
+      showClarifyPanel(data.questions);
+      btn.disabled = false;
+      btn.textContent = '▶ RUN';
+      return;
+    }
+
+    if (!data.success) {
+      addTrace('error', `Error: ${data.error}`, 'error');
+      document.getElementById('synthesis-out').textContent = `Error: ${data.error}`;
+      document.getElementById('synthesis-out').className = '';
+      btn.disabled = false;
+      btn.textContent = '▶ RUN';
+      return;
+    }
+
+    // Show amplification notice
+    if (data.amplified_input) {
+      const notice = document.getElementById('ampNotice');
+      notice.textContent = `⚡ Input amplified RM${data.resolution_level}→higher: "${data.amplified_input.substring(0,120)}..."`;
+      notice.classList.add('show');
+    }
+
+    // Show RM level
+    setRM(data.resolution_level || 1);
+
+    // Build trace from events
+    if (data.events) {
+      for (const ev of data.events) {
+        addTrace(ev.stage, ev.msg, ev.stage === 'complete' ? 'done' : 'done');
+      }
+    }
+
+    // Build org chart
+    if (data.org && data.org.length) {
+      setOrgCards(data.org);
+      // Mark all done
+      data.org.forEach(p => setAgentDone(p.id));
+    }
+
+    // Synthesis output
+    const synthEl = document.getElementById('synthesis-out');
+    if (data.synthesis || data.output) {
+      synthEl.textContent = data.synthesis || data.output;
+      synthEl.className = '';
+    } else {
+      synthEl.textContent = 'No output generated.';
+      synthEl.className = 'empty';
+    }
+
+    // Agent cards
+    if (data.agent_outputs && Object.keys(data.agent_outputs).length) {
+      const agentsEl = document.getElementById('agents-out');
+      agentsEl.innerHTML = Object.values(data.agent_outputs).map(a => `
+        <div class="agent-card">
+          <div class="agent-card-head">
+            <span>${a.emoji}</span>
+            <span>${a.title}</span>
+            <span class="agent-zoom">${a.zoom}</span>
+          </div>
+          <div class="agent-card-body">${a.output || '(no output)'}</div>
+        </div>
+      `).join('');
+    }
+
+    lastRunId = data.run_id;
+
+  } catch (err) {
+    addTrace('error', `Network error: ${err.message}`, 'error');
+    document.getElementById('synthesis-out').textContent = `Network error: ${err.message}`;
+  }
+
+  btn.disabled = false;
+  btn.textContent = '▶ RUN';
+}
+
+// Enter key submits (Shift+Enter for newline)
+document.getElementById('inputArea').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    runPipeline();
+  }
+});
+
+// Check for token in URL
+const urlToken = new URLSearchParams(location.search).get('token');
+if (urlToken) localStorage.setItem('murphy_token', urlToken);
+</script>
+</body>
+</html>

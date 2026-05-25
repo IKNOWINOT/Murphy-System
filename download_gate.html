@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy — Download</title>
+<style>
+*{{box-sizing:border-box;margin:0;padding:0}}
+body{{font-family:-apple-system,sans-serif;background:#0a0a0a;color:#e8e8e8;min-height:100vh}}
+.hero{{background:#111827;border-bottom:1px solid #1e2535;padding:40px 20px;text-align:center}}
+.logo{{font-size:28px;font-weight:800;color:#fff}}.logo span{{color:#3b82f6}}
+.sub{{color:#9ca3af;margin-top:8px}}
+.container{{max-width:640px;margin:0 auto;padding:40px 20px}}
+.gated{{background:#111827;border:1px solid #1e2535;border-radius:12px;padding:32px;text-align:center}}
+h2{{font-size:20px;font-weight:700;margin-bottom:8px}}
+p{{color:#9ca3af;font-size:15px;margin-bottom:20px;line-height:1.5}}
+input{{width:100%;padding:12px;background:#0a0a0a;border:1px solid #1e2535;border-radius:8px;color:#e8e8e8;font-size:15px;outline:none;margin-bottom:12px}}
+input:focus{{border-color:#3b82f6}}
+.btn{{width:100%;padding:13px;background:#3b82f6;color:#fff;border:none;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer}}
+.download-card{{background:#111827;border:1px solid #22c55e;border-radius:12px;padding:24px;margin-bottom:16px}}
+.download-card h3{{font-size:16px;font-weight:600;color:#fff;margin-bottom:8px}}
+.download-card p{{color:#9ca3af;font-size:14px;margin-bottom:16px}}
+.dl-btn{{display:inline-block;padding:10px 24px;background:#22c55e;color:#fff;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none;margin-right:8px;cursor:pointer}}
+.dl-btn.win{{background:#3b82f6}}.dl-btn.linux{{background:#6366f1}}
+.install-code{{background:#0a0a0a;border:1px solid #1e2535;border-radius:6px;padding:12px;font-family:monospace;font-size:13px;color:#4ade80;margin-top:12px;white-space:pre-wrap}}
+.err{{color:#f87171;font-size:14px;padding:8px 0}}
+</style>
+</head>
+<body>
+<div class="hero">
+  <div class="logo">murphy<span>.</span>systems</div>
+  <div class="sub">Download the Murphy Client</div>
+</div>
+<div class="container">
+  <div id="gate" class="gated">
+    <h2>Enter your Account ID</h2>
+    <p>After payment, your Account ID was emailed to you. You can also find it at murphy.systems/dashboard</p>
+    <input type="text" id="acct-in" placeholder="e.g. a3b7c2d1-...">
+    <div id="gate-err" class="err" style="display:none"></div>
+    <button class="btn" onclick="checkAccess()">Get My Download</button>
+  </div>
+
+  <div id="download-section" style="display:none">
+    <div style="margin-bottom:24px">
+      <h2 style="font-size:22px;font-weight:700;margin-bottom:6px">You're all set</h2>
+      <p>Download the Murphy Client for your platform. It runs as a background agent and phones home to murphy.systems.</p>
+    </div>
+
+    <div class="download-card">
+      <h3>🍎 macOS</h3>
+      <p>Runs as a launchd service. Watches your files and apps automatically.</p>
+      <a class="dl-btn" id="dl-mac" href="#">Download .pkg</a>
+      <div class="install-code" id="mac-install"># One-line install (paste in Terminal):
+curl -s https://murphy.systems/install/mac | bash</div>
+    </div>
+
+    <div class="download-card">
+      <h3>🪟 Windows</h3>
+      <p>Runs as a Windows Service. Installs silently, starts on login.</p>
+      <a class="dl-btn win" id="dl-win" href="#">Download .exe</a>
+      <div class="install-code" id="win-install"># Run in PowerShell (as admin):
+irm https://murphy.systems/install/windows | iex</div>
+    </div>
+
+    <div class="download-card">
+      <h3>🐧 Linux / Server</h3>
+      <p>Systemd service. Works on Ubuntu, Debian, CentOS, Alpine.</p>
+      <a class="dl-btn linux" id="dl-linux" href="#">Download .sh</a>
+      <div class="install-code" id="linux-install"># One-line install:
+curl -s https://murphy.systems/install/linux | sudo bash</div>
+    </div>
+
+    <div style="background:#1e2535;border-radius:8px;padding:16px;margin-top:8px;font-size:14px;color:#9ca3af">
+      <strong style="color:#fff">After install, run:</strong><br><br>
+      <code style="color:#4ade80">murphy setup</code><br><br>
+      Enter your Account ID and API key when prompted. Murphy will start observing immediately.
+      Your automation window starts tonight.
+    </div>
+
+    <div style="margin-top:24px;text-align:center">
+      <a href="/dashboard?id=__ACCT__" style="color:#3b82f6;font-size:14px">Go to Dashboard →</a>
+    </div>
+  </div>
+</div>
+<script>
+async function checkAccess() {{
+  const aid = document.getElementById('acct-in').value.trim();
+  if (!aid) return;
+  try {{
+    const r = await fetch('/api/oo/dashboard/' + aid);
+    if (r.ok) {{
+      const d = await r.json();
+      if (d.account && ['active','contract_signed','demo_booked'].includes(d.account.status)) {{
+        document.getElementById('gate').style.display='none';
+        document.getElementById('download-section').style.display='block';
+        document.querySelectorAll('#download-section a, #download-section [id$=install]').forEach(el=>{{
+          if(el.tagName==='A') el.href = el.href.replace('__ACCT__',aid);
+        }});
+        document.querySelector('[href="/dashboard?id=__ACCT__"]').href='/dashboard?id='+aid;
+      }} else {{
+        document.getElementById('gate-err').textContent = 'Account found but not yet activated. Complete payment first.';
+        document.getElementById('gate-err').style.display='block';
+      }}
+    }} else {{
+      document.getElementById('gate-err').textContent = 'Account not found. Check your Account ID.';
+      document.getElementById('gate-err').style.display='block';
+    }}
+  }} catch(e) {{
+    document.getElementById('gate-err').textContent = 'Error checking account. Try again.';
+    document.getElementById('gate-err').style.display='block';
+  }}
+}}
+</script>
+</body>
+</html>

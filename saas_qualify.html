@@ -1,0 +1,121 @@
+<!-- Murphy System — Qualification / PATCH-335 -->
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Murphy — Tell Us About Your Business</title>
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/static/murphy-design-system.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0a0a;color:#e8eaed;font-family:'Inter',system-ui,sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem 1rem}
+.card{background:#111;border:1px solid #1e2733;border-radius:16px;padding:2.5rem 2rem;width:100%;max-width:540px;box-shadow:0 0 60px rgba(0,212,170,.07)}
+.logo{display:flex;align-items:center;gap:.6rem;margin-bottom:1.5rem;justify-content:center}
+.logo svg{width:24px;height:24px}.logo span{font-size:1rem;font-weight:700;color:#00D4AA}
+h1{font-size:1.4rem;font-weight:800;color:#fff;margin-bottom:.4rem;text-align:center}
+.sub{text-align:center;color:#8b9db0;font-size:.9rem;margin-bottom:1.5rem}
+.q-label{font-size:.85rem;font-weight:700;color:#a0aab4;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem;display:block}
+.chips{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1.25rem}
+.chip{padding:.45rem .9rem;border:1px solid #1e2733;border-radius:50px;font-size:.85rem;cursor:pointer;transition:all .2s;user-select:none;color:#a0aab4;background:#0d1117}
+.chip.sel{border-color:#00D4AA;background:#0d2a24;color:#00D4AA;font-weight:600}
+.form-group{margin-bottom:1.2rem}
+label{display:block;font-size:.82rem;font-weight:600;color:#a0aab4;margin-bottom:.35rem;text-transform:uppercase;letter-spacing:.05em}
+select,input{width:100%;padding:.75rem 1rem;background:#0d1117;border:1px solid #1e2733;border-radius:8px;color:#e8eaed;font-size:.95rem;outline:none;transition:border-color .2s}
+select:focus,input:focus{border-color:#00D4AA}
+.btn-primary{width:100%;padding:1rem;background:#00D4AA;color:#0a0a0a;font-size:1rem;font-weight:800;border:none;border-radius:8px;cursor:pointer;margin-top:.5rem;transition:background .2s}
+.btn-primary:hover{background:#00b894}
+.progress{height:3px;background:#1e2733;border-radius:2px;margin-bottom:1.5rem}
+.progress-bar{height:3px;background:#00D4AA;border-radius:2px;width:33%;transition:width .4s}
+</style>
+</head><body>
+<div class="card">
+  <div class="logo">
+    <svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="14" fill="none" stroke="#00D4AA" stroke-width="2"/><path d="M8 22L12 10l4 8 4-8 4 12" stroke="#00ff41" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+    <span>Murphy System</span>
+  </div>
+  <div class="progress"><div class="progress-bar" id="pb"></div></div>
+  <h1>Tell Murphy About Your Business</h1>
+  <p class="sub">2 minutes. Murphy will match you to the right plan and next step.</p>
+
+  <form id="qualForm">
+    <div class="form-group">
+      <span class="q-label">What workflows eat the most of your time? (pick all that apply)</span>
+      <div class="chips" id="workflowChips">
+        <span class="chip" data-v="lead_capture">Lead capture</span>
+        <span class="chip" data-v="quoting">Estimating / Quoting</span>
+        <span class="chip" data-v="scheduling">Scheduling / Dispatch</span>
+        <span class="chip" data-v="invoicing">Invoicing</span>
+        <span class="chip" data-v="follow_up">Customer follow-up</span>
+        <span class="chip" data-v="compliance">Compliance / Certs</span>
+        <span class="chip" data-v="reporting">Reports / Dashboards</span>
+        <span class="chip" data-v="hiring">Hiring / HR</span>
+        <span class="chip" data-v="purchasing">Purchasing / Vendors</span>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Estimated monthly admin spend (wages + software + time)</label>
+      <select id="spend">
+        <option value="0">Under $500/mo</option>
+        <option value="1000" selected>$500 – $2,000/mo</option>
+        <option value="3000">$2,000 – $5,000/mo</option>
+        <option value="5000">$5,000 – $15,000/mo</option>
+        <option value="20000">$15,000+/mo</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>How did you hear about Murphy?</label>
+      <select id="referral_src">
+        <option value="">— select —</option>
+        <option value="referral">Referral from someone I know</option>
+        <option value="google">Google search</option>
+        <option value="linkedin">LinkedIn</option>
+        <option value="ad">Online ad</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Biggest pain point right now (optional)</label>
+      <input type="text" id="pain" placeholder="e.g. Quoting takes 3 hours per job">
+    </div>
+
+    <button type="submit" class="btn-primary" id="qBtn">Find My Plan →</button>
+  </form>
+</div>
+
+<script>
+const params = new URLSearchParams(location.search);
+const subId  = params.get('id') || '';
+document.getElementById('pb').style.width = '66%';
+
+// Chip toggle
+document.querySelectorAll('.chip').forEach(c => {
+  c.addEventListener('click', () => c.classList.toggle('sel'));
+});
+
+document.getElementById('qualForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const btn = document.getElementById('qBtn');
+  btn.textContent = 'Scoring...'; btn.disabled = true;
+  document.getElementById('pb').style.width = '100%';
+
+  const workflows = [...document.querySelectorAll('.chip.sel')].map(c => c.dataset.v);
+  const spend     = parseInt(document.getElementById('spend').value);
+  const referral  = document.getElementById('referral_src').value === 'referral';
+  const pain      = document.getElementById('pain').value.trim();
+
+  const r = await fetch('/api/saas/qualify', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({id: subId, workflows, monthly_spend_est: spend, referral, pain_point: pain})
+  });
+  const d = await r.json();
+
+  if (d.ok) {
+    window.location.href = d.next;
+  } else {
+    alert('Error: ' + (d.error || 'Unknown'));
+    btn.textContent = 'Find My Plan →'; btn.disabled = false;
+  }
+});
+</script>
+</body></html>

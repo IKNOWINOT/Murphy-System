@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rosetta Editor — Murphy System</title>
+<style>
+:root {
+  --bg: #0a0c10;
+  --surface: #111318;
+  --surface2: #1a1d24;
+  --surface3: #22262f;
+  --border: #2a2f3a;
+  --border2: #363c4a;
+  --blue: #3b82f6;
+  --blue-dim: #1e3a5f;
+  --green: #10b981;
+  --green-dim: #064e3b;
+  --amber: #f59e0b;
+  --amber-dim: #451a03;
+  --red: #ef4444;
+  --red-dim: #450a0a;
+  --purple: #8b5cf6;
+  --purple-dim: #2e1065;
+  --text: #e2e8f0;
+  --text2: #94a3b8;
+  --text3: #475569;
+  --gold: #fbbf24;
+  --font: 'Inter', system-ui, -apple-system, sans-serif;
+  --mono: 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 14px;
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+/* ── HEADER ── */
+.header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  height: 56px;
+  gap: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.header-logo { font-size: 18px; font-weight: 700; color: var(--text); letter-spacing: -0.5px; }
+.header-logo span { color: var(--blue); }
+.header-sub { color: var(--text3); font-size: 12px; font-family: var(--mono); }
+.header-nav { margin-left: auto; display: flex; gap: 4px; }
+.nav-btn {
+  background: none; border: none; color: var(--text2); cursor: pointer;
+  padding: 6px 12px; border-radius: 6px; font-size: 13px; transition: all 0.15s;
+}
+.nav-btn:hover { background: var(--surface3); color: var(--text); }
+.nav-btn.active { background: var(--blue-dim); color: var(--blue); }
+.status-dot {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--green);
+  animation: pulse 2s infinite; flex-shrink: 0;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+/* ── LAYOUT ── */
+.layout { display: grid; grid-template-columns: 280px 1fr; height: calc(100vh - 56px); overflow: hidden; }
+
+/* ── SIDEBAR ── */
+.sidebar {
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+.sidebar-section { padding: 16px 12px 8px; }
+.sidebar-title {
+  font-size: 10px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase;
+  color: var(--text3); padding: 0 4px; margin-bottom: 8px;
+}
+.agent-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border-radius: 8px; cursor: pointer;
+  transition: all 0.15s; margin-bottom: 2px; border: 1px solid transparent;
+}
+.agent-item:hover { background: var(--surface2); border-color: var(--border); }
+.agent-item.active { background: var(--blue-dim); border-color: var(--blue); }
+.agent-emoji { font-size: 20px; flex-shrink: 0; }
+.agent-meta { flex: 1; min-width: 0; }
+.agent-name { font-size: 13px; font-weight: 600; color: var(--text); }
+.agent-role { font-size: 11px; color: var(--text3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.agent-badge {
+  font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px;
+  flex-shrink: 0;
+}
+.badge-elevated { background: var(--purple-dim); color: var(--purple); }
+.badge-standard { background: var(--surface3); color: var(--text3); }
+.runs-badge {
+  font-size: 10px; font-family: var(--mono); color: var(--green); background: var(--green-dim);
+  padding: 1px 5px; border-radius: 4px; flex-shrink: 0;
+}
+.sidebar-add-btn {
+  margin: 8px 12px;
+  background: var(--surface3);
+  border: 1px dashed var(--border2);
+  color: var(--text3);
+  padding: 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  text-align: center;
+  transition: all 0.15s;
+}
+.sidebar-add-btn:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-dim); }
+
+/* ── MAIN PANEL ── */
+.main { overflow-y: auto; display: flex; flex-direction: column; }
+
+/* ── TABS ── */
+.tab-bar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  padding: 0 24px;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.tab {
+  background: none; border: none; color: var(--text3); cursor: pointer;
+  padding: 12px 16px; font-size: 13px; border-bottom: 2px solid transparent;
+  transition: all 0.15s; white-space: nowrap;
+}
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--blue); border-bottom-color: var(--blue); }
+
+/* ── CONTENT ── */
+.content { padding: 24px; flex: 1; }
+
+/* ── CARDS ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+.card-title {
+  font-size: 13px; font-weight: 600; color: var(--text2);
+  letter-spacing: 0.3px; margin-bottom: 16px;
+  display: flex; align-items: center; gap: 8px;
+}
+.card-title::before { content: ''; display: block; width: 3px; height: 14px; background: var(--blue); border-radius: 2px; }
+
+/* ── FORM ── */
+.form-row { margin-bottom: 16px; }
+label { display: block; font-size: 12px; color: var(--text3); margin-bottom: 6px; font-weight: 500; }
+input[type=text], input[type=number], select, textarea {
+  width: 100%; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; color: var(--text); padding: 10px 12px; font-size: 13px;
+  font-family: var(--font); transition: border 0.15s; outline: none;
+}
+input:focus, select:focus, textarea:focus { border-color: var(--blue); }
+textarea { resize: vertical; min-height: 80px; line-height: 1.6; }
+.help-text { font-size: 11px; color: var(--text3); margin-top: 4px; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+/* ── SOUL L1 TAGS ── */
+.l1-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.l1-tag {
+  background: var(--blue-dim); border: 1px solid var(--blue);
+  color: var(--blue); padding: 4px 10px; border-radius: 6px;
+  font-size: 12px; display: flex; align-items: center; gap: 6px;
+}
+.l1-tag .remove { cursor: pointer; color: var(--text3); font-size: 14px; line-height: 1; }
+.l1-tag .remove:hover { color: var(--red); }
+.l1-input-row { display: flex; gap: 8px; margin-top: 8px; }
+.l1-input-row input { flex: 1; }
+.l1-add-btn { background: var(--blue-dim); border: 1px solid var(--blue); color: var(--blue); padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: 13px; white-space: nowrap; }
+.l1-add-btn:hover { background: var(--blue); color: white; }
+
+/* ── SLIDER ── */
+.slider-row { display: flex; align-items: center; gap: 12px; }
+.slider-row input[type=range] { flex: 1; appearance: none; height: 4px; border-radius: 2px; background: var(--surface3); outline: none; }
+.slider-row input[type=range]::-webkit-slider-thumb { appearance: none; width: 16px; height: 16px; border-radius: 50%; background: var(--blue); cursor: pointer; }
+.slider-val { font-size: 13px; font-family: var(--mono); color: var(--blue); min-width: 32px; text-align: right; }
+
+/* ── BUTTONS ── */
+.btn {
+  padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 600;
+  cursor: pointer; border: none; transition: all 0.15s;
+}
+.btn-primary { background: var(--blue); color: white; }
+.btn-primary:hover { background: #2563eb; }
+.btn-danger { background: var(--red-dim); color: var(--red); border: 1px solid var(--red); }
+.btn-danger:hover { background: var(--red); color: white; }
+.btn-ghost { background: var(--surface3); color: var(--text2); border: 1px solid var(--border); }
+.btn-ghost:hover { border-color: var(--border2); color: var(--text); }
+.btn-row { display: flex; gap: 8px; align-items: center; }
+.btn-sm { padding: 6px 12px; font-size: 12px; }
+
+/* ── STATUS ROWS ── */
+.status-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.status-row:last-child { border-bottom: none; }
+.status-key { color: var(--text2); font-size: 12px; }
+.status-val { color: var(--text); font-size: 12px; font-family: var(--mono); }
+.status-ok { color: var(--green); }
+.status-warn { color: var(--amber); }
+.status-fail { color: var(--red); }
+
+/* ── SPEC EDITOR ── */
+.spec-section { margin-bottom: 20px; }
+.spec-section-title {
+  font-size: 13px; font-weight: 700; color: var(--gold);
+  padding: 8px 0; border-bottom: 1px solid var(--border); margin-bottom: 12px;
+}
+.spec-item { display: flex; gap: 12px; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.spec-item:last-child { border-bottom: none; }
+.spec-item-key { color: var(--text2); font-size: 12px; min-width: 180px; font-weight: 500; }
+.spec-item-val { color: var(--text); font-size: 12px; flex: 1; }
+.spec-check { color: var(--green); font-size: 14px; }
+.spec-x { color: var(--red); font-size: 14px; }
+
+/* ── TOAST ── */
+.toast {
+  position: fixed; bottom: 24px; right: 24px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 16px;
+  font-size: 13px;
+  display: flex; align-items: center; gap: 10px;
+  transform: translateY(100px); opacity: 0;
+  transition: all 0.3s;
+  z-index: 999;
+  max-width: 360px;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast-ok { border-left: 3px solid var(--green); }
+.toast-err { border-left: 3px solid var(--red); }
+
+/* ── EMPTY STATE ── */
+.empty { text-align: center; padding: 80px 40px; color: var(--text3); }
+.empty h3 { font-size: 18px; color: var(--text2); margin-bottom: 8px; }
+
+/* ── DIVIDER ── */
+.divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+
+/* ── PIPELINE VIZ ── */
+.pipeline { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; padding: 12px; background: var(--surface2); border-radius: 8px; border: 1px solid var(--border); }
+.pipe-step { background: var(--surface3); border: 1px solid var(--border2); padding: 4px 10px; border-radius: 6px; font-size: 11px; font-family: var(--mono); color: var(--text2); }
+.pipe-step.active { background: var(--blue-dim); border-color: var(--blue); color: var(--blue); }
+.pipe-arrow { color: var(--text3); font-size: 11px; }
+
+/* ── MODAL ── */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+  display: flex; align-items: center; justify-content: center; z-index: 200;
+  opacity: 0; pointer-events: none; transition: opacity 0.2s;
+}
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 28px;
+  width: 520px;
+  max-width: 95vw;
+  transform: scale(0.95);
+  transition: transform 0.2s;
+}
+.modal-overlay.open .modal { transform: scale(1); }
+.modal-title { font-size: 18px; font-weight: 700; margin-bottom: 20px; }
+.modal-footer { display: flex; gap: 8px; justify-content: flex-end; margin-top: 24px; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="status-dot"></div>
+  <div class="header-logo">Murphy <span>Rosetta</span></div>
+  <div class="header-sub">Agent Soul Editor</div>
+  <div class="header-nav">
+    <button class="nav-btn" onclick="window.location='/ui/dashboard'">Dashboard</button>
+    <button class="nav-btn" onclick="window.location='/ui/admin'">Admin</button>
+    <button class="nav-btn" onclick="window.location='/ui/chain-center'">Chain Center</button>
+    <button class="nav-btn active">Rosetta Editor</button>
+  </div>
+</div>
+
+<!-- LAYOUT -->
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-title">Core Agents</div>
+      <div id="agentList">
+        <div style="padding:20px;text-align:center;color:var(--text3);font-size:12px;">Loading agents...</div>
+      </div>
+    </div>
+    <div class="sidebar-add-btn" onclick="openCreateModal()">＋ New Agent</div>
+
+    <div class="sidebar-section" style="margin-top:auto;padding-top:16px;border-top:1px solid var(--border);">
+      <div class="sidebar-title">System</div>
+      <div class="agent-item" onclick="showTab('spec')" id="specItem">
+        <div class="agent-emoji">📐</div>
+        <div class="agent-meta">
+          <div class="agent-name">Site Spec</div>
+          <div class="agent-role">Operation criteria</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="tab-bar" id="tabBar">
+      <button class="tab active" onclick="switchTab('soul')" id="tab-soul">🧬 Soul</button>
+      <button class="tab" onclick="switchTab('runtime')" id="tab-runtime">⚡ Runtime</button>
+      <button class="tab" onclick="switchTab('spec')" id="tab-spec">📐 Site Spec</button>
+    </div>
+
+    <!-- SOUL TAB -->
+    <div id="panel-soul" class="content" style="display:none">
+      <div class="empty" id="noAgentSelected">
+        <div style="font-size:48px;margin-bottom:16px;">🌐</div>
+        <h3>Select an agent to edit their soul</h3>
+        <p style="font-size:13px;margin-top:8px;">Each agent has an L0 identity statement, L1 values, tone, bias, and HITL threshold that govern how they act.</p>
+      </div>
+      <div id="soulEditor" style="display:none">
+        <!-- Header -->
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px;">
+          <div id="agentEmojiLarge" style="font-size:48px;"></div>
+          <div>
+            <div id="agentNameLarge" style="font-size:22px;font-weight:700;"></div>
+            <div id="agentRoleLarge" style="color:var(--text2);font-size:14px;margin-top:2px;"></div>
+          </div>
+          <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
+            <span id="agentAuthorityBadge" class="agent-badge"></span>
+            <button class="btn btn-primary" onclick="saveSoul()">Save Soul</button>
+            <button class="btn btn-ghost btn-sm" onclick="deleteSoul()" id="deleteBtn">Delete</button>
+          </div>
+        </div>
+
+        <!-- Soul L0 -->
+        <div class="card">
+          <div class="card-title">Soul L0 — Identity Statement</div>
+          <div class="form-row">
+            <label>Who I am in one sentence (injected into every task prompt)</label>
+            <textarea id="soul_l0" rows="3" placeholder="I am the... agent. I..."></textarea>
+            <div class="help-text">This is the agent's core identity. Injected as the first line of every prompt. Keep it tight — max 2 sentences.</div>
+          </div>
+        </div>
+
+        <!-- Soul L1 -->
+        <div class="card">
+          <div class="card-title">Soul L1 — Values & Constraints</div>
+          <label>Operating values (the non-negotiables this agent follows)</label>
+          <div class="l1-tags" id="l1Tags"></div>
+          <div class="l1-input-row">
+            <input type="text" id="l1Input" placeholder="Add a value or constraint..." onkeydown="if(event.key==='Enter'){addL1Value()}">
+            <button class="l1-add-btn" onclick="addL1Value()">Add</button>
+          </div>
+          <div class="help-text" style="margin-top:8px;">Examples: "Revenue focus", "Never auto-approve external spend", "Fail loudly"</div>
+        </div>
+
+        <!-- Behavior -->
+        <div class="card">
+          <div class="card-title">Behavior Configuration</div>
+          <div class="form-grid">
+            <div class="form-row">
+              <label>Tone</label>
+              <select id="tone">
+                <option value="observant">Observant</option>
+                <option value="precise">Precise</option>
+                <option value="disciplined">Disciplined</option>
+                <option value="decisive">Decisive</option>
+                <option value="thorough">Thorough</option>
+                <option value="gracious">Gracious</option>
+                <option value="methodical">Methodical</option>
+                <option value="cautious">Cautious</option>
+                <option value="sovereign">Sovereign</option>
+                <option value="analytical">Analytical</option>
+                <option value="direct">Direct</option>
+                <option value="neutral">Neutral</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <label>Bias</label>
+              <select id="bias">
+                <option value="completeness">Completeness</option>
+                <option value="accuracy">Accuracy</option>
+                <option value="efficiency">Efficiency</option>
+                <option value="speed_safety">Speed + Safety</option>
+                <option value="human_impact">Human Impact</option>
+                <option value="system_health">System Health</option>
+                <option value="caution">Caution</option>
+                <option value="north_star">North Star</option>
+                <option value="revenue">Revenue</option>
+                <option value="compliance">Compliance</option>
+                <option value="balanced">Balanced</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-grid">
+            <div class="form-row">
+              <label>Authority Level</label>
+              <select id="authority">
+                <option value="standard">Standard</option>
+                <option value="elevated">Elevated</option>
+                <option value="restricted">Restricted</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <label>Department</label>
+              <input type="text" id="department" placeholder="e.g. Engineering, Compliance...">
+            </div>
+          </div>
+          <div class="form-row">
+            <label>HITL Threshold — <span style="color:var(--text3);font-size:11px;">Actions with confidence below this require human approval</span></label>
+            <div class="slider-row">
+              <input type="range" id="hitlSlider" min="0" max="1" step="0.05" oninput="document.getElementById('hitlVal').textContent=parseFloat(this.value).toFixed(2)">
+              <span class="slider-val" id="hitlVal">0.70</span>
+            </div>
+          </div>
+          <div class="form-row">
+            <label>Reports To</label>
+            <select id="reports_to">
+              <option value="">— None (top of chain) —</option>
+              <option value="rosetta">Rosetta</option>
+              <option value="exec_admin">Executive Admin</option>
+              <option value="prod_ops">Prod Ops</option>
+              <option value="collector">Collector</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RUNTIME TAB -->
+    <div id="panel-runtime" class="content" style="display:none">
+      <div class="empty" id="noAgentRuntime">
+        <div style="font-size:48px;margin-bottom:16px;">⚡</div>
+        <h3>Select an agent to view runtime state</h3>
+      </div>
+      <div id="runtimePanel" style="display:none">
+        <div class="card">
+          <div class="card-title">Runtime Statistics</div>
+          <div id="runtimeStats"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Dispatch Pipeline</div>
+          <p style="color:var(--text3);font-size:12px;margin-bottom:12px;">Order that this agent participates in on every task dispatch:</p>
+          <div class="pipeline" id="pipelineViz"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Dispatch Test</div>
+          <div class="form-row">
+            <label>Test prompt — dispatches through full pipeline targeting this agent's domain</label>
+            <textarea id="testPrompt" rows="3" placeholder="e.g. Summarize the current CRM pipeline status for a mechanical contractor..."></textarea>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" onclick="runDispatchTest()">▶ Run Dispatch</button>
+            <span id="dispatchStatus" style="font-size:12px;color:var(--text3);"></span>
+          </div>
+          <div id="dispatchResult" style="margin-top:16px;display:none;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SPEC TAB -->
+    <div id="panel-spec" class="content" style="display:none">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+        <div>
+          <div style="font-size:20px;font-weight:700;margin-bottom:4px;">Site Operation Specification</div>
+          <div style="color:var(--text3);font-size:13px;">Defines what murphy.systems must do, how it does it, and criteria for success.</div>
+        </div>
+        <button class="btn btn-primary" onclick="saveSpec()">Save Spec</button>
+      </div>
+
+      <!-- How it operates -->
+      <div class="card">
+        <div class="card-title">Dispatch Pipeline</div>
+        <div class="pipeline" id="specPipeline">
+          <span class="pipe-step active">Soul Load</span><span class="pipe-arrow">→</span>
+          <span class="pipe-step">Librarian</span><span class="pipe-arrow">→</span>
+          <span class="pipe-step">Osmosis</span><span class="pipe-arrow">→</span>
+          <span class="pipe-step">Triage</span><span class="pipe-arrow">→</span>
+          <span class="pipe-step">Rosetta</span><span class="pipe-arrow">→</span>
+          <span class="pipe-step">Causality</span><span class="pipe-arrow">→</span>
+          <span class="pipe-step">Rubix</span><span class="pipe-arrow">→</span>
+          <span class="pipe-step">MFGC</span><span class="pipe-arrow">→</span>
+          <span class="pipe-step">Chain</span><span class="pipe-arrow">→</span>
+          <span class="pipe-step">MSS</span><span class="pipe-arrow">→</span>
+          <span class="pipe-step">Swarm</span><span class="pipe-arrow">→</span>
+          <span class="pipe-step">Osmosis Learn</span><span class="pipe-arrow">→</span>
+          <span class="pipe-step">Self-Plan</span><span class="pipe-arrow">→</span>
+          <span class="pipe-step">Transcript</span>
+        </div>
+      </div>
+
+      <!-- What it must do -->
+      <div class="card">
+        <div class="card-title">What Murphy Must Be Able To Do</div>
+        <div id="specCapabilities"></div>
+      </div>
+
+      <!-- Criteria of success -->
+      <div class="card">
+        <div class="card-title">Criteria of Success (Live Status)</div>
+        <div id="specCriteria"></div>
+      </div>
+
+      <!-- Artifact surface -->
+      <div class="card">
+        <div class="card-title">Integrated Artifact Surface</div>
+        <p style="font-size:12px;color:var(--text3);margin-bottom:16px;">Every storage system and command interface the site operates through:</p>
+        <div id="specArtifacts"></div>
+      </div>
+
+      <!-- Drawing system -->
+      <div class="card">
+        <div class="card-title">Drawing System Specification</div>
+        <div id="specDrawing"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Edit Mission & North Star</div>
+        <div class="form-row">
+          <label>Mission Statement</label>
+          <textarea id="specMission" rows="2"></textarea>
+        </div>
+        <div class="form-row">
+          <label>North Star</label>
+          <textarea id="specNorthStar" rows="2"></textarea>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- CREATE AGENT MODAL -->
+<div class="modal-overlay" id="createModal">
+  <div class="modal">
+    <div class="modal-title">Create New Agent</div>
+    <div class="form-row">
+      <label>Agent ID <span style="color:var(--text3)">(lowercase, underscores)</span></label>
+      <input type="text" id="newAgentId" placeholder="e.g. mep_engineer">
+    </div>
+    <div class="form-row">
+      <label>Display Name</label>
+      <input type="text" id="newAgentName" placeholder="e.g. MEP Engineer">
+    </div>
+    <div class="form-row">
+      <label>Role</label>
+      <input type="text" id="newAgentRole" placeholder="e.g. Mechanical Engineering Specialist">
+    </div>
+    <div class="form-row">
+      <label>Soul L0 — Identity Statement</label>
+      <textarea id="newAgentSoul" rows="2" placeholder="I am the MEP Engineer agent. I analyze mechanical, electrical, and plumbing systems..."></textarea>
+    </div>
+    <div class="form-row">
+      <label>Department</label>
+      <input type="text" id="newAgentDept" placeholder="e.g. Engineering">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeCreateModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="createAgent()">Create Agent</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+const API = '';
+let agents = {};
+let currentAgent = null;
+let siteSpec = null;
+let l1Values = [];
+
+// ── AUTH ──
+function getToken() {
+  return localStorage.getItem('murphy_token') ||
+    document.cookie.split(';').map(c=>c.trim()).find(c=>c.startsWith('murphy_token='))?.split('=')[1] || '';
+}
+const H = () => ({'Content-Type':'application/json','Authorization':`Bearer ${getToken()}`});
+
+// ── INIT ──
+async function init() {
+  await Promise.all([loadAgents(), loadSpec()]);
+  // Auto-select first agent
+  const first = Object.values(agents)[0];
+  if (first) selectAgent(first.agent_id);
+  switchTab('soul');
+}
+
+// ── LOAD AGENTS ──
+async function loadAgents() {
+  try {
+    const r = await fetch(`${API}/api/rosetta/agents`, {headers: H()});
+    const d = await r.json();
+    if (!d.success) throw new Error(d.error);
+    const list = d.agents || [];
+    agents = {};
+    list.forEach(a => agents[a.agent_id] = a);
+    renderSidebar(list);
+  } catch(e) {
+    document.getElementById('agentList').innerHTML = `<div style="padding:16px;color:var(--red);font-size:12px;">Failed to load agents: ${e.message}</div>`;
+  }
+}
+
+// ── RENDER SIDEBAR ──
+function renderSidebar(list) {
+  const el = document.getElementById('agentList');
+  // Sort: core agents first
+  const coreOrder = ['rosetta','exec_admin','hitl','prod_ops','executor','scheduler','collector','translator','auditor'];
+  list.sort((a,b) => {
+    const ai = coreOrder.indexOf(a.agent_id);
+    const bi = coreOrder.indexOf(b.agent_id);
+    if(ai===-1 && bi===-1) return a.name.localeCompare(b.name);
+    if(ai===-1) return 1;
+    if(bi===-1) return -1;
+    return ai-bi;
+  });
+
+  el.innerHTML = list.map(a => `
+    <div class="agent-item" id="item-${a.agent_id}" onclick="selectAgent('${a.agent_id}')">
+      <div class="agent-emoji">${a.emoji||'🤖'}</div>
+      <div class="agent-meta">
+        <div class="agent-name">${a.name}</div>
+        <div class="agent-role">${a.role||a.department||''}</div>
+      </div>
+      ${a.authority==='elevated'?'<span class="agent-badge badge-elevated">elevated</span>':''}
+      ${a.runs_total>0?`<span class="runs-badge">${a.runs_total}×</span>`:''}
+    </div>
+  `).join('');
+}
+
+// ── SELECT AGENT ──
+function selectAgent(aid) {
+  currentAgent = agents[aid];
+  if (!currentAgent) return;
+
+  // Sidebar highlight
+  document.querySelectorAll('.agent-item').forEach(el => el.classList.remove('active'));
+  const item = document.getElementById(`item-${aid}`);
+  if (item) item.classList.add('active');
+
+  // Populate soul editor
+  document.getElementById('noAgentSelected').style.display = 'none';
+  document.getElementById('soulEditor').style.display = 'block';
+  document.getElementById('noAgentRuntime').style.display = 'none';
+  document.getElementById('runtimePanel').style.display = 'block';
+
+  const a = currentAgent;
+  document.getElementById('agentEmojiLarge').textContent = a.emoji||'🤖';
+  document.getElementById('agentNameLarge').textContent = a.name;
+  document.getElementById('agentRoleLarge').textContent = a.role || a.department || '';
+
+  const badge = document.getElementById('agentAuthorityBadge');
+  badge.textContent = a.authority||'standard';
+  badge.className = 'agent-badge badge-'+(a.authority==='elevated'?'elevated':'standard');
+
+  document.getElementById('soul_l0').value = a.soul_l0||'';
+  setSelect('tone', a.tone);
+  setSelect('bias', a.bias);
+  setSelect('authority', a.authority||'standard');
+  document.getElementById('department').value = a.department||'';
+  document.getElementById('hitlSlider').value = a.hitl_threshold||0.7;
+  document.getElementById('hitlVal').textContent = (a.hitl_threshold||0.7).toFixed(2);
+  setSelect('reports_to', a.reports_to||'');
+
+  // L1 values
+  l1Values = Array.isArray(a.soul_l1) ? [...a.soul_l1] : [];
+  renderL1Tags();
+
+  // Delete button — core agents can't be deleted
+  const coreAgents = ['collector','translator','scheduler','executor','auditor','exec_admin','prod_ops','hitl','rosetta'];
+  document.getElementById('deleteBtn').style.display = coreAgents.includes(aid) ? 'none' : '';
+
+  // Runtime stats
+  renderRuntime(a);
+}
+
+function setSelect(id, val) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  for (let o of el.options) {
+    if (o.value === val) { el.value = val; return; }
+  }
+}
+
+// ── L1 TAGS ──
+function renderL1Tags() {
+  document.getElementById('l1Tags').innerHTML = l1Values.map((v,i) => `
+    <div class="l1-tag">
+      <span>${v}</span>
+      <span class="remove" onclick="removeL1(${i})">×</span>
+    </div>
+  `).join('');
+}
+function addL1Value() {
+  const inp = document.getElementById('l1Input');
+  const v = inp.value.trim();
+  if (!v) return;
+  l1Values.push(v);
+  inp.value = '';
+  renderL1Tags();
+}
+function removeL1(i) {
+  l1Values.splice(i, 1);
+  renderL1Tags();
+}
+
+// ── SAVE SOUL ──
+async function saveSoul() {
+  if (!currentAgent) return;
+  const payload = {
+    soul_l0: document.getElementById('soul_l0').value.trim(),
+    soul_l1: l1Values,
+    tone: document.getElementById('tone').value,
+    bias: document.getElementById('bias').value,
+    authority: document.getElementById('authority').value,
+    hitl_threshold: parseFloat(document.getElementById('hitlSlider').value),
+    department: document.getElementById('department').value.trim(),
+    reports_to: document.getElementById('reports_to').value || null,
+  };
+  try {
+    const r = await fetch(`${API}/api/rosetta/agent/${currentAgent.agent_id}`, {
+      method: 'PUT', headers: H(), body: JSON.stringify(payload)
+    });
+    const d = await r.json();
+    if (!d.success) throw new Error(d.error);
+    // Update local cache
+    Object.assign(agents[currentAgent.agent_id], payload);
+    toast(`✅ ${currentAgent.name} soul saved`, 'ok');
+  } catch(e) {
+    toast(`❌ Save failed: ${e.message}`, 'err');
+  }
+}
+
+// ── DELETE SOUL ──
+async function deleteSoul() {
+  if (!currentAgent) return;
+  if (!confirm(`Delete agent "${currentAgent.name}"? Core agents cannot be deleted.`)) return;
+  try {
+    const r = await fetch(`${API}/api/rosetta/agent/${currentAgent.agent_id}`, {
+      method: 'DELETE', headers: H()
+    });
+    const d = await r.json();
+    if (!d.success) throw new Error(d.error);
+    toast(`🗑 Agent deleted`, 'ok');
+    currentAgent = null;
+    await loadAgents();
+    document.getElementById('soulEditor').style.display = 'none';
+    document.getElementById('noAgentSelected').style.display = '';
+  } catch(e) {
+    toast(`❌ ${e.message}`, 'err');
+  }
+}
+
+// ── RUNTIME ──
+function renderRuntime(a) {
+  const stats = document.getElementById('runtimeStats');
+  stats.innerHTML = `
+    <div class="status-row"><span class="status-key">Runs Total</span><span class="status-val ${a.runs_total>0?'status-ok':'status-warn'}">${a.runs_total||0}</span></div>
+    <div class="status-row"><span class="status-key">Last Trigger</span><span class="status-val">${a.last_trigger ? new Date(a.last_trigger).toLocaleString() : 'Never'}</span></div>
+    <div class="status-row"><span class="status-key">Last Outcome</span><span class="status-val ${a.last_outcome==='ok'?'status-ok':a.last_outcome?'status-warn':''}">${a.last_outcome||'—'}</span></div>
+    <div class="status-row"><span class="status-key">HITL Threshold</span><span class="status-val">${(a.hitl_threshold||0).toFixed(2)}</span></div>
+    <div class="status-row"><span class="status-key">Authority</span><span class="status-val">${a.authority||'standard'}</span></div>
+    <div class="status-row"><span class="status-key">Department</span><span class="status-val">${a.department||'—'}</span></div>
+    <div class="status-row"><span class="status-key">Reports To</span><span class="status-val">${a.reports_to||'— (top of chain)'}</span></div>
+  `;
+
+  // Pipeline viz — highlight where this agent participates
+  const agentStages = {
+    rosetta: ['Soul Load','Rosetta','Osmosis Learn'],
+    exec_admin: ['Triage','Swarm'],
+    collector: ['Triage','Swarm'],
+    translator: ['Triage','Swarm'],
+    executor: ['Swarm'],
+    scheduler: ['Swarm'],
+    auditor: ['Swarm'],
+    prod_ops: ['Swarm'],
+    hitl: ['Rubix','MFGC'],
+  };
+  const stages = ['Soul Load','Librarian','Osmosis','Triage','Rosetta','Causality','Rubix','MFGC','Chain','MSS','Swarm','Osmosis Learn','Self-Plan','Transcript'];
+  const active = agentStages[a.agent_id] || ['Swarm'];
+  const pipe = document.getElementById('pipelineViz');
+  pipe.innerHTML = stages.map((s,i) => `
+    <span class="pipe-step ${active.includes(s)?'active':''}">${s}</span>
+    ${i<stages.length-1?'<span class="pipe-arrow">→</span>':''}
+  `).join('');
+
+  // Set default test prompt
+  const prompts = {
+    exec_admin: 'Summarize the current CRM pipeline and identify the top 3 revenue opportunities.',
+    collector:  'Collect and tag all incoming signals from the last 24 hours.',
+    translator: 'Translate the latest 5 raw signals into structured intelligence objects.',
+    scheduler:  'Review the task queue and report which tasks are overdue.',
+    executor:   'List the next 3 tasks ready for execution and their approval status.',
+    auditor:    'Audit the last 10 agent actions for policy compliance.',
+    prod_ops:   'Report the current system health status and any pending patches.',
+    hitl:       'List all decisions currently pending human approval.',
+    rosetta:    'Render the soul context summary for all 9 swarm agents.',
+  };
+  document.getElementById('testPrompt').value = prompts[a.agent_id] || `Test ${a.name}: describe your current status and next action.`;
+}
+
+// ── DISPATCH TEST ──
+async function runDispatchTest() {
+  const prompt = document.getElementById('testPrompt').value.trim();
+  if (!prompt) return;
+  const status = document.getElementById('dispatchStatus');
+  const result = document.getElementById('dispatchResult');
+  status.textContent = 'Dispatching...';
+  result.style.display = 'none';
+  try {
+    const r = await fetch(`${API}/api/rosetta/dispatch`, {
+      method: 'POST', headers: H(),
+      body: JSON.stringify({prompt})
+    });
+    const d = await r.json();
+    status.textContent = `dag_id: ${d.dag_id||'?'} | rubix: ${d.rubix_verdict||'?'} | mss: ${d.mss_resolution||'?'}`;
+    const notifs = (d.notifications||[]).map(n=>`<div style="padding:4px 0;border-bottom:1px solid var(--border);font-size:11px;color:var(--text2);font-family:var(--mono)">${new Date(n.ts*1000).toISOString().substr(11,8)} — ${n.msg}</div>`).join('');
+    result.style.display = 'block';
+    result.innerHTML = `
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;max-height:300px;overflow-y:auto;">
+        <div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:8px;">PIPELINE TRACE</div>
+        ${notifs || '<div style="color:var(--text3);font-size:11px;">No notifications</div>'}
+      </div>
+    `;
+    if (d.rubix_verdict === 'fail') {
+      result.innerHTML += `<div style="margin-top:8px;padding:8px 12px;background:var(--amber-dim);border:1px solid var(--amber);border-radius:8px;font-size:12px;color:var(--amber);">⚠️ Rubix FAIL — task routed to HITL. Swarm execute is currently blocked by a known AttributeError in CollaborativeExecutionReport. PATCH-341 required.</div>`;
+    }
+  } catch(e) {
+    status.textContent = `Error: ${e.message}`;
+  }
+}
+
+// ── SPEC ──
+async function loadSpec() {
+  try {
+    const r = await fetch(`${API}/api/rosetta/site-spec`, {headers: H()});
+    const d = await r.json();
+    if (!d.success) throw new Error(d.error);
+    siteSpec = d.spec;
+    renderSpec();
+  } catch(e) {
+    console.warn('Spec load failed:', e);
+  }
+}
+
+function renderSpec() {
+  if (!siteSpec) return;
+  document.getElementById('specMission').value = siteSpec.mission||'';
+  document.getElementById('specNorthStar').value = siteSpec.north_star||'';
+
+  // Capabilities
+  const caps = siteSpec.what_it_must_be_able_to_do||[];
+  document.getElementById('specCapabilities').innerHTML = caps.map((c,i) => `
+    <div class="spec-item">
+      <span class="spec-item-key">#${i+1}</span>
+      <span class="spec-item-val">${c}</span>
+    </div>
+  `).join('');
+
+  // Criteria
+  const crit = siteSpec.criteria_of_success||{};
+  document.getElementById('specCriteria').innerHTML = Object.entries(crit).map(([k,v]) => {
+    // Check live status where possible
+    const statusMap = {
+      swarm_executes: false,       // Known broken
+      dispatch_completes: false,   // Rubix always fails
+      agents_all_run: false,       // Only exec_admin runs
+      soul_persists: true,         // RosettaManager exists
+      hitl_catches_external: true, // HITL gate active
+      org_chart_seeded: false,     // nodes=0
+      drawing_system_ingests: false,
+      drawing_system_learns: false,
+    };
+    const status = statusMap[k];
+    const icon = status === true ? '<span class="spec-check">✅</span>' :
+                 status === false ? '<span class="spec-x">❌</span>' :
+                 '<span style="color:var(--text3)">⬜</span>';
+    return `
+      <div class="spec-item">
+        ${icon}
+        <span class="spec-item-key">${k.replace(/_/g,' ')}</span>
+        <span class="spec-item-val">${v}</span>
+      </div>
+    `;
+  }).join('');
+
+  // Artifacts
+  const artifacts = (siteSpec.how_it_operates||{}).artifact_surface||{};
+  document.getElementById('specArtifacts').innerHTML = Object.entries(artifacts).map(([k,v]) => `
+    <div class="spec-item">
+      <span class="spec-item-key" style="font-family:var(--mono)">${k}</span>
+      <span class="spec-item-val">${v}</span>
+    </div>
+  `).join('');
+
+  // Drawing system
+  const ds = siteSpec.drawing_system_spec||{};
+  document.getElementById('specDrawing').innerHTML = `
+    <div class="spec-item"><span class="spec-item-key">Disciplines</span><span class="spec-item-val">${(ds.target_disciplines||[]).join(', ')}</span></div>
+    <div class="spec-item"><span class="spec-item-key">Stages</span><span class="spec-item-val">${(ds.drawing_stages||[]).join(' → ')}</span></div>
+    <div class="spec-item"><span class="spec-item-key">RFI Integration</span><span class="spec-item-val">${ds.rfi_integration||''}</span></div>
+    <div class="spec-item"><span class="spec-item-key">Training Estimate</span><span class="spec-item-val">${ds.training_estimate||''}</span></div>
+    <div class="spec-item"><span class="spec-item-key">Google Earth Workflow</span><span class="spec-item-val">${ds.google_earth_workflow||''}</span></div>
+    <div class="spec-item"><span class="spec-item-key">Quality Criteria</span><span class="spec-item-val">${(ds.quality_criteria||[]).map(c=>`• ${c}`).join('<br>')}</span></div>
+  `;
+}
+
+async function saveSpec() {
+  if (!siteSpec) return;
+  siteSpec.mission = document.getElementById('specMission').value.trim();
+  siteSpec.north_star = document.getElementById('specNorthStar').value.trim();
+  try {
+    const r = await fetch(`${API}/api/rosetta/site-spec`, {
+      method: 'PUT', headers: H(), body: JSON.stringify(siteSpec)
+    });
+    const d = await r.json();
+    if (!d.success) throw new Error(d.error);
+    toast('✅ Site spec saved', 'ok');
+  } catch(e) {
+    toast(`❌ ${e.message}`, 'err');
+  }
+}
+
+// ── CREATE MODAL ──
+function openCreateModal() { document.getElementById('createModal').classList.add('open'); }
+function closeCreateModal() { document.getElementById('createModal').classList.remove('open'); }
+async function createAgent() {
+  const payload = {
+    agent_id: document.getElementById('newAgentId').value.trim(),
+    name: document.getElementById('newAgentName').value.trim(),
+    role: document.getElementById('newAgentRole').value.trim(),
+    soul_l0: document.getElementById('newAgentSoul').value.trim(),
+    department: document.getElementById('newAgentDept').value.trim()||'Custom',
+    soul_l1: [], tone: 'neutral', bias: 'balanced', authority: 'standard',
+    hitl_threshold: 0.7, emoji: '🤖',
+  };
+  if (!payload.agent_id || !payload.name) { toast('Agent ID and Name are required', 'err'); return; }
+  try {
+    const r = await fetch(`${API}/api/rosetta/agent`, {
+      method: 'POST', headers: H(), body: JSON.stringify(payload)
+    });
+    const d = await r.json();
+    if (!d.success) throw new Error(d.error);
+    closeCreateModal();
+    toast(`✅ Agent "${payload.name}" created`, 'ok');
+    await loadAgents();
+    selectAgent(payload.agent_id);
+  } catch(e) {
+    toast(`❌ ${e.message}`, 'err');
+  }
+}
+
+// ── TABS ──
+let currentTab = 'soul';
+function switchTab(tab) {
+  currentTab = tab;
+  ['soul','runtime','spec'].forEach(t => {
+    document.getElementById(`panel-${t}`).style.display = t===tab ? '' : 'none';
+    document.getElementById(`tab-${t}`)?.classList.toggle('active', t===tab);
+  });
+  if (tab==='spec') {
+    document.querySelectorAll('.agent-item').forEach(el=>el.classList.remove('active'));
+    document.getElementById('specItem').classList.add('active');
+  }
+}
+function showTab(tab) {
+  switchTab(tab);
+  if (tab==='spec') {
+    document.querySelectorAll('.agent-item').forEach(el=>el.classList.remove('active'));
+  }
+}
+
+// ── TOAST ──
+let toastTimer;
+function toast(msg, type='ok') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `toast toast-${type} show`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3500);
+}
+
+init();
+</script>
+</body>
+</html>

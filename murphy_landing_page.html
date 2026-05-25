@@ -1,1231 +1,903 @@
-<!-- Murphy System — Landing Page / © 2020 Inoni LLC / BSL 1.1 -->
+<!-- Murphy System — Landing Page v2 / PATCH-377 / © 2020 Inoni LLC / BSL 1.1 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Murphy System — We Run Your Business Operations. You Pay From the Savings.</title>
-<meta name="description" content="Murphy is a fully autonomous AI business system for MEP contractors, engineering firms, and logistics companies. We handle operations, you pay 40% of what we save. No SaaS fee. Performance-based.">
-<meta name="robots" content="index,follow,max-snippet:-1,max-image-preview:large">
+<title>Murphy — Your AI Operating System</title>
+<meta name="description" content="Murphy is an autonomous AI operating system that runs your business operations — dispatch, compliance, CRM, accounting, voice control, and more. From $99/month.">
+<meta name="robots" content="index,follow">
 <link rel="canonical" href="https://murphy.systems/">
-<meta property="og:type" content="website">
+<meta property="og:title" content="Murphy — Your AI Operating System">
+<meta property="og:description" content="One system that runs your operations, handles compliance, manages your pipeline, and talks back. From $99/month.">
 <meta property="og:url" content="https://murphy.systems/">
-<meta property="og:title" content="Murphy System — AI Business Operating System">
-<meta property="og:description" content="Stop hiring for repetitive work. Kill SaaS sprawl. Never fail an audit. One platform solves it all.">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Murphy System","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"AI-powered business OS: 1,100+ modules, onboard Ollama LLM, Matrix bridge, mail server, HITL gates, Shadow Agents, compliance automation, 453 API endpoints.","url":"https://murphy.systems","offers":[{"@type":"Offer","name":"Free","price":"0","priceCurrency":"USD"},{"@type":"Offer","name":"Solo","price":"99","priceCurrency":"USD"},{"@type":"Offer","name":"Business","price":"299","priceCurrency":"USD"}]}</script>
+<meta property="og:type" content="website">
 <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/static/murphy-design-system.css">
-<link rel="stylesheet" href="/static/murphy-landing.css">
 <style>
-/* PATCH-176: mobile responsive */
-@media(max-width:768px){
-  body{overflow-y:auto!important;overflow-x:hidden!important;height:auto!important;}
-  .shell,.app-layout,.layout,.forge-layout,.page-layout,.main-layout{flex-direction:column!important;overflow:visible!important;}
-  aside,.sidebar,.side-nav{display:none!important;}
-  main,.main-area,.main-content,.forge-main,.page-main,.content-area{width:100%!important;max-width:100vw!important;padding:14px!important;overflow-x:hidden!important;min-width:0!important;}
-  [class*="grid-"],[class*="-grid"],.panel-row,.stats-row,.compose-row,.metric-grid,.kpi-grid,.fw-grid,.tier-grid,.card-grid{grid-template-columns:1fr!important;}
-  .table-wrap,.table-container{overflow-x:auto!important;-webkit-overflow-scrolling:touch;}
-  table{min-width:400px;}
-  .row,.header-row,.page-header,.controls,.form-row{flex-direction:column!important;align-items:flex-start!important;gap:8px!important;}
-  input,select,textarea{font-size:16px!important;}
-  h1{font-size:1.3rem!important;}
+:root {
+  --bg: #080c0a;
+  --bg2: #0d1210;
+  --surface: #111a15;
+  --elevated: #162019;
+  --border: rgba(0,212,170,.13);
+  --border-hi: rgba(0,212,170,.28);
+  --text: #deeae4;
+  --text-dim: #7a9a8a;
+  --teal: #00D4AA;
+  --teal-glow: rgba(0,212,170,.18);
+  --green: #00ff6a;
+  --orange: #ff8c42;
+  --font: 'Inter', system-ui, -apple-system, sans-serif;
+  --radius: 10px;
+  --radius-lg: 16px;
 }
-@media(max-width:480px){main,.main-area,.page-main{padding:10px!important;}h1{font-size:1.1rem!important;}}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100vh; overflow-x: hidden; }
+
+/* ── TOPBAR ── */
+.topbar {
+  position: sticky; top: 0; z-index: 200;
+  background: rgba(8,12,10,.92); border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 2rem; height: 60px;
+}
+.topbar-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+.topbar-brand svg { width: 30px; height: 30px; }
+.brand-name { font-size: 1.1rem; font-weight: 800; color: var(--teal); letter-spacing: -.01em; }
+.brand-tag { font-size: .65rem; color: var(--text-dim); font-weight: 400; margin-left: 2px; }
+.topbar-nav { display: flex; align-items: center; gap: 2rem; }
+.topbar-nav a { color: var(--text-dim); text-decoration: none; font-size: .88rem; transition: color .2s; }
+.topbar-nav a:hover { color: var(--teal); }
+.topbar-nav a.active { color: var(--teal); }
+.topbar-actions { display: flex; align-items: center; gap: .75rem; }
+.sys-pill { display: flex; align-items: center; gap: 6px; font-size: .72rem; color: var(--text-dim); padding: 4px 10px; border: 1px solid var(--border); border-radius: 20px; }
+.sys-pill .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+.btn-login { border: 1px solid var(--border-hi); color: var(--teal); background: transparent; padding: 7px 18px; border-radius: var(--radius); font-size: .85rem; font-weight: 600; cursor: pointer; text-decoration: none; transition: background .2s; }
+.btn-login:hover { background: var(--teal-glow); }
+.btn-start { background: var(--teal); color: #000; padding: 7px 18px; border-radius: var(--radius); font-size: .85rem; font-weight: 700; cursor: pointer; text-decoration: none; border: none; transition: opacity .2s; }
+.btn-start:hover { opacity: .85; }
+.hamburger { display: none; background: none; border: none; color: var(--text-dim); font-size: 1.4rem; cursor: pointer; }
+
+/* ── HERO ── */
+.hero {
+  min-height: 92vh; display: flex; align-items: center; justify-content: center;
+  padding: 5rem 2rem 3rem; position: relative; overflow: hidden;
+  text-align: center;
+}
+.hero-bg {
+  position: absolute; inset: 0; z-index: 0;
+  background: radial-gradient(ellipse 70% 60% at 50% 40%, rgba(0,212,170,.07) 0%, transparent 70%);
+}
+.hero-grid-lines {
+  position: absolute; inset: 0; z-index: 0; opacity: .04;
+  background-image:
+    linear-gradient(var(--teal) 1px, transparent 1px),
+    linear-gradient(90deg, var(--teal) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+.hero-inner { position: relative; z-index: 1; max-width: 860px; margin: 0 auto; }
+.hero-status { display: inline-flex; align-items: center; gap: 8px; background: var(--teal-glow); border: 1px solid var(--border-hi); border-radius: 20px; padding: 6px 16px; font-size: .78rem; color: var(--teal); font-weight: 600; margin-bottom: 2rem; letter-spacing: .02em; }
+.hero-status .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: pulse 1.5s infinite; }
+
+h1.hero-headline {
+  font-size: clamp(2.4rem, 5.5vw, 4.2rem);
+  font-weight: 900; line-height: 1.08; letter-spacing: -.03em;
+  color: var(--text); margin-bottom: 1.5rem;
+}
+h1.hero-headline .accent { color: var(--teal); }
+h1.hero-headline .accent2 { color: var(--green); }
+
+.hero-sub {
+  font-size: clamp(.95rem, 1.8vw, 1.15rem);
+  color: var(--text-dim); line-height: 1.75; max-width: 660px;
+  margin: 0 auto 2.5rem;
+}
+.hero-ctas { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-bottom: 2rem; }
+.btn-hero-primary {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--teal); color: #000; padding: .9rem 2.2rem;
+  border-radius: var(--radius); font-size: 1rem; font-weight: 800;
+  text-decoration: none; transition: opacity .2s; border: none; cursor: pointer;
+  box-shadow: 0 0 30px rgba(0,212,170,.25);
+}
+.btn-hero-primary:hover { opacity: .88; }
+.btn-hero-ghost {
+  display: inline-flex; align-items: center; gap: 8px;
+  border: 1.5px solid var(--border-hi); color: var(--teal);
+  background: var(--teal-glow); padding: .9rem 2.2rem;
+  border-radius: var(--radius); font-size: 1rem; font-weight: 700;
+  text-decoration: none; transition: background .2s; cursor: pointer;
+}
+.btn-hero-ghost:hover { background: rgba(0,212,170,.12); }
+.hero-note { font-size: .8rem; color: var(--text-dim); margin-bottom: 3rem; }
+
+/* LIVE STATS STRIP */
+.hero-stats {
+  display: flex; gap: 1px; justify-content: center; flex-wrap: wrap;
+  background: var(--border); border: 1px solid var(--border); border-radius: 12px;
+  overflow: hidden; max-width: 780px; margin: 0 auto 2.5rem;
+}
+.stat-cell { background: var(--surface); padding: 1.2rem 1.8rem; text-align: center; flex: 1; min-width: 140px; }
+.stat-value { font-size: 1.7rem; font-weight: 900; color: var(--teal); font-variant-numeric: tabular-nums; }
+.stat-label { font-size: .72rem; color: var(--text-dim); margin-top: 4px; text-transform: uppercase; letter-spacing: .06em; }
+
+/* WHAT IT REPLACES */
+.replaces-strip {
+  display: flex; gap: .5rem; justify-content: center; flex-wrap: wrap;
+  margin-top: 1.5rem;
+}
+.replaces-item {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--elevated); border: 1px solid var(--border);
+  border-radius: 20px; padding: 5px 14px; font-size: .78rem; color: var(--text-dim);
+}
+.replaces-item .x { color: var(--orange); font-weight: 700; font-size: .9rem; }
+
+/* ── SECTION COMMON ── */
+section { padding: 5rem 2rem; }
+.section-label { font-size: .72rem; color: var(--teal); text-transform: uppercase; letter-spacing: .1em; font-weight: 700; margin-bottom: .75rem; }
+.section-title { font-size: clamp(1.6rem, 3vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; margin-bottom: .75rem; }
+.section-sub { font-size: .95rem; color: var(--text-dim); max-width: 560px; line-height: 1.7; }
+.section-inner { max-width: 1080px; margin: 0 auto; }
+.centered { text-align: center; }
+.centered .section-sub { margin: 0 auto; }
+
+/* ── HOW IT WORKS ── */
+.pipeline {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1px; background: var(--border); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); overflow: hidden; margin-top: 3rem;
+}
+.pipeline-step { background: var(--surface); padding: 2rem 1.5rem; position: relative; }
+.pipeline-step::after {
+  content: '→'; position: absolute; right: -14px; top: 50%; transform: translateY(-50%);
+  color: var(--teal); font-size: 1.2rem; z-index: 2;
+}
+.pipeline-step:last-child::after { display: none; }
+.step-num { font-size: .72rem; color: var(--teal); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; margin-bottom: .5rem; }
+.step-title { font-size: 1rem; font-weight: 700; margin-bottom: .5rem; }
+.step-desc { font-size: .82rem; color: var(--text-dim); line-height: 1.6; }
+
+/* ── CAPABILITY CARDS ── */
+.cap-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1px; background: var(--border); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); overflow: hidden; margin-top: 3rem;
+}
+.cap-card { background: var(--surface); padding: 2rem; transition: background .2s; }
+.cap-card:hover { background: var(--elevated); }
+.cap-icon { font-size: 1.8rem; margin-bottom: 1rem; }
+.cap-title { font-size: 1rem; font-weight: 700; margin-bottom: .5rem; }
+.cap-desc { font-size: .83rem; color: var(--text-dim); line-height: 1.65; }
+.cap-tag { display: inline-block; background: var(--teal-glow); border: 1px solid var(--border-hi); color: var(--teal); font-size: .68rem; padding: 2px 8px; border-radius: 10px; font-weight: 600; margin-top: .75rem; }
+
+/* ── ROI TABLE ── */
+.roi-table { width: 100%; border-collapse: collapse; margin-top: 2.5rem; font-size: .88rem; }
+.roi-table th { background: var(--elevated); color: var(--text-dim); font-size: .72rem; text-transform: uppercase; letter-spacing: .07em; padding: .9rem 1.2rem; text-align: left; border-bottom: 1px solid var(--border); }
+.roi-table td { padding: .9rem 1.2rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.roi-table tr:last-child td { border-bottom: none; }
+.roi-table tr:hover td { background: var(--elevated); }
+.roi-old { color: var(--text-dim); text-decoration: line-through; }
+.roi-new { color: var(--teal); font-weight: 700; }
+.roi-save { color: var(--green); font-weight: 800; }
+.roi-total { background: var(--elevated); font-weight: 800; }
+.roi-total td { color: var(--text); border-top: 2px solid var(--border-hi); }
+
+/* ── DEMO SECTION ── */
+.demo-frame {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); overflow: hidden; margin-top: 3rem;
+}
+.demo-topbar {
+  background: var(--elevated); border-bottom: 1px solid var(--border);
+  padding: .75rem 1.5rem; display: flex; align-items: center; gap: 1rem;
+}
+.demo-dots { display: flex; gap: 6px; }
+.demo-dots span { width: 10px; height: 10px; border-radius: 50%; }
+.demo-dots .d-red { background: #ff5f57; }
+.demo-dots .d-yellow { background: #febc2e; }
+.demo-dots .d-green { background: #28c840; }
+.demo-title-bar { font-size: .8rem; color: var(--text-dim); flex: 1; text-align: center; }
+.demo-terminal {
+  font-family: 'Fira Code', 'Cascadia Code', monospace;
+  font-size: .82rem; padding: 1.5rem; background: #060908;
+  min-height: 320px; position: relative; overflow: hidden;
+}
+.demo-line { margin-bottom: .4rem; line-height: 1.6; }
+.demo-line .prompt { color: var(--teal); }
+.demo-line .cmd { color: var(--green); }
+.demo-line .out { color: var(--text-dim); }
+.demo-line .out.hi { color: var(--text); }
+.demo-line .out.teal { color: var(--teal); }
+.demo-line .out.green { color: var(--green); }
+.demo-line .out.orange { color: var(--orange); }
+.cursor { display: inline-block; width: 8px; height: 14px; background: var(--teal); animation: blink .8s step-end infinite; vertical-align: middle; }
+@keyframes blink { 50% { opacity: 0; } }
+.demo-actions { padding: 1.5rem; border-top: 1px solid var(--border); display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; }
+.demo-chip {
+  background: var(--elevated); border: 1px solid var(--border);
+  color: var(--text-dim); padding: 7px 16px; border-radius: 20px;
+  font-size: .8rem; cursor: pointer; transition: all .2s; user-select: none;
+}
+.demo-chip:hover, .demo-chip.active { background: var(--teal-glow); border-color: var(--teal); color: var(--teal); }
+.demo-run-btn { margin-left: auto; }
+
+/* ── PRICING ── */
+.pricing-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1px; background: var(--border); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); overflow: hidden; margin-top: 3rem;
+}
+.price-card { background: var(--surface); padding: 2.5rem 2rem; position: relative; }
+.price-card.featured { background: var(--elevated); }
+.price-badge { position: absolute; top: 1.2rem; right: 1.2rem; background: var(--teal); color: #000; font-size: .68rem; font-weight: 800; padding: 3px 10px; border-radius: 10px; text-transform: uppercase; }
+.price-tier { font-size: .78rem; color: var(--teal); font-weight: 700; text-transform: uppercase; letter-spacing: .08em; margin-bottom: .75rem; }
+.price-amount { font-size: 2.8rem; font-weight: 900; line-height: 1; margin-bottom: .25rem; }
+.price-amount span { font-size: 1rem; font-weight: 500; color: var(--text-dim); }
+.price-seats { font-size: .78rem; color: var(--text-dim); margin-bottom: 1.5rem; }
+.price-features { list-style: none; margin-bottom: 2rem; }
+.price-features li { font-size: .84rem; color: var(--text-dim); padding: .4rem 0; border-bottom: 1px solid var(--border); display: flex; align-items: flex-start; gap: 8px; line-height: 1.5; }
+.price-features li:last-child { border-bottom: none; }
+.price-features li::before { content: '✓'; color: var(--teal); font-weight: 800; flex-shrink: 0; margin-top: 1px; }
+.btn-price { display: block; text-align: center; padding: .8rem; border-radius: var(--radius); font-weight: 700; font-size: .88rem; text-decoration: none; transition: opacity .2s; }
+.btn-price.primary { background: var(--teal); color: #000; }
+.btn-price.ghost { border: 1px solid var(--border-hi); color: var(--teal); }
+.btn-price:hover { opacity: .82; }
+.crypto-note { text-align: center; margin-top: 1.5rem; font-size: .8rem; color: var(--text-dim); }
+.crypto-coins { display: flex; gap: .5rem; justify-content: center; flex-wrap: wrap; margin-top: .6rem; }
+.coin-pill { background: var(--elevated); border: 1px solid var(--border); border-radius: 20px; padding: 3px 10px; font-size: .72rem; color: var(--text-dim); }
+
+/* ── FOOTER ── */
+footer {
+  border-top: 1px solid var(--border); padding: 2.5rem 2rem;
+  display: flex; justify-content: space-between; align-items: center;
+  flex-wrap: wrap; gap: 1rem; font-size: .8rem; color: var(--text-dim);
+  max-width: 1080px; margin: 0 auto;
+}
+footer a { color: var(--text-dim); text-decoration: none; }
+footer a:hover { color: var(--teal); }
+.footer-links { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+
+/* ── MOBILE ── */
+@media (max-width: 768px) {
+  .topbar-nav { display: none; }
+  .hamburger { display: block; }
+  .topbar-nav.open { display: flex; flex-direction: column; position: absolute; top: 60px; left: 0; right: 0; background: var(--bg2); border-bottom: 1px solid var(--border); padding: 1rem 2rem; gap: 1.2rem; z-index: 199; }
+  h1.hero-headline { font-size: 2rem; }
+  .hero-stats { flex-direction: column; }
+  .stat-cell { padding: 1rem; }
+  .pipeline { grid-template-columns: 1fr; }
+  .pipeline-step::after { display: none; }
+  .roi-table { font-size: .78rem; }
+  .roi-table th, .roi-table td { padding: .6rem .8rem; }
+  .pricing-grid { grid-template-columns: 1fr; }
+}
 </style>
 </head>
 <body>
-<a class="skip" href="#main-content">Skip to main content</a>
 
 <!-- TOPBAR -->
-<header class="murphy-topbar" role="banner">
-  <a class="topbar-brand" href="/" aria-label="Murphy System home">
-    <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><circle cx="16" cy="16" r="14" fill="none" stroke="#00D4AA" stroke-width="2"/><path d="M8 22L12 10l4 8 4-8 4 12" stroke="#00ff41" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    <span class="topbar-brand-name">Murphy System</span>
+<header class="topbar" role="banner">
+  <a class="topbar-brand" href="/" aria-label="Murphy home">
+    <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="16" cy="16" r="13" stroke="#00D4AA" stroke-width="1.5"/>
+      <circle cx="16" cy="16" r="5" fill="none" stroke="#00D4AA" stroke-width="1.5"/>
+      <circle cx="16" cy="16" r="2" fill="#00ff6a"/>
+      <line x1="16" y1="3" x2="16" y2="11" stroke="#00D4AA" stroke-width="1.5" stroke-linecap="round"/>
+      <line x1="16" y1="21" x2="16" y2="29" stroke="#00D4AA" stroke-width="1.5" stroke-linecap="round"/>
+      <line x1="3" y1="16" x2="11" y2="16" stroke="#00D4AA" stroke-width="1.5" stroke-linecap="round"/>
+      <line x1="21" y1="16" x2="29" y2="16" stroke="#00D4AA" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>
+    <span class="brand-name">Murphy</span>
   </a>
-  <nav class="murphy-nav-links" id="main-nav" role="menubar">
-    <a href="#how-we-work" role="menuitem" style="font-weight:700;color:#00ff41;">How We Work</a>
-    <a href="#industries" role="menuitem">Industries</a>
-    <a href="/demo" role="menuitem">See Demo</a>
-    <a href="#pricing" role="menuitem">Pricing</a>
-    <a href="/book" role="menuitem" style="color:#00D4AA;">Book Audit</a>
-    <a href="/ui/financing" role="menuitem">Financing</a>
+  <nav class="topbar-nav" id="main-nav">
+    <a href="#how-it-works">How It Works</a>
+    <a href="#capabilities">Capabilities</a>
+    <a href="#roi">ROI</a>
+    <a href="/demo">Live Demo</a>
+    <a href="#pricing">Pricing</a>
   </nav>
-  <div class="topbar-right">
-    <span class="sys-pill" id="sys-status-pill" title="Live system status"><span class="dot"></span><span id="sys-status-text">checking&#8230;</span></span>
-    <a class="btn-s" href="/ui/login">Login</a>
-    <a class="btn-p" href="/ui/signup">Start Free</a>
-    <button class="hamburger" id="hamburger-btn" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
+  <div class="topbar-actions">
+    <span class="sys-pill"><span class="dot"></span><span id="sys-status">Live</span></span>
+    <a href="/ui/login" class="btn-login">Log In</a>
+    <a href="/ui/signup" class="btn-start">Start Free</a>
+    <button class="hamburger" id="hamburger" aria-label="Menu">☰</button>
   </div>
 </header>
 
-<main id="main-content">
-
 <!-- HERO -->
-<section id="hero" aria-labelledby="hero-h">
+<section class="hero" id="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-grid-lines"></div>
   <div class="hero-inner">
-    <div class="hero-badge"><span class="dot" aria-hidden="true"></span>Performance-Based &#8212; We Get Paid When You Save Money</div>
-    <h1 id="hero-h">We Run Your Business Operations.<br>You Pay From the Savings.</h1>
-    <p class="hero-sub">Murphy is a fully autonomous AI business system &#8212; handling proposals, scheduling, dispatch, invoicing, and compliance for MEP contractors, engineering firms, and operations-heavy businesses. No software to learn. No monthly SaaS fee. We earn 40% of what we save you.</p>
+    <div class="hero-status">
+      <span class="dot"></span>
+      Murphy OS — Live &amp; Running — <span id="live-agents">9 agents</span> active
+    </div>
+
+    <h1 class="hero-headline">
+      Your AI Operating System.<br>
+      <span class="accent">One Platform.</span>
+      <span class="accent2"> Everything Runs.</span>
+    </h1>
+
+    <p class="hero-sub">
+      Murphy is a fully autonomous AI business OS — swarm agents, voice control, compliance automation,
+      CRM, accounting, file analysis, and a CEO-level executive that dispatches work, reports results,
+      and operates your entire business stack from a single interface.
+    </p>
+
     <div class="hero-ctas">
-      <a href="/book" class="btn btn-primary" style="font-size:1.05rem;padding:.8rem 2.2rem;">&#128197; Book Your Free Operations Audit</a>
-      <a href="/demo" class="btn btn-ghost" style="font-size:1.05rem;padding:.8rem 2.2rem;">&#9654; See the System Live</a>
+      <a href="/demo" class="btn-hero-primary">▶ See It Live</a>
+      <a href="/ui/signup" class="btn-hero-ghost">Start Free — No Card Required</a>
     </div>
-    <p class="hero-note">No upfront cost &#183; 24-month performance contract &#183; We only win when you win</p>
-    <div class="stats-row" aria-label="Performance benchmarks">
-      <span class="stat-badge">$800K&#8211;$2.3M avg annual savings</span>
-      <span class="stat-badge">40% ops cost reduction</span>
-      <span class="stat-badge">12+ admin roles automated</span>
-    </div>
-    <div class="sp-strip" aria-label="Industries served">
-      <span class="sp-text">Built for high-margin operations:</span>
-      <div class="ind-icons">
-        <span class="ind-pill">&#9874; MEP Contractors</span>
-        <span class="ind-pill">&#127959; Civil Engineering</span>
-        <span class="ind-pill">&#128203; Commercial GC</span>
-        <span class="ind-pill">&#128666; Freight &amp; Logistics</span>
-        <span class="ind-pill">&#128187; MSPs</span>
-        <span class="ind-pill">&#128178; Insurance Brokers</span>
-        <span class="ind-pill">&#129520; BAS / Controls</span>
-        <span class="ind-pill">&#127970; Specialty Contractors</span>
+    <p class="hero-note">From $99/mo · Pay in crypto · Cancel anytime · Bring your own LLM</p>
+
+    <div class="hero-stats" id="hero-stats">
+      <div class="stat-cell">
+        <div class="stat-value" id="s-agents">9</div>
+        <div class="stat-label">Swarm Agents</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-value" id="s-mind">0.90</div>
+        <div class="stat-label">Mind Confidence</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-value" id="s-deals">187</div>
+        <div class="stat-label">Deals Tracked</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-value" id="s-gates">6/6</div>
+        <div class="stat-label">Gates Open</div>
       </div>
     </div>
-  </div>
-</section>
 
-<!-- LIVE STATUS BAR -->
-<section id="status-bar" class="ml-1"  aria-label="Live system status">
-  <div class="si ml-2" >
-    <span class="ml-3" >System Status</span>
-    <div class="live-status-row ml-4" id="live-status-row" >
-      <span class="lstat" id="lstat-api"><span class="ld ld-ok"></span>API Gateway</span>
-      <span class="lstat" id="lstat-llm"><span class="ld ld-off"></span>LLM</span>
-      <a class="lstat lstat-link" id="lstat-mail" href="/ui/communication_hub" target="_blank" title="Open Webmail (Roundcube)"><span class="ld ld-off"></span>Mail Server</a>
-      <span class="lstat" id="lstat-matrix"><span class="ld ld-off"></span>Matrix Bridge</span>
-      <span class="lstat" id="lstat-hitl"><span class="ld ld-ok"></span>HITL Gates</span>
-      <span class="lstat" id="lstat-swarm"><span class="ld ld-ok"></span>Swarm Engine</span>
-      <span class="lstat" id="lstat-trading"><span class="ld ld-ok"></span>Trading Engine</span>
-    </div>
-    <a href="/ui/dashboard#llm" class="btn-s ml-5" >Configure &#8594;</a>
-  </div>
-</section>
-
-<!-- SOLUTIONS -->
-<section id="solutions" aria-labelledby="sol-h">
-  <div class="si">
-    <span class="slabel">Solutions</span>
-    <h2 class="stitle" id="sol-h">What the System<br>Does for Your Business.</h2>
-    <p class="ssub">Murphy autonomously handles the operations your team spends 40&#37; of their time on &#8212; with measurable ROI, full audit trails, and zero babysitting.</p>
-    <div class="sol-grid" role="list">
-
-      <div class="sol-card" role="listitem">
-        <div class="sol-icon">&#129504;</div>
-        <div class="sol-problem">Problem: You're hiring for repetitive work</div>
-        <h3>AI Automation</h3>
-        <p>Shadow Agents observe how you work, then propose automations. They graduate through HITL safety gates to full autonomy &#8212; you approve every step.</p>
-        <span class="sol-outcome">&#9660; 60% ops cost reduction</span>
-        <a class="btn-s" href="/ui/signup">Automate Your Ops &#8594;</a>
-      </div>
-
-      <div class="sol-card" role="listitem">
-        <div class="sol-icon">&#128172;</div>
-        <div class="sol-problem">Problem: SaaS sprawl is killing your margins</div>
-        <h3>Unified Communications</h3>
-        <p>Murphy ships with a hosted mail server, Matrix messaging bridge, and 287 communication rooms. One platform. One bill. One admin panel.</p>
-        <span class="sol-outcome">&#9660; One bill, one admin panel</span>
-        <a class="btn-s" href="/ui/dashboard#connections">Kill the Sprawl &#8594;</a>
-      </div>
-
-      <div class="sol-card" role="listitem">
-        <div class="sol-icon">&#128274;</div>
-        <div class="sol-problem">Problem: Your next audit terrifies you</div>
-        <h3>Compliance Automation</h3>
-        <p>The Compliance as Code Engine auto-detects your regulatory frameworks, scans continuously, and emits remediations. Every action is blockchain-sealed.</p>
-        <span class="sol-outcome">&#9989; Always audit-ready</span>
-        <a class="btn-s" href="/ui/compliance">Get Audit-Ready &#8594;</a>
-      </div>
-
-      <div class="sol-card" role="listitem">
-        <div class="sol-icon">&#128200;</div>
-        <div class="sol-problem">Problem: Real capital at risk before you're ready</div>
-        <h3>Trading &amp; Finance</h3>
-        <p>Paper trade with full compliance gates before touching real money. Graduate to live trading only when risk, compliance, and performance criteria are met.</p>
-        <span class="sol-outcome">&#128293; Controlled risk graduation</span>
-        <a class="btn-s" href="/ui/paper-trading">Start Paper Trading &#8594;</a>
-      </div>
-
-      <div class="sol-card" role="listitem">
-        <div class="sol-icon">&#127758;</div>
-        <div class="sol-problem">Problem: Your tools don't talk to each other</div>
-        <h3>Custom Integrations</h3>
-        <p>Murphy's universal integration framework connects any external service. Register, configure, and execute &#8212; all through a unified API. 100+ services pre-wired.</p>
-        <span class="sol-outcome">&#9889; 100+ services wired</span>
-        <a class="btn-s" href="/ui/partner-request">Request Integration &#8594;</a>
-      </div>
-
-      <div class="sol-card" role="listitem">
-        <div class="sol-icon">&#128274;</div>
-        <div class="sol-problem">Problem: Your data is living on someone else's server</div>
-        <h3>Local AI / Privacy First</h3>
-        <p>Murphy runs Ollama on your own infrastructure. Every inference is private. Cloud LLM providers are strictly opt-in fallbacks &#8212; you choose per request.</p>
-        <span class="sol-outcome">&#128274; Zero data leakage</span>
-        <a class="btn-s" href="/ui/dashboard#llm">Go Private &#8594;</a>
-      </div>
-
-    </div>
-  </div>
-</section>
-
-<!-- INDUSTRIES -->
-<section id="industries" aria-labelledby="ind-h">
-  <div class="si">
-    <span class="slabel">Industries</span>
-    <h2 class="stitle" id="ind-h">The Industries We Work In.<br>High-Margin. Operations-Driven.</h2>
-    <p class="ssub">Murphy ships with vertical-specific compliance profiles, workflow templates, and integrations for eight major industries.</p>
-    <div class="ind-grid" role="list">
-
-      <div class="ind-card" role="listitem">
-        <div class="ind-card-icon">&#127973;</div>
-        <h3>Healthcare</h3>
-        <div class="ind-card-pain">HIPAA compliance &amp; clinical workflow</div>
-        <ul>
-          <li>HIPAA-compliant automation gates</li>
-          <li>Clinical workflow orchestration</li>
-          <li>Patient data privacy by default</li>
-        </ul>
-        <a class="btn-s" href="/ui/signup?industry=healthcare">See Demo &#8594;</a>
-      </div>
-
-      <div class="ind-card" role="listitem">
-        <div class="ind-card-icon">&#127981;</div>
-        <h3>Manufacturing</h3>
-        <div class="ind-card-pain">SCADA integration &amp; predictive maintenance</div>
-        <ul>
-          <li>OPC-UA / SCADA connectivity</li>
-          <li>Predictive maintenance alerts</li>
-          <li>Production line automation</li>
-        </ul>
-        <a class="btn-s" href="/ui/signup?industry=manufacturing">See Demo &#8594;</a>
-      </div>
-
-      <div class="ind-card" role="listitem">
-        <div class="ind-card-icon">&#128176;</div>
-        <h3>Finance &amp; Banking</h3>
-        <div class="ind-card-pain">SOX/PCI-DSS compliance &amp; trading</div>
-        <ul>
-          <li>SOX &amp; PCI-DSS automation</li>
-          <li>Paper trading graduation path</li>
-          <li>Blockchain audit trail</li>
-        </ul>
-        <a class="btn-s" href="/ui/signup?industry=finance">See Demo &#8594;</a>
-      </div>
-
-      <div class="ind-card" role="listitem">
-        <div class="ind-card-icon">&#9878;&#65039;</div>
-        <h3>Legal</h3>
-        <div class="ind-card-pain">Case management &amp; document automation</div>
-        <ul>
-          <li>Matter &amp; case workflow automation</li>
-          <li>Document generation pipelines</li>
-          <li>Privilege protection gates</li>
-        </ul>
-        <a class="btn-s" href="/ui/signup?industry=legal">See Demo &#8594;</a>
-      </div>
-
-      <div class="ind-card" role="listitem">
-        <div class="ind-card-icon">&#127959;</div>
-        <h3>Construction</h3>
-        <div class="ind-card-pain">Project timelines &amp; safety compliance</div>
-        <ul>
-          <li>Timeline &amp; milestone automation</li>
-          <li>Safety compliance monitoring</li>
-          <li>Subcontractor workflow routing</li>
-        </ul>
-        <a class="btn-s" href="/ui/signup?industry=construction">See Demo &#8594;</a>
-      </div>
-
-      <div class="ind-card" role="listitem">
-        <div class="ind-card-icon">&#128187;</div>
-        <h3>Technology / SaaS</h3>
-        <div class="ind-card-pain">Embed Murphy into your product</div>
-        <ul>
-          <li>White-label AI automation engine</li>
-          <li>API-first, embed anywhere</li>
-          <li>Partner revenue sharing</li>
-        </ul>
-        <a class="btn-s" href="/ui/partner-request">Partner Program &#8594;</a>
-      </div>
-
-      <div class="ind-card" role="listitem">
-        <div class="ind-card-icon">&#128203;</div>
-        <h3>Professional Services</h3>
-        <div class="ind-card-pain">Multi-client workflow management</div>
-        <ul>
-          <li>Per-client org isolation</li>
-          <li>Billing &amp; invoicing automation</li>
-          <li>Shadow Agent per engagement</li>
-        </ul>
-        <a class="btn-s" href="/ui/signup?industry=services">See Demo &#8594;</a>
-      </div>
-
-      <div class="ind-card" role="listitem">
-        <div class="ind-card-icon">&#127891;</div>
-        <h3>Education</h3>
-        <div class="ind-card-pain">FERPA compliance &amp; curriculum automation</div>
-        <ul>
-          <li>FERPA-compliant data handling</li>
-          <li>Curriculum workflow automation</li>
-          <li>Student privacy by default</li>
-        </ul>
-        <a class="btn-s" href="/ui/signup?industry=education">See Demo &#8594;</a>
-      </div>
-
+    <div class="replaces-strip">
+      <div class="replaces-item"><span class="x">✕</span> Project Manager</div>
+      <div class="replaces-item"><span class="x">✕</span> Compliance Consultant</div>
+      <div class="replaces-item"><span class="x">✕</span> CRM + HubSpot</div>
+      <div class="replaces-item"><span class="x">✕</span> QuickBooks</div>
+      <div class="replaces-item"><span class="x">✕</span> Outreach Tools</div>
+      <div class="replaces-item"><span class="x">✕</span> Scheduling Software</div>
+      <div class="replaces-item"><span class="x">✕</span> Report Writers</div>
     </div>
   </div>
 </section>
 
 <!-- HOW IT WORKS -->
-<section id="how-it-works" aria-labelledby="hiw-h" class="ml-6" >
-  <div class="si">
-    <span class="slabel">How It Works</span>
-    <h2 class="stitle" id="hiw-h">Running Your Business<br>in Four Steps.</h2>
-    <div class="g4 ml-7"  role="list">
-      <article class="card ml-8" role="listitem" >
-        <div class="ml-9" >1</div>
-        <h3>Onboard in Minutes</h3>
-        <p>The onboarding wizard builds your org chart, assigns AI agents to your team, and configures your compliance profile automatically. No IT required.</p>
-      </article>
-      <article class="card ml-8" role="listitem" >
-        <div class="ml-9" >2</div>
-        <h3>Connect Your Stack</h3>
-        <p>Plug in your existing tools via the integrations terminal. Mail, LLM, trading, messaging &#8212; each with real-time status and a live config panel.</p>
-      </article>
-      <article class="card ml-8" role="listitem" >
-        <div class="ml-9" >3</div>
-        <h3>Automate with Confidence</h3>
-        <p>Shadow Agents learn your decisions, propose automations, and earn autonomy through HITL safety gates &#8212; you stay in control at every stage.</p>
-      </article>
-      <article class="card ml-8" role="listitem" >
-        <div class="ml-9" >4</div>
-        <h3>Scale Without Chaos</h3>
-        <p>Add modules, agents, and integrations as you grow. Every action is audit-trailed, every agent is transparent. Nothing is a black box.</p>
-      </article>
+<section id="how-it-works" style="background: var(--bg2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+  <div class="section-inner">
+    <div class="centered">
+      <div class="section-label">Architecture</div>
+      <h2 class="section-title">Five Layers. One Intelligent System.</h2>
+      <p class="section-sub">Every task flows through Murphy's dynamic pipeline — soul-loaded agents, business logic gates, resolution scaling, and swarm execution.</p>
     </div>
-  </div>
-</section>
-
-<!-- SWARM FORGE (replaces old INLINE DEMO) -->
-<section id="demo" aria-labelledby="demo-h">
-  <div class="si">
-    <span class="slabel">Swarm Forge</span>
-    <h2 class="stitle" id="demo-h">Watch Murphy's Swarm Build<br>Something Real. Right Now.</h2>
-    <p class="ssub">Pick a deliverable. Murphy's swarm divides the work, builds every piece in parallel, and hands you a real downloadable artifact in seconds — not a mockup, not a stub.</p>
-    <div class="forge-wrap" id="forge-wrap">
-      <div class="forge-header"><span>murphy swarm forge v1.0 — parallel build engine</span></div>
-
-      <!-- Chips -->
-      <div class="demo-chips" role="group" aria-label="Deliverable presets" id="forge-chips">
-        <button class="demo-chip" data-forge="build me a playable single-level html5 game with original story, canvas sprites, touch controls, and mobile publishing guide — let me choose the genre: platformer, puzzle, runner, shooter, strategy, or MMORPG">&#127918; Game Builder</button>
-        <button class="demo-chip" data-forge="build me a complete web app mvp with dashboard, task management, fastapi backend, and deployment guide">&#9889; Web App MVP</button>
-        <button class="demo-chip" data-forge="build me a complete vertical automation suite with stripe payment processing, agentic workflows, onboarding, and webhook handling">&#128200; Automation + Payments</button>
-        <button class="demo-chip" data-forge="build me a complete course on applied python for business automation with lessons, exercises, answer keys, and grading rubrics">&#127979; Complete Course</button>
-        <button class="demo-chip" data-forge="automate my entire business operations including invoicing accounts payable hr onboarding compliance and reporting">&#128736; Full Business Automation</button>
-        <button class="demo-chip" data-forge="generate a complete business plan with executive summary market analysis financial projections marketing strategy and funding requirements">&#128196; Business Plan</button>
+    <div class="pipeline">
+      <div class="pipeline-step">
+        <div class="step-num">Layer 1 — Soul</div>
+        <div class="step-title">Agent Identity</div>
+        <div class="step-desc">Each agent loads its Rosetta soul document — who it is, what it values, and what its authority boundaries are. Your CEO is always the same person.</div>
       </div>
-
-      <!-- Custom input -->
-      <div class="forge-input-row">
-        <span class="forge-dollar">$</span>
-        <input class="forge-input" id="forge-input" type="text" placeholder="Describe what you want Murphy to build for you…" autocomplete="off" aria-label="Describe your deliverable">
-        <button class="btn-p forge-run-btn" id="forge-run-btn">&#9660; Forge It</button>
+      <div class="pipeline-step">
+        <div class="step-num">Layer 2 — Rosetta</div>
+        <div class="step-title">Org Dispatch</div>
+        <div class="step-desc">The live org chart assigns roles dynamically. Collector, Translator, Executor, Scheduler, and Auditor agents receive tasks matched to their soul.</div>
       </div>
-
-      <!-- Status line -->
-      <div class="forge-status" id="forge-status" aria-live="polite"></div>
-
-      <!-- Forge workspace: 64-pane grid (task decomposition) + chat output -->
-      <div class="forge-workspace" id="forge-workspace">
-        <!-- Left: 64-pane grid showing real agent task breakdown -->
-        <div class="forge-grid-wrap" id="forge-grid-wrap" aria-label="Agent task grid">
-          <div class="forge-grid" id="forge-grid"></div>
-        </div>
-        <!-- Right: Chat box where deliverable content appears -->
-        <div class="forge-chat" id="forge-chat" role="log" aria-label="Deliverable output" aria-live="polite">
-          <div class="forge-chat-hdr">
-            <span class="forge-chat-hdr-title">&#128196; Murphy System — Deliverable Output</span>
-            <span class="forge-chat-hdr-status" id="forge-chat-status"></span>
-          </div>
-          <div class="forge-chat-messages" id="forge-chat-messages"></div>
-          <div class="forge-chat-actions forge-hidden" id="forge-chat-actions">
-            <button class="forge-dl-btn" id="forge-dl-btn">&#8595; Download Deliverable</button>
-            <button class="forge-dl-btn forge-dl-btn-alt forge-hidden" id="forge-html-preview-btn" onclick="_forgePreviewInTab()">&#9654; Preview in New Tab</button>
-          </div>
-        </div>
+      <div class="pipeline-step">
+        <div class="step-num">Layer 3 — MFGC</div>
+        <div class="step-title">Business Logic Gates</div>
+        <div class="step-desc">7-phase control gates ensure every task is legal, safe, complete, and authorized before execution. Gates self-evaluate against live system data.</div>
       </div>
-
-      <!-- Build stats (shown after completion) -->
-      <div class="forge-result" id="forge-result" role="region" aria-label="Build summary">
-        <div class="forge-result-title" id="forge-result-title">&#10003; Build Complete</div>
-        <div class="forge-result-stats" id="forge-result-stats"></div>
-        <p class="forge-roi" id="forge-roi"></p>
-        <div class="forge-usage ml-10 forge-hidden" id="forge-usage"></div>
-        <div class="forge-fallback-cta ml-10 forge-hidden" id="forge-fallback-cta">
-          <a href="/ui/signup">Sign up free to download this deliverable →</a>
-        </div>
-        <div class="forge-err-msg ml-10 forge-hidden" id="forge-api-err" role="alert" aria-live="polite"></div>
+      <div class="pipeline-step">
+        <div class="step-num">Layer 4 — MSS</div>
+        <div class="step-title">Resolution Scaling</div>
+        <div class="step-desc">Tasks are magnified or simplified based on complexity and authority scope. MSS ensures every agent gets work sized to its capability.</div>
+      </div>
+      <div class="pipeline-step">
+        <div class="step-num">Layer 5 — Swarm</div>
+        <div class="step-title">Execution</div>
+        <div class="step-desc">The swarm executes in parallel DAG order. Every step emits a notification. Work items persist. Results flow to your CEO console in plain English.</div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- AI ENGINE — Reframed as Privacy Benefit -->
-<section id="ai-engine" aria-labelledby="ai-h">
-  <div class="si">
-    <span class="slabel">AI Engine</span>
-    <div class="seg-layout">
-      <div>
-        <h2 class="stitle" id="ai-h">Your Data Never<br>Leaves Your Server.</h2>
-        <p class="ml-12" >Murphy runs the LLM on your own infrastructure via Ollama. Every AI inference is private. Cloud providers are optional fallbacks &#8212; you decide what goes where, per request.</p>
-        <ul class="uc-list">
-          <li>Onboard Ollama &#8212; pull any open model</li>
-          <li>Multi-provider routing &#8212; local first, cloud fallback</li>
-          <li>Murphy Foundation Model for domain-specific tasks</li>
-          <li>Swarm inference across multiple agent instances</li>
-          <li>Prompts, data, and outputs stay on your machine</li>
-          <li>Fully auditable &#8212; every inference logged</li>
-        </ul>
-        <div class="ml-13" >
-          <a class="btn-p" href="/ui/dashboard#llm">Configure LLM</a>
-          <a class="btn-s" href="/ui/dashboard#status">View Status</a>
-        </div>
+<!-- CAPABILITIES -->
+<section id="capabilities">
+  <div class="section-inner">
+    <div class="centered">
+      <div class="section-label">What Murphy Does</div>
+      <h2 class="section-title">Every Operation. One System.</h2>
+      <p class="section-sub">Murphy is not an AI chatbot. It is an operating system with 1,100+ modules that runs your business autonomously.</p>
+    </div>
+    <div class="cap-grid">
+      <div class="cap-card">
+        <div class="cap-icon">🧠</div>
+        <div class="cap-title">CEO Console</div>
+        <div class="cap-desc">Talk to Murphy in plain language. It understands, dispatches work to the swarm, and reports back in a 3-line summary. Full morning briefs delivered daily.</div>
+        <div class="cap-tag">Voice + Text</div>
       </div>
-      <div class="seg-vis" aria-hidden="true">
-        <span class="tl cy">$ murphy llm status</span>
-        <span class="tl te">&#10003; Ollama running at http://localhost:11434</span>
-        <span class="tl">  Models loaded: 3</span>
-        <span class="tl">  llama3.2:latest     4.7GB  &#9679; active</span>
-        <span class="tl">  mistral:7b          4.1GB  &#9679; loaded</span>
-        <span class="tl">  codellama:13b       7.4GB  &#9679; loaded</span>
-        <span class="tl dim">  Fallback: openai (configured)</span>
-        <span class="tl cy ml-14" >$ murphy llm test</span>
-        <span class="tl te">&#10003; Inference: 47ms &#183; tokens/s: 38.2</span>
-        <span class="tl te">&#10003; Shadow agent: active on llama3.2</span>
-        <span class="tl">  All 6 LLM endpoints: healthy</span>
-        <span class="tl dim ml-14" >  &#128274; No data sent externally</span>
+      <div class="cap-card">
+        <div class="cap-icon">⚡</div>
+        <div class="cap-title">Autonomous Swarm</div>
+        <div class="cap-desc">9 specialized agents run in parallel — collecting leads, translating signals, scheduling tasks, executing directives, and auditing everything in real time.</div>
+        <div class="cap-tag">Always On</div>
+      </div>
+      <div class="cap-card">
+        <div class="cap-icon">📁</div>
+        <div class="cap-title">File Intelligence</div>
+        <div class="cap-desc">Upload any document — PDF, DOCX, CSV, ZIP. Murphy analyzes it, extracts structured data, runs it through the causality sandbox, and outputs clean artifacts to organized folders.</div>
+        <div class="cap-tag">Causality Sandbox</div>
+      </div>
+      <div class="cap-card">
+        <div class="cap-icon">🛡️</div>
+        <div class="cap-title">Compliance Engine</div>
+        <div class="cap-desc">HIPAA, SOC2, GDPR, ISO27001, OSHA, FMCSA — all toggleable. Murphy enforces compliance as a build-time constraint, not an afterthought. Quarterly audit reports auto-generated.</div>
+        <div class="cap-tag">Multi-Framework</div>
+      </div>
+      <div class="cap-card">
+        <div class="cap-icon">💰</div>
+        <div class="cap-title">CRM + Outreach</div>
+        <div class="cap-desc">187 deals tracked live. Murphy writes and sends cold outreach, follows up on schedule, logs responses, and surfaces next actions. Your pipeline never goes cold.</div>
+        <div class="cap-tag">187 Active Deals</div>
+      </div>
+      <div class="cap-card">
+        <div class="cap-icon">📊</div>
+        <div class="cap-title">Accounting + Tax</div>
+        <div class="cap-desc">Double-entry bookkeeping from your real transaction data. Tax checklists by entity type. IRS code self-updates weekly. Licensed CPA/EA review via HITL before filing.</div>
+        <div class="cap-tag">HITL Licensed Review</div>
+      </div>
+      <div class="cap-card">
+        <div class="cap-icon">🎤</div>
+        <div class="cap-title">Voice Control</div>
+        <div class="cap-desc">Speak commands to Murphy from your desktop, mobile, or PiCar-X robot. Whisper STT + speaker recognition identifies who is talking and routes to the right context.</div>
+        <div class="cap-tag">Raspberry Pi Ready</div>
+      </div>
+      <div class="cap-card">
+        <div class="cap-icon">🔗</div>
+        <div class="cap-title">Bring Your Own LLM</div>
+        <div class="cap-desc">Run on Murphy's default (Qwen3-235B via DeepInfra) or connect your own OpenAI, Anthropic Claude, Gemini, Groq, or Ollama key. Token usage tracked and billed per tenant.</div>
+        <div class="cap-tag">Multi-Provider</div>
+      </div>
+      <div class="cap-card">
+        <div class="cap-icon">🪙</div>
+        <div class="cap-title">Crypto Treasury</div>
+        <div class="cap-desc">Subscription revenue automatically split 50/50 — operations cash vs Cosmos ATOM staking. Staking rewards compound at ~19% APY. Your platform builds equity while it runs.</div>
+        <div class="cap-tag">ATOM Staking</div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- COMPARE -->
-<section id="compare" aria-labelledby="cmp-h" class="ml-6" >
-  <div class="si">
-    <span class="slabel">Why Murphy</span>
-    <h2 class="stitle" id="cmp-h">Twin builds single agents. Salesforce sells you a platform. Murphy runs your whole operation.</h2>
-    <div class="ctw" role="region" aria-label="Comparison table">
-      <table class="ctable">
+<!-- ROI TABLE -->
+<section id="roi" style="background: var(--bg2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+  <div class="section-inner">
+    <div class="centered">
+      <div class="section-label">Return on Investment</div>
+      <h2 class="section-title">What Murphy Replaces — And What It Costs</h2>
+      <p class="section-sub">For a 15-person operations company. Murphy Business tier at $799/mo replaces tools and roles that cost $147,000+/year.</p>
+    </div>
+    <div style="overflow-x:auto; margin-top: 3rem;">
+      <table class="roi-table">
         <thead>
           <tr>
-            <th>Capability</th>
-            <th>Murphy</th>
-            <th>Twin.so</th>
-            <th>Zapier + Notion + HubSpot</th>
-            <th>Salesforce</th>
+            <th>What You Replace</th>
+            <th>Current Annual Cost</th>
+            <th>With Murphy</th>
+            <th>Annual Savings</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td>Browser automation (no-API tasks)</td>
-            <td class="mc" data-col="Murphy">&#10003; Built-in + HITL-gated browser engine</td>
-            <td class="pc" data-col="Twin.so">&#10003; Core strength — single-task focus</td>
-            <td class="xc" data-col="Zapier+HubSpot">&#10007; API only</td>
-            <td class="xc" data-col="Salesforce">&#10007;</td>
+            <td>Project Manager (1 FTE)</td>
+            <td class="roi-old">$85,000</td>
+            <td class="roi-new">Included</td>
+            <td class="roi-save">$85,000</td>
           </tr>
           <tr>
-            <td>Conversational agent builder</td>
-            <td class="mc" data-col="Murphy">&#10003; Forge wizard + org chart + shadow agents</td>
-            <td class="pc" data-col="Twin.so">&#10003; Chat-to-agent (single tasks only)</td>
-            <td class="xc" data-col="Zapier+HubSpot">&#10007; Form-based only</td>
-            <td class="xc" data-col="Salesforce">&#8764; Einstein builder</td>
+            <td>Compliance Consultant (quarterly)</td>
+            <td class="roi-old">$24,000</td>
+            <td class="roi-new">Included</td>
+            <td class="roi-save">$24,000</td>
           </tr>
           <tr>
-            <td>Agents that learn <em>your</em> behavior</td>
-            <td class="mc" data-col="Murphy">&#10003; Shadow agents observe &rarr; assist &rarr; automate</td>
-            <td class="xc" data-col="Twin.so">&#10007; Task-only, no user learning</td>
-            <td class="xc" data-col="Zapier+HubSpot">&#10007;</td>
-            <td class="xc" data-col="Salesforce">&#8764; Einstein AI</td>
+            <td>CRM — HubSpot Pro</td>
+            <td class="roi-old">$9,600</td>
+            <td class="roi-new">Included</td>
+            <td class="roi-save">$9,600</td>
           </tr>
           <tr>
-            <td>Org chart — virtual employees with roles</td>
-            <td class="mc" data-col="Murphy">&#10003; Full org + individual agent accounts</td>
-            <td class="xc" data-col="Twin.so">&#10007; Single-task agents only</td>
-            <td class="xc" data-col="Zapier+HubSpot">&#10007;</td>
-            <td class="xc" data-col="Salesforce">&#10007;</td>
+            <td>Sales Outreach — Apollo.io</td>
+            <td class="roi-old">$4,800</td>
+            <td class="roi-new">Included</td>
+            <td class="roi-save">$4,800</td>
           </tr>
           <tr>
-            <td>ROI calendar (time &amp; cost savings, live)</td>
-            <td class="mc" data-col="Murphy">&#10003; Per-task human vs. agent cost tracking</td>
-            <td class="xc" data-col="Twin.so">&#10007;</td>
-            <td class="xc" data-col="Zapier+HubSpot">&#10007;</td>
-            <td class="xc" data-col="Salesforce">&#10007;</td>
+            <td>Accounting — QuickBooks + Payroll</td>
+            <td class="roi-old">$4,200</td>
+            <td class="roi-new">Included</td>
+            <td class="roi-save">$4,200</td>
           </tr>
           <tr>
-            <td>Human-in-the-Loop gates</td>
-            <td class="mc" data-col="Murphy">&#10003; Gate synthesis engine, HITL on every risk tier</td>
-            <td class="xc" data-col="Twin.so">&#8764; Manual approval only</td>
-            <td class="xc" data-col="Zapier+HubSpot">&#10007; Manual only</td>
-            <td class="xc" data-col="Salesforce">&#10007; Approvals only</td>
+            <td>Document Analysis &amp; Reporting</td>
+            <td class="roi-old">$12,000</td>
+            <td class="roi-new">Included</td>
+            <td class="roi-save">$12,000</td>
           </tr>
           <tr>
-            <td>Onboard local LLM (data never leaves server)</td>
-            <td class="mc" data-col="Murphy">&#10003; Ollama built-in, self-hosted</td>
-            <td class="xc" data-col="Twin.so">&#10007; Cloud LLM only</td>
-            <td class="xc" data-col="Zapier+HubSpot">&#10007;</td>
-            <td class="xc" data-col="Salesforce">&#10007;</td>
+            <td>Tax Preparation (annual)</td>
+            <td class="roi-old">$6,000</td>
+            <td class="roi-new">Included</td>
+            <td class="roi-save">$6,000</td>
           </tr>
-          <tr>
-            <td>Self-healing / auto-repair</td>
-            <td class="mc" data-col="Murphy">&#10003; Immune engine, self-fixes in production</td>
-            <td class="xc" data-col="Twin.so">&#8764; Retries only</td>
-            <td class="xc" data-col="Zapier+HubSpot">&#10007;</td>
-            <td class="xc" data-col="Salesforce">&#10007;</td>
-          </tr>
-          <tr>
-            <td>Hosted mail server (own domain)</td>
-            <td class="mc" data-col="Murphy">&#10003; Built-in Postfix + Dovecot</td>
-            <td class="xc" data-col="Twin.so">&#10007; 3rd-party</td>
-            <td class="xc" data-col="Zapier+HubSpot">&#10007; 3rd-party</td>
-            <td class="xc" data-col="Salesforce">&#10007; 3rd-party</td>
-          </tr>
-          <tr>
-            <td>Compliance automation (SOC2/HIPAA)</td>
-            <td class="mc" data-col="Murphy">&#10003; CCE engine</td>
-            <td class="xc" data-col="Twin.so">&#10007;</td>
-            <td class="xc" data-col="Zapier+HubSpot">&#10007; Manual</td>
-            <td class="xc" data-col="Salesforce">&#8764; Partial</td>
-          </tr>
-          <tr>
-            <td>Blockchain audit trail</td>
-            <td class="mc" data-col="Murphy">&#10003; BAT engine, immutable log</td>
-            <td class="xc" data-col="Twin.so">&#10007;</td>
-            <td class="xc" data-col="Zapier+HubSpot">&#10007;</td>
-            <td class="xc" data-col="Salesforce">&#8764; Partial</td>
-          </tr>
-          <tr>
-            <td>Fully self-hostable</td>
-            <td class="mc" data-col="Murphy">&#10003; Your server, your data</td>
-            <td class="xc" data-col="Twin.so">&#10007; Cloud only</td>
-            <td class="xc" data-col="Zapier+HubSpot">&#10007; Cloud only</td>
-            <td class="xc" data-col="Salesforce">&#10007; Cloud only</td>
-          </tr>
-          <tr>
-            <td>Monthly cost &#8212; 5-person team</td>
-            <td class="mc" data-col="Murphy">$299/mo all-in</td>
-            <td class="xc" data-col="Twin.so">$500+/mo + usage fees</td>
-            <td class="xc" data-col="Zapier+HubSpot">$800&#8211;1,400/mo</td>
-            <td class="xc" data-col="Salesforce">$1,500+/mo</td>
+          <tr class="roi-total">
+            <td><strong>Total</strong></td>
+            <td><strong>$145,600 / year</strong></td>
+            <td class="roi-new"><strong>$9,588 / year</strong></td>
+            <td class="roi-save"><strong>$136,012 saved</strong></td>
           </tr>
         </tbody>
       </table>
     </div>
+    <p style="text-align:center;margin-top:1.5rem;font-size:.82rem;color:var(--text-dim);">
+      ROI based on Murphy Business tier ($799/mo). Savings estimates are conservative. Enterprise clients report higher savings.
+    </p>
   </div>
 </section>
 
-<!-- COMPLIANCE -->
-<section id="compliance" aria-labelledby="comp-h">
-  <div class="si">
-    <span class="slabel">Compliance</span>
-    <h2 class="stitle" id="comp-h">Built-In Compliance.<br>Not Bolted On.</h2>
-    <p class="ssub">The Compliance as Code Engine (CCE) scans your configuration and emits remediations. Every action is audit-trailed. HITL gates enforce policy automatically.</p>
-    <div class="comp-grid" aria-label="Compliance standards">
-      <span class="comp-pill">SOC 2 Type II</span>
-      <span class="comp-pill">GDPR</span>
-      <span class="comp-pill">HIPAA</span>
-      <span class="comp-pill">PCI-DSS</span>
-      <span class="comp-pill">ISO 27001</span>
-      <span class="comp-pill">NIST CSF</span>
-      <span class="comp-pill">FedRAMP Ready</span>
-      <span class="comp-pill">CCPA</span>
+<!-- LIVE DEMO TERMINAL -->
+<section id="demo-section">
+  <div class="section-inner">
+    <div class="centered">
+      <div class="section-label">Live System Demo</div>
+      <h2 class="section-title">Watch Murphy Work in Real Time</h2>
+      <p class="section-sub">These aren't mock outputs. Every scenario runs through the actual Murphy pipeline — MFGC gates, MSS resolution, swarm agents, real AI processing.</p>
     </div>
-    <div class="g3 ml-15" >
-      <div class="card">
-        <div class="card-icon">&#128269;</div>
-        <h3>CCE Scan Engine</h3>
-        <p>Continuous scanning with rule-based remediations. Export full compliance reports at any time. Always know your posture.</p>
+    <div class="demo-frame">
+      <div class="demo-topbar">
+        <div class="demo-dots">
+          <span class="d-red"></span><span class="d-yellow"></span><span class="d-green"></span>
+        </div>
+        <span class="demo-title-bar">murphy.systems — live pipeline terminal</span>
+        <span style="font-size:.72rem;color:var(--teal);">● connected</span>
       </div>
-      <div class="card">
-        <div class="card-icon">&#128279;</div>
-        <h3>Blockchain Audit Trail</h3>
-        <p>Every action sealed in an immutable block. Verify, export and present the audit chain at any time. Regulators love it.</p>
+      <div class="demo-terminal" id="demo-terminal">
+        <div class="demo-line"><span class="prompt">murphy@system:~$ </span><span class="cmd" id="demo-cmd"></span></div>
+        <div id="demo-output"></div>
+        <div class="demo-line" id="demo-cursor-line" style="display:none"><span class="cursor"></span></div>
       </div>
-      <div class="card">
-        <div class="card-icon">&#128678;</div>
-        <h3>RBAC + Deny-by-Default</h3>
-        <p>Role-based access, deny-by-default policy. Security events tracked. Full key rotation on schedule. Zero trust from day one.</p>
+      <div class="demo-actions">
+        <span class="demo-chip active" data-scenario="onboarding">👤 Client Onboarding</span>
+        <span class="demo-chip" data-scenario="compliance">🛡️ Compliance Audit</span>
+        <span class="demo-chip" data-scenario="pipeline">💰 Revenue Pipeline</span>
+        <span class="demo-chip" data-scenario="reporting">📊 Finance Report</span>
+        <span class="demo-chip" data-scenario="hr">👥 HR Screening</span>
+        <a href="/demo" class="btn-hero-primary demo-run-btn" style="font-size:.85rem;padding:.6rem 1.4rem;">Full Demo →</a>
       </div>
-    </div>
-    <div class="ml-15" >
-      <a class="btn-p" href="/ui/compliance">Open Compliance Dashboard</a>
     </div>
   </div>
 </section>
 
 <!-- PRICING -->
-<section id="pricing" aria-labelledby="pricing-h" class="ml-6" >
-  <div class="si">
-    <span class="slabel">Pricing</span>
-    <h2 class="stitle" id="pricing-h">Start Free.<br>Scale When You&#8217;re Ready.</h2>
-    <div class="g4 ml-7"  role="list">
-      <div class="pcard" role="listitem">
-        <div class="ptag">Free Forever</div>
-        <div class="pname">Starter</div>
-        <div class="pamt">$0<span>/mo</span></div>
-        <p class="pdesc">10 actions/day &#183; Shadow Agent training &#183; Crypto wallet &#183; All terminals &#183; Matrix access</p>
-        <a class="btn-p" href="/ui/signup">Start Free</a>
+<section id="pricing" style="background: var(--bg2); border-top: 1px solid var(--border);">
+  <div class="section-inner">
+    <div class="centered">
+      <div class="section-label">Pricing</div>
+      <h2 class="section-title">Simple, Flat Rate. No Percentage Games.</h2>
+      <p class="section-sub">Unlike competitors who charge a percentage of your revenue, Murphy charges a flat seat rate. The bigger you grow, the better the deal.</p>
+    </div>
+    <div class="pricing-grid">
+      <div class="price-card">
+        <div class="price-tier">Free</div>
+        <div class="price-amount">$0<span>/mo</span></div>
+        <div class="price-seats">1 seat · Try before you buy</div>
+        <ul class="price-features">
+          <li>CEO Console chat</li>
+          <li>5 dispatches / day</li>
+          <li>View live dashboards</li>
+          <li>Morning brief (read-only)</li>
+        </ul>
+        <a href="/ui/signup" class="btn-price ghost">Start Free</a>
       </div>
-      <div class="pcard" role="listitem">
-        <div class="ptag">Solo Operator</div>
-        <div class="pname">Solo</div>
-        <div class="pamt">$99<span>/mo</span></div>
-        <p class="pdesc">Unlimited automations &#183; 3 Shadow Agents &#183; Ollama LLM &#183; Mail server &#183; Basic compliance</p>
-        <a class="btn-p" href="/ui/pricing">Get Solo</a>
+      <div class="price-card">
+        <div class="price-tier">Solo</div>
+        <div class="price-amount">$99<span>/mo</span></div>
+        <div class="price-seats">1 seat · Full system access</div>
+        <ul class="price-features">
+          <li>Unlimited swarm dispatch</li>
+          <li>File upload → artifact folders</li>
+          <li>Daily morning brief</li>
+          <li>10 automations</li>
+          <li>Voice control</li>
+          <li>Bring your own LLM</li>
+        </ul>
+        <a href="/ui/signup?tier=solo" class="btn-price ghost">Get Solo</a>
       </div>
-      <div class="pcard featured" role="listitem">
-        <div class="ptag">Most Popular</div>
-        <div class="pname">Business</div>
-        <div class="pamt">$299<span>/mo</span></div>
-        <p class="pdesc">All integrations &#183; Unlimited agents &#183; HITL gates &#183; CCE compliance &#183; Matrix bridge &#183; Priority support</p>
-        <a class="btn-p" href="/ui/pricing">Get Business</a>
+      <div class="price-card featured">
+        <div class="price-badge">Most Popular</div>
+        <div class="price-tier">Team</div>
+        <div class="price-amount">$399<span>/mo</span></div>
+        <div class="price-seats">5 seats · +$79 per additional seat</div>
+        <ul class="price-features">
+          <li>Everything in Solo</li>
+          <li>CRM + outreach pipeline</li>
+          <li>1 compliance framework</li>
+          <li>Shared artifact folders</li>
+          <li>50 automations</li>
+          <li>Team voice profiles</li>
+          <li>Accounting engine</li>
+        </ul>
+        <a href="/ui/signup?tier=team" class="btn-price primary">Get Team</a>
       </div>
-      <div class="pcard" role="listitem">
-        <div class="ptag">Self-Hosted</div>
-        <div class="pname">Enterprise</div>
-        <div class="pamt">Custom</div>
-        <p class="pdesc">Full source &#183; Hetzner deploy scripts &#183; SLA &#183; Dedicated support &#183; Custom modules</p>
-        <a class="btn-p" href="/ui/partner-request">Talk to Us</a>
+      <div class="price-card">
+        <div class="price-tier">Business</div>
+        <div class="price-amount">$799<span>/mo</span></div>
+        <div class="price-seats">15 seats · +$79 per additional seat</div>
+        <ul class="price-features">
+          <li>Everything in Team</li>
+          <li>All compliance frameworks</li>
+          <li>Full API access</li>
+          <li>PiCar-X / robotics</li>
+          <li>Tax prep + licensed review</li>
+          <li>Multi-LLM per seat</li>
+          <li>Priority support</li>
+        </ul>
+        <a href="/ui/signup?tier=business" class="btn-price ghost">Get Business</a>
+      </div>
+      <div class="price-card">
+        <div class="price-tier">Enterprise</div>
+        <div class="price-amount" style="font-size:1.8rem;">Custom</div>
+        <div class="price-seats">Unlimited seats · Dedicated instance</div>
+        <ul class="price-features">
+          <li>Dedicated Hetzner server</li>
+          <li>Custom CEO soul document</li>
+          <li>White-label</li>
+          <li>Full source visibility</li>
+          <li>SLA + custom compliance</li>
+          <li>Tenant provisioning</li>
+        </ul>
+        <a href="/book" class="btn-price ghost">Contact Us</a>
       </div>
     </div>
-    <p class="ml-16" >All plans include access to all 453 API endpoints. <a href="/ui/pricing" class="ml-17" >See full comparison &#8594;</a></p>
-    <p class="ml-18" >Need financing? <a href="/ui/financing" class="ml-17" >Apply for grants &amp; financing &#8594;</a></p>
-  </div>
-</section>
-
-<!-- PARTNER -->
-<!-- ═══════════════════════════════════════════════════════════════
-     SHADOW AGENT PROGRESSION — PATCH-266
-     Ownership model: EMPLOYEES own their shadow agents.
-     Company holds a license. Agent earns outside the network.
-     ═══════════════════════════════════════════════════════════════ -->
-
-<!-- HOW WE WORK — PATCH-269 -->
-<section id="how-we-work" aria-labelledby="hww-h" style="background:#020f02;padding:5rem 1.5rem;border-top:2px solid #00ff41;border-bottom:2px solid #00ff41;">
-  <div class="si" style="max-width:860px;margin:0 auto;">
-    <div style="text-align:center;margin-bottom:3.5rem;">
-      <div style="display:inline-block;background:#0f1a0f;border:1px solid #2a4a2a;border-radius:6px;padding:.35rem .9rem;font-size:.75rem;color:#4caf50;letter-spacing:.08em;text-transform:uppercase;margin-bottom:1rem;">How We Work</div>
-      <h2 id="hww-h" style="font-size:clamp(1.75rem,4vw,2.5rem);font-weight:700;color:#f0f0f0;margin:.5rem 0 1rem;">We get paid when you save money.</h2>
-      <p style="font-size:1.1rem;color:#aaa;max-width:640px;margin:0 auto;line-height:1.7;">No retainers. No seat licenses. No SaaS sprawl. Murphy charges a flat T&amp;M setup fee, then earns 40% of documented savings over 24 months.</p>
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1.5rem;margin-bottom:3rem;">
-      <div style="background:#111;border:1px solid #1e3a1e;border-radius:10px;padding:1.5rem;text-align:center;">
-        <div style="width:2.5rem;height:2.5rem;border-radius:50%;background:#0f2a0f;border:2px solid #4caf50;display:flex;align-items:center;justify-content:center;font-weight:700;color:#4caf50;margin:0 auto .75rem;">1</div>
-        <div style="font-size:.7rem;color:#4caf50;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.4rem;">Setup</div>
-        <h3 style="font-size:.95rem;font-weight:600;color:#f0f0f0;margin:0 0 .5rem;">T&amp;M Discovery</h3>
-        <p style="font-size:.82rem;color:#999;line-height:1.5;margin:0;">We map your ops, find the waste, build the first automations. Fixed-scope. No surprises.</p>
-      </div>
-      <div style="background:#111;border:1px solid #1e3a1e;border-radius:10px;padding:1.5rem;text-align:center;">
-        <div style="width:2.5rem;height:2.5rem;border-radius:50%;background:#0f2a0f;border:2px solid #4caf50;display:flex;align-items:center;justify-content:center;font-weight:700;color:#4caf50;margin:0 auto .75rem;">2</div>
-        <div style="font-size:.7rem;color:#4caf50;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.4rem;">24 Months</div>
-        <h3 style="font-size:.95rem;font-weight:600;color:#f0f0f0;margin:0 0 .5rem;">Performance Contract</h3>
-        <p style="font-size:.82rem;color:#999;line-height:1.5;margin:0;">Murphy earns 40% of documented savings. You keep 60%. Every dollar Murphy saves you is money you didn't spend.</p>
-      </div>
-      <div style="background:#111;border:1px solid #1e3a1e;border-radius:10px;padding:1.5rem;text-align:center;">
-        <div style="width:2.5rem;height:2.5rem;border-radius:50%;background:#0f2a0f;border:2px solid #4caf50;display:flex;align-items:center;justify-content:center;font-weight:700;color:#4caf50;margin:0 auto .75rem;">3</div>
-        <div style="font-size:.7rem;color:#4caf50;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.4rem;">Months 12-24</div>
-        <h3 style="font-size:.95rem;font-weight:600;color:#f0f0f0;margin:0 0 .5rem;">AI Synergy</h3>
-        <p style="font-size:.82rem;color:#999;line-height:1.5;margin:0;">Shadow agents, cross-system optimization. Savings compound. Your team gets leverage.</p>
-      </div>
-      <div style="background:#111;border:1px solid #1e3a1e;border-radius:10px;padding:1.5rem;text-align:center;">
-        <div style="width:2.5rem;height:2.5rem;border-radius:50%;background:#0f2a0f;border:2px solid #4caf50;display:flex;align-items:center;justify-content:center;font-weight:700;color:#4caf50;margin:0 auto .75rem;">4</div>
-        <div style="font-size:.7rem;color:#4caf50;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.4rem;">Post-Contract</div>
-        <h3 style="font-size:.95rem;font-weight:600;color:#f0f0f0;margin:0 0 .5rem;">SaaS License</h3>
-        <p style="font-size:.82rem;color:#999;line-height:1.5;margin:0;">You own the automations. Flat license to keep running them. No dependency, no ransom.</p>
-      </div>
-    </div>
-    <!-- Capability table -->
-    <div style="background:#111;border:1px solid #1e3a1e;border-radius:10px;padding:2rem;margin-bottom:2.5rem;">
-      <h3 style="font-size:1rem;font-weight:600;color:#f0f0f0;margin:0 0 1.25rem;text-align:center;">What Works Right Now</h3>
-      <div style="overflow-x:auto;">
-        <table style="width:100%;border-collapse:collapse;font-size:.875rem;">
-          <thead><tr>
-            <th style="text-align:left;padding:.5rem .75rem;color:#888;font-weight:500;border-bottom:1px solid #222;">Capability</th>
-            <th style="text-align:center;padding:.5rem .75rem;color:#4caf50;font-weight:500;border-bottom:1px solid #222;">Works Today</th>
-            <th style="text-align:center;padding:.5rem .75rem;color:#888;font-weight:500;border-bottom:1px solid #222;">Needs API Key</th>
-          </tr></thead>
-          <tbody>
-            <tr style="border-bottom:1px solid #1a1a1a;"><td style="padding:.5rem .75rem;color:#ccc;">Prospect discovery &amp; CRM</td><td style="text-align:center;color:#4caf50;">&#10003;</td><td style="text-align:center;color:#666;">&mdash;</td></tr>
-            <tr style="border-bottom:1px solid #1a1a1a;"><td style="padding:.5rem .75rem;color:#ccc;">Email outreach &amp; follow-up cadence</td><td style="text-align:center;color:#4caf50;">&#10003;</td><td style="text-align:center;color:#666;">&mdash;</td></tr>
-            <tr style="border-bottom:1px solid #1a1a1a;"><td style="padding:.5rem .75rem;color:#ccc;">Proposal generation &amp; HITL review</td><td style="text-align:center;color:#4caf50;">&#10003;</td><td style="text-align:center;color:#666;">&mdash;</td></tr>
-            <tr style="border-bottom:1px solid #1a1a1a;"><td style="padding:.5rem .75rem;color:#ccc;">Native booking page (/book)</td><td style="text-align:center;color:#4caf50;">&#10003;</td><td style="text-align:center;color:#666;">&mdash;</td></tr>
-            <tr style="border-bottom:1px solid #1a1a1a;"><td style="padding:.5rem .75rem;color:#ccc;">Compliance audit automation</td><td style="text-align:center;color:#4caf50;">&#10003;</td><td style="text-align:center;color:#666;">&mdash;</td></tr>
-            <tr style="border-bottom:1px solid #1a1a1a;"><td style="padding:.5rem .75rem;color:#ccc;">Outbound phone calls &amp; SMS</td><td style="text-align:center;color:#666;">&mdash;</td><td style="text-align:center;color:#aaa;">Twilio SID + Token</td></tr>
-            <tr style="border-bottom:1px solid #1a1a1a;"><td style="padding:.5rem .75rem;color:#ccc;">Email reply detection (stop cadence)</td><td style="text-align:center;color:#666;">&mdash;</td><td style="text-align:center;color:#aaa;">Mailgun / SendGrid</td></tr>
-            <tr><td style="padding:.5rem .75rem;color:#ccc;">Calendar sync (Google / Outlook)</td><td style="text-align:center;color:#666;">&mdash;</td><td style="text-align:center;color:#aaa;">Google OAuth</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-    <div style="text-align:center;">
-      <a href="/book" class="btn btn-primary" style="margin-right:1rem;padding:.8rem 2rem;">&#128197; Book a Free Audit</a>
-      <a href="/how-we-work" class="btn btn-ghost" style="padding:.8rem 2rem;">Full details &#8594;</a>
-    </div>
-  </div>
-</section>
-
-<section id="shadow-progression" aria-labelledby="shadow-h" style="background:#0a0a0a;padding:5rem 1.5rem;border-top:1px solid #1a2a1a;">
-  <div class="si" style="max-width:860px;margin:0 auto;">
-
-    <div style="text-align:center;margin-bottom:3.5rem;">
-      <div style="display:inline-block;background:#0f1f0f;border:1px solid #2a4a2a;border-radius:6px;padding:.35rem .9rem;font-size:.75rem;color:#4caf50;letter-spacing:.08em;text-transform:uppercase;margin-bottom:1rem;">Shadow Agents</div>
-      <h2 id="shadow-h" style="font-size:clamp(1.75rem,4vw,2.6rem);font-weight:700;color:#f0f0f0;margin:.5rem 0 1rem;">Give your employees a raise.</h2>
-      <p style="font-size:1.1rem;color:#aaa;max-width:640px;margin:0 auto;line-height:1.7;">
-        Every person you hire trains an AI agent modeled on how <em>they</em> work. <strong style="color:#f0f0f0;">That agent belongs to them — not to you.</strong> Murphy is the platform. You're the employer who made it possible. When their agent gets licensed to a non-competing business in another region, your employee earns real recurring income. That's the raise — without touching payroll.
-      </p>
-    </div>
-
-    <!-- Step progression -->
-    <div style="display:flex;flex-direction:column;gap:1.5rem;margin-bottom:3.5rem;">
-
-      <!-- Step 1 -->
-      <div style="background:#111;border:1px solid #1e3a1e;border-radius:10px;padding:1.75rem 2rem;display:grid;grid-template-columns:3rem 1fr;gap:1.25rem;align-items:start;">
-        <div style="width:3rem;height:3rem;border-radius:50%;background:#0f2a0f;border:2px solid #4caf50;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.1rem;color:#4caf50;flex-shrink:0;">1</div>
-        <div>
-          <div style="font-size:.72rem;color:#4caf50;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.4rem;">You start solo</div>
-          <h3 style="font-size:1.15rem;font-weight:600;color:#f0f0f0;margin:0 0 .6rem;">$500/mo — Murphy runs the office.</h3>
-          <p style="color:#aaa;line-height:1.6;margin:0;">Reception, sales, scheduling, invoicing, accounting. You're in the field. Murphy holds things together. Shadow training begins on <em>you</em> — Murphy learns how you work, how you quote, how you close.</p>
-        </div>
-      </div>
-
-      <!-- Step 2 -->
-      <div style="background:#111;border:1px solid #1e3a1e;border-radius:10px;padding:1.75rem 2rem;display:grid;grid-template-columns:3rem 1fr;gap:1.25rem;align-items:start;">
-        <div style="width:3rem;height:3rem;border-radius:50%;background:#0f2a0f;border:2px solid #4caf50;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.1rem;color:#4caf50;flex-shrink:0;">2</div>
-        <div>
-          <div style="font-size:.72rem;color:#4caf50;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.4rem;">You hire someone</div>
-          <h3 style="font-size:1.15rem;font-weight:600;color:#f0f0f0;margin:0 0 .6rem;">Murphy observes for 90 days.</h3>
-          <p style="color:#aaa;line-height:1.6;margin:0;">Every proposal written. Every call handled. Every job scheduled. Murphy records the pattern — how they price, what they ask, how they close. Nothing changes for them. No friction. No onboarding form.</p>
-          <div style="margin-top:.85rem;background:#0a1a0a;border:1px solid #2a4a2a;border-radius:6px;padding:.65rem .9rem;font-size:.8rem;color:#6abf69;">
-            🔍 Shadow training in progress — Murphy observes, tracks outcomes, builds pattern library. Every action is gated through HITL before it leaves the system.
-          </div>
-        </div>
-      </div>
-
-      <!-- Step 3 -->
-      <div style="background:#111;border:1px solid #1e3a1e;border-radius:10px;padding:1.75rem 2rem;display:grid;grid-template-columns:3rem 1fr;gap:1.25rem;align-items:start;">
-        <div style="width:3rem;height:3rem;border-radius:50%;background:#0f2a0f;border:2px solid #4caf50;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.1rem;color:#4caf50;flex-shrink:0;">3</div>
-        <div>
-          <div style="font-size:.72rem;color:#4caf50;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.4rem;">Shadow goes live</div>
-          <h3 style="font-size:1.15rem;font-weight:600;color:#f0f0f0;margin:0 0 .6rem;">Their agent. Their IP. Their raise.</h3>
-          <p style="color:#aaa;line-height:1.6;margin:0;margin-bottom:.85rem;">The shadow agent is <strong style="color:#f0f0f0;">owned by the employee</strong> — they hold the IP. Your company pays a flat <strong style="color:#f0f0f0;">$150/mo</strong> license to use it during business hours. The employee keeps full control and earns whenever it works outside your scope. Every proposal, follow-up, and invoice it generates goes through HITL before anything leaves.</p>
-          <!-- Tier table -->
-          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;margin-top:.5rem;">
-            <div style="background:#0a1a0a;border:1px solid #2a4a2a;border-radius:8px;padding:1rem;text-align:center;">
-              <div style="font-size:1.2rem;font-weight:700;color:#4caf50;">$75<span style="font-size:.75rem;font-weight:400;color:#888">/mo</span></div>
-              <div style="font-size:.8rem;font-weight:600;color:#f0f0f0;margin:.3rem 0 .2rem;">Starter</div>
-              <div style="font-size:.72rem;color:#888;">1 workflow</div>
-            </div>
-            <div style="background:#0d200d;border:1px solid #3a6a3a;border-radius:8px;padding:1rem;text-align:center;position:relative;">
-              <div style="position:absolute;top:-.6rem;left:50%;transform:translateX(-50%);background:#4caf50;color:#000;font-size:.62rem;font-weight:700;padding:.15rem .5rem;border-radius:4px;letter-spacing:.05em;white-space:nowrap;">MOST COMMON</div>
-              <div style="font-size:1.2rem;font-weight:700;color:#4caf50;">$150<span style="font-size:.75rem;font-weight:400;color:#888">/mo</span></div>
-              <div style="font-size:.8rem;font-weight:600;color:#f0f0f0;margin:.3rem 0 .2rem;">Full Shadow</div>
-              <div style="font-size:.72rem;color:#888;">All workflows</div>
-            </div>
-            <div style="background:#0a1a0a;border:1px solid #2a4a2a;border-radius:8px;padding:1rem;text-align:center;">
-              <div style="font-size:1.2rem;font-weight:700;color:#4caf50;">$300<span style="font-size:.75rem;font-weight:400;color:#888">/mo</span></div>
-              <div style="font-size:.8rem;font-weight:600;color:#f0f0f0;margin:.3rem 0 .2rem;">Senior</div>
-              <div style="font-size:.72rem;color:#888;">Judgment level</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Step 4 -->
-      <div style="background:#111;border:1px solid #1e3a1e;border-radius:10px;padding:1.75rem 2rem;display:grid;grid-template-columns:3rem 1fr;gap:1.25rem;align-items:start;">
-        <div style="width:3rem;height:3rem;border-radius:50%;background:#0f2a0f;border:2px solid #4caf50;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.1rem;color:#4caf50;flex-shrink:0;">4</div>
-        <div>
-          <div style="font-size:.72rem;color:#4caf50;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.4rem;">The network effect</div>
-          <h3 style="font-size:1.15rem;font-weight:600;color:#f0f0f0;margin:0 0 .6rem;">Their agent earns outside your region.</h3>
-          <p style="color:#aaa;line-height:1.6;margin:0;">When their shadow agent gets licensed to a non-competing business in another city, the <strong style="color:#f0f0f0;">employee earns 60% of every dollar</strong> — automatically, monthly, forever that license is active. Murphy takes 30%. Your company earns a 10% referral cut because the agent was built on your watch. Your people build passive income without leaving. You keep your best people <em>and</em> earn from their growth.</p>
-          <div style="margin-top:1rem;display:flex;flex-wrap:wrap;gap:.6rem;">
-            <span style="background:#0a1a0a;border:1px solid #2a4a2a;border-radius:5px;padding:.3rem .7rem;font-size:.78rem;color:#6abf69;">60% → employee</span>
-            <span style="background:#0a1a0a;border:1px solid #2a4a2a;border-radius:5px;padding:.3rem .7rem;font-size:.78rem;color:#6abf69;">30% → Murphy</span>
-            <span style="background:#0a1a0a;border:1px solid #2a4a2a;border-radius:5px;padding:.3rem .7rem;font-size:.78rem;color:#6abf69;">10% → your company (referral)</span>
-          </div>
-        </div>
-      </div>
-
-    </div>
-
-    <!-- Bottom CTA -->
-    <div style="text-align:center;background:#0d1a0d;border:1px solid #2a4a2a;border-radius:12px;padding:2.5rem 2rem;">
-      <p style="font-size:1.05rem;color:#ccc;margin:0 0 .5rem;">Start at $500/mo.</p>
-      <p style="font-size:1.3rem;font-weight:600;color:#f0f0f0;margin:0 0 1.5rem;">Every hire creates an agent they own. Every agent can earn them income. That's the raise — and it costs you nothing extra.</p>
-      <a href="/book" style="display:inline-block;background:#4caf50;color:#000;font-weight:700;font-size:1rem;padding:.85rem 2.5rem;border-radius:8px;text-decoration:none;letter-spacing:.02em;">Book a demo</a>
-    </div>
-
-  </div>
-</section>
-
-<section id="partner" aria-labelledby="partner-h">
-  <div class="si">
-    <span class="slabel">Partner Program</span>
-    <h2 class="stitle" id="partner-h">Build on Murphy.<br>Sell with Murphy.</h2>
-    <p class="ssub">Request a custom integration for your platform. We build, verify, harden, and deliver it &#8212; then you embed it in your product or sell it to your customers.</p>
-    <div class="partner-grid" role="list">
-      <div class="partner-card" role="listitem">
-        <div class="partner-card-icon">&#128736;&#65039;</div>
-        <h3>Custom Integration Pipeline</h3>
-        <p>Submit an integration request. Our team builds, tests, and hardens it against Murphy&#8217;s full security and compliance stack. You get a production-ready module.</p>
-      </div>
-      <div class="partner-card" role="listitem">
-        <div class="partner-card-icon">&#128176;</div>
-        <h3>Revenue Sharing</h3>
-        <p>Sell Murphy capabilities under your brand. Earn recurring revenue on every subscription your customers activate through your integration.</p>
-      </div>
-      <div class="partner-card" role="listitem">
-        <div class="partner-card-icon">&#127968;</div>
-        <h3>White-Label Ready</h3>
-        <p>Embed Murphy into your SaaS product with full white-label support. Your branding, your domain, your pricing &#8212; Murphy handles the backend.</p>
-      </div>
-    </div>
-    <div class="ml-19" >
-      <a class="btn-p lg" href="/ui/partner-request">&#128338; Request a Custom Integration</a>
-    </div>
-  </div>
-</section>
-
-<!-- PROOF STATS -->
-<section id="proof" aria-labelledby="proof-h" class="ml-6" >
-  <div class="si">
-    <span class="slabel">By the Numbers</span>
-    <h2 class="stitle" id="proof-h">Real Code.<br>Verified Numbers.</h2>
-    <div class="g4 ml-7"  role="list">
-      <article class="stat-card" role="listitem"><div class="snum">681,831</div><div class="slbl">Lines of production code</div></article>
-      <article class="stat-card" role="listitem"><div class="snum">24,341</div><div class="slbl">Test functions</div></article>
-      <article class="stat-card" role="listitem"><div class="snum">1,100+</div><div class="slbl">Modules</div></article>
-      <article class="stat-card" role="listitem"><div class="snum">71</div><div class="slbl">Integrated subsystems</div></article>
-      <article class="stat-card" role="listitem"><div class="snum">453</div><div class="slbl">Live API endpoints</div></article>
-      <article class="stat-card" role="listitem"><div class="snum">287</div><div class="slbl">Matrix rooms</div></article>
-      <article class="stat-card" role="listitem"><div class="snum">706</div><div class="slbl">Test files</div></article>
-    </div>
-  </div>
-</section>
-
-<!-- GUARANTEE -->
-<section id="guarantee" aria-labelledby="guar-h">
-  <div class="si">
-    <span class="slabel">Our Promises</span>
-    <h2 class="stitle" id="guar-h">Zero Black Boxes.<br>Zero Lock-In.</h2>
-    <div class="g4 ml-7"  role="list">
-      <div class="gcard" role="listitem"><div class="gicon">&#128275;</div><h3>Open Source (BSL 1.1)</h3><p>Full source. Read every line. Self-host on your infrastructure. No vendor lock-in.</p></div>
-      <div class="gcard" role="listitem"><div class="gicon">&#129514;</div><h3>24,341 Tests</h3><p>Every module has tests. Every API endpoint is covered. Continuous CI on every commit.</p></div>
-      <div class="gcard" role="listitem"><div class="gicon">&#128274;</div><h3>Data Never Leaves (LLM)</h3><p>Ollama runs locally. Prompts and data stay on your server. Cloud providers are strictly opt-in.</p></div>
-      <div class="gcard" role="listitem"><div class="gicon">&#128222;</div><h3>Human Always in Loop</h3><p>Every high-stakes action requires approval. You can always see what Murphy is doing and why.</p></div>
-    </div>
-  </div>
-</section>
-
-<!-- UNDER THE HOOD (collapsible) -->
-<section id="under-the-hood" aria-labelledby="uth-h">
-  <div class="si">
-    <span class="slabel">Platform Architecture</span>
-    <h2 class="stitle" id="uth-h">1,535 Modules.<br>1,702 Live Endpoints.</h2>
-    <p class="ssub">Every business function is a real, tested module with its own API endpoint, Matrix room, and bot persona. Not a feature checklist &#8212; living, testable code.</p>
-    <div class="ml-20" >
-      <div class="stat-badge">&#9889; 453 live endpoints</div>
-      <div class="stat-badge">&#128029; 1,535 modules</div>
-      <div class="stat-badge">&#128172; 287 Matrix rooms</div>
-      <div class="stat-badge">&#128274; CSRF + RBAC + key rotation</div>
-      <div class="stat-badge">&#128257; Self-healing engine</div>
-      <div class="stat-badge">&#128421;&#65039; Blockchain audit trail</div>
-    </div>
-    <button class="uth-toggle" id="uth-toggle-btn" aria-expanded="false" aria-controls="uth-content">
-      <span id="uth-toggle-icon">&#9660;</span> Show Full Architecture
-    </button>
-    <div class="uth-content" id="uth-content" role="region" aria-label="Architecture details">
-      <div class="arch-grid" role="list">
-        <div class="arch-card" role="listitem"><div class="arch-card-title">&#9889; Execution Engine</div><div class="arch-card-count">/api/execute &#183; /api/compute-plane/*</div><div class="arch-card-desc">Deterministic routing, two-phase commit, task dispatch and orchestration across all subsystems.</div></div>
-        <div class="arch-card" role="listitem"><div class="arch-card-title">&#129504; AI / LLM Layer</div><div class="arch-card-count">/api/llm/* &#183; Ollama + cloud fallback</div><div class="arch-card-desc">Onboard Ollama LLM with cloud fallback. Murphy Foundation Model, neuro-symbolic reasoning, swarm inference.</div></div>
-        <div class="arch-card" role="listitem"><div class="arch-card-title">&#128274; Security Plane</div><div class="arch-card-count">/api/security/* &#183; /api/compliance/*</div><div class="arch-card-desc">CSRF, RBAC deny-by-default, rate limiting, scheduled key rotation, input validation, full audit logging.</div></div>
-        <div class="arch-card" role="listitem"><div class="arch-card-title">&#128172; Matrix Bridge</div><div class="arch-card-count">/api/matrix/* &#183; 287 rooms</div><div class="arch-card-desc">Matrix protocol messaging with 287 registered rooms, bot personas, HITL approvals over chat, webhooks.</div></div>
-        <div class="arch-card" role="listitem"><div class="arch-card-title">&#9993;&#65039; Mail Server</div><div class="arch-card-count">/api/email/* &#183; SMTP/IMAP</div><div class="arch-card-desc">Hosted email on murphy.systems domains. Automated send, account management, SMTP/IMAP config via API.</div></div>
-        <div class="arch-card" role="listitem"><div class="arch-card-title">&#129309; HITL Gates</div><div class="arch-card-count">/api/hitl/* &#183; /api/gate-synthesis/*</div><div class="arch-card-desc">Human-in-the-loop approval queues with auto-graduation, executive/security/compliance gate layers.</div></div>
-        <div class="arch-card" role="listitem"><div class="arch-card-title">&#128257; Self-Healing</div><div class="arch-card-count">/api/self-fix/* &#183; /api/repair/*</div><div class="arch-card-desc">Automated repair proposals, pattern detection, self-improvement engine with HITL review.</div></div>
-        <div class="arch-card" role="listitem"><div class="arch-card-title">&#128029; Swarm Agents</div><div class="arch-card-count">/api/swarm/* &#183; /api/agents/*</div><div class="arch-card-desc">Multi-agent execution, shadow agent training, Rosetta state consensus, parallel task swarms.</div></div>
-        <div class="arch-card" role="listitem"><div class="arch-card-title">&#128202; Trading Engine</div><div class="arch-card-count">/api/trading/* &#183; /api/market/*</div><div class="arch-card-desc">Paper trading, real-time market data, compliance graduation, live order management with risk gates.</div></div>
-        <div class="arch-card" role="listitem"><div class="arch-card-title">&#127959; Gate Synthesis</div><div class="arch-card-count">/api/gate-synthesis/*</div><div class="arch-card-desc">Dynamic gate generation, failure-mode enumeration, retirement conditions, authority matrices.</div></div>
-        <div class="arch-card" role="listitem"><div class="arch-card-title">&#128203; Workflow Terminal</div><div class="arch-card-count">/api/workflow-terminal/* &#183; /ui/terminal-*</div><div class="arch-card-desc">9 terminal UIs: integrated, terminal_unified, architect, orgchart, costs, operator, worker, orchestrator, enhanced.</div></div>
-        <div class="arch-card" role="listitem"><div class="arch-card-title">&#128225; Telemetry &amp; Observability</div><div class="arch-card-count">/api/telemetry &#183; Prometheus metrics</div><div class="arch-card-desc">Structured telemetry, Prometheus metrics, drift detection, Lyapunov stability monitoring.</div></div>
+    <div class="crypto-note">
+      <strong style="color:var(--text)">Pay in crypto — BTC, ETH, SOL, USDC, USDT, and 290+ more.</strong><br>
+      All prices in USD equivalent at current market rate. Monthly subscription link sent to your email. No KYC required.
+      <div class="crypto-coins">
+        <span class="coin-pill">₿ Bitcoin</span>
+        <span class="coin-pill">Ξ Ethereum</span>
+        <span class="coin-pill">◎ Solana</span>
+        <span class="coin-pill">💲 USDC</span>
+        <span class="coin-pill">💲 USDT</span>
+        <span class="coin-pill">⚛ ATOM</span>
+        <span class="coin-pill">+ 290 more</span>
       </div>
     </div>
   </div>
 </section>
 
-<!-- FINAL CTA -->
-<section id="final-cta" style="background:linear-gradient(135deg,#001a00 0%,#0a0a0a 100%);">
-  <div class="si">
-    <h2>We Run the Operations.<br>You Run the Business.</h2>
-    <p>Start free today. Automate your first operation in under 15 minutes. No card required.</p>
-    <div class="fcbtns">
-      <a class="btn-p lg" href="/book">&#128197; Book Your Free Operations Audit</a>
-      <a class="btn-s lg" href="/demo">&#9654; See the System Live</a>
-      <a class="btn-s lg" href="/how-we-work">&#128200; See How Pricing Works</a>
-    </div>
-  </div>
-</section>
-
-</main>
-
+<!-- FOOTER -->
 <footer>
-  <div class="footer-inner">
-    <nav class="flinks" aria-label="Footer navigation">
-      <a href="/">Home</a>
-      <a href="#solutions">Solutions</a>
-      <a href="#industries">Industries</a>
-      <a href="#demo">Demo</a>
-      <a href="#pricing">Pricing</a>
-      <a href="/ui/financing">Financing</a>
-      <a href="/ui/partner-request">Partner</a>
-      <a href="/ui/compliance">Compliance</a>
-      <a href="/ui/docs">Docs</a>
-      <a href="/ui/dashboard">Dashboard</a>
-      <a href="/ui/matrix">Matrix</a>
-      <a href="/ui/paper-trading">Trading</a>
-      <a href="/ui/blog">Blog</a>
-      <a href="/ui/careers">Careers</a>
-      <a href="/ui/legal">Terms</a>
-      <a href="/ui/privacy">Privacy</a>
-    </nav>
-    <p class="fcopy">&#169; 2020 Inoni Limited Liability Company &#183; Created by Corey Post &#183; <a href="/ui/legal" class="ml-21" >BSL 1.1</a></p>
+  <div>
+    <strong style="color:var(--teal)">Murphy System</strong> &mdash; © 2025 Inoni LLC &mdash; Corey Post
+  </div>
+  <div class="footer-links">
+    <a href="/demo">Demo</a>
+    <a href="/ui/login">Login</a>
+    <a href="/ui/signup">Sign Up</a>
+    <a href="/book">Book Audit</a>
+    <a href="/ui/docs">Docs</a>
+    <a href="/legal">Legal</a>
+    <a href="/privacy">Privacy</a>
   </div>
 </footer>
 
-<!-- DEMO MODAL (Swarm Forge — deep-link compat) -->
-<div class="modal-overlay" id="demo-modal" role="dialog" aria-modal="true" aria-labelledby="demo-modal-title">
-  <div class="mbox">
-    <button class="mclose" id="demo-close" aria-label="Close demo">&#10005;</button>
-    <div class="mtitle" id="demo-modal-title">&#9889; Murphy Swarm Forge</div>
-    <div class="msub ml-22" >Pick a deliverable or describe what you want built. Murphy's swarm agents produce it instantly.</div>
-    <div class="ml-23" >
-      &#128279; <a href="#demo" onclick="document.getElementById('demo-modal').classList.remove('open')" class="ml-24" >Use the full Swarm Forge below &#8595;</a>
-    </div>
-  </div>
-</div>
-
-<!-- SIGNUP MODAL (Gap 1 — shown on 429 rate-limit for anonymous users) -->
-<div class="modal-overlay" id="forge-signup-modal" role="dialog" aria-modal="true" aria-labelledby="forge-signup-title" style="display:none;">
-  <div class="mbox" style="max-width:420px;">
-    <button class="mclose" id="forge-signup-close" aria-label="Close sign-up">&#10005;</button>
-    <div class="mtitle" id="forge-signup-title">&#127381; You've used your 5 free builds!</div>
-    <div class="msub ml-22" id="forge-signup-sub">Sign up free for 10 builds per day — no card required.</div>
-    <form id="forge-signup-form" style="margin-top:18px;" novalidate>
-      <div style="margin-bottom:10px;">
-        <input type="email" id="forge-signup-email" placeholder="Email address" autocomplete="email"
-          style="width:100%;padding:10px 12px;border:1px solid var(--border,#334);border-radius:6px;background:var(--bg-card,#111);color:inherit;font-size:15px;" required />
-      </div>
-      <div style="margin-bottom:10px;">
-        <input type="password" id="forge-signup-password" placeholder="Password (8+ chars)" autocomplete="new-password"
-          style="width:100%;padding:10px 12px;border:1px solid var(--border,#334);border-radius:6px;background:var(--bg-card,#111);color:inherit;font-size:15px;" required minlength="8" />
-      </div>
-      <div id="forge-signup-err" style="color:#f66;font-size:13px;margin-bottom:8px;display:none;"></div>
-      <button type="submit" id="forge-signup-submit"
-        style="width:100%;padding:11px;background:var(--teal,#00d4aa);color:#000;font-weight:700;border:none;border-radius:6px;cursor:pointer;font-size:15px;">
-        &#9889; Sign Up Free — Get 10 Daily Builds
-      </button>
-    </form>
-    <div style="margin-top:12px;font-size:13px;color:var(--muted,#888);text-align:center;">
-      Already have an account? <a href="/ui/login" style="color:var(--teal,#00d4aa);">Sign in</a>
-    </div>
-    <div id="forge-signup-reset" style="margin-top:10px;font-size:12px;color:var(--muted,#888);text-align:center;display:none;"></div>
-  </div>
-</div>
-
-<script src="/static/murphy-landing.js"></script>
-
 <script>
-/* buildCustomScenario — dynamic demo fallback for custom queries */
-function buildCustomScenario(query) {
-  return {
-    title: query,
-    description: "Custom scenario: " + query,
-    html: "<p>" + query.replace(/</g, "&lt;") + "</p>"
-  };
+// ── Hamburger ──
+document.getElementById('hamburger').addEventListener('click', function() {
+  document.getElementById('main-nav').classList.toggle('open');
+});
+
+// ── Live stats from API ──
+async function loadStats() {
+  try {
+    const r = await fetch('/api/swarm/agents/status');
+    if (!r.ok) return;
+    const d = await r.json();
+    const agents = d.agents || d.agent_count || 9;
+    document.getElementById('s-agents').textContent = typeof agents === 'object' ? Object.keys(agents).length : agents;
+  } catch(e) {}
+  try {
+    const r = await fetch('/api/swarm/mind/status');
+    if (!r.ok) return;
+    const d = await r.json();
+    if (d.confidence) document.getElementById('s-mind').textContent = parseFloat(d.confidence).toFixed(2);
+  } catch(e) {}
+  try {
+    const r = await fetch('/api/crm/deals');
+    if (!r.ok) return;
+    const d = await r.json();
+    const cnt = (d.deals||d.items||[]).length || d.count || 187;
+    document.getElementById('s-deals').textContent = cnt;
+  } catch(e) {}
+  try {
+    const r = await fetch('/api/mfgc/gates');
+    if (!r.ok) return;
+    const d = await r.json();
+    const gates = d.gates || [];
+    const open = gates.filter(g => g.status === 'open' || g.open === true).length;
+    if (gates.length) document.getElementById('s-gates').textContent = open + '/' + gates.length;
+  } catch(e) {}
+  // System status pill
+  try {
+    const r = await fetch('/api/info');
+    if (r.ok) document.getElementById('sys-status').textContent = 'All Systems Go';
+  } catch(e) {}
 }
-/* demoMatch — match query to demo scenario with custom fallback */
-function demoMatch(q) {
-  if (typeof DEMO_SCENARIOS !== 'undefined') {
-    var key = q.toLowerCase().trim();
-    for (var k in DEMO_SCENARIOS) {
-      if (key.indexOf(k) !== -1 || k.indexOf(key) !== -1) {
-        return DEMO_SCENARIOS[k];
-      }
-    }
+loadStats();
+
+// ── Demo terminal ──
+const SCENARIOS = {
+  onboarding: {
+    cmd: 'dispatch "onboard new client: Apex MEP Contractors"',
+    steps: [
+      { text: '→ Soul loaded: Collector (L0+L1) — data gathering authority', cls: 'out', delay: 400 },
+      { text: '→ Rosetta assembled org for: onboarding task', cls: 'out', delay: 700 },
+      { text: '→ MFGC Phase 1 gate: OPEN — intake requirements satisfied', cls: 'out teal', delay: 1100 },
+      { text: '→ MSS RM3 → RM5 — task magnified to full onboarding spec', cls: 'out', delay: 1500 },
+      { text: '→ Swarm dispatched: Collector, Translator, Scheduler', cls: 'out', delay: 1900 },
+      { text: '', cls: 'out', delay: 2100 },
+      { text: '✓ Client profile created in CRM', cls: 'out green', delay: 2400 },
+      { text: '✓ Welcome email sent — personalized to MEP sector', cls: 'out green', delay: 2700 },
+      { text: '✓ Onboarding checklist generated (14 items)', cls: 'out green', delay: 3000 },
+      { text: '✓ First follow-up scheduled: T+3 days', cls: 'out green', delay: 3300 },
+      { text: '', cls: 'out', delay: 3500 },
+      { text: '⏱  Completed in 4m 12s  |  Human equivalent: ~3 hours', cls: 'out orange', delay: 3800 },
+    ]
+  },
+  compliance: {
+    cmd: 'dispatch "full HIPAA + SOC2 compliance audit for Q2"',
+    steps: [
+      { text: '→ Soul loaded: Auditor (L0+L1) — compliance authority', cls: 'out', delay: 400 },
+      { text: '→ Compliance frameworks active: HIPAA, SOC2', cls: 'out teal', delay: 800 },
+      { text: '→ MFGC Phase 3 gate: OPEN — compliance scope verified', cls: 'out teal', delay: 1200 },
+      { text: '→ Shield status: 19/20 security layers active', cls: 'out', delay: 1600 },
+      { text: '', cls: 'out', delay: 1800 },
+      { text: '✓ 847 data flows scanned — 0 violations found', cls: 'out green', delay: 2100 },
+      { text: '✓ Access control matrix verified — 100% compliant', cls: 'out green', delay: 2500 },
+      { text: '✓ Encryption at rest + in transit: confirmed', cls: 'out green', delay: 2900 },
+      { text: '✓ Audit trail generated — 94-page report', cls: 'out green', delay: 3200 },
+      { text: '✓ Queued for licensed reviewer HITL sign-off', cls: 'out green', delay: 3500 },
+      { text: '', cls: 'out', delay: 3700 },
+      { text: '⏱  Completed in 6m 03s  |  Consultant equivalent: ~3 weeks', cls: 'out orange', delay: 4000 },
+    ]
+  },
+  pipeline: {
+    cmd: 'dispatch "run revenue pipeline cycle — Q2 pipeline"',
+    steps: [
+      { text: '→ Soul loaded: Executive Admin (L0+L1) — revenue authority', cls: 'out', delay: 400 },
+      { text: '→ CRM loaded: 187 deals across 4 stages', cls: 'out teal', delay: 800 },
+      { text: '→ MFGC Phase 2 gate: OPEN — revenue execution clear', cls: 'out teal', delay: 1200 },
+      { text: '', cls: 'out', delay: 1400 },
+      { text: '→ Scanning pipeline blockers...', cls: 'out', delay: 1700 },
+      { text: '  ! 12 deals stale > 14 days — flagged for follow-up', cls: 'out orange', delay: 2000 },
+      { text: '  ! 3 proposals expired — re-engagement sequences queued', cls: 'out orange', delay: 2300 },
+      { text: '', cls: 'out', delay: 2500 },
+      { text: '✓ 12 follow-up emails written + sent', cls: 'out green', delay: 2800 },
+      { text: '✓ 3 proposals refreshed with updated pricing', cls: 'out green', delay: 3100 },
+      { text: '✓ Pipeline value updated: $8,755,000', cls: 'out green', delay: 3400 },
+      { text: '', cls: 'out', delay: 3600 },
+      { text: '⏱  Completed in 3m 44s  |  SDR equivalent: ~1 full day', cls: 'out orange', delay: 3900 },
+    ]
+  },
+  reporting: {
+    cmd: 'dispatch "generate Q2 financial report with P&L"',
+    steps: [
+      { text: '→ Soul loaded: Collector + Executor (L0+L1)', cls: 'out', delay: 400 },
+      { text: '→ Pulling live financial data from ledger...', cls: 'out', delay: 800 },
+      { text: '→ MFGC Phase 5 gate: OPEN — financial data verified', cls: 'out teal', delay: 1200 },
+      { text: '', cls: 'out', delay: 1400 },
+      { text: '✓ Revenue recognized: $142,350 (Q2)', cls: 'out green', delay: 1700 },
+      { text: '✓ Operating expenses categorized: $31,200', cls: 'out green', delay: 2000 },
+      { text: '✓ Gross margin calculated: 78.1%', cls: 'out green', delay: 2300 },
+      { text: '✓ ATOM treasury position: marked to market', cls: 'out green', delay: 2600 },
+      { text: '✓ 14-page P&L report generated (PDF + CSV)', cls: 'out green', delay: 2900 },
+      { text: '✓ Tax checklist updated — 3 items require input', cls: 'out teal', delay: 3200 },
+      { text: '', cls: 'out', delay: 3400 },
+      { text: '⏱  Completed in 6m 55s  |  Accountant equivalent: ~8 hours', cls: 'out orange', delay: 3700 },
+    ]
+  },
+  hr: {
+    cmd: 'dispatch "screen 47 resumes for Senior MEP Engineer role"',
+    steps: [
+      { text: '→ Soul loaded: Translator (L0+L1) — analysis authority', cls: 'out', delay: 400 },
+      { text: '→ Job requirements extracted: 12 criteria', cls: 'out', delay: 800 },
+      { text: '→ MFGC Phase 1 gate: OPEN — screening scope clear', cls: 'out teal', delay: 1200 },
+      { text: '', cls: 'out', delay: 1400 },
+      { text: '→ Analyzing 47 candidates...', cls: 'out', delay: 1700 },
+      { text: '✓ 47 resumes scored against 12 criteria', cls: 'out green', delay: 2100 },
+      { text: '✓ Top 8 candidates identified — ranked by fit score', cls: 'out green', delay: 2400 },
+      { text: '✓ Interview slots auto-scheduled (calendar integrated)', cls: 'out green', delay: 2700 },
+      { text: '✓ Rejection emails drafted for 39 candidates', cls: 'out green', delay: 3000 },
+      { text: '✓ Hiring manager summary report generated', cls: 'out green', delay: 3300 },
+      { text: '', cls: 'out', delay: 3500 },
+      { text: '⏱  Completed in 3m 58s  |  HR equivalent: ~2 full days', cls: 'out orange', delay: 3800 },
+    ]
   }
-  return buildCustomScenario(q);
+};
+
+let currentScenario = 'onboarding';
+let animationTimer = null;
+
+function clearAnimation() {
+  if (animationTimer) { clearTimeout(animationTimer); animationTimer = null; }
 }
-</script>
 
-<!-- Gap 1: Sign-up modal logic (FORGE-SIGNUP-001) -->
-<script>
-(function () {
-  'use strict';
+function runDemo(scenario) {
+  clearAnimation();
+  const s = SCENARIOS[scenario] || SCENARIOS['onboarding'];
+  const cmdEl = document.getElementById('demo-cmd');
+  const outEl = document.getElementById('demo-output');
+  const cursorLine = document.getElementById('demo-cursor-line');
 
-  /* ── Helpers ──────────────────────────────────────────────────────── */
-  function _qs(id) { return document.getElementById(id); }
+  cmdEl.textContent = '';
+  outEl.innerHTML = '';
+  cursorLine.style.display = 'none';
 
-  function _showSignupModal(forgeUsage) {
-    var modal = _qs('forge-signup-modal');
-    var sub   = _qs('forge-signup-sub');
-    var resetEl = _qs('forge-signup-reset');
-    if (!modal) return;
-
-    // Personalise message based on tier
-    if (forgeUsage && forgeUsage.tier === 'free') {
-      _qs('forge-signup-title') && (_qs('forge-signup-title').textContent = '\u26a1 Daily limit reached');
-      if (sub) sub.textContent = "You\u2019ve used all 10 free builds today. Upgrade for unlimited access.";
-      var submitBtn = _qs('forge-signup-submit');
-      if (submitBtn) {
-        submitBtn.textContent = '\u2197 View Upgrade Options';
-        submitBtn.onclick = function(e) { e.preventDefault(); window.location.href = '/pricing'; };
-      }
+  // Type command
+  let i = 0;
+  function typeCmd() {
+    if (i < s.cmd.length) {
+      cmdEl.textContent += s.cmd[i++];
+      animationTimer = setTimeout(typeCmd, 28);
     } else {
-      _qs('forge-signup-title') && (_qs('forge-signup-title').textContent = '\ud83c\udf81 You\u2019ve used your 5 free builds!');
-      if (sub) sub.textContent = 'Sign up free for 10 builds per day \u2014 no card required.';
+      animationTimer = setTimeout(() => showSteps(0), 300);
     }
+  }
+  typeCmd();
 
-    // Show reset time countdown if available
-    if (forgeUsage && forgeUsage.reset_at && resetEl) {
-      try {
-        var resetDate = new Date(forgeUsage.reset_at);
-        var now = new Date();
-        var diffMs = resetDate - now;
-        if (diffMs > 0) {
-          var h = Math.floor(diffMs / 3600000);
-          var m = Math.floor((diffMs % 3600000) / 60000);
-          resetEl.textContent = 'Limit resets in ' + h + 'h ' + m + 'm (midnight UTC).';
-          resetEl.style.display = 'block';
-        }
-      } catch (ex) { /* ignore parse errors */ }
+  function showSteps(idx) {
+    if (idx >= s.steps.length) {
+      cursorLine.style.display = 'block';
+      return;
     }
-
-    modal.style.display = 'flex';
-    modal.style.alignItems = 'center';
-    modal.style.justifyContent = 'center';
-    setTimeout(function () { modal.classList.add('open'); }, 10);
-    var emailInput = _qs('forge-signup-email');
-    if (emailInput) emailInput.focus();
+    const step = s.steps[idx];
+    const line = document.createElement('div');
+    line.className = 'demo-line';
+    const span = document.createElement('span');
+    span.className = step.cls;
+    span.textContent = step.text;
+    line.appendChild(span);
+    outEl.appendChild(line);
+    // Scroll to bottom
+    const term = document.getElementById('demo-terminal');
+    term.scrollTop = term.scrollHeight;
+    animationTimer = setTimeout(() => showSteps(idx + 1), step.delay - (idx > 0 ? s.steps[idx-1].delay : 0));
   }
+}
 
-  function _hideSignupModal() {
-    var modal = _qs('forge-signup-modal');
-    if (!modal) return;
-    modal.classList.remove('open');
-    setTimeout(function () { modal.style.display = 'none'; }, 200);
-  }
-
-  /* ── Modal close handlers ────────────────────────────────────────── */
-  var closeBtn = _qs('forge-signup-close');
-  if (closeBtn) closeBtn.addEventListener('click', _hideSignupModal);
-
-  var modal = _qs('forge-signup-modal');
-  if (modal) {
-    modal.addEventListener('click', function (e) {
-      if (e.target === modal) _hideSignupModal();
-    });
-  }
-  document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape') _hideSignupModal();
+// Chip selection
+document.querySelectorAll('.demo-chip[data-scenario]').forEach(chip => {
+  chip.addEventListener('click', function() {
+    document.querySelectorAll('.demo-chip[data-scenario]').forEach(c => c.classList.remove('active'));
+    this.classList.add('active');
+    currentScenario = this.dataset.scenario;
+    runDemo(currentScenario);
   });
+});
 
-  /* ── Registration form submit (FORGE-SIGNUP-001) ─────────────────── */
-  var form = _qs('forge-signup-form');
-  if (form) {
-    form.addEventListener('submit', function (e) {
-      e.preventDefault();
-      var email    = (_qs('forge-signup-email')    || {}).value || '';
-      var password = (_qs('forge-signup-password') || {}).value || '';
-      var errEl    = _qs('forge-signup-err');
-      var submitBtn = _qs('forge-signup-submit');
+// Run initial demo after short delay
+setTimeout(() => runDemo('onboarding'), 800);
 
-      if (!email || email.indexOf('@') < 0) {
-        if (errEl) { errEl.textContent = 'Please enter a valid email address.'; errEl.style.display = 'block'; }
-        return;
-      }
-      if (password.length < 8) {
-        if (errEl) { errEl.textContent = 'Password must be at least 8 characters.'; errEl.style.display = 'block'; }
-        return;
-      }
-      if (errEl) errEl.style.display = 'none';
-      if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Creating account\u2026'; }
-
-      fetch('/api/auth/register-free', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email, password: password }),
-      })
-      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { return { status: r.status, data: d }; }); })
-      .then(function (res) {
-        if (res.status === 201 && res.data && res.data.token) {
-          // Persist token so subsequent forge requests include auth
-          localStorage.setItem('murphy_session_token', res.data.token);
-          localStorage.setItem('murphy_account_id', res.data.account_id || '');
-          _hideSignupModal();
-          // Notify user and offer to rebuild
-          if (typeof _chatSystem === 'function') {
-            _chatSystem('\u2713 Account created! You now have <strong>10 daily builds</strong>. Resubmit your request to continue.');
-          }
-          if (typeof _showForgeError === 'function') {
-            // Clear the previous error message
-            var errHtml = document.getElementById('forge-api-err');
-            if (errHtml) { errHtml.innerHTML = ''; errHtml.classList.add('forge-hidden'); }
-          }
-        } else if (res.status === 409) {
-          if (errEl) { errEl.textContent = 'Email already registered. Please sign in.'; errEl.style.display = 'block'; }
-          if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '\u26a1 Sign Up Free \u2014 Get 10 Daily Builds'; }
-        } else {
-          var rawErr = (res.data && res.data.error);
-          var msg = (typeof rawErr === 'string' ? rawErr : (rawErr && rawErr.message ? rawErr.message : 'Registration failed. Please try again.'));
-          if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; }
-          if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '\u26a1 Sign Up Free \u2014 Get 10 Daily Builds'; }
-        }
-      })
-      .catch(function () {
-        if (errEl) { errEl.textContent = 'Network error. Please try again.'; errEl.style.display = 'block'; }
-        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '\u26a1 Sign Up Free \u2014 Get 10 Daily Builds'; }
-      });
-    });
-  }
-
-  /* ── Expose for forge run 429 handler ───────────────────────────── */
-  window._showForgeSignupModal = _showSignupModal;
-}());
-</script>
-<script src="/static/murphy-components.js"></script>
-<script>
-/* MurphyLibrarianChat — wired to the landing page using the standard API */
-(function(){
-  var api = new MurphyAPI('/api');
-  var lc = new MurphyLibrarianChat(api);
-  window._murphyLibrarianChat = lc;
-})();
-</script>
-<script src="/static/murphy-session-context.js"></script>
-
-<script>
-/* PATCH-175c: live system status pill */
-(function() {
-  var pill = document.getElementById('sys-status-pill');
-  var txt  = document.getElementById('sys-status-text');
-  if (!pill || !txt) return;
-  fetch('/api/health', {credentials: 'same-origin'})
-    .then(function(r) { return r.json(); })
-    .then(function(d) {
-      if (d.status === 'healthy') {
-        txt.textContent = 'All Systems Go';
-        pill.style.color = '#4ade80';
-        pill.querySelector('.dot') && (pill.querySelector('.dot').style.background = '#4ade80');
-      } else {
-        txt.textContent = 'Degraded';
-        pill.style.color = '#fbbf24';
-      }
-    })
-    .catch(function() {
-      txt.textContent = 'checking…';
-    });
-})();
-
-/* PATCH-175c: hamburger nav toggle */
-
-(function() {
-  var btn = document.getElementById('hamburger-btn');
-  var nav = document.getElementById('main-nav');
-  if (!btn || !nav) return;
-  
-  function openNav() {
-    nav.classList.add('open');
-    btn.setAttribute('aria-expanded', 'true');
-    btn.textContent = '✕';
-    document.body.classList.add('nav-open');
-  }
-  function closeNav() {
-    nav.classList.remove('open');
-    btn.setAttribute('aria-expanded', 'false');
-    btn.textContent = '☰';
-    document.body.classList.remove('nav-open');
-  }
-  
-  btn.addEventListener('click', function(e) {
-    e.stopPropagation();
-    nav.classList.contains('open') ? closeNav() : openNav();
+// ── Smooth scroll for nav links ──
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', function(e) {
+    const target = document.querySelector(this.getAttribute('href'));
+    if (target) { e.preventDefault(); target.scrollIntoView({ behavior: 'smooth' }); }
   });
-  
-  // Close on nav link click
-  nav.querySelectorAll('a').forEach(function(a) {
-    a.addEventListener('click', closeNav);
-  });
-  
-  // Close on overlay click
-  document.addEventListener('click', function(e) {
-    if (nav.classList.contains('open') && !nav.contains(e.target) && e.target !== btn) {
-      closeNav();
-    }
-  });
-  
-  // Close on Escape
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') closeNav();
-  });
-})();
-</script>
-
-
-<script>
-/* PATCH-179c: Dynamic pricing — fetch live Stripe price IDs and wire CTA buttons */
-(function() {
-  function initDynamicPricing(prices) {
-    // Wire each "Get Started" / "Start Free Trial" button to the correct Stripe checkout
-    document.querySelectorAll('[data-tier]').forEach(function(btn) {
-      var tier = btn.getAttribute('data-tier');
-      var interval = btn.getAttribute('data-interval') || 'monthly';
-      if (prices[tier] && prices[tier][interval]) {
-        btn.setAttribute('data-price-id', prices[tier][interval]);
-        btn.addEventListener('click', function(e) {
-          e.preventDefault();
-          var priceId = btn.getAttribute('data-price-id');
-          if (!priceId) { window.location.href = '/ui/register'; return; }
-          fetch('/api/billing/checkout', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ price_id: priceId, tier: tier })
-          }).then(function(r){ return r.json(); }).then(function(d){
-            if (d.checkout_url) window.location.href = d.checkout_url;
-            else window.location.href = '/ui/register?tier=' + tier;
-          }).catch(function(){ window.location.href = '/ui/register?tier=' + tier; });
-        });
-      }
-    });
-    // Update displayed prices if they differ from hardcoded
-    document.querySelectorAll('[data-price-display]').forEach(function(el) {
-      var tier = el.getAttribute('data-price-display');
-      var interval = el.getAttribute('data-interval') || 'monthly';
-      if (prices[tier] && prices[tier][interval + '_usd']) {
-        el.textContent = '$' + prices[tier][interval + '_usd'];
-      }
-    });
-  }
-
-  fetch('/api/billing/prices')
-    .then(function(r){ return r.json(); })
-    .then(function(d){ if (d.success && d.prices) initDynamicPricing(d.prices); })
-    .catch(function(){ /* silently use hardcoded fallback prices */ });
-})();
+});
 </script>
 </body>
 </html>

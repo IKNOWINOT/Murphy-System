@@ -766,4 +766,363 @@ def create_billing_router(
         upsert_customer(account_id=account_id, tier="", status=new_status)
         return JSONResponse({"ok": True, "account_id": account_id, "status": new_status})
 
+    # ── PATCH-378: Murphy Treasury — autonomous bill payment & ops finance ────
+    @router.get("/treasury/status")
+    async def treasury_status() -> JSONResponse:
+        """Full treasury dashboard — wallet, bills, runway, journal."""
+        try:
+            from src.murphy_treasury import get_treasury
+            return JSONResponse({"success": True, **get_treasury().get_status()})
+        except Exception as exc:
+            logger.error("Treasury status error: %s", exc)
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @router.post("/treasury/monitor")
+    async def treasury_run_monitor() -> JSONResponse:
+        """Manually trigger the daily bill monitor (also runs automatically at 6am ET)."""
+        try:
+            from src.murphy_treasury import get_treasury
+            result = get_treasury().run_daily_monitor()
+            return JSONResponse({"success": True, **result})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @router.post("/treasury/inflow")
+    async def treasury_record_inflow(request: Request) -> JSONResponse:
+        """Record a subscription payment inflow and split 50/50 ops/ATOM."""
+        try:
+            body = await request.json()
+            from src.murphy_treasury import get_treasury
+            result = get_treasury().handle_subscription_payment(
+                amount_usd=float(body.get("amount_usd", 0)),
+                tenant_id=body.get("tenant_id", ""),
+                payment_id=body.get("payment_id", ""),
+                tier=body.get("tier", ""),
+            )
+            return JSONResponse(result)
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @router.post("/treasury/register-bill")
+    async def treasury_register_bill(request: Request) -> JSONResponse:
+        """Add a new vendor bill to Murphy's registry."""
+        try:
+            body = await request.json()
+            from src.murphy_treasury import get_treasury
+            result = get_treasury().register_bill(**body)
+            return JSONResponse(result)
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=400)
+
+    # ── PATCH-378 END ────────────────────────────────────────────────────────
+
+
+    # ── PATCH-379: Investment Engine — valuation, data room, investor outreach ─
+    @router.get("/investment/valuation")
+    async def investment_valuation() -> JSONResponse:
+        """Live Murphy valuation — three scenarios, Rule of 40, comparables."""
+        try:
+            from src.murphy_investment_engine import get_valuation_engine
+            return JSONResponse({"success": True, **get_valuation_engine().compute()})
+        except Exception as exc:
+            logger.error("Valuation error: %s", exc)
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @router.get("/investment/data-room")
+    async def investment_data_room() -> JSONResponse:
+        """Full investor data room — financials, product, team, cap table, ask."""
+        try:
+            from src.murphy_investment_engine import get_data_room
+            return JSONResponse({"success": True, **get_data_room().generate()})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @router.get("/investment/investors")
+    async def investment_list_investors(stage: str = "") -> JSONResponse:
+        """List tracked investors by pipeline stage."""
+        try:
+            from src.murphy_investment_engine import get_investor_outreach
+            investors = get_investor_outreach().list_investors(stage=stage)
+            return JSONResponse({"success": True, "investors": investors, "count": len(investors)})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @router.post("/investment/pitch/generate")
+    async def investment_generate_pitch(request: Request) -> JSONResponse:
+        """Generate personalized investor pitch email."""
+        try:
+            body = await request.json()
+            from src.murphy_investment_engine import get_investor_outreach
+            pitch = get_investor_outreach().generate_pitch(
+                investor_id=body.get("investor_id", ""),
+                custom_context=body.get("context", ""),
+            )
+            return JSONResponse({"success": True, **pitch})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @router.get("/investment/applications")
+    async def investment_list_applications() -> JSONResponse:
+        """List all funding applications and their status."""
+        try:
+            from src.murphy_investment_engine import get_application_engine
+            apps = get_application_engine().list_applications()
+            return JSONResponse({"success": True, "applications": apps, "count": len(apps)})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @router.post("/investment/applications/draft-yc")
+    async def investment_draft_yc() -> JSONResponse:
+        """Draft Murphy's YC application using live system data."""
+        try:
+            from src.murphy_investment_engine import get_application_engine
+            result = get_application_engine().draft_yc_application()
+            return JSONResponse({"success": True, **result})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @router.post("/investment/term-sheet/analyze")
+    async def investment_analyze_term_sheet(request: Request) -> JSONResponse:
+        """Analyze a term sheet for red flags. HITL attorney review is mandatory."""
+        try:
+            body = await request.json()
+            from src.murphy_investment_engine import get_term_sheet_hitl
+            result = get_term_sheet_hitl().analyze(
+                term_sheet_text=body.get("text", ""),
+                investor=body.get("investor", ""),
+            )
+            return JSONResponse({"success": True, **result})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @router.post("/investment/bootstrap")
+    async def investment_bootstrap() -> JSONResponse:
+        """Initialize investment engine — seed investors and programs."""
+        try:
+            from src.murphy_investment_engine import bootstrap
+            return JSONResponse(bootstrap())
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    # ── PATCH-379 END ────────────────────────────────────────────────────────
+
+
+    # ── PATCH-380: Business Line Separation — segmented P&L ──────────────────
+    @router.get("/business-lines/pnl")
+    async def business_lines_pnl() -> JSONResponse:
+        """Segmented P&L — platform SaaS vs managed services, with separate valuations."""
+        try:
+            from src.murphy_business_lines import get_segmented_pnl
+            return JSONResponse({"success": True, **get_segmented_pnl().generate()})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @router.get("/business-lines/classify")
+    async def business_lines_classify(task: str = "", tier: str = "",
+                                      client_id: str = "") -> JSONResponse:
+        """Classify a task or revenue event to the correct business line."""
+        try:
+            from src.murphy_business_lines import get_classifier, classify_dispatch
+            c = get_classifier()
+            result = {
+                "task_classification":    classify_dispatch(task, client_id=client_id) if task else None,
+                "revenue_classification": c.classify_revenue(0, tier=tier, client_id=client_id) if (tier or client_id) else None,
+            }
+            return JSONResponse({"success": True, **result})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @router.get("/business-lines/clients")
+    async def business_lines_managed_clients() -> JSONResponse:
+        """List all managed service clients Murphy is running operations for."""
+        try:
+            from src.murphy_business_lines import list_managed_clients
+            clients = list_managed_clients()
+            return JSONResponse({"success": True, "clients": clients, "count": len(clients)})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @router.post("/business-lines/clients/register")
+    async def business_lines_register_client(request: Request) -> JSONResponse:
+        """Register a new managed service client."""
+        try:
+            body = await request.json()
+            from src.murphy_business_lines import register_managed_client
+            result = register_managed_client(**body)
+            return JSONResponse(result)
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=400)
+
+    # ── PATCH-380 END ────────────────────────────────────────────────────────
+
+
+    # ── PATCH-381: Tenant Intelligence — profiles, strategies, authority scope ─
+    @router.get("/tenant/intake-questions")
+    async def tenant_intake_questions() -> JSONResponse:
+        """Onboarding intake questions Murphy asks every new user."""
+        try:
+            from src.murphy_tenant_engine import INTAKE_QUESTIONS
+            return JSONResponse({"success": True, "questions": INTAKE_QUESTIONS, "count": len(INTAKE_QUESTIONS)})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @router.post("/tenant/profile")
+    async def tenant_save_profile(request: Request) -> JSONResponse:
+        """Save or update a tenant business profile from onboarding intake answers."""
+        try:
+            body = await request.json()
+            from src.murphy_tenant_engine import (
+                TenantBusinessProfile, StrategyEngine,
+                save_profile, save_strategy, classify_budget
+            )
+            # Get tenant_id from session
+            session_data = request.state.__dict__.get("session_data", {})
+            tenant_id = body.get("tenant_id") or session_data.get("account_id", "unknown")
+            body["tenant_id"] = tenant_id
+            body["budget_tier"] = classify_budget(float(body.get("monthly_budget", 0)))
+            profile = TenantBusinessProfile(**{
+                k: v for k, v in body.items()
+                if k in TenantBusinessProfile.__dataclass_fields__
+            })
+            save_profile(profile)
+            # Auto-generate strategy
+            strategy = StrategyEngine().generate(profile)
+            save_strategy(strategy)
+            return JSONResponse({
+                "success":    True,
+                "tenant_id":  tenant_id,
+                "budget_tier": profile.budget_tier,
+                "strategy_id": strategy.id,
+                "strategy_summary": strategy.summary,
+                "action_count": len(strategy.actions),
+            })
+        except Exception as exc:
+            logger.error("Tenant profile error: %s", exc)
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=400)
+
+    @router.get("/tenant/profile")
+    async def tenant_get_profile(tenant_id: str = "") -> JSONResponse:
+        """Get a tenant's business profile."""
+        try:
+            from src.murphy_tenant_engine import load_profile
+            profile = load_profile(tenant_id)
+            if not profile:
+                return JSONResponse({"success": False, "error": "Profile not found — complete intake first"}, status_code=404)
+            import dataclasses
+            return JSONResponse({"success": True, "profile": dataclasses.asdict(profile)})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @router.get("/tenant/strategy")
+    async def tenant_get_strategy(tenant_id: str = "") -> JSONResponse:
+        """Get a tenant's active 90-day business strategy."""
+        try:
+            from src.murphy_tenant_engine import get_active_strategy
+            import dataclasses
+            strategy = get_active_strategy(tenant_id)
+            if not strategy:
+                return JSONResponse({"success": False, "error": "No strategy found — complete intake first"}, status_code=404)
+            return JSONResponse({"success": True, "strategy": dataclasses.asdict(strategy)})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @router.post("/tenant/strategy/regenerate")
+    async def tenant_regenerate_strategy(request: Request) -> JSONResponse:
+        """Regenerate strategy after a profile update (budget changed, goal changed, etc.)."""
+        try:
+            body = await request.json()
+            tenant_id = body.get("tenant_id", "")
+            from src.murphy_tenant_engine import load_profile, StrategyEngine, save_strategy
+            profile = load_profile(tenant_id)
+            if not profile:
+                return JSONResponse({"success": False, "error": "Profile not found"}, status_code=404)
+            # Apply any updates in the request
+            for k, v in body.items():
+                if hasattr(profile, k) and k != "tenant_id":
+                    setattr(profile, k, v)
+            strategy = StrategyEngine().generate(profile)
+            save_strategy(strategy)
+            import dataclasses
+            return JSONResponse({"success": True, "strategy": dataclasses.asdict(strategy)})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @router.get("/tenant/scope")
+    async def tenant_dispatch_scope(account_id: str = "", role: str = "user", email: str = "") -> JSONResponse:
+        """Resolve the dispatch authority scope for a user — platform (founder) vs tenant-scoped (user)."""
+        try:
+            from src.murphy_tenant_engine import resolve_dispatch_scope
+            scope = resolve_dispatch_scope(account_id, role, email)
+            return JSONResponse({"success": True, **scope})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    # ── PATCH-381 END ────────────────────────────────────────────────────────
+
+
+    # ── PATCH-381b: Add-ons + Knowledge Context ───────────────────────────────
+    @router.post("/addons/grant")
+    async def addon_grant(request: Request) -> JSONResponse:
+        """Grant a tenant a paid add-on (called after payment confirmed)."""
+        try:
+            body = await request.json()
+            from src.murphy_tenant_engine import grant_addon
+            result = grant_addon(
+                tenant_id=body.get("tenant_id", ""),
+                addon=body.get("addon", ""),
+                price_usd=float(body.get("price_usd", 50.0)),
+                notes=body.get("notes", ""),
+            )
+            return JSONResponse(result)
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=400)
+
+    @router.post("/addons/revoke")
+    async def addon_revoke(request: Request) -> JSONResponse:
+        """Revoke a tenant add-on on cancellation or non-payment."""
+        try:
+            body = await request.json()
+            from src.murphy_tenant_engine import revoke_addon
+            result = revoke_addon(
+                tenant_id=body.get("tenant_id", ""),
+                addon=body.get("addon", ""),
+            )
+            return JSONResponse(result)
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=400)
+
+    @router.get("/addons/pricing")
+    async def addon_pricing() -> JSONResponse:
+        """Available add-on features and pricing."""
+        try:
+            from src.nowpayments_billing import ADDON_PRICES_USD, ADDON_DESCRIPTIONS
+            addons = [
+                {
+                    "id":          addon,
+                    "price_usd":   price,
+                    "price_label": f"${price:.0f}/mo",
+                    "description": ADDON_DESCRIPTIONS.get(addon, ""),
+                }
+                for addon, price in ADDON_PRICES_USD.items()
+            ]
+            return JSONResponse({"success": True, "addons": addons})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @router.get("/tenant/knowledge-context")
+    async def tenant_knowledge_context(tenant_id: str = "") -> JSONResponse:
+        """
+        Returns the knowledge context that gets injected into every LLM prompt
+        for this tenant. This is what makes Murphy sound like the user.
+        """
+        try:
+            from src.murphy_tenant_engine import build_knowledge_context
+            ctx = build_knowledge_context(tenant_id)
+            return JSONResponse({"success": True, **ctx})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    # ── PATCH-381b END ───────────────────────────────────────────────────────
+
+
     return router

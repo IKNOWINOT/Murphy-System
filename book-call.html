@@ -1,0 +1,117 @@
+<!-- Murphy System — Book a Call / PATCH-335 -->
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Murphy — Book Your Discovery Call</title>
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/static/murphy-design-system.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0a0a;color:#e8eaed;font-family:'Inter',system-ui,sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem 1rem}
+.card{background:#111;border:1px solid #1e2733;border-radius:16px;padding:2.5rem 2rem;width:100%;max-width:520px}
+.logo{display:flex;align-items:center;gap:.6rem;margin-bottom:1.5rem;justify-content:center}
+.logo svg{width:24px;height:24px}.logo span{font-size:1rem;font-weight:700;color:#00D4AA}
+h1{font-size:1.4rem;font-weight:800;color:#fff;text-align:center;margin-bottom:.4rem}
+.sub{text-align:center;color:#8b9db0;font-size:.9rem;margin-bottom:1.8rem}
+.highlight{background:#0d2a24;border:1px solid #00D4AA40;border-radius:10px;padding:1rem 1.2rem;margin-bottom:1.5rem;font-size:.9rem;color:#b2dfdb}
+.highlight strong{color:#00D4AA}
+.slots{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem;margin-bottom:1.5rem}
+.slot{padding:.6rem;border:1px solid #1e2733;border-radius:8px;text-align:center;cursor:pointer;font-size:.82rem;color:#8b9db0;transition:all .2s}
+.slot:hover,.slot.sel{border-color:#00D4AA;background:#0d2a24;color:#00D4AA;font-weight:600}
+.form-group{margin-bottom:1rem}
+label{display:block;font-size:.82rem;font-weight:600;color:#a0aab4;margin-bottom:.35rem;text-transform:uppercase;letter-spacing:.05em}
+input,textarea{width:100%;padding:.75rem 1rem;background:#0d1117;border:1px solid #1e2733;border-radius:8px;color:#e8eaed;font-size:.95rem;outline:none;transition:border-color .2s}
+input:focus,textarea:focus{border-color:#00D4AA}
+.btn-primary{width:100%;padding:1rem;background:#00D4AA;color:#0a0a0a;font-size:1rem;font-weight:800;border:none;border-radius:8px;cursor:pointer;margin-top:.5rem;transition:background .2s}
+.btn-primary:hover{background:#00b894}
+.tz-note{text-align:center;font-size:.78rem;color:#556;margin-top:.4rem}
+</style>
+</head><body>
+<div class="card">
+  <div class="logo">
+    <svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="14" fill="none" stroke="#00D4AA" stroke-width="2"/><path d="M8 22L12 10l4 8 4-8 4 12" stroke="#00ff41" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+    <span>Murphy System</span>
+  </div>
+  <h1>Book Your Discovery Call</h1>
+  <p class="sub">30 minutes. We'll scope exactly what Murphy automates for your business.</p>
+  
+  <div class="highlight">
+    <strong>What happens on the call:</strong><br>
+    Murphy maps your current ops → identifies the highest-ROI automations → 
+    scopes a custom plan with exact savings projections. No pitch. Just your numbers.
+  </div>
+
+  <label>Pick a day this week</label>
+  <div class="slots" id="slotGrid"></div>
+
+  <div class="form-group">
+    <label>Preferred time</label>
+    <select id="time">
+      <option value="09:00">9:00 AM PT</option>
+      <option value="10:00">10:00 AM PT</option>
+      <option value="11:00">11:00 AM PT</option>
+      <option value="13:00">1:00 PM PT</option>
+      <option value="14:00">2:00 PM PT</option>
+      <option value="15:00">3:00 PM PT</option>
+      <option value="16:00">4:00 PM PT</option>
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label>Anything specific you want to cover? (optional)</label>
+    <textarea id="notes" rows="2" placeholder="e.g. Our quoting process takes forever — want to fix that first"></textarea>
+  </div>
+
+  <button class="btn-primary" id="bookBtn" onclick="bookCall()">Confirm My Call →</button>
+  <p class="tz-note">All times Pacific. You'll get a calendar invite immediately.</p>
+</div>
+
+<script>
+const params = new URLSearchParams(location.search);
+const subId  = params.get('id') || '';
+let selDate  = '';
+
+// Build next 5 weekdays
+const slots = document.getElementById('slotGrid');
+const d = new Date();
+let added = 0;
+while (added < 5) {
+  d.setDate(d.getDate() + 1);
+  if (d.getDay() === 0 || d.getDay() === 6) continue;
+  const label = d.toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric'});
+  const val   = d.toISOString().split('T')[0];
+  const el    = document.createElement('div');
+  el.className = 'slot';
+  el.textContent = label;
+  el.dataset.v = val;
+  el.addEventListener('click', () => {
+    document.querySelectorAll('.slot').forEach(s => s.classList.remove('sel'));
+    el.classList.add('sel');
+    selDate = val;
+  });
+  slots.appendChild(el);
+  added++;
+}
+
+async function bookCall() {
+  if (!selDate) { alert('Please pick a day'); return; }
+  const btn = document.getElementById('bookBtn');
+  btn.textContent = 'Booking...'; btn.disabled = true;
+  const r = await fetch('/api/saas/book', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      id: subId,
+      slot_date: selDate,
+      slot_time: document.getElementById('time').value,
+      notes: document.getElementById('notes').value.trim()
+    })
+  });
+  const d = await r.json();
+  if (d.ok) {
+    window.location.href = d.next || ('/ui/contract?id=' + subId + '&tier=owner_operator');
+  } else {
+    alert('Error: ' + (d.error || 'Try again'));
+    btn.textContent = 'Confirm My Call →'; btn.disabled = false;
+  }
+}
+</script>
+</body></html>

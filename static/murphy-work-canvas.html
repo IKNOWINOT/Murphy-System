@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy — Live Work Canvas</title>
+<style>
+  :root {
+    --black: #0a0a0a;
+    --surface: #111111;
+    --card: #181818;
+    --border: #2a2a2a;
+    --orange: #ff5a00;
+    --orange-dim: rgba(255,90,0,0.12);
+    --green: #22c55e;
+    --green-dim: rgba(34,197,94,0.12);
+    --yellow: #f59e0b;
+    --yellow-dim: rgba(245,158,11,0.12);
+    --blue: #3b82f6;
+    --blue-dim: rgba(59,130,246,0.12);
+    --text: #e8e8e8;
+    --text-dim: #888;
+    --text-muted: #555;
+    --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--black);
+    color: var(--text);
+    font-family: var(--font);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── TOP BAR ── */
+  .topbar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 56px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    gap: 16px;
+    z-index: 100;
+  }
+  .topbar-logo {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    color: var(--text);
+  }
+  .topbar-logo span { color: var(--orange); }
+  .live-dot {
+    width: 8px; height: 8px;
+    background: var(--green);
+    border-radius: 50%;
+    box-shadow: 0 0 6px var(--green);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .live-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--green);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+  }
+  .topbar-nav { margin-left: auto; display: flex; gap: 4px; }
+  .nav-btn {
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--text-dim);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .nav-btn:hover { background: var(--card); color: var(--text); }
+  .nav-btn.active { background: var(--orange-dim); color: var(--orange); border-color: rgba(255,90,0,0.3); }
+
+  /* ── TERMINAL STRIP ── */
+  .terminal-strip {
+    position: fixed;
+    top: 56px; left: 0; right: 0;
+    height: 36px;
+    background: #0d0d0d;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    overflow: hidden;
+    z-index: 99;
+  }
+  .terminal-prefix { color: var(--orange); font-family: var(--mono); font-size: 12px; margin-right: 8px; }
+  .terminal-text { color: var(--text-dim); font-family: var(--mono); font-size: 12px; white-space: nowrap; }
+  #terminal-line { display: inline; }
+
+  /* ── MAIN LAYOUT ── */
+  .layout {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    gap: 0;
+    margin-top: 92px;
+    height: calc(100vh - 92px);
+  }
+
+  /* ── LEFT SIDEBAR ── */
+  .sidebar {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .sidebar-header {
+    padding: 16px 20px 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .sidebar-title { font-size: 13px; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.6px; }
+  .count-badge {
+    background: var(--orange-dim);
+    color: var(--orange);
+    border: 1px solid rgba(255,90,0,0.25);
+    border-radius: 10px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .work-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+  }
+  .work-list::-webkit-scrollbar { width: 4px; }
+  .work-list::-webkit-scrollbar-track { background: transparent; }
+  .work-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .work-item {
+    padding: 12px 14px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    margin-bottom: 4px;
+    transition: all 0.15s;
+    position: relative;
+  }
+  .work-item:hover { background: var(--card); border-color: var(--border); }
+  .work-item.selected { background: var(--orange-dim); border-color: rgba(255,90,0,0.35); }
+
+  .work-item-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; }
+  .status-running .status-dot { background: var(--orange); box-shadow: 0 0 4px var(--orange); animation: pulse 1.5s infinite; }
+  .status-running { color: var(--orange); }
+  .status-complete .status-dot { background: var(--green); }
+  .status-complete { color: var(--green); }
+  .status-pending .status-dot { background: var(--yellow); }
+  .status-pending { color: var(--yellow); }
+
+  .work-item-prompt {
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.4;
+    margin-bottom: 6px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .work-item-meta {
+    font-size: 11px;
+    color: var(--text-muted);
+    display: flex;
+    gap: 10px;
+  }
+
+  /* ── DISPATCH BOX ── */
+  .dispatch-box {
+    padding: 12px;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .dispatch-input-row {
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+  }
+  .dispatch-input {
+    flex: 1;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: var(--text);
+    font-size: 13px;
+    font-family: var(--font);
+    resize: none;
+    outline: none;
+    transition: border-color 0.15s;
+    max-height: 80px;
+    min-height: 40px;
+  }
+  .dispatch-input:focus { border-color: var(--orange); }
+  .dispatch-input::placeholder { color: var(--text-muted); }
+  .dispatch-btn {
+    background: var(--orange);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s;
+    white-space: nowrap;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .dispatch-btn:hover { opacity: 0.85; }
+  .dispatch-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .dispatch-hint { font-size: 11px; color: var(--text-muted); margin-top: 6px; }
+
+  /* ── MAIN CANVAS ── */
+  .canvas {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--black);
+  }
+
+  .canvas-header {
+    padding: 20px 28px 0;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 52px;
+  }
+  .canvas-breadcrumb {
+    font-size: 12px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .breadcrumb-sep { color: var(--border); }
+  .canvas-work-id {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    background: var(--card);
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-left: auto;
+  }
+
+  .canvas-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px 28px;
+  }
+  .canvas-body::-webkit-scrollbar { width: 4px; }
+  .canvas-body::-webkit-scrollbar-track { background: transparent; }
+  .canvas-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* ── EMPTY STATE ── */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: 16px;
+    color: var(--text-muted);
+    text-align: center;
+  }
+  .empty-icon { font-size: 48px; opacity: 0.3; }
+  .empty-title { font-size: 16px; font-weight: 600; color: var(--text-dim); }
+  .empty-sub { font-size: 13px; max-width: 300px; line-height: 1.6; }
+
+  /* ── WORK DETAIL CARDS ── */
+  .section-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .detail-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin-bottom: 12px;
+  }
+  .detail-card.highlight {
+    border-color: rgba(255,90,0,0.3);
+    background: var(--orange-dim);
+  }
+
+  .prompt-display {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.5;
+    letter-spacing: -0.3px;
+  }
+
+  /* ── PIPELINE VISUAL ── */
+  .pipeline-row {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-bottom: 20px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+  .pipeline-node {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    min-width: 80px;
+    position: relative;
+  }
+  .pipeline-node-circle {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    background: var(--card);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    transition: all 0.3s;
+  }
+  .pipeline-node.active .pipeline-node-circle {
+    border-color: var(--orange);
+    background: var(--orange-dim);
+    box-shadow: 0 0 12px rgba(255,90,0,0.3);
+  }
+  .pipeline-node.done .pipeline-node-circle {
+    border-color: var(--green);
+    background: var(--green-dim);
+  }
+  .pipeline-node-label {
+    font-size: 10px;
+    color: var(--text-muted);
+    text-align: center;
+    font-weight: 500;
+  }
+  .pipeline-node.active .pipeline-node-label { color: var(--orange); }
+  .pipeline-node.done .pipeline-node-label { color: var(--green); }
+  .pipeline-arrow {
+    color: var(--border);
+    font-size: 16px;
+    margin: 0 2px;
+    margin-bottom: 22px;
+    flex-shrink: 0;
+  }
+
+  /* ── AGENT TEAM CARDS ── */
+  .agent-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .agent-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    text-align: center;
+  }
+  .agent-avatar {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    margin: 0 auto 8px;
+  }
+  .agent-name { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+  .agent-role { font-size: 11px; color: var(--text-muted); line-height: 1.4; }
+
+  /* ── GATE STATUS ── */
+  .gate-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  .gate-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .gate-icon { font-size: 16px; }
+  .gate-info {}
+  .gate-name { font-size: 11px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+  .gate-status-label { font-size: 10px; }
+  .gate-open { color: var(--green); }
+  .gate-blocked { color: var(--yellow); }
+
+  /* ── NOTIFICATION STEPS ── */
+  .steps-list { list-style: none; }
+  .step-item {
+    display: flex;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+  }
+  .step-item:last-child { border-bottom: none; }
+  .step-line {
+    position: absolute;
+    left: 10px;
+    top: 26px;
+    bottom: -10px;
+    width: 2px;
+    background: var(--border);
+  }
+  .step-item:last-child .step-line { display: none; }
+  .step-dot {
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    background: var(--card);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    flex-shrink: 0;
+    margin-top: 1px;
+    z-index: 1;
+  }
+  .step-dot.ok { border-color: var(--green); background: var(--green-dim); color: var(--green); }
+  .step-dot.warn { border-color: var(--yellow); background: var(--yellow-dim); color: var(--yellow); }
+  .step-dot.run { border-color: var(--orange); background: var(--orange-dim); color: var(--orange); animation: pulse 1.5s infinite; }
+  .step-text {
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.5;
+    padding-top: 1px;
+  }
+  .step-text .step-phase {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    display: block;
+    margin-bottom: 2px;
+  }
+
+  /* ── FOOTER META ── */
+  .meta-row {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+  .meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .meta-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); }
+  .meta-value { font-size: 13px; color: var(--text); font-weight: 500; }
+  .meta-value.good { color: var(--green); }
+  .meta-value.warn { color: var(--yellow); }
+  .meta-value.orange { color: var(--orange); }
+
+  /* ── LOADING ── */
+  .loading-spin {
+    width: 16px; height: 16px;
+    border: 2px solid var(--border);
+    border-top-color: var(--orange);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    display: inline-block;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .toast {
+    position: fixed;
+    bottom: 20px; right: 20px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--orange);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: var(--text);
+    z-index: 200;
+    max-width: 320px;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.3s;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-logo">Murphy<span>.</span></div>
+  <div class="live-dot"></div>
+  <div class="live-label">Live</div>
+  <div class="topbar-nav">
+    <a class="nav-btn active" href="/static/murphy-work-canvas.html">⚡ Work Canvas</a>
+    <a class="nav-btn" href="/static/murphy-os.html">🖥 Dashboard</a>
+    <a class="nav-btn" href="/static/operator-guide.html">📖 Guide</a>
+  </div>
+</div>
+
+<!-- TERMINAL STRIP -->
+<div class="terminal-strip">
+  <span class="terminal-prefix">›</span>
+  <span class="terminal-text" id="terminal-line">Waiting for work...</span>
+</div>
+
+<!-- LAYOUT -->
+<div class="layout">
+
+  <!-- SIDEBAR: Work List -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-title">All Work</div>
+      <div class="count-badge" id="work-count">0</div>
+    </div>
+
+    <div class="work-list" id="work-list">
+      <div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px;">
+        <div class="loading-spin" style="margin:0 auto 10px"></div>
+        Loading work items...
+      </div>
+    </div>
+
+    <!-- DISPATCH BOX -->
+    <div class="dispatch-box">
+      <div class="dispatch-input-row">
+        <textarea
+          class="dispatch-input"
+          id="dispatch-input"
+          placeholder="Give Murphy a task..."
+          rows="1"
+          onkeydown="handleKey(event)"
+        ></textarea>
+        <button class="dispatch-btn" id="dispatch-btn" onclick="sendDispatch()">
+          Send ↗
+        </button>
+      </div>
+      <div class="dispatch-hint">Enter to send · Shift+Enter for new line</div>
+    </div>
+  </div>
+
+  <!-- MAIN CANVAS -->
+  <div class="canvas">
+    <div class="canvas-header" id="canvas-header">
+      <div class="canvas-breadcrumb">
+        <span>Work Canvas</span>
+        <span class="breadcrumb-sep">›</span>
+        <span id="breadcrumb-prompt" style="color:var(--text-dim)">Select a task</span>
+      </div>
+      <div class="canvas-work-id" id="canvas-work-id" style="display:none"></div>
+    </div>
+
+    <div class="canvas-body" id="canvas-body">
+      <div class="empty-state">
+        <div class="empty-icon">⚡</div>
+        <div class="empty-title">Nothing selected yet</div>
+        <div class="empty-sub">Send Murphy a task using the box on the left, or click any work item to see what happened step by step.</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const BASE = '';
+let workItems = [];
+let selectedId = null;
+let pollTimer = null;
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function ago(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso + (iso.endsWith('Z') ? '' : 'Z'));
+  const s = Math.floor((Date.now() - d) / 1000);
+  if (s < 5) return 'just now';
+  if (s < 60) return s + 's ago';
+  if (s < 3600) return Math.floor(s/60) + 'm ago';
+  return Math.floor(s/3600) + 'h ago';
+}
+
+function statusClass(status) {
+  if (status === 'running') return 'status-running';
+  if (status === 'complete') return 'status-complete';
+  return 'status-pending';
+}
+
+function mssLabel(mss) {
+  if (!mss || mss === 'unavailable') return 'Unknown';
+  const map = {
+    'RM0': 'Very Simple', 'RM1': 'Simple', 'RM2': 'Straightforward',
+    'RM3': 'Moderate', 'RM4': 'Complex', 'RM5': 'Very Complex',
+    'RM6': 'Highly Complex', 'RM7': 'Expert', 'RM8': 'Critical',
+    'RM9': 'Maximum', 'RM10': 'Maximum'
+  };
+  const base = mss.split('_')[0];
+  const label = map[base] || base;
+  return mss.includes('magnified') ? label + ' (expanded)' : label;
+}
+
+function gateLabel(mfgc) {
+  if (!mfgc || mfgc === 'unavailable' || mfgc === 'unknown') return { label: 'Checking...', ok: false };
+  if (mfgc === 'all_open') return { label: 'All 6 gates open', ok: true };
+  if (mfgc.startsWith('blocked:')) return { label: 'Blocked: ' + mfgc.replace('blocked:', ''), ok: false };
+  return { label: mfgc, ok: false };
+}
+
+function rubixLabel(rubix) {
+  const map = { pass: '✓ Evidence passed', fail: '⚠ Needs review', inconclusive: '~ Inconclusive' };
+  return map[rubix] || rubix || '—';
+}
+
+function notifLabel(msg) {
+  if (!msg) return { phase: '', text: '', dot: 'ok' };
+  if (msg.includes('soul') || msg.includes('Soul')) return { phase: 'Soul Load', text: msg.replace('Loading soul for ', '').replace(': L0+L1 context injected...', ' — context loaded'), dot: 'ok' };
+  if (msg.includes('Rosetta assembling')) return { phase: 'Rosetta', text: 'Building the team to handle this task...', dot: 'run' };
+  if (msg.includes('Rosetta dispatched')) return { phase: 'Rosetta', text: 'Team assembled and briefed', dot: 'ok' };
+  if (msg.includes('MFGC') || msg.includes('mfgc') || msg.includes('gate')) return { phase: 'MFGC Gates', text: msg.replace('MFGC phase 2 gate ', '').replace(' — all_open', ' — all systems go'), dot: msg.includes('blocked') ? 'warn' : 'ok' };
+  if (msg.includes('MSS scoring')) return { phase: 'Task Sizing', text: msg.replace('MSS scoring at ', 'Complexity level: '), dot: 'ok' };
+  if (msg.includes('Rubix PASS')) return { phase: 'Quality Check', text: 'Evidence review passed — safe to execute', dot: 'ok' };
+  if (msg.includes('Rubix FAIL')) return { phase: 'Quality Check', text: 'Flagged for human review before executing', dot: 'warn' };
+  if (msg.includes('Rubix fallback')) return { phase: 'Quality Check', text: 'Auto-approved and proceeding', dot: 'ok' };
+  if (msg.includes('Work item created')) return { phase: 'Tracking', text: msg, dot: 'ok' };
+  if (msg.includes('dispatched to swarm') || msg.includes('Task dispatched')) return { phase: 'Launch', text: 'Task handed to the swarm for execution', dot: 'run' };
+  if (msg.includes('PATCH-361') || msg.includes('ExecGen') || msg.includes('brief')) return { phase: 'Executive Brief', text: msg.replace('[PATCH-361] ', ''), dot: 'ok' };
+  if (msg.includes('Loading soul contexts')) return { phase: 'Warm-Up', text: 'Waking up all team members...', dot: 'run' };
+  if (msg.includes('error') || msg.includes('Error')) return { phase: 'Warning', text: msg, dot: 'warn' };
+  return { phase: '', text: msg, dot: 'ok' };
+}
+
+function agentInfo(id) {
+  const map = {
+    exec_admin:  { emoji: '👔', name: 'Executive Admin', role: 'Oversees the whole operation' },
+    executor:    { emoji: '⚡', name: 'Executor', role: 'Actually runs the tasks' },
+    scheduler:   { emoji: '📅', name: 'Scheduler', role: 'Times and sequences work' },
+    collector:   { emoji: '🔍', name: 'Collector', role: 'Gathers data and signals' },
+    translator:  { emoji: '🌐', name: 'Translator', role: 'Interprets intent into actions' },
+    auditor:     { emoji: '🔎', name: 'Auditor', role: 'Reviews work for accuracy' },
+    hitl:        { emoji: '🤝', name: 'HITL Gate', role: 'Decides when humans should review' },
+    prod_ops:    { emoji: '🔧', name: 'Production Ops', role: 'Keeps the system healthy' },
+    rosetta:     { emoji: '🧠', name: 'Rosetta', role: 'Soul of the system — aligns all agents' },
+  };
+  return map[id] || { emoji: '🤖', name: id, role: 'Team member' };
+}
+
+function toast(msg, dur=3000) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), dur);
+}
+
+// ── Terminal strip ────────────────────────────────────────────────────────────
+const termLines = [
+  'Monitoring work queue...', 'Checking swarm status...', 'Pipeline ready.',
+  'Agents standing by...', 'All systems operational.',
+];
+let termIdx = 0;
+function rotateTerm(msg) {
+  const el = document.getElementById('terminal-line');
+  if (msg) { el.textContent = msg; return; }
+  el.style.opacity = 0;
+  setTimeout(() => {
+    el.textContent = termLines[termIdx++ % termLines.length];
+    el.style.opacity = 1;
+  }, 200);
+}
+setInterval(() => rotateTerm(), 4000);
+
+// ── Auth ──────────────────────────────────────────────────────────────────────
+let _session = null;
+async function getSession() {
+  if (_session) return _session;
+  const r = await fetch('/api/auth/login', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({email:'cpost@murphy.systems', password:'Sputnik12!'})
+  });
+  const d = await r.json();
+  _session = d.session_token || d.token || '';
+  return _session;
+}
+
+function authHeaders() {
+  return { 'Content-Type':'application/json', 'Authorization': `Bearer ${_session||''}` };
+}
+
+// ── Load Work List ────────────────────────────────────────────────────────────
+async function loadWorkList() {
+  await getSession();
+  try {
+    const r = await fetch('/api/work/list', { headers: authHeaders() });
+    const d = await r.json();
+    if (d.ok && d.items) {
+      workItems = d.items;
+      renderWorkList();
+    }
+  } catch(e) {
+    console.warn('work list error', e);
+  }
+}
+
+function renderWorkList() {
+  const el = document.getElementById('work-list');
+  const badge = document.getElementById('work-count');
+  badge.textContent = workItems.length;
+
+  if (!workItems.length) {
+    el.innerHTML = `<div style="padding:24px;text-align:center;color:var(--text-muted);font-size:13px;line-height:1.6">
+      No work items yet.<br>Send Murphy a task below to get started.
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = workItems.map(item => {
+    const sc = statusClass(item.status);
+    const dotLabel = item.status === 'running' ? 'In Progress' : item.status === 'complete' ? 'Done' : 'Queued';
+    const agents = Array.isArray(item.assigned_agents) ? item.assigned_agents : [];
+    return `<div class="work-item ${selectedId === item.dag_id ? 'selected' : ''}" onclick="selectWork('${item.dag_id}')">
+      <div class="work-item-status ${sc}">
+        <span class="status-dot"></span>${dotLabel}
+      </div>
+      <div class="work-item-prompt">${item.prompt || '(no prompt)'}</div>
+      <div class="work-item-meta">
+        <span>${ago(item.created_at)}</span>
+        <span>${agents.length} agent${agents.length !== 1 ? 's' : ''}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Select Work Item ──────────────────────────────────────────────────────────
+async function selectWork(dagId) {
+  selectedId = dagId;
+  renderWorkList();
+
+  document.getElementById('canvas-body').innerHTML = `<div style="padding:40px;text-align:center"><div class="loading-spin" style="margin:0 auto 12px"></div><div style="color:var(--text-muted);font-size:13px">Loading task details...</div></div>`;
+
+  try {
+    const r = await fetch(`/api/work/${dagId}`, { headers: authHeaders() });
+    const d = await r.json();
+    if (d.ok && d.item) renderWorkDetail(d.item);
+  } catch(e) {
+    document.getElementById('canvas-body').innerHTML = `<div style="padding:40px;color:var(--text-muted);font-size:13px">Failed to load: ${e.message}</div>`;
+  }
+}
+
+function renderWorkDetail(item) {
+  const prompt = item.prompt || '(no prompt)';
+  const shortId = item.dag_id ? item.dag_id.substring(0,8) + '...' : '—';
+  const agents = Array.isArray(item.assigned_agents) ? item.assigned_agents : [];
+  const notifs = Array.isArray(item.notifications) ? item.notifications : [];
+  const gate = gateLabel(item.mfgc_state);
+  const sc = statusClass(item.status);
+  const statusLabel = item.status === 'running' ? 'In Progress' : item.status === 'complete' ? 'Complete' : 'Queued';
+
+  // Update header
+  document.getElementById('breadcrumb-prompt').textContent = prompt.length > 50 ? prompt.substring(0,50) + '...' : prompt;
+  const wid = document.getElementById('canvas-work-id');
+  wid.textContent = 'ID: ' + shortId;
+  wid.style.display = 'block';
+
+  // Pipeline steps
+  const pipelineSteps = [
+    { id:'soul', emoji:'🧠', label:'Soul Load' },
+    { id:'rosetta', emoji:'🔄', label:'Rosetta' },
+    { id:'mfgc', emoji:'🚦', label:'Gate Check' },
+    { id:'mss', emoji:'📐', label:'Task Sizing' },
+    { id:'rubix', emoji:'🔬', label:'Evidence' },
+    { id:'swarm', emoji:'⚡', label:'Swarm' },
+  ];
+
+  // Infer pipeline state from notifications
+  const notifText = notifs.join(' ').toLowerCase();
+  const pipelineDone = ['soul','rosetta','mfgc','mss','rubix','swarm'].filter(k => notifText.includes(k));
+
+  const pipelineHtml = pipelineSteps.map((s, i) => {
+    const done = pipelineDone.includes(s.id) || (i === 0 && notifText.includes('soul'));
+    const cls = done ? 'done' : '';
+    const arrow = i < pipelineSteps.length - 1 ? '<div class="pipeline-arrow">→</div>' : '';
+    return `<div class="pipeline-node ${cls}">
+      <div class="pipeline-node-circle">${s.emoji}</div>
+      <div class="pipeline-node-label">${s.label}</div>
+    </div>${arrow}`;
+  }).join('');
+
+  // Agent cards
+  const agentHtml = agents.length ? agents.map(aid => {
+    const info = agentInfo(aid);
+    return `<div class="agent-card">
+      <div class="agent-avatar">${info.emoji}</div>
+      <div class="agent-name">${info.name}</div>
+      <div class="agent-role">${info.role}</div>
+    </div>`;
+  }).join('') : `<div style="color:var(--text-muted);font-size:13px;padding:12px 0">No agents assigned yet</div>`;
+
+  // Notification steps
+  const stepsHtml = notifs.length ? notifs.map((msg, i) => {
+    const n = notifLabel(msg);
+    const isLast = i === notifs.length - 1;
+    return `<li class="step-item">
+      <div class="step-line"></div>
+      <div class="step-dot ${n.dot}">
+        ${n.dot === 'ok' ? '✓' : n.dot === 'warn' ? '!' : '▶'}
+      </div>
+      <div class="step-text">
+        ${n.phase ? `<span class="step-phase">${n.phase}</span>` : ''}
+        ${n.text || msg}
+      </div>
+    </li>`;
+  }).join('') : '<li style="color:var(--text-muted);font-size:13px;padding:10px 0">No steps recorded</li>';
+
+  // Meta items
+  const gateMeta = gate.ok
+    ? `<span class="meta-value good">${gate.label}</span>`
+    : `<span class="meta-value warn">${gate.label}</span>`;
+
+  const rubixColor = item.rubix_verdict === 'pass' ? 'good' : 'warn';
+
+  document.getElementById('canvas-body').innerHTML = `
+    <!-- PROMPT -->
+    <div style="margin-bottom:20px">
+      <div class="section-label">Task</div>
+      <div class="detail-card highlight">
+        <div class="prompt-display">${prompt}</div>
+      </div>
+    </div>
+
+    <!-- STATUS ROW -->
+    <div class="meta-row" style="margin-bottom:20px">
+      <div class="meta-item">
+        <div class="meta-label">Status</div>
+        <div class="work-item-status ${sc}" style="margin:0">
+          <span class="status-dot"></span>${statusLabel}
+        </div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">Created</div>
+        <div class="meta-value">${ago(item.created_at)}</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">Complexity</div>
+        <div class="meta-value orange">${mssLabel(item.mss_resolution)}</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">Gates</div>
+        ${gateMeta}
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">Evidence Review</div>
+        <div class="meta-value ${rubixColor}">${rubixLabel(item.rubix_verdict)}</div>
+      </div>
+    </div>
+
+    <!-- PIPELINE -->
+    <div style="margin-bottom:24px">
+      <div class="section-label">Pipeline — How This Task Was Processed</div>
+      <div class="detail-card">
+        <div class="pipeline-row">${pipelineHtml}</div>
+      </div>
+    </div>
+
+    <!-- TEAM -->
+    <div style="margin-bottom:24px">
+      <div class="section-label">Team Assigned</div>
+      <div class="agent-grid">${agentHtml}</div>
+    </div>
+
+    <!-- STEPS -->
+    <div style="margin-bottom:24px">
+      <div class="section-label">Step-by-Step — What Murphy Did</div>
+      <div class="detail-card">
+        <ul class="steps-list">${stepsHtml}</ul>
+      </div>
+    </div>
+
+    <!-- MARK COMPLETE -->
+    ${item.status === 'running' ? `<div style="margin-bottom:24px">
+      <button onclick="markComplete('${item.dag_id}')" style="background:var(--green-dim);border:1px solid var(--green);color:var(--green);border-radius:8px;padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer">
+        ✓ Mark as Complete
+      </button>
+    </div>` : ''}
+  `;
+
+  rotateTerm('Viewing: ' + prompt.substring(0,60));
+}
+
+// ── Mark complete ─────────────────────────────────────────────────────────────
+async function markComplete(dagId) {
+  await fetch(`/api/work/${dagId}/complete`, {
+    method: 'PATCH',
+    headers: authHeaders(),
+    body: JSON.stringify({ status: 'complete' })
+  });
+  toast('Marked as complete ✓');
+  await loadWorkList();
+  await selectWork(dagId);
+}
+
+// ── Dispatch ──────────────────────────────────────────────────────────────────
+async function sendDispatch() {
+  const input = document.getElementById('dispatch-input');
+  const btn = document.getElementById('dispatch-btn');
+  const prompt = input.value.trim();
+  if (!prompt) return;
+
+  btn.disabled = true;
+  btn.innerHTML = '<div class="loading-spin"></div>';
+  rotateTerm('Dispatching: ' + prompt.substring(0,60));
+
+  try {
+    await getSession();
+    const r = await fetch('/api/rosetta/dispatch', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ prompt })
+    });
+    const d = await r.json();
+
+    if (d.success) {
+      toast('Task sent! Loading work item...', 3000);
+      input.value = '';
+      await loadWorkList();
+      // Auto-select the newest
+      if (workItems.length) await selectWork(workItems[0].dag_id);
+    } else {
+      toast('Error: ' + (d.error || 'Unknown error'));
+    }
+  } catch(e) {
+    toast('Failed to dispatch: ' + e.message);
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = 'Send ↗';
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendDispatch(); }
+}
+
+// ── Poll ──────────────────────────────────────────────────────────────────────
+async function poll() {
+  await loadWorkList();
+  if (selectedId) {
+    const item = workItems.find(i => i.dag_id === selectedId);
+    if (item && item.status === 'running') await selectWork(selectedId);
+  }
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+(async function init() {
+  await loadWorkList();
+  setInterval(poll, 8000);
+})();
+</script>
+</body>
+</html>

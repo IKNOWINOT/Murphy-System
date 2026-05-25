@@ -1,0 +1,171 @@
+<!-- Murphy System — Contract & Payment / PATCH-335 -->
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Murphy — Your Service Agreement</title>
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/static/murphy-design-system.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0a0a;color:#e8eaed;font-family:'Inter',system-ui,sans-serif;min-height:100vh;padding:2rem 1rem}
+.wrap{max-width:680px;margin:0 auto}
+.logo{display:flex;align-items:center;gap:.6rem;margin-bottom:2rem;justify-content:center}
+.logo svg{width:24px;height:24px}.logo span{font-size:1rem;font-weight:700;color:#00D4AA}
+h1{font-size:1.5rem;font-weight:800;color:#fff;text-align:center;margin-bottom:.3rem}
+.sub{text-align:center;color:#8b9db0;font-size:.9rem;margin-bottom:2rem}
+.summary-card{background:#111;border:1px solid #1e2733;border-radius:12px;padding:1.5rem;margin-bottom:1.5rem}
+.summary-card h2{font-size:1rem;color:#00D4AA;margin-bottom:1rem;font-weight:700}
+.row{display:flex;justify-content:space-between;align-items:center;padding:.55rem 0;border-bottom:1px solid #1a2030}
+.row:last-child{border-bottom:none}
+.row .lbl{color:#8b9db0;font-size:.9rem}
+.row .val{color:#e8eaed;font-weight:600;font-size:.9rem}
+.row .val.big{color:#00D4AA;font-size:1.2rem;font-weight:800}
+.highlight{background:#0d2a24;border:1px solid #00D4AA50;border-radius:10px;padding:1.2rem;margin:1.5rem 0}
+.highlight h3{color:#00D4AA;margin-bottom:.4rem;font-size:.95rem}
+.highlight p{color:#b2dfdb;font-size:.88rem;line-height:1.6}
+.contract-preview{background:#111;border:1px solid #1e2733;border-radius:10px;padding:1.5rem;margin:1.5rem 0;max-height:320px;overflow-y:auto;font-size:.82rem;color:#8b9db0;line-height:1.7}
+.contract-preview h3{color:#e8eaed;font-size:.95rem;margin-bottom:.5rem}
+.terms-check{display:flex;align-items:flex-start;gap:.75rem;margin:1rem 0}
+.terms-check input{margin-top:3px;accent-color:#00D4AA;width:16px;height:16px;flex-shrink:0;cursor:pointer}
+.terms-check label{color:#8b9db0;font-size:.85rem;cursor:pointer;line-height:1.5}
+.pay-section{background:#111;border:2px solid #00D4AA30;border-radius:12px;padding:1.5rem;margin-top:1.5rem}
+.pay-section h2{color:#fff;font-size:1.1rem;margin-bottom:1rem}
+.btn-pay{width:100%;padding:1.1rem;background:#00D4AA;color:#0a0a0a;font-size:1.1rem;font-weight:800;border:none;border-radius:8px;cursor:pointer;transition:background .2s;letter-spacing:.02em}
+.btn-pay:hover{background:#00b894}
+.btn-pay:disabled{background:#1e3a30;color:#556;cursor:not-allowed}
+.secure-note{text-align:center;margin-top:.75rem;font-size:.78rem;color:#556}
+.loading{display:none;text-align:center;padding:3rem;color:#556}
+</style>
+</head><body>
+<div class="wrap">
+  <div class="logo">
+    <svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="14" fill="none" stroke="#00D4AA" stroke-width="2"/><path d="M8 22L12 10l4 8 4-8 4 12" stroke="#00ff41" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+    <span>Murphy System</span>
+  </div>
+  <h1>Your Service Agreement</h1>
+  <p class="sub">Review your plan and pay the booking deposit to lock in your start date.</p>
+
+  <div id="loadingState" class="loading">Loading your agreement...</div>
+  <div id="mainContent" style="display:none">
+    
+    <div class="summary-card">
+      <h2>📋 Plan Summary</h2>
+      <div class="row"><span class="lbl">Plan</span><span class="val">Owner-Operator SaaS</span></div>
+      <div class="row"><span class="lbl">Monthly rate</span><span class="val">$100/mo</span></div>
+      <div class="row"><span class="lbl">Term</span><span class="val">12 months</span></div>
+      <div class="row"><span class="lbl">Total contract value</span><span class="val">$1,200</span></div>
+      <div class="row"><span class="lbl">Seats included</span><span class="val">1 admin (you)</span></div>
+    </div>
+
+    <div class="highlight">
+      <h3>⚡ Work Backlog Start Date: <span id="backlogDate">—</span></h3>
+      <p>Your automations go live on this date — exactly 6 months from today. 
+      This date is locked in the moment your 60% booking deposit clears. 
+      After that, Murphy starts building your work queue immediately.</p>
+    </div>
+
+    <div class="summary-card">
+      <h2>💳 What's Due Today (60% Booking Deposit)</h2>
+      <div class="row"><span class="lbl">Annual contract value</span><span class="val">$1,200</span></div>
+      <div class="row"><span class="lbl">60% deposit</span><span class="val big" id="depositAmt">$720</span></div>
+      <div class="row"><span class="lbl">Remaining (monthly)</span><span class="val">$40/mo × 12</span></div>
+    </div>
+
+    <div class="contract-preview">
+      <h3>Agreement Terms (Summary)</h3>
+      <p><strong>1. Service:</strong> Murphy Owner-Operator SaaS — autonomous lead capture, qualification, appointment booking, contract generation, and work backlog management. Includes downloadable Murphy Client (1 seat).</p>
+      <p><strong>2. Payment:</strong> 60% of annual contract ($720) due at booking. Remaining balance billed monthly ($40/mo for 12 months).</p>
+      <p><strong>3. Backlog Activation:</strong> Work log and delivery schedule activates 6 months from contract signing date, contingent on receipt of 60% deposit.</p>
+      <p><strong>4. Seats:</strong> 1 admin seat included. Admin add-ons: $49/mo. User seats: $19/mo.</p>
+      <p><strong>5. Term:</strong> 12-month initial term. Cancellation with 30 days notice after month 6. Deposit non-refundable once backlog date is confirmed.</p>
+      <p><strong>6. Scope:</strong> Limited to owner-operator workflows. Enterprise features (swarm agents, shadow agents, multi-seat) require upgrade.</p>
+    </div>
+
+    <div class="terms-check">
+      <input type="checkbox" id="termsCheck">
+      <label for="termsCheck">I have read and agree to the Murphy System Service Agreement terms above. I understand the 60% booking deposit is non-refundable and locks in my backlog start date.</label>
+    </div>
+
+    <div class="pay-section">
+      <h2>Pay Booking Deposit — <span id="payAmt">$720</span></h2>
+      <button class="btn-pay" id="payBtn" onclick="handlePayment()" disabled>
+        🔒 Pay $720 &amp; Lock In My Start Date
+      </button>
+      <p class="secure-note">🔐 Secured by Stripe · SSL encrypted · Receipt emailed immediately</p>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const params    = new URLSearchParams(location.search);
+const subId     = params.get('id') || '';
+const contractId= params.get('contract') || '';
+let   currentContractId = contractId;
+
+document.getElementById('termsCheck').addEventListener('change', function() {
+  document.getElementById('payBtn').disabled = !this.checked;
+});
+
+async function init() {
+  document.getElementById('loadingState').style.display = 'block';
+  
+  // Generate contract if not already sent
+  if (!contractId) {
+    const r = await fetch('/api/saas/send-contract', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({id: subId, tier: 'owner_operator'})
+    });
+    const d = await r.json();
+    if (d.ok) {
+      currentContractId = d.contract_id;
+      document.getElementById('backlogDate').textContent = d.backlog_start;
+      document.getElementById('depositAmt').textContent  = '$' + d.pct60_due.toFixed(2);
+      document.getElementById('payAmt').textContent      = '$' + d.pct60_due.toFixed(2);
+      document.getElementById('payBtn').textContent      = '🔒 Pay $' + d.pct60_due.toFixed(2) + ' & Lock In My Start Date';
+    }
+  } else {
+    // Already have contract — set backlog date from status
+    const r = await fetch('/api/saas/status/' + subId);
+    const d = await r.json();
+    if (d.ok && d.contracts.length > 0) {
+      const c = d.contracts[0];
+      document.getElementById('backlogDate').textContent = c.backlog_start_date;
+      document.getElementById('depositAmt').textContent  = '$' + c.payment_60pct_usd.toFixed(2);
+      document.getElementById('payAmt').textContent      = '$' + c.payment_60pct_usd.toFixed(2);
+      document.getElementById('payBtn').textContent      = '🔒 Pay $' + c.payment_60pct_usd.toFixed(2) + ' & Lock In My Start Date';
+    }
+  }
+  
+  document.getElementById('loadingState').style.display = 'none';
+  document.getElementById('mainContent').style.display  = 'block';
+}
+
+async function handlePayment() {
+  const btn = document.getElementById('payBtn');
+  btn.textContent = 'Processing...'; btn.disabled = true;
+  
+  // TODO: Integrate Stripe Checkout here
+  // For now: simulate payment confirmation (demo mode)
+  // In production: redirect to Stripe session URL
+  
+  const r = await fetch('/api/saas/payment-confirm', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({contract_id: currentContractId, amount_usd: 720, method: 'stripe'})
+  });
+  const d = await r.json();
+  
+  if (d.ok) {
+    if (d.backlog_opened) {
+      window.location.href = '/ui/dashboard-oo?id=' + subId + '&activated=1';
+    } else {
+      btn.textContent = d.message; btn.disabled = false;
+    }
+  } else {
+    btn.textContent = 'Error — try again'; btn.disabled = false;
+    alert(d.error || 'Payment failed');
+  }
+}
+
+init();
+</script>
+</body></html>
