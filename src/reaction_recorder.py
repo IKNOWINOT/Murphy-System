@@ -116,7 +116,21 @@ def _classify_valence(work_summary: str, evidence: Dict[str, Any],
         return ("off", 0.85,
                 "Failed unexpectedly. Reason: {}".format((reason or "n/a")[:120]))
 
-    # ── R104 NEW: mixed-outcome ──
+    # PATCH-REACTIONS-R111 — completion-signal override
+    # When operation explicitly signals success-shape (final/complete/
+    # correctness/shipped/verified), reason field is contextual NOT caveat.
+    # R110 self-reaction caught this: "operation:correctness_final" + reason
+    # got mis-classified mostly_landed when work was fully landed.
+    op_lower = str(evidence.get("operation") or "").lower()
+    completion_signals = ("final", "complete", "correctness", "shipped",
+                          "verified", "_done", "_landed", "loop_closed")
+    is_completion = any(sig in op_lower for sig in completion_signals)
+    if ok is True and is_completion and not has_caveat:
+        return ("expected", 0.85,
+                "{} ({}) shipped clean.".format(op_lower or "operation",
+                                                  reason[:80] if reason else "no caveats"))
+
+    # ── R104 NEW: mixed-outcome (only when not a completion signal) ──
     if ok is True and (has_caveat or reason_with_ok):
         # Pull the specific caveat detail
         caveat_detail = ""
@@ -235,15 +249,53 @@ def capture_reaction(agent_id: str, work_event_table: str,
                      evidence: Optional[Dict[str, Any]] = None,
                      expected_outcome: Optional[Dict[str, Any]] = None,
                      mode: str = "hybrid",
-                     db_path: str = _DB_PATH) -> Dict[str, Any]:
+                     db_path: str = _DB_PATH,
+                     *, skip_stability_gate: bool = False) -> Dict[str, Any]:
     """
     Capture an agent's reaction to a work output.
     mode: 'template' (no LLM), 'hybrid' (template + optional LLM), 'sync' alias.
+    
+    PATCH-REACTIONS-R111 — stability gate check before capture.
+    If this agent's recent reaction series is DIVERGING, refuse the
+    capture to prevent error amplification. skip_stability_gate=True
+    for substrate-internal calls (smoke tests, bootstrap).
     """
     if not agent_id or not work_summary:
         return {"ok": False, "reason": "missing_required_fields"}
     if evidence is None:
         evidence = {}
+
+    # PATCH-REACTIONS-R111 — stability gate check
+    if not skip_stability_gate:
+        try:
+            import sys as _s
+            if "/opt/Murphy-System" not in _s.path:
+                _s.path.insert(0, "/opt/Murphy-System")
+            from src.recursion_stability import recursion_gate
+            # Pull last 5 fitness scores for this agent from pattern_library
+            import sqlite3 as _sq3
+            conn = _sq3.connect("/var/lib/murphy-production/pattern_library.db",
+                               timeout=2)
+            rows = conn.execute(
+                "SELECT fitness_score FROM patterns WHERE agent_id = ? "
+                "AND fitness_score IS NOT NULL "
+                "ORDER BY last_used DESC LIMIT 5",
+                (agent_id,),
+            ).fetchall()
+            conn.close()
+            samples = [float(r[0]) for r in rows if r[0] is not None]
+            if len(samples) >= 3:
+                allow, reason = recursion_gate(
+                    "reaction_loop_" + agent_id, samples, min_score=0.25
+                )
+                if not allow:
+                    return {
+                        "ok": False,
+                        "reason": "stability_gate_refused: " + reason,
+                        "agent_id": agent_id,
+                    }
+        except Exception:
+            pass  # gate failures default to allow (R109 default behavior)
 
     valence, confidence, seed = _classify_valence(
         work_summary, evidence, expected_outcome
