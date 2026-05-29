@@ -1,0 +1,12 @@
+[Unit]
+Description=Run Murphy inbound autoresponse monthly on the 1st at 09:00 UTC (R137 — was R121 every-5-min)
+Requires=murphy-inbound-autoresponse.service
+
+[Timer]
+OnCalendar=*-*-01 09:00:00
+Persistent=true
+AccuracySec=10min
+Unit=murphy-inbound-autoresponse.service
+
+[Install]
+WantedBy=timers.target
