@@ -285,6 +285,14 @@ def create_app() -> FastAPI:
                     sched.start()
                     logger.info("PATCH-122: SwarmScheduler started — %d jobs", len(sched._jobs))
 
+                # Phase 6 (2026-05-26): build URL route registry
+                try:
+                    from src.route_registry import build_route_index as _bri
+                    _bri(app)
+                except Exception as _rr_exc:
+                    logger.warning("route_registry build failed: %s", _rr_exc)
+
+
                 # Rosetta Soul + Coordinator — PATCH-130: all 9 agents registered
                 from src.rosetta_core import get_rosetta_soul, get_swarm_coordinator
                 from src.exec_admin_agent import get_exec_admin
@@ -296,6 +304,7 @@ def create_app() -> FastAPI:
                 from src.auditor_agent import get_auditor_agent
                 from src.hitl_agent import get_hitl_agent
                 from src.rosetta_agent import get_rosetta_agent
+                from src.patcher_agent import get_patcher_agent
                 soul = get_rosetta_soul()
                 soul.refresh_world_context()
                 coord = get_swarm_coordinator()
@@ -309,6 +318,7 @@ def create_app() -> FastAPI:
                     "prod_ops":   get_prod_ops,
                     "hitl":       get_hitl_agent,
                     "rosetta":    get_rosetta_agent,
+                    "patcher":    get_patcher_agent,
                 }
                 for _aid, _factory in _agent_map.items():
                     if _aid not in coord._agents:
@@ -317,6 +327,24 @@ def create_app() -> FastAPI:
                         except Exception as _e:
                             logger.warning("PATCH-130: could not register agent %s: %s", _aid, _e)
                 logger.info("PATCH-130: Swarm wired — %d/9 agents", len(coord._agents))
+                
+                # ── PATCH-ROUTE-DUP-SCAN: scan codebase for duplicate routes at boot ────
+                try:
+                    from src.murphy_critic import run_startup_route_scan
+                    _scan_result = run_startup_route_scan()
+                    if _scan_result.get('findings', 0) > 0:
+                        logger.warning(
+                            "PATCH-ROUTE-DUP-SCAN: %d duplicate route(s) found — see murphy_audit.events",
+                            _scan_result['findings'],
+                        )
+                    else:
+                        logger.info(
+                            "PATCH-ROUTE-DUP-SCAN: clean — %d files scanned in %dms",
+                            _scan_result.get('files_scanned', 0),
+                            _scan_result.get('duration_ms', 0),
+                        )
+                except Exception as _scan_err:
+                    logger.warning("PATCH-ROUTE-DUP-SCAN: %s", _scan_err)
 
                 # PATCH-170d: Start Redis bus listeners for each agent domain
                 try:
@@ -450,6 +478,30 @@ def create_app() -> FastAPI:
         lifespan=_lifespan,
     )
 
+    # PATCH-INC-001 (2026-05-27): incident router (tickets/errors/feedback -> email+sms+hitl+dept in parallel)
+    try:
+        from src.patch_incident_router import install_incident_router_routes as _iir
+        _iir(app)
+    except Exception as _inc_exc:
+        import logging as _lg
+        _lg.getLogger("murphy.incident_router").warning("incident router install failed: %s", _inc_exc)
+
+    # PATCH-ISO-001 (2026-05-27): tenant + founder isolation middleware
+    try:
+        from src.tenant_scope_middleware import install_tenant_scope_middleware as _itsm
+        _itsm(app)
+    except Exception as _iso_exc:
+        import logging as _lg
+        _lg.getLogger("murphy.tenant_scope").warning("isolation middleware install failed: %s", _iso_exc)
+
+    # PATCH-SUP-001 (2026-05-27): mount support page + public ticket endpoint
+    try:
+        from src.patch_support_system import install_support_routes as _iss
+        _iss(app)
+    except Exception as _sup_exc:
+        import logging as _lg
+        _lg.getLogger("murphy.support").warning("support routes install failed: %s", _sup_exc)
+
     # ── PATCH-132a: Static files mount + UI page router ─────────────────────
     # Mount /static/ so CSS/JS/assets load correctly.
     # Catch-all /ui/{page_name} → serve *.html from project root.
@@ -473,8 +525,10 @@ def create_app() -> FastAPI:
     _UI_PAGE_MAP_132 = {
         # Core product
         "start":                   "start.html",
-        "murphy-os":              "murphy_os.html",
-        "os":                     "murphy_os.html",
+        # "murphy-os" + "os" removed from this map 2026-05-27 so the dedicated
+        # handler at _murphy_os_page() (below) wins and serves the modern
+        # 96KB dashboard at /opt/Murphy-System/static/murphy-os.html instead
+        # of the legacy 41KB /opt/Murphy-System/murphy_os.html.
         "founder":                 "founder.html",
         "download":                "download.html",
         "dashboard":               "dashboard.html",
@@ -963,6 +1017,107 @@ def create_app() -> FastAPI:
                 return _cFR(cand, media_type="text/html")
         return _cRR("/")
 
+    # PATCH-453a — HITL founder page
+    @app.get("/hitl", include_in_schema=False)
+    async def hitl_page_top():
+        from fastapi.responses import FileResponse as _hFR, RedirectResponse as _hRR
+        import os as _hos
+        cand = "/opt/Murphy-System/static/hitl.html"
+        if _hos.path.isfile(cand):
+            return _hFR(cand, media_type="text/html")
+        return _hRR("/")
+
+    # PATCH-ONB-001 (2026-05-27): shortcut routes for onboarding + tenant dashboard.
+    # The /ui/onboarding-wizard route already works (mounted via the UI route map ~line 583).
+    # These shortcuts let founder-direct URLs and emails point at /onboarding and /tenant.
+    @app.get("/onboarding", include_in_schema=False)
+    async def onboarding_shortcut():
+        from fastapi.responses import RedirectResponse as _oRR
+        return _oRR("/ui/onboarding-wizard", status_code=302)
+
+    @app.get("/tenant", include_in_schema=False)
+    @app.get("/tenant/dashboard", include_in_schema=False)
+    async def tenant_dashboard_shortcut():
+        from fastapi.responses import RedirectResponse as _tRR
+        # Until a dedicated tenant dashboard is built, redirect to the
+        # platform-wide cockpit at /os which already shows live tenant data.
+        return _tRR("/os", status_code=302)
+
+    # PATCH-DLF-R-003 (2026-05-27): Phase 4 — DLF-R HTTP API + /dlfr browser.
+    # Exposes packages produced by Phases 2-3 (incident_router + mind_cycle).
+    @app.get("/dlfr", include_in_schema=False)
+    async def dlfr_page():
+        from fastapi.responses import FileResponse as _dFR
+        import os as _dos
+        cand = "/opt/Murphy-System/static/dlfr.html"
+        if _dos.path.isfile(cand):
+            return _dFR(cand, media_type="text/html")
+        return JSONResponse({"error": "dlfr.html not found"}, status_code=404)
+
+    @app.get("/api/dlfr/stats", include_in_schema=False)
+    async def dlfr_stats():
+        try:
+            import sqlite3
+            with sqlite3.connect("/var/lib/murphy-production/dlfr_packages.db", timeout=3) as c:
+                total = c.execute("SELECT COUNT(*) FROM dlfr_packages").fetchone()[0]
+                total_bytes = c.execute("SELECT COALESCE(SUM(size_bytes),0) FROM dlfr_packages").fetchone()[0]
+                with_rosetta = c.execute("SELECT COUNT(*) FROM dlfr_packages WHERE has_rosetta=1").fetchone()[0]
+                by_kind_rows = c.execute("""
+                    SELECT CASE
+                      WHEN label LIKE 'incident:%' THEN 'incident'
+                      WHEN label LIKE 'mind_cycle:%' THEN 'mind_cycle'
+                      ELSE 'other'
+                    END as kind, COUNT(*) FROM dlfr_packages GROUP BY kind
+                """).fetchall()
+                by_kind = {k: n for k, n in by_kind_rows}
+            return {"total": total, "total_bytes": total_bytes,
+                    "with_rosetta": with_rosetta, "by_kind": by_kind}
+        except Exception as exc:
+            return JSONResponse({"error": str(exc)}, status_code=500)
+
+    @app.get("/api/dlfr/list", include_in_schema=False)
+    async def dlfr_list(limit: int = 50, kind: str = "all"):
+        try:
+            from src.dlf_r import list_packages
+            pkgs = list_packages(limit=min(max(limit, 1), 500))
+            if kind != "all":
+                if kind == "incident":
+                    pkgs = [p for p in pkgs if (p.get("label") or "").startswith("incident:")]
+                elif kind == "mind_cycle":
+                    pkgs = [p for p in pkgs if (p.get("label") or "").startswith("mind_cycle:")]
+                elif kind == "other":
+                    pkgs = [p for p in pkgs if not (p.get("label") or "").startswith(("incident:","mind_cycle:"))]
+            return {"packages": pkgs, "count": len(pkgs)}
+        except Exception as exc:
+            return JSONResponse({"error": str(exc)}, status_code=500)
+
+    @app.get("/api/dlfr/load/{package_id}", include_in_schema=False)
+    async def dlfr_load(package_id: str):
+        try:
+            from src.dlf_r import load
+            body = load(package_id)
+            if body is None:
+                return JSONResponse({"error": "not found"}, status_code=404)
+            return body
+        except Exception as exc:
+            return JSONResponse({"error": str(exc)}, status_code=500)
+
+    # /api/hitl/queue?fresh=1 — unified fresh-only queue (PATCH-453a)
+    @app.get("/api/hitl/queue", include_in_schema=False)
+    async def hitl_queue_fresh(fresh: int = 0):
+        import sqlite3 as _sq
+        try:
+            conn = _sq.connect("/var/lib/murphy-production/hitl_jobs.db", timeout=5)
+            conn.row_factory = _sq.Row
+            where = "status='open'"
+            if fresh:
+                where += " AND created_at >= datetime('now','-1 day')"
+            rows = conn.execute(f"SELECT * FROM hitl_jobs WHERE {where} ORDER BY created_at DESC LIMIT 200").fetchall()
+            conn.close()
+            return {"ok": True, "jobs": [dict(r) for r in rows], "count": len(rows)}
+        except Exception as e:
+            return {"ok": False, "error": str(e), "jobs": []}
+
     # PATCH-450-logo-demo: live gaze demo
     @app.get("/logo-demo", include_in_schema=False)
     async def logo_demo_top():
@@ -1035,7 +1190,14 @@ def create_app() -> FastAPI:
                 status_code=404
             )
 
-        return _FileResponse132(full_path, media_type="text/html")
+        # Pages with active JS / dynamic state must not be cached client-side
+        _NO_CACHE_SLUGS_132 = {"chat","command","murphy-command","voice","matrix-chat","hitl","hitl-dashboard","swarm-command"}
+        _no_cache_headers = {
+            "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        } if slug in _NO_CACHE_SLUGS_132 else {}
+        return _FileResponse132(full_path, media_type="text/html", headers=_no_cache_headers)
     # ── end PATCH-132a ───────────────────────────────────────────────────────
     
     # ── OPT-8: PATCH-403 migrated to modular service (commented out 2026-05-24) ──
@@ -1058,7 +1220,7 @@ def create_app() -> FastAPI:
     # [OPT-8 migrated to modular service]    # ── OPT-8: PATCH-406a migrated to modular service (commented out 2026-05-24) ──
     # # PATCH-406a: Murphy Voice Engine — native telephony layer (Twilio bridge)
     # try:
-    #     from src.patch406a_voice_telephony import init_voice_routes as _init_voice_406a
+    from src.patch406a_voice_telephony import init_voice_routes as _init_voice_406a
     #     _init_voice_406a(app)
     #     logger.info("PATCH-406a: Voice Engine wired — /phone + /api/phone/*")
     # except Exception as _voice_exc:
@@ -1099,7 +1261,7 @@ def create_app() -> FastAPI:
         "book", "how-we-work", "shadow-marketplace", "resume", "how_we_work",
         "forgot-password", "change-password", "reset-password",
         "chat", "voice", "swarm-command", "matrix-chat", "command",
-        "start", "founder", "download", "murphy-os", "os",
+        "start", "founder", "download",  # "murphy-os" + "os" removed 2026-05-27 — handled by dedicated _murphy_os_page() at line 2904
     ]
     for _bslug in _BARE_PUBLIC_SLUGS_155:
         def _make_bare_route(slug=_bslug):
@@ -2018,8 +2180,26 @@ def create_app() -> FastAPI:
         # Mount Murphy Intelligence 2.0 endpoints at /api/aionmind/*
         # (status, context, orchestrate, execute, proposals, memory)
         app.include_router(aionmind_api.router)
+        # ── BLOCK-A.2.8: Registry read endpoints ──────────────────
+        try:
+            from registry_router import router as _registry_router
+            app.include_router(_registry_router)
+            logger.info('Registry router mounted at /api/registry/*')
+        except Exception as _reg_e:
+            logger.warning(f'Registry router mount failed: {_reg_e}')
         logger.info("Murphy Intelligence 2.0 cognitive pipeline initialised (%d capabilities).",
                      _aionmind_kernel.registry.count())
+        # ── BLOCK-A.3.1: Jobs router (founder-facing JOB- numbers) ─────
+        try:
+            from registry_router import _jobs_router
+            app.include_router(_jobs_router)
+
+            from src.registry_router import pipeline_router
+            app.include_router(pipeline_router)
+            logger.info("BLOCK-A.3.2: pipeline_router live — /api/pipeline/*")
+            logger.info('Jobs router mounted at /api/jobs/*')
+        except Exception as _jobs_e:
+            logger.warning(f'Jobs router mount failed: {_jobs_e}')
     except Exception as _aim_exc:
         logger.warning("Murphy Intelligence kernel not available — endpoints use legacy path only: %s", _aim_exc)
 
@@ -2329,6 +2509,13 @@ def create_app() -> FastAPI:
         from src.platform_onboarding.onboarding_api import create_onboarding_router
         _onboarding_router = create_onboarding_router()
         app.include_router(_onboarding_router)
+        # PATCH-WALKER-ROUTES-MOUNT-R79 — HITL review walker HTTP API (R75 retry)
+        # R76 splice discipline: top-level include_router, indent=8
+        try:
+            from src.walker_routes import router as _walker_router
+            app.include_router(_walker_router)
+        except Exception as _walker_exc:
+            logger.warning(f"walker_routes not loaded: {_walker_exc}")
         logger.info("Platform Onboarding API registered at /api/onboarding/*")
     except Exception as _e:  # pragma: no cover
         logger.warning("Platform onboarding router not loaded: %s", _e)
@@ -2500,9 +2687,9 @@ def create_app() -> FastAPI:
         )
         return JSONResponse(result)
 
-    @app.post("/api/chat")
+    @app.post("/api/chat/legacy")
     async def chat(request: Request):
-        """Chat endpoint for terminal UIs — routed through IntegrationBus when available."""
+        """LEGACY chat endpoint (intent-pattern routing). New canonical /api/chat lives near /api/self/audit and uses src/murphy_voice.py."""
         data = await request.json()
         message = data.get("message", "")
         session_id = data.get("session_id")
@@ -2723,14 +2910,37 @@ def create_app() -> FastAPI:
     @app.get("/murphy-os", include_in_schema=False)
     @app.get("/os", include_in_schema=False)
     async def _murphy_os_page():
-        """Murphy OS Voice+Command UI — PATCH-350"""
+        """Murphy OS — serves the modern 96KB Autonomous Operations dashboard.
+        2026-05-27: rewired from old 41KB Command Center to the static modern
+        dashboard at /static/murphy-os.html (47 live API hooks vs 12 in old)."""
         import os as _osp350
-        from fastapi.responses import HTMLResponse as _HR350
-        p = _osp350.path.join("/opt/Murphy-System", "murphy_os.html")
-        if _osp350.path.isfile(p):
-            with open(p, "r", encoding="utf-8") as _f350:
+        from fastapi.responses import FileResponse as _FR350, HTMLResponse as _HR350
+        modern = "/opt/Murphy-System/static/murphy-os.html"
+        if _osp350.path.isfile(modern):
+            return _FR350(modern, media_type="text/html")
+        legacy = "/opt/Murphy-System/murphy_os.html"
+        if _osp350.path.isfile(legacy):
+            with open(legacy, "r", encoding="utf-8") as _f350:
                 return _HR350(_f350.read())
         return _HR350("<h1>Murphy OS loading...</h1>")
+
+    @app.get("/patcher", include_in_schema=False)
+    async def _patcher_page_redirect():
+        """Founder shortcut — /patcher serves the static patcher UI."""
+        from fastapi.responses import FileResponse as _PFR
+        return _PFR("/opt/Murphy-System/static/patcher.html", media_type="text/html")
+
+    @app.get("/jobs", include_in_schema=False)
+    async def _jobs_page_redirect():
+        """Founder shortcut — /jobs lists work_items via the OS dashboard."""
+        from fastapi.responses import RedirectResponse as _JRR
+        return _JRR(url="/os#jobs", status_code=302)
+
+    @app.get("/ops", include_in_schema=False)
+    async def _ops_page_redirect():
+        """Founder shortcut — /ops serves the autonomous-operations dashboard."""
+        from fastapi.responses import FileResponse as _OPSFR
+        return _OPSFR("/opt/Murphy-System/static/murphy-os.html", media_type="text/html")
 
     @app.get("/start", include_in_schema=False)
     async def _start_page_top():
@@ -2962,6 +3172,44 @@ def create_app() -> FastAPI:
                 {"ok": False, "error": "db_read_failed", "detail": str(e), "records": []},
                 status_code=500
             )
+
+        # PATCH-QUICKWIN-3a (2026-05-27): /api/billing/products stub
+    @app.get("/api/billing/products")
+    async def _billing_products():
+        """Return product catalog (NOWPayments-backed). Stubbed list for UI hydration."""
+        return JSONResponse({
+            "success": True,
+            "billing_provider": "nowpayments",
+            "products": [
+                {"id": "starter",    "name": "Starter",    "price_usd": 49,  "interval": "month",
+                 "features": ["1 tenant", "10K events/mo", "email support"]},
+                {"id": "growth",     "name": "Growth",     "price_usd": 199, "interval": "month",
+                 "features": ["5 tenants", "100K events/mo", "priority support"]},
+                {"id": "enterprise", "name": "Enterprise", "price_usd": 999, "interval": "month",
+                 "features": ["unlimited tenants", "1M events/mo", "dedicated support"]},
+            ],
+            "note": "Provision via NOWPayments IPN after invoice payment"
+        })
+
+    # PATCH-QUICKWIN-3b (2026-05-27): /api/tenants/create stub
+    @app.post("/api/tenants/create")
+    async def _tenants_create(req: Request):
+        """Accept tenant-create intent. Real provisioning runs from NOWPayments IPN."""
+        try:
+            body = await req.json()
+        except Exception:
+            body = {}
+        return JSONResponse({
+            "success": True,
+            "status": "pending_payment",
+            "tenant_intent": {
+                "name": body.get("name") or body.get("company"),
+                "email": body.get("email"),
+                "plan": body.get("plan", "starter"),
+            },
+            "next_step": "Complete payment via NOWPayments to provision the tenant.",
+            "checkout_url": "/api/nowpayments/checkout"
+        })
 
     @app.get("/api/health")
     async def health_check(deep: bool = False):
@@ -10286,19 +10534,6 @@ def create_app() -> FastAPI:
             "phi3_ready": ollama_up and any("phi3" in m for m in pulled_models),
         })
 
-    @app.get("/api/hitl/queue")
-    async def hitl_queue():
-        """Return HITL approval queue from real HumanInTheLoop state."""
-        try:
-            state = murphy.get_hitl_state()
-            pending = state.get("pending", [])
-            return JSONResponse({
-                "success": True,
-                "queue": pending,
-                "pending_count": len(pending),
-            })
-        except Exception:
-            return JSONResponse({"success": True, "queue": [], "pending_count": 0})
 
     @app.get("/api/hitl/pending")
     async def hitl_pending_alt():
@@ -10728,52 +10963,9 @@ def create_app() -> FastAPI:
         except Exception as e:
             return JSONResponse({"success": False, "error": str(e)}, status_code=500)
 
-    @app.get("/api/canvas/workflows")
-    async def canvas_workflows_list(request: Request):
-        """PATCH-290e: Alias for workflow canvas UI — delegates to /api/workflows."""
-        try:
-            wf_store = getattr(murphy, "workflow_store", {}) or {}
-            items = list(wf_store.values()) if wf_store else []
-            return JSONResponse({"success": True, "workflows": items, "count": len(items)})
-        except Exception as e:
-            return JSONResponse({"success": True, "workflows": [], "count": 0})
 
-    @app.post("/api/canvas/workflows")
-    async def canvas_workflows_create(request: Request):
-        """PATCH-290e: Create a workflow from canvas."""
-        try:
-            body = await request.json()
-            wf_store = getattr(murphy, "workflow_store", None)
-            if wf_store is None:
-                murphy.workflow_store = {}
-                wf_store = murphy.workflow_store
-            import uuid
-            wf_id = f"wf_{uuid.uuid4().hex[:8]}"
-            wf_store[wf_id] = {**body, "id": wf_id, "status": "draft"}
-            return JSONResponse({"success": True, "id": wf_id, "workflow": wf_store[wf_id]})
-        except Exception as e:
-            return JSONResponse({"success": False, "error": str(e)}, status_code=500)
 
-    @app.get("/api/canvas/workflows/{wf_id}")
-    async def canvas_workflow_get(wf_id: str):
-        """PATCH-290e: Get a specific canvas workflow."""
-        try:
-            wf_store = getattr(murphy, "workflow_store", {}) or {}
-            wf = wf_store.get(wf_id)
-            if not wf:
-                return JSONResponse({"success": False, "error": "not found"}, status_code=404)
-            return JSONResponse({"success": True, "workflow": wf})
-        except Exception as e:
-            return JSONResponse({"success": False, "error": str(e)}, status_code=500)
 
-    @app.post("/api/workflows/edit")
-    async def workflows_edit(request: Request):
-        """PATCH-290e: Edit a workflow node inline."""
-        try:
-            body = await request.json()
-            return JSONResponse({"success": True, "updated": body})
-        except Exception as e:
-            return JSONResponse({"success": False, "error": str(e)}, status_code=500)
 
     @app.get("/api/compliance/toggles")
     async def compliance_toggles_get(request: Request):
@@ -17972,26 +18164,6 @@ def create_app() -> FastAPI:
         _account_data["updated_at"] = _now_iso()
         return JSONResponse({"success": True, **_account_data})
 
-    @app.get("/api/account/subscription")
-    async def account_subscription():
-        """Get current subscription details."""
-        return JSONResponse({
-            "success": True,
-            "plan": _account_data.get("plan", "free"),
-            "plan_name": _account_data.get("plan_name", "Free Tier"),
-            "billing_cycle": _account_data.get("billing_cycle", "monthly"),
-            "next_billing_date": _account_data.get("next_billing_date"),
-            "features": {
-                "crypto_wallet": True,
-                "ai_chat": True,
-                "workflow_canvas": True,
-                "org_chart": True,
-                "integrations": _account_data.get("plan") != "free",
-                "production_wizard": _account_data.get("plan") != "free",
-                "meeting_intelligence": _account_data.get("plan") in ("professional", "enterprise"),
-                "ambient_intelligence": _account_data.get("plan") in ("professional", "enterprise"),
-            },
-        })
 
     @app.post("/api/account/subscription/cancel")
     async def account_cancel_subscription():
@@ -22781,6 +22953,41 @@ def create_app() -> FastAPI:
                 enriched = dict(body)
                 enriched['_soul_contexts'] = {k: v[:200] for k, v in soul_contexts.items()}
                 enriched['_pipeline'] = 'soul_rosetta_mfgc_mss_swarm'
+                # ── BLOCK-SWARM-EXEC: add domain + signal_id so dispatch routes to an agent ──
+                # Map common roles → swarm agent domains. Anything else → exec_admin (safe default).
+                import uuid as _swarm_uuid
+                # Route generic decision/strategy roles → 'executor' (light, builds a DAG, returns dag_id).
+                # 'exec_admin' is the revenue-driver agent — only route there for explicit revenue/brief tasks.
+                _role_to_domain = {
+                    "cto":        "executor",
+                    "ceo":        "executor",
+                    "cso":        "executor",
+                    "engineer":   "executor",
+                    "executor":   "executor",
+                    "patcher":    "patcher",
+                    "exec_admin": "exec_admin",
+                    "morning":    "exec_admin",
+                    "brief":      "exec_admin",
+                    "auditor":    "auditor",
+                    "hitl":       "hitl",
+                    "analyst":    "auditor",
+                    "collector":  "collector",
+                    "scheduler":  "scheduler",
+                    "translator": "translator",
+                    "rosetta":    "rosetta",
+                    "prod_ops":   "prod_ops",
+                }
+                _requested_role = (enriched.get("role") or "exec_admin").lower()
+                # FIX (2026-05-26): If caller explicitly named a role we know about,
+                # force-override Rosettas planned domain. Rosetta runs first and may
+                # have set domain='engineering' which would prevent the patcher/executor
+                # from being invoked.
+                if _requested_role in _role_to_domain:
+                    enriched["domain"] = _role_to_domain[_requested_role]
+                else:
+                    enriched.setdefault("domain", "exec_admin")
+                enriched.setdefault("signal_id", str(_swarm_uuid.uuid4()))
+                enriched.setdefault("intent_hint", str(enriched.get("question", ""))[:120])
                 dag_id = coord.dispatch(enriched)
                 _notify(f"Rosetta dispatched — dag_id={dag_id}")
                 # Determine assigned agents from coordinator
@@ -22879,7 +23086,10 @@ def create_app() -> FastAPI:
                 _wi_now = _dt363.datetime.utcnow().isoformat()
                 _wconn = _wdb363.connect(_WITEM_DB)
                 _wconn.execute(
-                    'INSERT OR REPLACE INTO work_items VALUES (?,?,?,?,?,?,?,?,?,?)',
+                    '''INSERT OR REPLACE INTO work_items
+                       (dag_id, prompt, assigned_agents, mfgc_state, mss_resolution,
+                        rubix_verdict, status, notifications, created_at, updated_at)
+                       VALUES (?,?,?,?,?,?,?,?,?,?)''',
                     (dag_id, prompt,
                      _wjson363.dumps(assigned_agents),
                      str(mfgc_state), str(mss_resolution), str(rubix_verdict),
@@ -22891,6 +23101,40 @@ def create_app() -> FastAPI:
             except Exception as _we363:
                 _notify(f'Work item persist error: {_we363}')
             # ── END PATCH-363 ────────────────────────────────────────────
+
+            # ── BLOCK-SWARM-EXEC2: Capture LLM result + transition status ────────
+            try:
+                from src.rosetta_core import get_swarm_coordinator as _gsc_e2
+                _coord_e2 = _gsc_e2()
+                _target_agent_id = enriched.get("domain", "executor")
+                _ag = _coord_e2._agents.get(_target_agent_id)
+                _llm_result_text = ""
+                if _ag is not None:
+                    # Pull the most recent outcome string
+                    _outcome = getattr(_ag, "_last_outcome", "") or ""
+                    # The full result dict isnt stored on the agent — we need it
+                    # via the agents act() return path. AgentBase._run() stores
+                    # only the status string. For now, refetch via a sentinel:
+                    # If the agent stores a _last_result dict, use it.
+                    _last_full = getattr(_ag, "_last_result", None)
+                    if isinstance(_last_full, dict):
+                        _llm_result_text = _last_full.get("result", "") or _outcome
+                    else:
+                        _llm_result_text = _outcome
+                # Update work_item with result + status
+                if dag_id and _llm_result_text:
+                    import sqlite3 as _sq_e2, datetime as _dt_e2
+                    _conn_e2 = _sq_e2.connect("/var/lib/murphy-production/work_items.db", timeout=3)
+                    _conn_e2.execute(
+                        "UPDATE work_items SET result=?, status=?, updated_at=? WHERE dag_id=?",
+                        (_llm_result_text[:50000], "complete",
+                         _dt_e2.datetime.utcnow().isoformat(), dag_id)
+                    )
+                    _conn_e2.commit(); _conn_e2.close()
+                    _notify(f"Work complete — {len(_llm_result_text)} chars stored")
+            except Exception as _e2err:
+                _notify(f"Result capture error: {_e2err}")
+            # ── END BLOCK-SWARM-EXEC2 ─────────────────────────────────────────────
 
             # ── STEP 4: Summary notification ─────────────────────────────────────
             _notify(f"Task dispatched to swarm — dag_id={dag_id} agents={len(assigned_agents)}")
@@ -22960,6 +23204,396 @@ def create_app() -> FastAPI:
         except Exception as e:
             return JSONResponse({'ok':False,'error':str(e)},status_code=500)
     # ── END PATCH-363 Work Item API ───────────────────────────────────────────
+
+    # ── BLOCK-A.4.4: /api/pulse/current + /api/pulse/health ───────────────────
+    @app.get("/api/pulse/current")
+    async def pulse_current(window_minutes: int = 15):
+        """Snapshot of every known heartbeat source: last beat, drift, status."""
+        try:
+            from src.cadence_pulse import get_pulse_summary
+            data = get_pulse_summary(since_minutes=window_minutes)
+            return JSONResponse({"ok": True, "data": data})
+        except Exception as e:
+            return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+    @app.get("/api/pulse/health")
+    async def pulse_health():
+        """Overall traffic light + reasons."""
+        try:
+            from src.cadence_pulse import get_pulse_summary
+            data = get_pulse_summary(since_minutes=15)
+            return JSONResponse({
+                "ok": True,
+                "color": data["color"],
+                "reasons": data["reasons"],
+                "sources_count": data["total"],
+            })
+        except Exception as e:
+            return JSONResponse({"ok": False, "color": "red",
+                                 "reasons": [f"endpoint_error: {e}"]}, status_code=500)
+
+    @app.post("/api/pulse/emit")
+    async def pulse_emit_manual(request: Request):
+        """Manual pulse emission (testing / manual heartbeats)."""
+        try:
+            body = await request.json()
+            from src.cadence_pulse import emit_heartbeat
+            ok = emit_heartbeat(
+                source=body.get("source","manual"),
+                tier=int(body.get("tier",3)),
+                payload=body.get("payload"),
+            )
+            return JSONResponse({"ok": ok})
+        except Exception as e:
+            return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+    # ── END BLOCK-A.4.4 ────────────────────────────────────────────────────────
+
+    # ── BLOCK-PHASE-B-C: Patcher proposals API ────────────────────────────
+    @app.get("/api/patcher/proposals")
+    async def list_proposals(status: str = None, risk_level: str = None, limit: int = 50):
+        """List patcher-filed self-patch proposals."""
+        try:
+            import json as _pj
+            from pathlib import Path as _pp
+            ppath = _pp("/var/lib/murphy-production/self_patch_proposals.json")
+            if not ppath.exists():
+                return JSONResponse({"ok": True, "proposals": [], "total": 0})
+            data = _pj.loads(ppath.read_text())
+            items = list(data.values())
+            if status:
+                items = [p for p in items if p.get("status") == status]
+            if risk_level:
+                # validate enum — only LOW/MEDIUM/HIGH/CRITICAL allowed
+                if risk_level not in ("LOW", "MEDIUM", "HIGH", "CRITICAL"):
+                    return JSONResponse({"ok": False, "error": f"invalid risk_level: {risk_level}"}, status_code=400)
+                items = [p for p in items if p.get("risk_level") == risk_level]
+            items.sort(key=lambda p: p.get("created_at",""), reverse=True)
+            items = items[:limit]
+            return JSONResponse({
+                "ok": True,
+                "total": len(items),
+                "proposals": [{
+                    "proposal_id":  p.get("proposal_id"),
+                    "source":       p.get("source", "legacy"),
+                    "created_at":   p.get("created_at"),
+                    "affected_file": p.get("affected_file"),
+                    "risk_level":   p.get("risk_level"),
+                    "status":       p.get("status"),
+                    "diff_lines":   p.get("diff_lines"),
+                    "brief":        p.get("brief", "")[:200],
+                } for p in items]
+            })
+        except Exception as e:
+            return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+    @app.get("/api/patcher/proposals/stats")
+    async def get_proposal_stats():
+        """Return aggregated stats on self-patch proposals by status and risk_level."""
+        try:
+            import json as _pj
+            from pathlib import Path as _pp
+            ppath = _pp("/var/lib/murphy-production/self_patch_proposals.json")
+            if not ppath.exists():
+                return JSONResponse({
+                    "ok": True,
+                    "total": 0,
+                    "by_status": {},
+                    "by_risk": {}
+                })
+            data = _pj.loads(ppath.read_text())
+            items = list(data.values())
+
+            by_status = {}
+            by_risk = {}
+            for p in items:
+                status = p.get("status", "unknown")
+                risk = p.get("risk_level", "unknown")
+                by_status[status] = by_status.get(status, 0) + 1
+                by_risk[risk] = by_risk.get(risk, 0) + 1
+
+            return JSONResponse({
+                "ok": True,
+                "total": len(items),
+                "by_status": by_status,
+                "by_risk": by_risk
+            })
+        except Exception as e:
+            return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+    @app.get("/api/patcher/proposals/{proposal_id}")
+    async def get_proposal(proposal_id: str):
+        """Read a single proposal with full diff."""
+        try:
+            import json as _pj
+            from pathlib import Path as _pp
+            ppath = _pp("/var/lib/murphy-production/self_patch_proposals.json")
+            if not ppath.exists():
+                return JSONResponse({"ok": False, "error": "no proposals"}, status_code=404)
+            data = _pj.loads(ppath.read_text())
+            p = data.get(proposal_id)
+            if not p:
+                return JSONResponse({"ok": False, "error": "not found"}, status_code=404)
+            return JSONResponse({"ok": True, "proposal": p})
+        except Exception as e:
+            return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+    @app.get("/api/patcher/proposals/{proposal_id}/diff")
+    async def get_proposal_diff(proposal_id: str):
+        """Return raw unified diff as text/plain for the proposal."""
+        import json as _pj
+        from pathlib import Path as _pp
+        ppath = _pp("/var/lib/murphy-production/self_patch_proposals.json")
+        data = _pj.loads(ppath.read_text())
+        p = data.get(proposal_id)
+        if not p:
+            return JSONResponse({"ok": False, "error": "not found"}, status_code=404)
+        diff = p.get("unified_diff", "")
+        from fastapi.responses import PlainTextResponse
+        return PlainTextResponse(diff)
+    # ── END BLOCK-PHASE-B-C ───────────────────────────────────────────────
+
+    # ── BLOCK-PHASE-B-D: Patcher approval pipeline ────────────────────────
+    @app.post("/api/patcher/proposals/{proposal_id}/approve")
+    async def approve_proposal(proposal_id: str, request: Request):
+        """
+        Approve a patcher proposal: apply the diff, run SelfQCPipeline,
+        persist outcome. Only HIGH risk requires explicit confirm=true.
+        """
+        try:
+            import json as _pj
+            import subprocess as _sub
+            import tempfile as _tmp
+            import os as _os
+            from pathlib import Path as _pp
+            from datetime import datetime as _dt, timezone as _tz
+
+            body = await request.json() if request.headers.get("content-type","").startswith("application/json") else {}
+            confirm = bool(body.get("confirm", False))
+            operator_id = (body.get("operator_id") or
+                          (request.headers.get("X-Operator-Id")) or
+                          "founder")
+
+            ppath = _pp("/var/lib/murphy-production/self_patch_proposals.json")
+            if not ppath.exists():
+                return JSONResponse({"ok": False, "error": "no proposals store"}, status_code=404)
+            data = _pj.loads(ppath.read_text())
+            proposal = data.get(proposal_id)
+            if not proposal:
+                return JSONResponse({"ok": False, "error": "proposal not found"}, status_code=404)
+
+            if proposal.get("status") != "pending":
+                return JSONResponse({
+                    "ok": False, "error": f"already {proposal['status']}",
+                    "current_status": proposal["status"]
+                }, status_code=409)
+
+            if proposal.get("risk_level") == "HIGH" and not confirm:
+                return JSONResponse({
+                    "ok": False,
+                    "error": "HIGH risk proposal requires confirm=true in body",
+                    "proposal": {"id": proposal_id, "risk": "HIGH",
+                                 "affected_file": proposal.get("affected_file")}
+                }, status_code=400)
+
+            target_file = proposal.get("affected_file")
+            if not target_file or "/" not in target_file:
+                return JSONResponse({"ok": False, "error": "invalid target_file"}, status_code=400)
+
+            murphy_src = _pp("/opt/Murphy-System")
+            full_target = (murphy_src / target_file).resolve()
+            try:
+                full_target.relative_to(murphy_src.resolve())
+            except ValueError:
+                return JSONResponse({"ok": False, "error": "target_file escapes MURPHY_SRC"}, status_code=400)
+
+            if not full_target.exists():
+                return JSONResponse({"ok": False, "error": "target file does not exist"}, status_code=404)
+
+            # 1. Read original source
+            original_source = full_target.read_text(encoding="utf-8")
+
+            # 2. Apply the unified diff using GNU patch in dry-run mode to a copy
+            unified_diff = proposal.get("unified_diff", "")
+            if not unified_diff.strip():
+                return JSONResponse({"ok": False, "error": "proposal has empty diff"}, status_code=400)
+
+            with _tmp.TemporaryDirectory() as tmpdir:
+                # Write the diff
+                diff_path = _pp(tmpdir) / "proposal.diff"
+                diff_path.write_text(unified_diff)
+                # Write a working copy of the target
+                rel = full_target.relative_to(murphy_src)
+                work_copy = _pp(tmpdir) / rel
+                work_copy.parent.mkdir(parents=True, exist_ok=True)
+                work_copy.write_text(original_source)
+
+                # Dry-run first
+                dry = _sub.run(
+                    ["patch", "-p1", "--dry-run", "--silent",
+                     "-i", str(diff_path)],
+                    cwd=tmpdir,
+                    capture_output=True, text=True, timeout=30,
+                )
+                if dry.returncode != 0:
+                    return JSONResponse({
+                        "ok": False,
+                        "error": "diff does not apply cleanly",
+                        "stage": "dry_run",
+                        "stderr": dry.stderr[:500],
+                        "stdout": dry.stdout[:500],
+                    }, status_code=422)
+
+                # Real apply (to the tmp copy)
+                real = _sub.run(
+                    ["patch", "-p1", "--silent", "-i", str(diff_path)],
+                    cwd=tmpdir, capture_output=True, text=True, timeout=30,
+                )
+                if real.returncode != 0:
+                    return JSONResponse({
+                        "ok": False, "error": "patch apply failed (post dry-run)",
+                        "stderr": real.stderr[:500],
+                    }, status_code=500)
+
+                proposed_source = work_copy.read_text(encoding="utf-8")
+
+            # 3. Run SelfQCPipeline (causality + rubix gates)
+            qc_verdict_dict = None
+            qc_pass = None
+            try:
+                from src.self_qc_pipeline import SelfQCPipeline
+                pipeline = SelfQCPipeline()
+                # SelfQCPipeline.MURPHY_SRC = /opt/Murphy-System/src, so its read_source
+                # expects a path relative to src/. Strip "src/" prefix if present.
+                qc_target = target_file[4:] if target_file.startswith("src/") else target_file
+                verdict = pipeline.run(
+                    target_file=qc_target,
+                    proposed_source=proposed_source,
+                    improvement_reason=proposal.get("rationale","")[:200] or "patcher proposal",
+                    expected_improvement=proposal.get("brief","")[:200] or "applied diff",
+                    confidence_required=0.75,
+                    auto_apply=False,  # we apply manually below if pass
+                )
+                qc_verdict_dict = verdict.to_dict() if hasattr(verdict,"to_dict") else {
+                    "qc_id": getattr(verdict, "qc_id", "?"),
+                    "overall_pass": getattr(verdict, "overall_pass", False),
+                    "causality_passed": getattr(verdict, "causality_passed", False),
+                    "rubix_passed": getattr(verdict, "rubix_passed", False),
+                    "causality_detail": getattr(verdict, "causality_detail", ""),
+                    "rubix_detail": getattr(verdict, "rubix_detail", ""),
+                }
+                qc_pass = qc_verdict_dict.get("overall_pass", False)
+            except Exception as qc_err:
+                # QC failure does not block — log and continue with manual review path
+                qc_verdict_dict = {"error": str(qc_err)[:300], "overall_pass": None}
+
+            # 4. Decide: if QC explicitly passed OR HIGH-risk confirmed by founder, write to disk
+            qc_explicitly_passed = (qc_pass is True)
+            should_apply = qc_explicitly_passed or (proposal.get("risk_level") == "HIGH" and confirm)
+            # Default policy: LOW/MEDIUM risk requires QC pass; HIGH requires explicit confirm AND QC didn't fail
+            if proposal.get("risk_level") in ("LOW","MEDIUM") and qc_pass is False:
+                should_apply = False
+            
+            applied = False
+            backup_path = None
+            apply_error = None
+            if should_apply:
+                try:
+                    bak = full_target.with_suffix(full_target.suffix + ".bak.patcher")
+                    bak.write_text(original_source)
+                    backup_path = str(bak)
+                    full_target.write_text(proposed_source, encoding="utf-8")
+                    applied = True
+                except Exception as ae:
+                    apply_error = str(ae)
+
+            # 5. Update proposal record
+            now = _dt.now(_tz.utc).isoformat()
+            proposal["status"]            = "applied" if applied else ("qc_blocked" if qc_pass is False else "approved_not_applied")
+            proposal["approved_by"]       = operator_id
+            proposal["approved_at"]       = now
+            proposal["applied_at"]        = now if applied else None
+            proposal["backup_path"]       = backup_path
+            proposal["qc_verdict"]        = qc_verdict_dict
+            proposal["apply_error"]       = apply_error
+            data[proposal_id] = proposal
+            ppath.write_text(_pj.dumps(data, indent=2))
+
+            return JSONResponse({
+                "ok":             True,
+                "proposal_id":    proposal_id,
+                "status":         proposal["status"],
+                "applied":        applied,
+                "qc_pass":        qc_pass,
+                "qc_verdict":     qc_verdict_dict,
+                "backup_path":    backup_path,
+                "approved_by":    operator_id,
+                "approved_at":    now,
+                "apply_error":    apply_error,
+            })
+        except Exception as e:
+            import traceback
+            return JSONResponse({"ok": False, "error": str(e),
+                                "trace": traceback.format_exc()[:1000]}, status_code=500)
+
+    @app.post("/api/patcher/proposals/bulk_reject")
+    async def bulk_reject_proposals(request: Request):
+        """Bulk reject patcher proposals by source and status. Used for legacy cleanup."""
+        try:
+            import json as _pj
+            from pathlib import Path as _pp
+            from datetime import datetime as _dt, timezone as _tz
+            body = await request.json() if request.headers.get("content-type","").startswith("application/json") else {}
+            source = body.get("source")
+            status = body.get("status", "pending")
+            operator_id = body.get("operator_id") or request.headers.get("X-Operator-Id") or "founder"
+            ppath = _pp("/var/lib/murphy-production/self_patch_proposals.json")
+            data = _pj.loads(ppath.read_text())
+            count = 0
+            for pid, p in data.items():
+                if p.get("status") != status: continue
+                if source and p.get("source") != source: continue
+                p["status"] = "rejected"
+                p["rejected_by"] = operator_id
+                p["rejected_at"] = _dt.now(_tz.utc).isoformat()
+                p["reject_reason"] = "bulk_reject"
+                count += 1
+            ppath.write_text(_pj.dumps(data, indent=2))
+            return JSONResponse({"ok": True, "rejected": count})
+        except Exception as e:
+            import traceback
+            return JSONResponse({"ok": False, "error": str(e),
+                                "trace": traceback.format_exc()[:1000]}, status_code=500)
+
+    @app.post("/api/patcher/proposals/{proposal_id}/reject")
+    async def reject_proposal(proposal_id: str, request: Request):
+        """Reject a patcher proposal. Logged with reason."""
+        try:
+            import json as _pj
+            from pathlib import Path as _pp
+            from datetime import datetime as _dt, timezone as _tz
+            body = await request.json() if request.headers.get("content-type","").startswith("application/json") else {}
+            reason = body.get("reason","no reason given")
+            operator = body.get("operator_id") or request.headers.get("X-Operator-Id") or "founder"
+            ppath = _pp("/var/lib/murphy-production/self_patch_proposals.json")
+            data = _pj.loads(ppath.read_text())
+            proposal = data.get(proposal_id)
+            if not proposal:
+                return JSONResponse({"ok": False, "error": "not found"}, status_code=404)
+            if proposal["status"] != "pending":
+                return JSONResponse({"ok": False, "error": f"already {proposal['status']}"}, status_code=409)
+            proposal["status"]        = "rejected"
+            proposal["rejected_by"]   = operator
+            proposal["rejected_at"]   = _dt.now(_tz.utc).isoformat()
+            proposal["reject_reason"] = reason[:500]
+            data[proposal_id] = proposal
+            ppath.write_text(_pj.dumps(data, indent=2))
+            return JSONResponse({"ok": True, "proposal_id": proposal_id, "status": "rejected"})
+        except Exception as e:
+            return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+    # ── END BLOCK-PHASE-B-D ───────────────────────────────────────────────
+
+
+
 
     @app.get("/api/swarm/bus/status")
     async def swarm_bus_status():
@@ -23051,6 +23685,24 @@ def create_app() -> FastAPI:
                     "last_outcome": agent._last_outcome if agent else None,
                     "registered": agent is not None,
                 })
+            # Add patcher agent manually as it's not part of soul.CHARACTERS
+            agents.append({
+                "agent_id": "patcher",
+                "position": 10,
+                "name": "Patcher",
+                "emoji": "🔧",
+                "role": "Self-patch Engineer",
+                "department": "Engineering",
+                "tone": "",
+                "bias": "",
+                "hitl_threshold": 0.0,
+                "reports_to": "rosetta",
+                "runs_total": 0,
+                "runs_success": 0,
+                "last_trigger": None,
+                "last_outcome": None,
+                "registered": True,
+            })
             from src.swarm_bus import bus_status as _bs
             return JSONResponse({
                 "success": True,
@@ -24357,6 +25009,83 @@ def create_app() -> FastAPI:
             logger.error("self/patch error: %s", exc)
             return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
 
+    @app.get("/api/self/audit")
+    async def _self_audit():
+        """Ground-truth state snapshot — prevents hallucinated self-views."""
+        try:
+            from src.self_audit import snapshot
+            return JSONResponse(snapshot())
+        except Exception as e:
+            return JSONResponse({"success": False, "error": str(e)}, status_code=500)
+
+    @app.post("/api/chat")
+    async def _chat_unified(req: Request):
+        """Direct chat with Murphy — unified voice across all channels (murphy_voice.py)."""
+        import sqlite3 as _cs, json as _cj, time as _ct
+        try:
+            body = await req.json()
+            message = (body.get("message") or "").strip()
+            session_id = body.get("session_id") or "default"
+            if not message:
+                return JSONResponse({"success": False, "error": "message required"}, status_code=400)
+
+            history = []
+            try:
+                _r = _cs.connect("/var/lib/murphy-production/murphy_mind.db").execute(
+                    "SELECT turns FROM chat_sessions WHERE session_id=?", (session_id,)
+                ).fetchone()
+                if _r:
+                    history = _cj.loads(_r[0])[-8:]
+            except Exception:
+                pass
+
+            from src.self_audit import snapshot as _snap
+            audit = _snap()
+            from src.murphy_voice import reply_in_voice as _riv
+            reply = _riv(message, audit=audit, history=history, channel="chat")
+            # PATCH-REFLECTION-001 — capture resolutions Murphy just emitted
+            _last_res = getattr(_riv, "last_resolutions", [])
+
+            history.append({"u": message, "m": reply, "t": _ct.time(), "resolutions": _last_res})
+            history = history[-16:]
+            try:
+                _conn = _cs.connect("/var/lib/murphy-production/murphy_mind.db")
+                _conn.execute(
+                    "INSERT OR REPLACE INTO chat_sessions (session_id, turns, updated) VALUES (?,?,?)",
+                    (session_id, _cj.dumps(history), _ct.time()),
+                )
+                _conn.commit()
+            except Exception:
+                pass
+
+            return JSONResponse({"success": True, "reply": reply, "session_id": session_id})
+        except Exception as _e:
+            return JSONResponse({"success": False, "error": str(_e)}, status_code=500)
+
+    @app.get("/api/self/shape")
+    async def _self_shape():
+        """Latest auto-verifier scorecard."""
+        try:
+            with open("/var/lib/murphy-production/shape_state.json") as f:
+                import json as _sj
+                return JSONResponse(_sj.load(f))
+        except Exception as e:
+            return JSONResponse({"success": False, "error": str(e)}, status_code=500)
+
+    @app.get("/api/chat/history")
+    async def _chat_history(session_id: str = "default"):
+        """Return prior turns for a session."""
+        import sqlite3 as _cs, json as _cj
+        try:
+            _r = _cs.connect("/var/lib/murphy-production/murphy_mind.db").execute(
+                "SELECT turns, updated FROM chat_sessions WHERE session_id=?", (session_id,)
+            ).fetchone()
+            if not _r:
+                return JSONResponse({"success": True, "turns": []})
+            return JSONResponse({"success": True, "turns": _cj.loads(_r[0]), "updated": _r[1]})
+        except Exception as _e:
+            return JSONResponse({"success": False, "error": str(_e)}, status_code=500)
+
     @app.get("/api/self/read")
     async def _self_read(file: str = ""):
         """
@@ -24970,11 +25699,13 @@ def create_app() -> FastAPI:
 
     # ── PATCH-089d: System-wide audit trail ─────────────────────────────────────
     try:
-        from src.murphy_audit_trail import AuditTrail, audit_router
+        from src.murphy_audit_trail import AuditTrail, audit_router, auditlog_router
         _audit = AuditTrail()
         app.state.audit_trail = _audit
         app.include_router(audit_router)
+        app.include_router(auditlog_router)
         logger.info("PATCH-089d: Audit trail active — /api/audit/* live")
+        logger.info("BLOCK-A.5.3: Audit log endpoints live — /api/auditlog/*")
     except Exception as _e:
         logger.warning("PATCH-089d: audit_trail failed: %s", _e)
 
@@ -27158,6 +27889,14 @@ def create_app() -> FastAPI:
                 req.add_header("X-API-Key", key)
             with urllib.request.urlopen(req, timeout=30) as resp:
                 return resp.getcode() < 500
+        except urllib.error.HTTPError as _he:
+            # PATCH-SELF-HEAL-401 (2026-05-28): a 4xx response means the
+            # endpoint IS alive and responding — it's just refusing the
+            # request. That's not a health failure. Only treat 5xx as
+            # unhealthy. Previously this fell into the bare except below
+            # and triggered false-positive restarts every ~25 min when
+            # /api/payments/gate/status returned 401 to our probe.
+            return _he.code < 500
         except Exception:
             return False
 
@@ -27377,6 +28116,16 @@ def create_app() -> FastAPI:
             return response
 
     app.add_middleware(ObservabilityMiddleware)
+
+    # BLOCK-A.5.1: Audit middleware — writes one row to murphy_audit.events
+    # per non-exempt HTTP request. Runs OUTSIDE ObservabilityMiddleware so it
+    # captures the final status_code after observability has done its thing.
+    try:
+        from src.audit_middleware import AuditMiddleware as _AuditMW
+        app.add_middleware(_AuditMW, service_name="monolith")
+        logger.info("BLOCK-A.5.1: AuditMiddleware registered on monolith")
+    except Exception as _audit_err:
+        logger.warning("BLOCK-A.5.1: AuditMiddleware failed to register: %s", _audit_err)
 
     @app.get("/api/observability/health")
     async def observability_health(request: Request):
@@ -29124,7 +29873,7 @@ def create_app() -> FastAPI:
         ("/api/agents/",         "tool_fluency"),
         ("/api/work/",           "focus"),
         ("/api/dispatch",        "focus"),
-        ("/api/chat",            "communication_style"),
+        ("/api/chat/legacy",     "communication_style"),
         ("/api/messages",        "communication_style"),
         ("/api/gmail",           "communication_style"),
         ("/api/calendar",        "working_rhythm"),
@@ -33460,46 +34209,8 @@ if __name__ == "__main__":
     # ──────────────────────────────────────────────────────────────
 
     # ── PATCH-383: Autonomous Engine ──────────────────────────────────────
-    @app.get("/api/autonomy/status")
-    async def autonomy_status():
-        """Complete autonomy gate status — what can run without intervention."""
-        try:
-            from src.autonomous_engine import get_autonomy_status
-            return JSONResponse({"success": True, **get_autonomy_status()})
-        except Exception as e:
-            return JSONResponse({"success": False, "error": str(e)}, status_code=500)
 
-    @app.post("/api/autonomy/employment-contract")
-    async def autonomy_employment_contract(request: Request):
-        """Build OCEAN personality contract + role fit for an agent."""
-        try:
-            body = await request.json()
-            from src.autonomous_engine import build_personality_for_role
-            from dataclasses import asdict
-            domain = body.get("domain", "operations")
-            p = build_personality_for_role(domain)
-            return JSONResponse({
-                "success": True,
-                "domain": domain,
-                "personality": asdict(p),
-                "fit_score": p.compute_fit_score(domain),
-            })
-        except Exception as e:
-            return JSONResponse({"success": False, "error": str(e)}, status_code=500)
 
-    @app.get("/api/autonomy/addons")
-    async def autonomy_addons():
-        """Market-research-ordered add-on activation queue."""
-        try:
-            from src.autonomous_engine import ADDON_ACTIVATION_QUEUE
-            from dataclasses import asdict
-            return JSONResponse({
-                "success": True,
-                "addons": [asdict(a) for a in sorted(ADDON_ACTIVATION_QUEUE, key=lambda x: x.activation_order)],
-                "count": len(ADDON_ACTIVATION_QUEUE),
-            })
-        except Exception as e:
-            return JSONResponse({"success": False, "error": str(e)}, status_code=500)
 
 
     # ── PATCH-383 END ──────────────────────────────────────────────────────
@@ -33509,7 +34220,14 @@ if __name__ == "__main__":
         """Unified voice + text command interface for multi-graph control."""
         try:
             with open("/opt/Murphy-System/murphy_command_voice_ui.html", "r") as f:
-                return HTMLResponse(content=f.read())
+                return HTMLResponse(
+                    content=f.read(),
+                    headers={
+                        "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
+                        "Pragma": "no-cache",
+                        "Expires": "0",
+                    },
+                )
         except FileNotFoundError:
             return HTMLResponse(content="<h1>Murphy Command Surface not found</h1>", status_code=404)
 
