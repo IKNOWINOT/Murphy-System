@@ -238,6 +238,135 @@ def extract_text(session_id: str, selector: str) -> Dict[str, Any]:
         return {"ok": False, "reason": "{}: {}".format(type(e).__name__, str(e)[:120])}
 
 
+def fill(session_id: str, selector: str,
+         credential_label: Optional[str] = None,
+         tenant_id: Optional[str] = None,
+         plaintext: Optional[str] = None,
+         field_kind: str = "text") -> Dict[str, Any]:
+    """
+    PATCH-BROWSER-R99-INPUT — fill a form field.
+
+    Two modes (Murphy answered: I chose "accept both, secure-by-default"):
+      Vault mode:  credential_label + tenant_id → retrieves from R96 vault
+                   plaintext NEVER appears in returned result or action log
+      Plaintext:   plaintext argument (caller's responsibility for safety)
+                   Logged as "***" never the actual value
+
+    field_kind: "text" (default) | "password" — only changes audit categorization,
+                actual typing is identical
+    """
+    with _SESSIONS_LOCK:
+        sess = _SESSIONS.get(session_id)
+    if not sess:
+        return {"ok": False, "reason": "session_not_found"}
+
+    # Resolve the value to type
+    value_to_type = None
+    source = "plaintext"
+    if credential_label:
+        if not tenant_id:
+            _log_action(session_id, "fill", selector, "***", "", False,
+                        "credential_label requires tenant_id")
+            return {"ok": False, "reason": "credential_label_requires_tenant_id"}
+        try:
+            import sys
+            if "/opt/Murphy-System" not in sys.path:
+                sys.path.insert(0, "/opt/Murphy-System")
+            from src.credential_vault import retrieve_credential
+            cred = retrieve_credential(
+                tenant_id=tenant_id,
+                label=credential_label,
+                operator="murphy_browser_fill",
+                purpose="form_autofill:" + selector[:60],
+            )
+            if not cred.get("ok"):
+                _log_action(session_id, "fill", selector, "***", "", False,
+                            "vault_lookup_failed: " + (cred.get("reason") or ""))
+                return {"ok": False, "reason": "vault_lookup_failed: " + (cred.get("reason") or "")}
+            # username field uses cred.username (visible); password uses cred.plaintext
+            if field_kind == "username":
+                value_to_type = cred.get("username", "")
+                source = "vault.username"
+            else:
+                value_to_type = cred.get("plaintext", "")
+                source = "vault.plaintext"
+        except Exception as e:
+            _log_action(session_id, "fill", selector, "***", "", False,
+                        "vault_import_failed: " + str(e)[:120])
+            return {"ok": False, "reason": "vault_import_failed: " + str(e)[:120]}
+    elif plaintext is not None:
+        value_to_type = plaintext
+        source = "caller_plaintext"
+    else:
+        return {"ok": False, "reason": "either_credential_label_or_plaintext_required"}
+
+    if sess.get("stub"):
+        _log_action(session_id, "fill", selector, "***",
+                    "stub_pretend source={}".format(source), True)
+        return {"ok": True, "engine": "stub", "source": source}
+
+    try:
+        sess["page"].locator(selector).first.fill(value_to_type, timeout=5000)
+        # NEVER log the actual value — always "***"
+        _log_action(session_id, "fill", selector, "***",
+                    "filled len={} source={} kind={}".format(
+                        len(value_to_type or ""), source, field_kind), True)
+        return {"ok": True, "engine": "playwright", "source": source,
+                "filled_len": len(value_to_type or "")}
+    except Exception as e:
+        _log_action(session_id, "fill", selector, "***", "", False, str(e)[:200])
+        return {"ok": False, "reason": "{}: {}".format(type(e).__name__, str(e)[:120])}
+
+
+def click(session_id: str, selector: str,
+          wait_for_navigation: bool = False,
+          timeout_ms: int = 5000) -> Dict[str, Any]:
+    """PATCH-BROWSER-R99-INPUT — click an element; optionally wait for navigation."""
+    with _SESSIONS_LOCK:
+        sess = _SESSIONS.get(session_id)
+    if not sess:
+        return {"ok": False, "reason": "session_not_found"}
+    if sess.get("stub"):
+        _log_action(session_id, "click", selector, "", "stub_pretend", True)
+        return {"ok": True, "engine": "stub"}
+    try:
+        if wait_for_navigation:
+            with sess["page"].expect_navigation(timeout=timeout_ms):
+                sess["page"].locator(selector).first.click(timeout=timeout_ms)
+            new_url = sess["page"].url
+            _log_action(session_id, "click", selector, "",
+                        "nav_to=" + new_url[:120], True)
+            return {"ok": True, "engine": "playwright", "current_url": new_url}
+        else:
+            sess["page"].locator(selector).first.click(timeout=timeout_ms)
+            _log_action(session_id, "click", selector, "", "clicked", True)
+            return {"ok": True, "engine": "playwright"}
+    except Exception as e:
+        _log_action(session_id, "click", selector, "", "", False, str(e)[:200])
+        return {"ok": False, "reason": "{}: {}".format(type(e).__name__, str(e)[:120])}
+
+
+def wait_for_url(session_id: str, url_pattern: str,
+                 timeout_ms: int = 15000) -> Dict[str, Any]:
+    """PATCH-BROWSER-R99-INPUT — wait for page URL to match a glob/regex pattern."""
+    with _SESSIONS_LOCK:
+        sess = _SESSIONS.get(session_id)
+    if not sess:
+        return {"ok": False, "reason": "session_not_found"}
+    if sess.get("stub"):
+        _log_action(session_id, "wait_for_url", url_pattern, "", "stub_pretend", True)
+        return {"ok": True, "engine": "stub", "current_url": url_pattern}
+    try:
+        sess["page"].wait_for_url(url_pattern, timeout=timeout_ms)
+        current = sess["page"].url
+        _log_action(session_id, "wait_for_url", url_pattern, "",
+                    "matched=" + current[:120], True)
+        return {"ok": True, "engine": "playwright", "current_url": current}
+    except Exception as e:
+        _log_action(session_id, "wait_for_url", url_pattern, "", "", False, str(e)[:200])
+        return {"ok": False, "reason": "{}: {}".format(type(e).__name__, str(e)[:120])}
+
+
 def close_session(session_id: str, db_path: str = _DB_PATH) -> Dict[str, Any]:
     """Close the browser session and mark its state in DB."""
     with _SESSIONS_LOCK:
