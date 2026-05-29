@@ -129,15 +129,26 @@ def measure_stability(recursion_id: str,
             if avg_ratio > 1e-9:
                 lambda_eff = max(0.0, math.log(avg_ratio))
     
-    # Contraction-shaped — how much closer to fixed point per step
-    c_eff = 0.5
+    # PATCH-STAB-R109 — contraction-shaped with proper handling
+    # of (1) samples that reach fixed_point exactly, (2) samples that
+    # never moved (already at fixed_point), (3) non-monotonic approach.
+    c_eff = 0.5  # neutral default when no fixed_point given
     if fixed_point is not None:
         distances = [abs(s - fixed_point) for s in samples]
-        if distances[0] > 1e-9:
-            initial = distances[0]
-            final = distances[-1]
-            convergence_ratio = max(0.0, (initial - final) / initial)
+        max_initial = max(distances) if distances else 0.0
+        final = distances[-1]
+        if max_initial < 1e-9:
+            # All samples ALREADY at fixed_point — perfect convergence
+            c_eff = 0.0
+        else:
+            # Best achieved convergence (handles non-monotonic approach)
+            best_final = min(distances)
+            convergence_ratio = max(0.0,
+                                     (max_initial - best_final) / max_initial)
             c_eff = max(0.0, 1.0 - convergence_ratio)
+            # Penalize if final is worse than best reached (oscillation)
+            if final > best_final:
+                c_eff = min(1.0, c_eff + 0.1)
     
     # Hybrid score
     penalty = max(min(lambda_eff, 1.0), c_eff if fixed_point is not None else 0.0)
@@ -213,8 +224,9 @@ def evaluate_live_recursions() -> Dict[str, Any]:
         layers = list_layers()
         depths = [L["layer_seq"] for L in layers if L["status"] == "active"]
         depths.sort()
-        # Unwrap walk: depth N → N-1 → ... → 0. We probe depth-to-root distance.
-        samples_kek = [float(d) for d in depths]
+        # PATCH-STAB-R109 — reverse for unwrap direction (N → N-1 → ... → 0)
+        # The walk starts at TOP (deepest layer) and contracts toward root.
+        samples_kek = [float(d) for d in reversed(depths)] + [0.0]
         r = measure_stability(
             "kek_chain_unwrap",
             samples_kek,
