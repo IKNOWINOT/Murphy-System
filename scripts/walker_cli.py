@@ -134,6 +134,42 @@ def drill_evidence(trail_id):
     """PATCH-CLI-DRILL-R83 — drill from trail_id to evidence."""
     return _request("GET", "/api/hitl/walker/evidence/" + str(trail_id))
 
+def fetch_tags(entity_table, entity_id):
+    """PATCH-CLI-TAGS-R91 — fetch facet tags for an entity via local DB."""
+    import sqlite3 as _sq
+    try:
+        conn = _sq.connect("/var/lib/murphy-production/hitl_provenance.db", timeout=2)
+        conn.row_factory = _sq.Row
+        rows = conn.execute(
+            "SELECT axis, tag_value FROM facet_tags "
+            "WHERE entity_table = ? AND entity_id = ? "
+            "ORDER BY axis, tag_value",
+            (entity_table, entity_id)
+        ).fetchall()
+        conn.close()
+        return [dict(r) for r in rows]
+    except Exception:
+        return []
+
+
+def query_by_tag(tag_value):
+    """PATCH-CLI-TAGS-R91 — find entities matching a tag."""
+    import sqlite3 as _sq
+    try:
+        conn = _sq.connect("/var/lib/murphy-production/hitl_provenance.db", timeout=2)
+        conn.row_factory = _sq.Row
+        rows = conn.execute(
+            "SELECT entity_table, entity_id, axis FROM facet_tags "
+            "WHERE tag_value = ? ORDER BY captured_at DESC LIMIT 30",
+            (tag_value,)
+        ).fetchall()
+        conn.close()
+        return [dict(r) for r in rows]
+    except Exception:
+        return []
+
+
+
 # ────────────────────────────────────────────────────────────────
 # Display
 
@@ -169,13 +205,26 @@ def render_item(item, prog):
             print(_color("  finding_reason:", "dim"), raw.get("finding_reason"))
 
     print()
+    # PATCH-CLI-TAGS-R91 — show facet tags inline above progress
+    tags = fetch_tags("provenance_trails", item.get("item_id", ""))
+    if tags:
+        by_axis = {}
+        for t in tags:
+            by_axis.setdefault(t["axis"], []).append(t["tag_value"])
+        print()
+        for axis in ("who", "what", "when", "where", "how", "why", "contact", "troubleshoot"):
+            if axis in by_axis:
+                vals = " ".join(by_axis[axis])
+                print(_color(f"  {axis:<13} {vals}", "magenta"))
+
     pn = (f"  [{prog.get('items_reviewed',0)} reviewed · "
           f"{prog.get('items_flagged',0)} flagged · "
           f"{prog.get('items_skipped',0)} skipped · "
           f"{prog.get('remaining',0)} remaining]")
+    print()
     print(_color(pn, "cyan"))
     print()
-    print(_color("  [v]erify  [f]lag  [s]uggest  s[k]ip  [z]snooze  [d]rill  [r]ewind  [p]rogress  [q]uit", "green"))
+    print(_color("  [v]erify  [f]lag  [s]uggest  s[k]ip  [z]snooze  [d]rill  [t]ag  [r]ewind  [p]rogress  [q]uit", "green"))
 
 
 def render_progress(p):
@@ -290,6 +339,25 @@ def main():
                 else:
                     err = ev.get("error") or ev.get("detail") or ev.get("reason") or "unknown"
                     print(_color("  ✗ drill failed: " + str(err), "red"))
+        elif key == "t":
+            # PATCH-CLI-TAGS-R91 — tag drill: show entities sharing tags
+            tags = fetch_tags("provenance_trails", nxt["item"]["item_id"])
+            if not tags:
+                print(_color("  no tags for this item", "yellow"))
+            else:
+                print(_color("  ── TAG DRILL ── pick a tag to query ──", "cyan"))
+                shown_tags = []
+                for i, t in enumerate(tags[:6]):
+                    shown_tags.append(t["tag_value"])
+                    print(_color(f"    [{i+1}] {t['axis']:<13} {t['tag_value']}", "white"))
+                print(_color("  enter number (or any other key to skip): ", "cyan"), end="", flush=True)
+                pick = sys.stdin.readline().strip()
+                if pick.isdigit() and 1 <= int(pick) <= len(shown_tags):
+                    target = shown_tags[int(pick)-1]
+                    results = query_by_tag(target)
+                    print(_color(f"  ── {len(results)} entities tagged {target} ──", "cyan"))
+                    for r in results[:8]:
+                        print(_color(f"    {r['entity_table']:<22} {r['entity_id'][:18]:<20} axis={r['axis']}", "dim"))
         elif key == "r":
             r = rewind(args.reviewer, 1)
             print(_color(f"  ⏪ rewound 1 item", "magenta") if r.get("ok") else _color(f"  ✗ {r.get('error')}", "red"))

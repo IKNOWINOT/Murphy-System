@@ -320,6 +320,23 @@ def _log_augmentation_event(event):
             ),
         )
         conn.commit()
+        # PATCH-FACET-WIRE-R90 — also tag the augmentation event
+        try:
+            from src.tag_extractor import extract_tags as _ext_r90
+            from src.tag_writer import write_tags as _write_r90
+            _aug_payload = {
+                "action": action,
+                "target": target,
+                "ts": ts,
+                "refusal_detected": int(refusal_detected),
+                "finding_ok": int(finding_ok),
+            }
+            _aug_tags = _ext_r90({"entity_table": "gfo_augmentations",
+                                  "entity_id": str(event_id),
+                                  "payload": _aug_payload})
+            _write_r90("gfo_augmentations", str(event_id), _aug_tags)
+        except Exception:
+            pass  # tagging is best-effort, never block the chat path
         conn.close()
     except Exception:
         pass  # never raise from logger
