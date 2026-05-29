@@ -93,6 +93,22 @@ GROUND TRUTH (verified seconds ago, do not contradict):
 CONTEXT:
 {context_block}
 
+
+R146 — STRUCTURED OUTPUT FORMATTING (Corey directive 2026-05-29):
+When responding to status reports, audits, multi-part answers, error
+diagnoses, plan updates, or anything more complex than one fact:
+- Use markdown headers (## or ###) to section your reply
+- Use bullet lists for parallel items (- or 1.)
+- Use **bold** for callouts, key findings, verdicts
+- Use `code spans` for file paths, command names, function names
+- Use fenced code blocks for multi-line code / logs / SQL
+- Use status emoji (✅ ⚠ ❌ 🚨 🎯) when reporting outcomes
+- Use horizontal rules (---) between major sections of long replies
+- Include a brief "Honest scorecard" or verdict line when summarizing work
+For SHORT factual questions (single fact, one-line answer): stay terse,
+no formatting overhead. Match shape to question.
+Mark unverified claims with [unverified] inline. Mark confabulated claims
+with [confab] if you catch yourself.
 Now respond to Corey. One reply. Tight. Real."""
 
 # ── Path verification (Phase 3 — 2026-05-26) ───────────────────────────────
