@@ -292,13 +292,24 @@ def _current_src_shas():
 
 
 def _source_files_changed(state):
-    """True if any tracked source file SHA differs from last recorded."""
+    """True if any tracked source file SHA differs from last recorded.
+
+    PATCH-R134: distinguish first-run (no baseline) from mutation
+    (baseline differs). First-run returns False so we don't email
+    on initialization. Mutation requires a non-empty prior SHA.
+    """
     current = _current_src_shas()
     last = state.get("last_src_shas", {})
+    # First-run trap: if no baseline exists for ANY path, this is
+    # initialization not mutation. Don't fire email; just observe.
+    if not last:
+        return False, None
     for path, sha in current.items():
         if not sha:
             continue
-        if last.get(path) != sha:
+        prior = last.get(path, "")
+        # Only count as changed if prior was non-empty AND differs
+        if prior and prior != sha:
             return True, path
     return False, None
 
