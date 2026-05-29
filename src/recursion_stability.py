@@ -129,24 +129,35 @@ def measure_stability(recursion_id: str,
             if avg_ratio > 1e-9:
                 lambda_eff = max(0.0, math.log(avg_ratio))
     
-    # PATCH-STAB-R109 — contraction-shaped with proper handling
-    # of (1) samples that reach fixed_point exactly, (2) samples that
-    # never moved (already at fixed_point), (3) non-monotonic approach.
-    c_eff = 0.5  # neutral default when no fixed_point given
+    # PATCH-STAB-R110 — adds stationary-not-at-fixed-point detection.
+    # Three cases now handled: (1) at fixed_point exactly, (2) stationary
+    # NEAR fixed_point (no drift but offset), (3) non-monotonic approach,
+    # (4) oscillation past best. R109 missed case 2 → meta-reaction wrong.
+    c_eff = 0.5
     if fixed_point is not None:
         distances = [abs(s - fixed_point) for s in samples]
         max_initial = max(distances) if distances else 0.0
         final = distances[-1]
+        # Detect stationary (zero or near-zero variance across samples)
+        if len(samples) >= 2:
+            mean = sum(samples) / len(samples)
+            variance = sum((s - mean) ** 2 for s in samples) / len(samples)
+        else:
+            variance = 0.0
+        is_stationary = variance < 1e-9
         if max_initial < 1e-9:
             # All samples ALREADY at fixed_point — perfect convergence
             c_eff = 0.0
+        elif is_stationary and max_initial > 0:
+            # PATCH-STAB-R110 — stationary samples NEAR but not AT fixed_point
+            # = bounded (no drift) but not at target. c_eff = 0.3
+            # gives stability_score ~ 0.7 = "bounded" regime.
+            c_eff = 0.3
         else:
-            # Best achieved convergence (handles non-monotonic approach)
             best_final = min(distances)
             convergence_ratio = max(0.0,
                                      (max_initial - best_final) / max_initial)
             c_eff = max(0.0, 1.0 - convergence_ratio)
-            # Penalize if final is worse than best reached (oscillation)
             if final > best_final:
                 c_eff = min(1.0, c_eff + 0.1)
     
