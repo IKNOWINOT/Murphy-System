@@ -133,6 +133,15 @@ def measure_stability(recursion_id: str,
     # Three cases now handled: (1) at fixed_point exactly, (2) stationary
     # NEAR fixed_point (no drift but offset), (3) non-monotonic approach,
     # (4) oscillation past best. R109 missed case 2 → meta-reaction wrong.
+    # PATCH-STAB-R114 — when no fixed_point given, infer from mean if
+    # variance is high (catches unanchored oscillation R113 SMOKE B case).
+    mean_s = sum(samples) / len(samples) if samples else 0.0
+    variance_s = (sum((s - mean_s) ** 2 for s in samples) / len(samples)
+                  if samples else 0.0)
+    if fixed_point is None and variance_s > 0.1:
+        # Infer fixed_point as mean; high variance means wild oscillation
+        # around that mean — treat as instability.
+        fixed_point = mean_s
     c_eff = 0.5
     if fixed_point is not None:
         distances = [abs(s - fixed_point) for s in samples]
@@ -161,8 +170,16 @@ def measure_stability(recursion_id: str,
             if final > best_final:
                 c_eff = min(1.0, c_eff + 0.1)
     
+    # PATCH-STAB-R114 — variance penalty for unanchored chaos
+    # Even if c_eff and λ_eff look fine, wild swings around any target
+    # are unstable. Penalty proportional to variance, capped at 0.5.
+    variance_penalty = min(0.5, variance_s * 2)
     # Hybrid score
-    penalty = max(min(lambda_eff, 1.0), c_eff if fixed_point is not None else 0.0)
+    penalty = max(
+        min(lambda_eff, 1.0),
+        c_eff if fixed_point is not None else 0.0,
+        variance_penalty,
+    )
     stability_score = max(0.0, min(1.0, 1.0 - penalty))
     
     # Regime classification
