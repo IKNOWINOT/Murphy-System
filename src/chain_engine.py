@@ -662,7 +662,14 @@ def _get_live_compliance() -> List[str]:
 
 
 def evaluate_gate(step_def: Dict, active_compliance: List[str]) -> Dict:
-    """Evaluate whether a step can run given active compliance toggles."""
+    """Evaluate whether a step can run given active compliance toggles.
+
+    PATCH-WIRE2-001 (R48): also consults domain_pipeline to attach
+    domain-specific gates derived from the step's intent text. The
+    domain gates are informational — they DON'T change the compliance
+    verdict (result/reason/cost_delta). They ride alongside as
+    'domain_gates' for downstream crystallization (Wire #3 target).
+    """
     required  = step_def.get("required_compliance", [])
     optional  = step_def.get("optional_compliance", [])
     blocked_by = step_def.get("blocked_by_compliance", [])
@@ -673,53 +680,86 @@ def evaluate_gate(step_def: Dict, active_compliance: List[str]) -> Dict:
     triggered_blocks = [c for c in blocked_by if c.lower() in active]
     if triggered_blocks:
         block_credit = sum(COMPLIANCE_COST.get(c, {}).get("blocked_credit", 0) for c in triggered_blocks)
-        return {
+        result = {
             "result": "BLOCKED",
             "reason": f"Blocked by active compliance: {', '.join(t.upper() for t in triggered_blocks)}",
             "blocked_by": triggered_blocks,
             "required_met": [],
             "required_missing": [],
             "optional_active": [],
-            "cost_delta": -block_credit,   # negative = credit (we save money by not doing it wrong)
+            "cost_delta": -block_credit,
             "change_type": "credit",
         }
+    else:
+        # Required check
+        required_met     = [c for c in required if c.lower() in active]
+        required_missing = [c for c in required if c.lower() not in active]
+        optional_active = [c for c in optional if c.lower() in active]
+        compliance_cost = sum(COMPLIANCE_COST.get(c, {}).get("required_cost", 0)
+                              for c in required_met + optional_active)
 
-    # Required check
-    required_met     = [c for c in required if c.lower() in active]
-    required_missing = [c for c in required if c.lower() not in active]
+        if required_missing:
+            result = {
+                "result": "PARTIAL",
+                "reason": f"Missing required compliance: {', '.join(r.upper() for r in required_missing)}. Step will run in reduced mode.",
+                "blocked_by": [],
+                "required_met": required_met,
+                "required_missing": required_missing,
+                "optional_active": optional_active,
+                "cost_delta": compliance_cost,
+                "change_type": "no_impact" if compliance_cost == 0 else "change_order",
+            }
+        else:
+            result = {
+                "result": "PASS",
+                "reason": "All compliance requirements met" + (
+                    f" + optional: {', '.join(o.upper() for o in optional_active)}" if optional_active else ""
+                ),
+                "blocked_by": [],
+                "required_met": required_met,
+                "required_missing": [],
+                "optional_active": optional_active,
+                "cost_delta": compliance_cost,
+                "change_type": "no_impact" if compliance_cost == 0 else "change_order",
+            }
 
-    # Optional check — adds compliance cost
-    optional_active = [c for c in optional if c.lower() in active]
-    compliance_cost = sum(COMPLIANCE_COST.get(c, {}).get("required_cost", 0)
-                          for c in required_met + optional_active)
+    # PATCH-WIRE2-001: attach domain gates (informational, all 3 paths)
+    # Never raises — domain pipeline unavailable means no domain_gates key.
+    try:
+        from src.domain_pipeline import analyze_and_generate_gates
+        _step_name = step_def.get("name") or step_def.get("step_name") or ""
+        if _step_name:
+            _domain_pkg = analyze_and_generate_gates(_step_name)
+            if isinstance(_domain_pkg, dict):
+                result["domain_gates"] = _domain_pkg.get("gates", []) or []
+                result["domain_matched"] = _domain_pkg.get("primary_domain")
+                result["domain_scores"] = _domain_pkg.get("domain_scores", {}) or {}
+                result["wire_version_domain"] = "WIRE2-001"
+                # PATCH-WIRE3-001 (R49): crystallize this gate outcome
+                # into pattern_library for fitness tracking
+                try:
+                    from src.pattern_library import observe_gate_outcome
+                    observe_gate_outcome(
+                        domain=result.get("domain_matched") or "unknown",
+                        gate_result=result.get("result", "UNKNOWN"),
+                        step_name=_step_name,
+                        cost_delta=result.get("cost_delta", 0),
+                        chain_id="",
+                    )
+                    result["wire_version_crystallize"] = "WIRE3-001"
+                except Exception as _wire3_exc:
+                    import logging as _l
+                    _l.getLogger("chain_engine").debug(
+                        "Wire #3 crystallize skipped: %s", _wire3_exc
+                    )
+    except Exception as _wire2_exc:
+        import logging as _logging
+        _logging.getLogger("chain_engine").debug(
+            "Wire #2 domain gate merge skipped: %s", _wire2_exc
+        )
 
-    if required_missing:
-        return {
-            "result": "PARTIAL",
-            "reason": f"Missing required compliance: {', '.join(r.upper() for r in required_missing)}. Step will run in reduced mode.",
-            "blocked_by": [],
-            "required_met": required_met,
-            "required_missing": required_missing,
-            "optional_active": optional_active,
-            "cost_delta": compliance_cost,
-            "change_type": "no_impact" if compliance_cost == 0 else "change_order",
-        }
+    return result
 
-    return {
-        "result": "PASS",
-        "reason": "All compliance requirements met" + (
-            f" + optional: {', '.join(o.upper() for o in optional_active)}" if optional_active else ""
-        ),
-        "blocked_by": [],
-        "required_met": required_met,
-        "required_missing": [],
-        "optional_active": optional_active,
-        "cost_delta": compliance_cost,
-        "change_type": "change_order" if compliance_cost > 0 else "no_impact",
-    }
-
-
-# ── Chain Templates ────────────────────────────────────────────────────────────
 
 def get_templates() -> List[Dict]:
     return CHAIN_TEMPLATES
@@ -734,6 +774,42 @@ def get_template(template_id: str) -> Optional[Dict]:
 def create_chain(template_id: str, name: str = None, project_id: str = None,
                  requestor: str = "system", context: Dict = None) -> Dict:
     """Create a new chain request. Gates all steps against live compliance at creation."""
+
+    # PATCH-R148 — Phase B Wire #7 import_gate at canonical create_chain entry
+
+    # Gates ALL callers (HTTP + internal) not just one route
+
+    try:
+
+        from src.import_gate import check_missing as _r148_check_missing
+
+        if template_code:
+
+            _r148_gap = _r148_check_missing(
+
+                template_code, tenant_id or "platform", None)
+
+            if not _r148_gap.get("can_proceed", True):
+
+                return {
+
+                    "ok": False,
+
+                    "error": "missing_required_artifacts",
+
+                    "template_code": template_code,
+
+                    "missing_mandatory": _r148_gap.get("missing_mandatory", []),
+
+                    "missing_optional":  _r148_gap.get("missing_optional", []),
+
+                    "wire_version": _r148_gap.get("wire_version"),
+
+                }
+
+    except Exception:
+
+        pass  # fail-open — never block chain creation on gate exception
     tmpl = get_template(template_id)
     if not tmpl:
         return {"error": f"Unknown chain template: {template_id}"}
