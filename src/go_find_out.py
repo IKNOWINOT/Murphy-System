@@ -319,24 +319,41 @@ def _log_augmentation_event(event):
                 event.get("wire_version", ""),
             ),
         )
+        cur = conn.execute(
+            "SELECT seq FROM sqlite_sequence WHERE name='gfo_augmentations'"
+        )
+        _last_row = cur.fetchone()
+        _event_id = _last_row[0] if _last_row else 0
         conn.commit()
-        # PATCH-FACET-WIRE-R90 — also tag the augmentation event
+        # PATCH-R94-HOOK-FIX — replaces R90 hook with correct variable resolution
+        # R93 audit found: ts and event_id were undefined; action/target/finding_ok
+        # were nested inside event["action_taken"] and event["finding"]
         try:
-            from src.tag_extractor import extract_tags as _ext_r90
-            from src.tag_writer import write_tags as _write_r90
+            from src.tag_extractor import extract_tags as _ext_r94
+            from src.tag_writer import write_tags as _write_r94
+            _action_taken = event.get("action_taken") or {}
+            _finding = event.get("finding") or {}
             _aug_payload = {
-                "action": action,
-                "target": target,
-                "ts": ts,
-                "refusal_detected": int(refusal_detected),
-                "finding_ok": int(finding_ok),
+                "action": _action_taken.get("action") or "",
+                "target": _action_taken.get("target") or "",
+                "ts": event.get("ts") or event.get("timestamp") or "",
+                "refusal_detected": 1 if event.get("refusal_detected") else 0,
+                "finding_ok": 1 if _finding.get("ok") else 0,
             }
-            _aug_tags = _ext_r90({"entity_table": "gfo_augmentations",
-                                  "entity_id": str(event_id),
-                                  "payload": _aug_payload})
-            _write_r90("gfo_augmentations", str(event_id), _aug_tags)
-        except Exception:
-            pass  # tagging is best-effort, never block the chat path
+            _aug_tags = _ext_r94({
+                "entity_table": "gfo_augmentations",
+                "entity_id": str(_event_id),
+                "payload": _aug_payload,
+            })
+            _write_r94("gfo_augmentations", str(_event_id), _aug_tags)
+        except Exception as _r94_e:
+            try:
+                import logging
+                logging.getLogger("murphy.gfo").warning(
+                    f"[R94-hook] failed: {type(_r94_e).__name__}: {_r94_e}"
+                )
+            except Exception:
+                pass
         conn.close()
     except Exception:
         pass  # never raise from logger
