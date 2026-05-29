@@ -56,11 +56,14 @@ _INTENT_RULES = [
         r"stop emailing", r"do not email",
     ]),
     ("report_request", [
-        r"\breport\b.*\bdata\b", r"\bdata\b.*\breport\b",
-        r"send.*report", r"share.*report", r"latest report",
-        r"current report", r"can you send.*report", r"need.*report",
-        r"weekly report", r"daily report", r"monthly report",
-        r"status update", r"status report",
+        # PATCH-INTENT-R118 — require explicit ask, not just 'report' mention
+        r"\b(could|can) you (send|share|email)\b.*\breport\b",
+        r"\b(send|share|email) (me|us) (the|a) (latest |current |new )?(report|data|update)\b",
+        r"\b(would|could) you (run|generate|share) (a |the )?report\b",
+        r"\bpull (the |a |me )?(latest|current) (report|data|numbers)\b",
+        r"\bneed (the |latest |a |me )?(report|data|numbers|update)\b",
+        r"^need .*\b(report|data)\b",
+        r"\brequest (a |the )?report\b",
     ]),
     ("meeting", [
         r"\bmeeting\b", r"\bcall\b.*\bschedul", r"\bbook a time\b",
@@ -170,13 +173,26 @@ def classify_one(reply_id: int) -> Dict[str, Any]:
     _ensure_schema()
     conn = sqlite3.connect(_DB, timeout=5)
     row = conn.execute(
-        "SELECT id, from_addr, subject, body_preview "
+        "SELECT id, from_addr, subject, body_preview, is_internal "
         "FROM inbound_replies WHERE id = ?", (reply_id,)
     ).fetchone()
     if not row:
         conn.close()
         return {"ok": False, "reason": "id_not_found"}
-    rid, from_addr, subject, body = row
+    rid, from_addr, subject, body, is_internal = row
+    # PATCH-INTENT-R118 — Murphy-to-Murphy mail is noise by definition
+    if is_internal:
+        classified_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
+        conn.execute(
+            "UPDATE inbound_replies SET intent_class=?, intent_confidence=?, "
+            "intent_method=?, intent_classified_at=? WHERE id=?",
+            ("noise", 0.95, "internal_skip", classified_at, rid),
+        )
+        conn.commit()
+        conn.close()
+        return {"ok": True, "reply_id": rid, "intent_class": "noise",
+                "confidence": 0.95, "method": "internal_skip",
+                "from_addr": from_addr, "subject": subject}
     subject = subject or ""
     body = body or ""
 
