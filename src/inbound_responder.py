@@ -202,6 +202,50 @@ def process_pending_responses(limit: int = 5) -> Dict[str, Any]:
         if "<" in from_addr_clean and ">" in from_addr_clean:
             from_addr_clean = from_addr_clean.split("<")[1].split(">")[0]
         
+        # PATCH-R142 — R66 HITL gate for callmehandy sender (R141 audit located)
+        if from_addr_clean == "callmehandy@gmail.com":
+            try:
+                from src.hitl_change_classifier import (
+                    classify_inbound, route_change_request,
+                )
+                # Fetch body for classifier (current query only got subject)
+                _conn = sqlite3.connect(_DB, timeout=5)
+                _body_row = _conn.execute(
+                    "SELECT body_preview FROM inbound_replies WHERE id=?",
+                    (rid,),
+                ).fetchone()
+                _conn.close()
+                _body = _body_row[0] if _body_row else ""
+                _cls = classify_inbound({
+                    "from_addr": from_addr_clean,
+                    "subject": subject or "",
+                    "body": _body,
+                })
+                if _cls.get("kind") == "change_request":
+                    _is_dry = os.environ.get("R142_DRY_RUN", "0") == "1"
+                    route_change_request({
+                        "from_addr": from_addr_clean,
+                        "subject": subject or "",
+                        "body": _body,
+                        "msg_id": str(rid),
+                    }, dry_run=_is_dry)
+                    _conn = sqlite3.connect(_DB, timeout=5)
+                    _conn.execute(
+                        "UPDATE inbound_replies SET auto_response_status=?, "
+                        "auto_response_sent_at=? WHERE id=?",
+                        ("hitl_held_change_request", now, rid),
+                    )
+                    _conn.commit()
+                    _conn.close()
+                    staged.append({
+                        "id": rid,
+                        "from": from_addr_clean,
+                        "reason": "change_request_routed_to_corey",
+                    })
+                    continue  # skip auto-send
+            except Exception as _r142_e:
+                # Fail SAFE — never block normal path
+                pass
         if from_addr_clean in _ALLOWLIST:
             # AUTO-SEND path
             report_body = generate_report()
