@@ -67,14 +67,40 @@ from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 
 _DB_PATH = "/var/lib/murphy-production/hitl_provenance.db"
 
-# Server master key — sourced from env, NEVER stored in DB
+# PATCH-VAULT-KEK-R102 — route through KEK envelope when available
+# Decision locked R102: call unwrap_to_root() every retrieval (always fresh).
+# Murphy refused freshness-vs-cache Q (HTTP timeout); my call.
+# Reason: panic_rotate() must take effect immediately for the next credential
+# retrieval. Caching K_root with TTL would allow a window where compromised
+# old key is still used. ~5ms slower per retrieve is acceptable cost.
 def _server_master_key() -> bytes:
-    """Return 32-byte server master key from env, or development fallback."""
+    """
+    Return 32-byte server master key.
+    R102: prefers KEK chain (src.key_envelope.unwrap_to_root) when available.
+    R96 fallback path: env var direct, then FOUNDER_API_KEY+seed.
+    """
+    # R102 — try KEK chain first
+    try:
+        import sys as _sys
+        if "/opt/Murphy-System" not in _sys.path:
+            _sys.path.insert(0, "/opt/Murphy-System")
+        from src.key_envelope import unwrap_to_root as _unwrap
+        return _unwrap()
+    except Exception:
+        pass  # KEK not loaded or no env key — fall through to R96 path
+
+    # R96 path — env var direct (hex preferred, raw bytes accepted)
     raw = os.environ.get("MURPHY_VAULT_MASTER_KEY", "").strip()
-    if raw and len(raw) >= 32:
-        return raw.encode()[:32]
-    # Development fallback — derived from a known-stable server fingerprint
-    # In production, MUST set MURPHY_VAULT_MASTER_KEY in environment
+    if raw:
+        # Hex string -> 32 bytes
+        if len(raw) == 64 and all(c in "0123456789abcdefABCDEF" for c in raw):
+            return bytes.fromhex(raw)
+        # Raw 32+ bytes
+        if len(raw) >= 32:
+            return raw.encode()[:32]
+        # SHA-256 fallback
+        return hashlib.sha256(raw.encode()).digest()
+    # Development-only fallback
     fallback_seed = (
         os.environ.get("FOUNDER_API_KEY", "") +
         "murphy_vault_r96_dev_seed_only"
