@@ -89,6 +89,39 @@ def capture_bank_balance(
 
     Returns dict with ok, balance, gap, delta_id, steps_log.
     """
+    # PATCH-GHOST-R112 — stability gate BEFORE substrate composition
+    # Murphy meta-Q answered: BEFORE — refuse early when ghost_controller
+    # is in a known-diverging state (cheaper than chasing failure across
+    # vault + browser + reconcile). Late-learn is reaction_recorder's job.
+    try:
+        import sys as _s
+        if "/opt/Murphy-System" not in _s.path:
+            _s.path.insert(0, "/opt/Murphy-System")
+        from src.recursion_stability import recursion_gate
+        import sqlite3 as _sq3
+        _conn = _sq3.connect("/var/lib/murphy-production/pattern_library.db",
+                            timeout=2)
+        _rows = _conn.execute(
+            "SELECT fitness_score FROM patterns WHERE agent_id = 'ghost_controller' "
+            "AND fitness_score IS NOT NULL ORDER BY last_used DESC LIMIT 5"
+        ).fetchall()
+        _conn.close()
+        _samples = [float(r[0]) for r in _rows if r[0] is not None]
+        if len(_samples) >= 3:
+            _allow, _reason = recursion_gate(
+                "ghost_capture_bank_balance", _samples, min_score=0.25
+            )
+            if not _allow:
+                return {
+                    "ok": False,
+                    "reason": "stability_gate_refused_pre_composition: " + _reason,
+                    "_gate_witness": {
+                        "checked": True, "allow": False, "reason": _reason,
+                        "n_samples": len(_samples),
+                    },
+                }
+    except Exception:
+        pass  # fail-open per R109 default
     _load_master_key_from_env_file()
 
     from src.murphy_browser import (

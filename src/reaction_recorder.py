@@ -267,12 +267,12 @@ def capture_reaction(agent_id: str, work_event_table: str,
 
     # PATCH-REACTIONS-R111 — stability gate check
     if not skip_stability_gate:
+        # PATCH-REACTIONS-R112 — surface gate witness in result
         try:
             import sys as _s
             if "/opt/Murphy-System" not in _s.path:
                 _s.path.insert(0, "/opt/Murphy-System")
             from src.recursion_stability import recursion_gate
-            # Pull last 5 fitness scores for this agent from pattern_library
             import sqlite3 as _sq3
             conn = _sq3.connect("/var/lib/murphy-production/pattern_library.db",
                                timeout=2)
@@ -284,16 +284,27 @@ def capture_reaction(agent_id: str, work_event_table: str,
             ).fetchall()
             conn.close()
             samples = [float(r[0]) for r in rows if r[0] is not None]
+            _gate_witness = {"checked": False}
             if len(samples) >= 3:
-                allow, reason = recursion_gate(
+                allow, gate_reason = recursion_gate(
                     "reaction_loop_" + agent_id, samples, min_score=0.25
                 )
+                _gate_witness = {
+                    "checked": True,
+                    "allow": allow,
+                    "reason": gate_reason,
+                    "n_samples": len(samples),
+                    "samples_preview": samples[:3],
+                }
                 if not allow:
                     return {
                         "ok": False,
-                        "reason": "stability_gate_refused: " + reason,
+                        "reason": "stability_gate_refused: " + gate_reason,
                         "agent_id": agent_id,
+                        "_gate_witness": _gate_witness,
                     }
+            # Store witness for later attach to result
+            evidence["_gate_witness"] = _gate_witness
         except Exception:
             pass  # gate failures default to allow (R109 default behavior)
 
@@ -355,7 +366,7 @@ def capture_reaction(agent_id: str, work_event_table: str,
     except Exception:
         pass
 
-    return {
+    _result = {
         "ok": True,
         "reaction_id": reaction_id,
         "agent_id": agent_id,
@@ -364,6 +375,10 @@ def capture_reaction(agent_id: str, work_event_table: str,
         "reaction_text": reaction_text,
         "thumbnail": thumbnail,
     }
+    # PATCH-REACTIONS-R112 — surface gate witness if present
+    if isinstance(evidence, dict) and "_gate_witness" in evidence:
+        _result["_gate_witness"] = evidence["_gate_witness"]
+    return _result
 
 
 def recent_reactions(agent_id: Optional[str] = None, limit: int = 50,
