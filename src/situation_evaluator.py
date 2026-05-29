@@ -273,6 +273,48 @@ def pair_evaluation(incoming_signal: Dict[str, Any],
     if valence not in _VALENCE_DELTA:
         return {"ok": False, "reason": "unknown_valence: " + str(valence)}
 
+    # PATCH-EVAL-R113 — stability gate before applying fitness delta
+    # Murphy meta-Q answered 0.15 (lower threshold for learning continuity).
+    # Locked decision: 0.15 — evaluator runs AFTER work; refuse only on
+    # clear divergence to preserve learning path during noisy rounds.
+    _gate_witness = {"checked": False}
+    if write_back:
+        try:
+            import sys as _s
+            if "/opt/Murphy-System" not in _s.path:
+                _s.path.insert(0, "/opt/Murphy-System")
+            from src.recursion_stability import recursion_gate
+            import sqlite3 as _sq3
+            _conn = _sq3.connect(_PATTERN_DB, timeout=2)
+            _rows = _conn.execute(
+                "SELECT fitness_score FROM patterns WHERE agent_id = ? "
+                "AND fitness_score IS NOT NULL ORDER BY last_used DESC LIMIT 5",
+                (agent_id,),
+            ).fetchall()
+            _conn.close()
+            _samples = [float(r[0]) for r in _rows if r[0] is not None]
+            if len(_samples) >= 3:
+                _allow, _reason = recursion_gate(
+                    "pair_evaluation_" + agent_id, _samples, min_score=0.15
+                )
+                _gate_witness = {
+                    "checked": True, "allow": _allow, "reason": _reason,
+                    "n_samples": len(_samples),
+                    "samples_preview": _samples[:3],
+                    "threshold": 0.15,
+                }
+                if not _allow:
+                    return {
+                        "ok": False,
+                        "reason": "stability_gate_refused: " + _reason,
+                        "agent_id": agent_id,
+                        "valence": valence,
+                        "fitness_delta_skipped": _VALENCE_DELTA[valence],
+                        "_gate_witness": _gate_witness,
+                    }
+        except Exception:
+            pass  # fail-open default
+
     # Core scoring
     fitness_delta = _VALENCE_DELTA[valence]
     dlf_alignment = _compute_dlf_alignment(reaction_text, dlf_state or {})
@@ -292,6 +334,7 @@ def pair_evaluation(incoming_signal: Dict[str, Any],
         "pattern_id_updated": None,
         "agent_contract_updated": False,
         "write_back": write_back,
+        "_gate_witness": _gate_witness,  # PATCH-EVAL-R113
     }
 
     if write_back:
