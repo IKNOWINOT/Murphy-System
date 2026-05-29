@@ -179,9 +179,11 @@ def run_pipeline_with_gates(intent_text, active_compliance=None,
     if evidence is None:
         evidence = {}
     
+    # PATCH-WIRE2-R124 — R123 called run_pipeline (nonexistent).
+    # Real entrypoint is analyze_and_generate_gates.
     # Stage 1: run domain pipeline (existing Wire #1 substrate)
     try:
-        pipeline_result = run_pipeline(intent_text)
+        pipeline_result = analyze_and_generate_gates(intent_text)
     except Exception as e:
         return {
             "ok": False,
