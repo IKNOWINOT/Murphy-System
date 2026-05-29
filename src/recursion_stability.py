@@ -170,10 +170,24 @@ def measure_stability(recursion_id: str,
             if final > best_final:
                 c_eff = min(1.0, c_eff + 0.1)
     
+    # PATCH-STAB-R115 — monotonicity check before variance penalty
+    # R114 regressed KEK chain: [4,3,2,1,0] is monotonic descent but had
+    # high variance (2.0) → variance_penalty 0.5 → score dropped to 0.5.
+    # Fix: monotonic samples are STABLE even with wide range.
+    # Murphy meta-Q answered loose (80% same direction) catches both
+    # KEK exact-monotonic and noisy-monotonic real-world cases.
+    if len(samples) >= 2:
+        deltas = [samples[i+1] - samples[i] for i in range(len(samples)-1)]
+        pos = sum(1 for d in deltas if d > 0)
+        neg = sum(1 for d in deltas if d < 0)
+        total_nonzero = pos + neg
+        same_dir_ratio = (max(pos, neg) / total_nonzero) if total_nonzero > 0 else 1.0
+        is_monotonic = same_dir_ratio >= 0.8
+    else:
+        is_monotonic = True
     # PATCH-STAB-R114 — variance penalty for unanchored chaos
-    # Even if c_eff and λ_eff look fine, wild swings around any target
-    # are unstable. Penalty proportional to variance, capped at 0.5.
-    variance_penalty = min(0.5, variance_s * 2)
+    # R115 skips this when samples are monotonic (walk through space).
+    variance_penalty = 0.0 if is_monotonic else min(0.5, variance_s * 2)
     # Hybrid score
     penalty = max(
         min(lambda_eff, 1.0),
