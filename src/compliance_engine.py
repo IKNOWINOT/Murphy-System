@@ -501,3 +501,32 @@ class ComplianceEngine:
 
         for req in defaults:
             self.register_requirement(req)
+
+
+# PATCH-PROV-WRAP-001 (R65) — module-level provenance wrap
+# Installs hitl_provenance trails on public functions/methods so EVERY caller
+# (not just test harnesses) gets a verifiable provenance trail.
+# Backward compatible — dict-returning fns get _provenance key appended.
+try:
+    from src.hitl_provenance import with_provenance as _hp_wrap
+    if "get_applicable_frameworks" in dir():
+        _orig_get_applicable_frameworks = get_applicable_frameworks
+        get_applicable_frameworks = _hp_wrap(_orig_get_applicable_frameworks, source_kind="hardcoded", source_hint="compliance_engine._DOMAIN_FRAMEWORK_MAP literal")
+    if "get_status" in dir():
+        _orig_get_status = get_status
+        get_status = _hp_wrap(_orig_get_status, source_kind="memory", source_hint="compliance_engine internal state")
+    # Class methods on ComplianceEngine — wrap on the class so all instances see them
+    if "ComplianceEngine" in dir():
+        ComplianceEngine.get_applicable_frameworks = _hp_wrap(
+            ComplianceEngine.get_applicable_frameworks,
+            source_kind="hardcoded",
+            source_hint="compliance_engine._DOMAIN_FRAMEWORK_MAP literal"
+        )
+        ComplianceEngine.get_status = _hp_wrap(
+            ComplianceEngine.get_status,
+            source_kind="memory",
+            source_hint="compliance_engine internal state dict"
+        )
+except ImportError:
+    # hitl_provenance not installed — operate unwrapped (graceful degrade)
+    pass
