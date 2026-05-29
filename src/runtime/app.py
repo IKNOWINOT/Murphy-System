@@ -33908,6 +33908,27 @@ try:
         prompt   = body.get("prompt", "")
         exec_id  = body.get("exec_id") or f"exec-{_p311_uuid.uuid4().hex[:8]}"
         chain_id = body.get("chain_id") or f"CHN-311-{_p311_uuid.uuid4().hex[:6].upper()}"
+        # PATCH-R147 — Phase B Wire #7 import_gate input-validation gate
+        try:
+            from src.import_gate import check_missing as _r147_check_missing
+            _r147_template = body.get("template_code") or body.get("template") or ""
+            _r147_tenant = body.get("tenant_id") or "platform"
+            if _r147_template:
+                _r147_gap = _r147_check_missing(
+                    _r147_template, _r147_tenant, chain_id)
+                if not _r147_gap.get("can_proceed", True):
+                    from fastapi.responses import JSONResponse as _R147JSONResponse
+                    return _R147JSONResponse({
+                        "error": "missing_required_artifacts",
+                        "template_code": _r147_template,
+                        "chain_id": chain_id,
+                        "missing_mandatory": _r147_gap.get("missing_mandatory", []),
+                        "missing_optional": _r147_gap.get("missing_optional", []),
+                        "wire_version": _r147_gap.get("wire_version"),
+                    }, status_code=422)
+        except Exception:
+            # Fail-open — never block chain creation on gate failure
+            pass
 
         disc     = _p311_classify_discipline(prompt)
         elements = _p311_extract_elements(prompt)
