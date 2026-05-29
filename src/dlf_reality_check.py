@@ -34,7 +34,7 @@ DEPENDS ON:
   Local Murphy /api/chat at 127.0.0.1:8000
   Local sendmail (postfix)
 
-LAST UPDATED: 2026-05-29 R132
+LAST UPDATED: 2026-05-29 R133 (cooldown + retry + src-SHA override)
 """
 import hashlib
 import json
@@ -243,23 +243,99 @@ def _send_diff_email(self_report, truth_report, self_sha, truth_sha,
         return False, str(e)[:200]
 
 
+
+# PATCH-R133 — cooldown + retry + source-SHA override (rules 59, 60)
+
+COOLDOWN_FILE = BASELINES_DIR / "cooldown_state.json"
+COOLDOWN_DAYS = 7
+MAX_EMPTY_RETRIES = 1
+RETRY_SLEEP_S = 30
+
+
+def _read_cooldown_state():
+    """Return dict with last_sent_at_epoch, last_src_sha map."""
+    if not COOLDOWN_FILE.exists():
+        return {"last_sent_at": 0, "last_src_shas": {}}
+    try:
+        with open(COOLDOWN_FILE) as f:
+            return json.load(f)
+    except Exception:
+        return {"last_sent_at": 0, "last_src_shas": {}}
+
+
+def _write_cooldown_state(state):
+    try:
+        COOLDOWN_FILE.write_text(json.dumps(state))
+    except Exception:
+        pass
+
+
+def _ask_murphy_with_retry():
+    """Ask Murphy; retry once if empty/error. Returns (reply, error_or_None)."""
+    reply, err = _ask_murphy_for_self_report()
+    if reply and reply.strip() and len(reply.strip()) > 20:
+        return reply, None
+    # Retry once after sleep
+    time.sleep(RETRY_SLEEP_S)
+    reply2, err2 = _ask_murphy_for_self_report()
+    if reply2 and reply2.strip() and len(reply2.strip()) > 20:
+        return reply2, None
+    return None, "empty_after_retry: first={} second={}".format(err or "no_reply", err2 or "no_reply")
+
+
+def _current_src_shas():
+    """Return {path: sha256} for tracked source files."""
+    return {
+        DLF_PATH: _sha256_file(DLF_PATH),
+        ROSETTA_PATH: _sha256_file(ROSETTA_PATH),
+    }
+
+
+def _source_files_changed(state):
+    """True if any tracked source file SHA differs from last recorded."""
+    current = _current_src_shas()
+    last = state.get("last_src_shas", {})
+    for path, sha in current.items():
+        if not sha:
+            continue
+        if last.get(path) != sha:
+            return True, path
+    return False, None
+
+
+
 def run_cycle(force: bool = False) -> dict:
-    """Main entry point — invoked by systemd timer."""
+    """Main entry point — invoked by systemd timer.
+
+    PATCH-R133: 7-day cooldown floor + source-file SHA override.
+    Retry-on-empty Murphy reply once before treating as unavailable.
+    """
     started = time.time()
     last_self_sha, last_truth_sha = _read_index_last_shas()
+    cooldown_state = _read_cooldown_state()
+    now_epoch = int(time.time())
+    seconds_since_last_send = now_epoch - cooldown_state.get("last_sent_at", 0)
+    cooldown_seconds = COOLDOWN_DAYS * 86400
 
-    # Gather both reports
-    self_report, self_err = _ask_murphy_for_self_report()
+    # Source-file mutation = override cooldown immediately
+    src_changed, changed_path = _source_files_changed(cooldown_state)
+
+    # Gather both reports (retry on empty Murphy reply)
+    self_report, self_err = _ask_murphy_with_retry()
     truth_report = _grep_ground_truth()
 
     # Compute SHAs
     self_sha = _sha256_text(self_report or "") if self_report else ""
     truth_sha = _sha256_text(truth_report)
 
-    # Decide: should we even send? (rule 58 gate)
+    # Decide: should we even send? (rules 58 + 60 gates layered)
     self_drifted = self_report and self_sha and self_sha != last_self_sha
     truth_drifted = truth_sha and truth_sha != last_truth_sha
-    should_send = force or self_drifted or truth_drifted
+    drift_present = bool(self_drifted or truth_drifted)
+    cooldown_active = seconds_since_last_send < cooldown_seconds
+    # Rule 60: cooldown blocks drift-only sends. Source-file SHA change OR
+    # explicit force overrides cooldown.
+    should_send = force or src_changed or (drift_present and not cooldown_active)
 
     elapsed = round(time.time() - started, 2)
     summary_parts = []
@@ -280,15 +356,19 @@ def run_cycle(force: bool = False) -> dict:
         "truth_sha": truth_sha[:16],
         "last_self_sha": (last_self_sha or "")[:16],
         "last_truth_sha": (last_truth_sha or "")[:16],
-        "drift_detected": bool(self_drifted or truth_drifted),
+        "drift_detected": drift_present,
         "should_send": should_send,
         "diff_summary": diff_summary,
         "email_sent": False,
+        "cooldown_active": cooldown_active,
+        "seconds_since_last_send": seconds_since_last_send,
+        "src_files_changed": src_changed,
+        "src_changed_path": changed_path,
     }
 
-    # Persist baselines regardless
+    # Persist baselines regardless (R133: only when Murphy gave real reply)
     ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    if self_report:
+    if self_report and len(self_report.strip()) > 20:
         sp = BASELINES_DIR / "dlf_report_{}.txt".format(ts)
         try:
             sp.write_text(self_report)
@@ -311,7 +391,7 @@ def run_cycle(force: bool = False) -> dict:
     except Exception as e:
         result["truth_persist_error"] = str(e)[:80]
 
-    # Send only if drift OR forced (rule 58)
+    # Send only if rules 58 + 60 gates allow (cooldown floor + source override)
     if should_send:
         sent_ok, send_err = _send_diff_email(
             self_report, truth_report, self_sha, truth_sha,
@@ -320,6 +400,16 @@ def run_cycle(force: bool = False) -> dict:
         result["email_sent"] = sent_ok
         if not sent_ok:
             result["send_error"] = send_err
+        if sent_ok:
+            # Update cooldown state + remember source SHAs
+            cooldown_state["last_sent_at"] = now_epoch
+            cooldown_state["last_src_shas"] = _current_src_shas()
+            _write_cooldown_state(cooldown_state)
+    else:
+        # Even on no-send, update src SHAs so future runs have baseline
+        if not cooldown_state.get("last_src_shas"):
+            cooldown_state["last_src_shas"] = _current_src_shas()
+            _write_cooldown_state(cooldown_state)
 
     return result
 
