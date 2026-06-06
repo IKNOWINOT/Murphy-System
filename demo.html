@@ -448,6 +448,35 @@
   // Uses /api/demo/generate-deliverable which is the live, MFGC-gated long-form path
   // that already runs Murphy's "most advanced" pipeline and produces a real .txt deliverable.
   async function runDispatchFlow(prompt, kind) {
+    // R65b-B3: book chip uses the dedicated multi-chapter writer
+    if (kind === 'book') {
+      streamPhase('📖 Book draft', 'Planning chapters + writing prose (1-2 minutes per chapter)…');
+      try {
+        const resp = await fetch('/api/books/write', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({premise: prompt, target_chapters: 3})
+        });
+        const d = await resp.json();
+        if (!d.ok) {
+          streamError(d.error || 'Book write failed.');
+          return;
+        }
+        streamPhase('Book complete', d.book_title + ' — ' + (d.total_words || 0).toLocaleString() + ' words in ' + d.elapsed_s + 's');
+        streamTxt('Logline: ' + (d.logline || ''));
+        streamTxt('Characters extracted: ' + (d.characters_extracted || []).slice(0, 8).join(', '));
+        for (const c of (d.chapters || [])) {
+          streamTxt('  Ch ' + c.idx + ': ' + c.title + ' — ' + (c.word_count || 0) + ' words');
+        }
+        streamLink(d.artifact_url, 'Download ' + d.book_title + '.md');
+        streamPhase('Honesty', '3 chapters here (~3000 words). 100-page novel = 25+ chapters; we cap at 3 in the demo to keep latency reasonable. Use /api/books/write with target_chapters=25 for the full book.');
+        return;
+      } catch (e) {
+        streamError('Book write error: ' + e.message);
+        return;
+      }
+    }
+    
     const labelMap = {
       book:      {emoji: '📖', name: 'Book draft',         hint: 'Murphy will plan + write chapters'},
       cited_doc: {emoji: '📚', name: 'Cited research doc', hint: 'Murphy will draft + (R65b-pending) verify citations'},

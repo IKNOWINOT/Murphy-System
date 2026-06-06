@@ -27507,6 +27507,50 @@ def create_app() -> FastAPI:
             import traceback
             return JSONResponse({"ok": False, "error": str(exc), "trace": traceback.format_exc()[-500:]}, status_code=500)
     # R65b_B1B2_DONE
+
+
+    # ═══════════════════════════════════════════════════════════════════
+    # R65b-B3 — Book chapter loop (2026-06-06)
+    # ═══════════════════════════════════════════════════════════════════
+    @app.post("/api/books/write", include_in_schema=False)
+    async def r65b_book_write(request: Request):
+        """Write a multi-chapter book from a premise.
+
+        Body: {"premise": "...", "target_chapters": 12}
+        Returns: full book result with artifact_url for download.
+        """
+        try:
+            body = await request.json()
+        except Exception:
+            body = {}
+        premise = (body.get("premise") or body.get("query") or "").strip()
+        target = int(body.get("target_chapters") or 12)
+        if not premise or len(premise) < 20:
+            return JSONResponse({"ok": False, "error": "premise required (min 20 chars)"}, status_code=400)
+        if target < 1 or target > 30:
+            return JSONResponse({"ok": False, "error": "target_chapters must be 1-30"}, status_code=400)
+        try:
+            from src.book_chapter_loop import write_book
+            result = write_book(premise, target_chapters=target)
+            return JSONResponse(result)
+        except Exception as exc:
+            import traceback
+            return JSONResponse({"ok": False, "error": str(exc), "trace": traceback.format_exc()[-500:]}, status_code=500)
+
+    @app.get("/api/books/{job_id}/download", include_in_schema=False)
+    async def r65b_book_download(job_id: str):
+        """Download a generated book as markdown."""
+        import re
+        if not re.match(r"^book_[a-f0-9]{12}$", job_id):
+            return JSONResponse({"error": "invalid job_id"}, status_code=400)
+        fp = f"/var/lib/murphy-production/books/{job_id}.md"
+        import os.path
+        if not os.path.isfile(fp):
+            return JSONResponse({"error": "book not found"}, status_code=404)
+        return _R65a4_FR(fp, media_type="text/markdown")
+    # R65b_B3_DONE
+    # ═══════════════════════════════════════════════════════════════════
+
     # ═══════════════════════════════════════════════════════════════════
 
     # ═══════════════════════════════════════════════════════════════════
