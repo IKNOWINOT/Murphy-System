@@ -166,3 +166,17 @@ new archetype quick-actions and a unified "Ask Murphy" prompt box.
 ## Snapshot
 /var/lib/murphy-production/state_snapshots/r65a_demo_20260606T070615Z
 Rollback: copy demo.html.before back, no service restart needed
+
+## 2026-06-06 R65b ENV FIX (post-shipping)
+- Issue: anonymous /api/books/{id}/download returned 401 even with auth_middleware
+  patched + systemd override added.
+- Root cause: MURPHY_AUTH_EXEMPT is set in /etc/murphy-production/environment
+  (EnvironmentFile=), which OVERRODE my systemd .conf override (last-write wins).
+- Fix: appended /api/books/,/api/citations/,/api/demo/generate-deliverable to the
+  existing comma-separated list in the env file, removed the redundant override.
+- Now: anonymous public access verified 200 on all three.
+- Lesson: systemd EnvironmentFile= beats Environment= in .d/ overrides when both
+  set the same key. ALWAYS prefer editing the env file directly when it's the
+  designated source-of-truth (the unit file even comments "Environment is read
+  from /etc/murphy-production/environment").
+
