@@ -212,3 +212,30 @@ demo_deliverable_gen,app,mss_controls}_20260606T*.before
 
 **Composes with:** R64a (rosetta-learning), R65a (demo chips). Future deliverables
 across all 5 archetypes now tune to the tenant's industry automatically.
+
+## R66b — MSS tenant context surfaced to LLM prompt (2026-06-06)
+
+**Problem:** R66 wired tenant factors into MSS magnify output, but
+`_format_mss_context()` (which renders the MSS section that gets prepended
+to the LLM prompt) only read reqs/comps/compliance/cost/impl_steps. It
+never read the new R66 keys (industry, target_audience, business_name).
+So the model received tenant-tuned MSS output but couldn't see who it
+was writing for.
+
+**Fix:** `src/demo_deliverable_generator.py:_format_mss_context` now emits
+a leading "TENANT CONTEXT (from signup profile)" block when any of
+business_name / industry / target_audience are populated, followed by a
+CRITICAL instruction to tailor every recommendation to that business.
+
+**Proof:** identical query "Build me a customer-acquisition plan for next
+30 days" — t1 prompt now leads with:
+  Business: Apex Plumbing
+  Industry: plumbing contractor
+  Write for: early-stage plumbing contractor owner, no marketing budget
+while t2 leads with:
+  Business: Clean Kitchen
+  Industry: commercial cleaning
+  Write for: established commercial cleaning owner looking to expand customer base
+
+Composes with R66 (no behavior change when tenant_id is absent — block
+silently omitted).

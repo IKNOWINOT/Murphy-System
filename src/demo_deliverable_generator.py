@@ -4029,6 +4029,27 @@ def _format_mss_context(mss_result: Dict[str, Any]) -> str:
     mag = mss_result.get("magnify", {})
     sol = mss_result.get("solidify", {})
 
+    # R66b — Surface tenant-specific factors at the TOP of the LLM context so
+    # the model knows who it's writing for before it sees requirements.
+    # These keys are populated by R66 (signup_profile_loader → MSS magnify).
+    tenant_business = mag.get("business_name", "")
+    tenant_industry = mag.get("industry", "")
+    tenant_audience = mag.get("target_audience", "")
+    if tenant_business or tenant_industry or tenant_audience:
+        lines.append("■ MURPHY INTELLIGENCE — TENANT CONTEXT (from signup profile)")
+        lines.append("─" * 60)
+        if tenant_business:
+            lines.append(f"  Business: {tenant_business}")
+        if tenant_industry:
+            lines.append(f"  Industry: {tenant_industry}")
+        if tenant_audience:
+            lines.append(f"  Write for: {tenant_audience}")
+        lines.append("")
+        lines.append("  CRITICAL: tailor every recommendation, example, dollar amount,")
+        lines.append("  and tactic to this specific business. Do not produce generic")
+        lines.append("  advice — use the industry's actual workflows and constraints.")
+        lines.append("")
+
     # From Magnify output
     reqs = mag.get("functional_requirements", [])
     comps = mag.get("technical_components", [])
