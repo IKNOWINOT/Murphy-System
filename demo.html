@@ -444,60 +444,82 @@
     }
   }
 
-  // Dispatch: route book / cited_doc / webapp to rosetta/dispatch with the right domain
+  // Dispatch: route book / cited_doc / webapp through Murphy's MFGC → MSS → LLM pipeline.
+  // Uses /api/demo/generate-deliverable which is the live, MFGC-gated long-form path
+  // that already runs Murphy's "most advanced" pipeline and produces a real .txt deliverable.
   async function runDispatchFlow(prompt, kind) {
-    const domainMap = {
-      book:      'long_form_authoring',
-      cited_doc: 'cited_research',
-      webapp:    'engineering'
+    const labelMap = {
+      book:      {emoji: '📖', name: 'Book draft',         hint: 'Murphy will plan + write chapters'},
+      cited_doc: {emoji: '📚', name: 'Cited research doc', hint: 'Murphy will draft + (R65b-pending) verify citations'},
+      webapp:    {emoji: '🛠', name: 'Web app spec',       hint: 'Murphy will draft the spec + arch — Forge build coming in R65c'}
     };
-    const roleMap = {
-      book:      'narrative_writer',
-      cited_doc: 'researcher',
-      webapp:    'cto'
-    };
-    streamPhase('Dispatching to Murphy (Rosetta orchestrator)',
-                'Domain: ' + domainMap[kind] + ' · Role: ' + roleMap[kind]);
-    const resp = await fetch('/api/rosetta/dispatch', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({prompt: prompt, role: roleMap[kind], domain: domainMap[kind]})
-    });
-    const data = await resp.json();
-    if (data.notifications && data.notifications.length) {
-      streamPhase('Pipeline notifications', '');
-      for (const n of data.notifications) {
-        streamTxt(n.msg || JSON.stringify(n));
-      }
+    const meta = labelMap[kind];
+    streamPhase(meta.emoji + ' ' + meta.name, meta.hint);
+    streamTxt('• Running Murphy\'s MFGC → MSS → LLM pipeline (~30s for short, ~90s for long)');
+
+    let resp;
+    try {
+      resp = await fetch('/api/demo/generate-deliverable', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({query: prompt, scenario_type: kind})
+      });
+    } catch (e) {
+      streamError('Network error reaching Murphy: ' + e.message);
+      return;
     }
-    if (data.assigned_agents) {
-      streamPhase('Team assembled', data.assigned_agents.length + ' agents on this job');
-      for (const a of data.assigned_agents) streamTxt('· ' + (a.emoji || '') + ' ' + (a.title || a.agent_id || ''));
+
+    let data;
+    try { data = await resp.json(); }
+    catch (e) {
+      streamError('Murphy returned a non-JSON response.');
+      return;
     }
-    if (data.mfgc_state) {
-      streamPhase('MFGC gate', data.mfgc_state.verdict || JSON.stringify(data.mfgc_state).slice(0, 200));
+
+    if (!data.success) {
+      streamError(data.message || data.error || 'Murphy returned an error.');
+      return;
     }
-    if (data.pipeline) {
-      streamPhase('Pipeline state', JSON.stringify(data.pipeline).slice(0, 300));
-    }
-    // Synthesis (the actual deliverable, if Rosetta returns it)
-    const synthesis = data.synthesis || data.answer || data.output || data.result;
-    if (synthesis) {
-      streamPhase('Murphy says', '');
-      const txt = typeof synthesis === 'string' ? synthesis : JSON.stringify(synthesis, null, 2);
+
+    const deliv = data.deliverable || {};
+    const content = deliv.content || '';
+    const filename = deliv.filename || 'murphy_deliverable.txt';
+    const provider = data.llm_provider || deliv.llm_provider || 'unknown';
+
+    streamPhase('Murphy delivered', filename + '  (' + content.length.toLocaleString() + ' chars · provider: ' + provider + ')');
+
+    // Render the content (truncated for screen) + download link
+    if (content) {
       const pre = document.createElement('pre');
-      pre.style.whiteSpace = 'pre-wrap'; pre.style.wordBreak = 'break-word';
-      pre.style.marginLeft = '12px'; pre.textContent = txt.slice(0, 5000);
+      pre.style.cssText = 'white-space:pre-wrap;word-break:break-word;margin-left:12px;background:var(--bg2);padding:1rem;border-radius:8px;max-height:400px;overflow-y:auto;font-size:0.78rem;line-height:1.5';
+      pre.textContent = content.slice(0, 6000);
       stream.appendChild(pre);
-    } else if (data.brief_packet_id) {
-      streamPhase('Brief packet generated', 'ID: ' + data.brief_packet_id);
-      streamTxt('Murphy assembled the team and a brief — full text delivery is shipping in R65b.');
-    } else {
-      streamPhase('Note', 'Dispatch ran but did not return synthesis text. R65b will wire long-form delivery.');
+      if (content.length > 6000) {
+        const more = document.createElement('div');
+        more.style.cssText = 'margin-left:12px;color:var(--muted);font-size:0.78rem;margin-top:0.5rem';
+        more.textContent = '… (' + (content.length - 6000).toLocaleString() + ' more characters in the download)';
+        stream.appendChild(more);
+      }
+      // Inline download
+      const blob = new Blob([content], {type: 'text/plain'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.className = 'r65a-link';
+      a.href = url;
+      a.download = filename;
+      a.textContent = '⬇ Download ' + filename;
+      stream.appendChild(a);
     }
+
+    // Show automation_spec if Murphy attached one
+    if (data.automation_spec && data.automation_spec.summary) {
+      streamPhase('Automation blueprint attached', data.automation_spec.summary.slice(0, 300));
+    }
+
+    streamPhase('Honesty', 'Citation verification + plagiarism gate ship in R65b (B1 + B2). Right now this is unverified prose.');
   }
 
-  // Desktop: stub until R65d ships the real download
+    // Desktop: stub until R65d ships the real download
   async function runDesktopFlow(prompt) {
     streamPhase('Murphy Desktop Agent', 'Privacy-by-design: user data never leaves your device.');
     streamTxt('• Runs locally at 127.0.0.1:8011 (murphy_edge service)');
