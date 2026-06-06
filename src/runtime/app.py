@@ -2167,6 +2167,21 @@ def create_app() -> FastAPI:
             hash_presented=hash_presented, hash_approved=hash_approved,
             credential_snapshot=cred, outcome=final_status, notes=notes
         )
+        # R64b: record decision into rosetta_learning store
+        try:
+            import sys as _r64b_sys
+            _r64b_sys.path.insert(0, "/opt/Murphy-System/src/runtime")
+            from rosetta_learning import hook_decision_from_endpoint
+            hook_decision_from_endpoint(
+                raw_action=action_type,
+                hitl_item_id=item_id,
+                source_kind=item_action_class,
+                reason=notes or None,
+                decided_by=account_id,
+            )
+        except Exception:
+            pass
+        # # R64b_HOOK_1_DONE
         return {"ok": True, "event_id": event_id, "engagement_id": engagement_id,
                 "item_id": item_id, "action": action_type, "status": final_status,
                 "hash_of_item_presented": hash_presented,
@@ -6929,6 +6944,19 @@ def create_app() -> FastAPI:
         intervention["status"] = status_val
         intervention["response"] = response_val
         intervention["responded_at"] = datetime.now(timezone.utc).isoformat()
+        # R64b: record decision into rosetta_learning store
+        try:
+            import sys; sys.path.insert(0, "/opt/Murphy-System/src/runtime")
+            from rosetta_learning import hook_decision_from_endpoint
+            hook_decision_from_endpoint(
+                raw_action=status_val,
+                hitl_item_id=intervention_id,
+                source_kind=intervention.get("type") if isinstance(intervention, dict) else None,
+                reason=response_val[:500] if response_val else None,
+            )
+        except Exception:
+            pass
+        # # R64b_HOOK_2_DONE
         return JSONResponse({"success": True, "intervention": intervention})
 
     @app.get("/api/hitl/statistics")
@@ -17715,6 +17743,19 @@ def create_app() -> FastAPI:
         )
         item["decided_at"] = _now_iso()
         item["notes"] = body.get("notes", "")
+        # R64b: record decision into rosetta_learning store
+        try:
+            import sys; sys.path.insert(0, "/opt/Murphy-System/src/runtime")
+            from rosetta_learning import hook_decision_from_endpoint
+            hook_decision_from_endpoint(
+                raw_action=action,
+                hitl_item_id=tid,
+                source_kind=item.get("kind") if isinstance(item, dict) else None,
+                reason=body.get("notes") or None,
+            )
+        except Exception:
+            pass
+        # # R64b_HOOK_3_DONE
         return JSONResponse({"ok": True, "item": item})
 
     # ==================== HITL DEPLOYMENT GATE ENDPOINTS ====================

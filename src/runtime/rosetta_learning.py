@@ -268,3 +268,72 @@ def health() -> Dict[str, Any]:
     except Exception as e:
         out["error"] = str(e)
     return out
+
+
+# ─── R64b — Decide-hook helper ────────────────────────────────────────────
+# Normalize the various action verbs each /decide endpoint accepts into the
+# 4 canonical decisions: approved / rejected / revised / regenerated.
+_VERB_MAP = {
+    # /api/hitl/items/{id}/decide vocabulary
+    "approve":     "approved",
+    "reject":      "rejected",
+    "edit":        "revised",
+    "defer":       None,     # not a decision — skip
+    "escalate":    None,     # not a decision — skip
+    # /api/hitl/interventions/{id}/respond vocabulary
+    "approved":    "approved",
+    "rejected":    "rejected",
+    "resolved":    "approved",
+    "deferred":    None,
+    "escalated":   None,
+    # /api/hitl/{tid}/decide vocabulary
+    "accept":      "approved",
+    "revision":    "revised",
+    "revision_requested": "revised",
+    "regenerate":  "regenerated",
+}
+
+def normalize_decision(verb: str) -> Optional[str]:
+    """Map any /decide vocabulary into the canonical 4 decisions, or None to skip."""
+    return _VERB_MAP.get((verb or "").lower().strip())
+
+
+def hook_decision_from_endpoint(
+    *,
+    raw_action: str,
+    hitl_item_id: Optional[str] = None,
+    source_kind: Optional[str] = None,   # the item's `kind` field if available
+    agent_type: Optional[str] = None,    # explicit override — else derived from kind
+    reason: Optional[str] = None,
+    diff_json: Optional[str] = None,
+    importance: float = 0.5,
+    stake: Optional[str] = None,
+    decided_by: Optional[str] = None,
+) -> Optional[str]:
+    """
+    Single hook called from each /decide endpoint. Returns correction_id on write,
+    None on skip (e.g. defer/escalate).
+    SAFE TO CALL — never raises; logs and returns None on any error.
+    """
+    try:
+        decision = normalize_decision(raw_action)
+        if decision is None:
+            return None
+        at = agent_type or derive_agent_type(source_kind)
+        return record_decision(
+            agent_type=at,
+            decision=decision,
+            hitl_item_id=hitl_item_id,
+            source_kind=source_kind,
+            reason=reason,
+            diff_json=diff_json,
+            importance=importance,
+            stake=stake,
+            decided_by=decided_by,
+        )
+    except Exception:
+        import logging, traceback
+        logging.getLogger("rosetta_learning").warning(
+            "hook_decision_from_endpoint failed: %s", traceback.format_exc()
+        )
+        return None
