@@ -160,6 +160,361 @@
   </div>
 </div>
 
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     R65a — Watch Murphy build for you (added 2026-06-06)
+     ═══════════════════════════════════════════════════════════════════ -->
+<style>
+  .r65a-build {
+    max-width: 1100px;
+    margin: 0 auto 4rem;
+    padding: 0 2rem;
+  }
+  .r65a-build h2 {
+    font-size: 1.6rem;
+    font-weight: 800;
+    text-align: center;
+    margin-bottom: 0.5rem;
+  }
+  .r65a-build h2 span { color: var(--teal); }
+  .r65a-build .sub {
+    color: var(--muted);
+    text-align: center;
+    margin-bottom: 1.5rem;
+    font-size: 0.95rem;
+  }
+  .r65a-chips {
+    display: flex;
+    gap: 0.6rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 1.25rem;
+  }
+  .r65a-chip {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 0.55rem 1.05rem;
+    color: var(--text);
+    font-size: 0.84rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .r65a-chip:hover {
+    border-color: var(--teal);
+    color: var(--teal);
+    background: var(--teal-dim);
+  }
+  .r65a-chip.active {
+    background: var(--teal-dim);
+    border-color: var(--teal);
+    color: var(--teal);
+  }
+  .r65a-prompt-row {
+    display: flex;
+    gap: 0.5rem;
+    background: var(--surface);
+    border: 1px solid var(--border-mid);
+    border-radius: 12px;
+    padding: 0.6rem;
+    align-items: flex-start;
+  }
+  .r65a-prompt-row textarea {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    resize: vertical;
+    min-height: 56px;
+    outline: none;
+    padding: 0.5rem;
+  }
+  .r65a-prompt-row textarea::placeholder { color: var(--muted); }
+  .r65a-go {
+    background: var(--teal);
+    color: #000;
+    border: none;
+    border-radius: 8px;
+    padding: 0.65rem 1.4rem;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    align-self: stretch;
+    white-space: nowrap;
+    transition: opacity 0.15s;
+  }
+  .r65a-go:hover { opacity: 0.85; }
+  .r65a-go:disabled { opacity: 0.4; cursor: not-allowed; }
+  .r65a-stream {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin-top: 1rem;
+    min-height: 60px;
+    font-family: 'JetBrains Mono', 'Menlo', monospace;
+    font-size: 0.82rem;
+    line-height: 1.6;
+    color: var(--text);
+    max-height: 480px;
+    overflow-y: auto;
+    display: none;
+  }
+  .r65a-stream.active { display: block; }
+  .r65a-phase {
+    margin: 0.5rem 0;
+    padding-left: 0.75rem;
+    border-left: 2px solid var(--teal);
+  }
+  .r65a-phase-title {
+    color: var(--teal);
+    font-weight: 600;
+  }
+  .r65a-phase-body { color: var(--text); margin-top: 0.15rem; opacity: 0.85; }
+  .r65a-cursor {
+    display: inline-block;
+    width: 8px;
+    height: 14px;
+    background: var(--teal);
+    animation: r65a-blink 1s steps(2) infinite;
+    vertical-align: text-bottom;
+  }
+  @keyframes r65a-blink { 50% { opacity: 0; } }
+  .r65a-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--teal-dim);
+    border: 1px solid var(--teal);
+    color: var(--teal);
+    padding: 0.45rem 0.9rem;
+    border-radius: 8px;
+    font-weight: 600;
+    text-decoration: none;
+    margin-top: 0.75rem;
+    font-size: 0.88rem;
+  }
+  .r65a-link:hover { background: var(--teal); color: #000; }
+</style>
+
+<div class="r65a-build">
+  <h2>Tell Murphy what you need. <span>Watch it build.</span></h2>
+  <p class="sub">No links to nowhere. No mockups. Murphy generates the real thing while you watch — and ships it to a real URL or download.</p>
+
+  <div class="r65a-chips" id="r65aChips">
+    <div class="r65a-chip" data-kind="company"     data-prompt="A landing page + first-action workflow for my plumbing business">🏢 Build a business workspace</div>
+    <div class="r65a-chip" data-kind="book"        data-prompt="A 100-page novel about a detective named Ada in a near-future Pacific Northwest">📖 Write a book</div>
+    <div class="r65a-chip" data-kind="cited_doc"   data-prompt="A 12-page briefing on the state of generative AI in 2026 with real sources">📚 Cited research doc</div>
+    <div class="r65a-chip" data-kind="webapp"      data-prompt="A habit tracker with weekly streaks and CSV export — for me and 3 friends">🛠 Build a web app</div>
+    <div class="r65a-chip" data-kind="desktop"     data-prompt="Pair Murphy to my desktop so it can learn from how I work without seeing my files">💻 Get the desktop agent</div>
+  </div>
+
+  <div class="r65a-prompt-row">
+    <textarea id="r65aPrompt" placeholder="Or write your own request — e.g. 'set up an LLC for a SaaS, file the EIN, give me a banking checklist, generate a one-pager'"></textarea>
+    <button id="r65aGo" class="r65a-go" onclick="r65aRun()">Ask Murphy →</button>
+  </div>
+
+  <div class="r65a-stream" id="r65aStream"></div>
+</div>
+
+<script>
+(function(){
+  // Chip selection
+  let selectedKind = 'company';
+  const chips = document.querySelectorAll('#r65aChips .r65a-chip');
+  chips.forEach((c, i) => {
+    if (i === 0) c.classList.add('active');
+    c.addEventListener('click', () => {
+      chips.forEach(x => x.classList.remove('active'));
+      c.classList.add('active');
+      selectedKind = c.dataset.kind;
+      const tx = document.getElementById('r65aPrompt');
+      if (!tx.value.trim()) tx.value = c.dataset.prompt;
+    });
+  });
+
+  // Stream renderer
+  const stream = document.getElementById('r65aStream');
+  function streamPhase(title, body) {
+    const div = document.createElement('div');
+    div.className = 'r65a-phase';
+    div.innerHTML = '<div class="r65a-phase-title">▸ ' + escapeHtml(title) + '</div>' +
+      (body ? '<div class="r65a-phase-body">' + escapeHtml(body) + '</div>' : '');
+    stream.appendChild(div);
+    stream.scrollTop = stream.scrollHeight;
+  }
+  function streamTxt(t) {
+    const div = document.createElement('div');
+    div.style.marginLeft = '12px';
+    div.style.opacity = '0.85';
+    div.textContent = t;
+    stream.appendChild(div);
+    stream.scrollTop = stream.scrollHeight;
+  }
+  function streamLink(href, text) {
+    const a = document.createElement('a');
+    a.className = 'r65a-link';
+    a.href = href;
+    a.target = '_blank';
+    a.textContent = text + ' ↗';
+    stream.appendChild(a);
+    stream.scrollTop = stream.scrollHeight;
+  }
+  function streamError(msg) {
+    const div = document.createElement('div');
+    div.style.color = '#ff6b6b';
+    div.style.padding = '0.5rem';
+    div.textContent = '✗ ' + msg;
+    stream.appendChild(div);
+  }
+  function escapeHtml(s) {
+    if (!s) return '';
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+  }
+  function clearStream() {
+    stream.innerHTML = '';
+    stream.classList.add('active');
+  }
+
+  // Kind → handler router
+  async function r65aRun() {
+    const prompt = document.getElementById('r65aPrompt').value.trim();
+    if (!prompt) {
+      alert('Tell Murphy what to build');
+      return;
+    }
+    const btn = document.getElementById('r65aGo');
+    btn.disabled = true; btn.textContent = 'Building…';
+    clearStream();
+
+    try {
+      if (selectedKind === 'company') {
+        await runR404Build(prompt);
+      } else if (selectedKind === 'desktop') {
+        await runDesktopFlow(prompt);
+      } else if (selectedKind === 'book' || selectedKind === 'cited_doc' || selectedKind === 'webapp') {
+        await runDispatchFlow(prompt, selectedKind);
+      }
+    } catch (e) {
+      streamError('Build failed: ' + (e.message || String(e)));
+    } finally {
+      btn.disabled = false; btn.textContent = 'Ask Murphy →';
+    }
+  }
+  window.r65aRun = r65aRun;
+
+  // R404: 60-second SSE build for companies
+  async function runR404Build(prompt) {
+    streamPhase('Starting R404 build pipeline', 'Streaming phases in real time…');
+    const resp = await fetch('/api/demo/build', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({company_name: prompt.slice(0, 60), industry: 'auto-detect'})
+    });
+    if (!resp.ok || !resp.body) {
+      throw new Error('Demo build endpoint unavailable (' + resp.status + ')');
+    }
+    const reader = resp.body.getReader();
+    const dec = new TextDecoder();
+    let buf = '';
+    while (true) {
+      const {value, done} = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, {stream: true});
+      const lines = buf.split('\n');
+      buf = lines.pop();
+      for (const ln of lines) {
+        if (!ln.startsWith('data: ')) continue;
+        try {
+          const ev = JSON.parse(ln.slice(6));
+          if (ev.type === 'phase_start') streamPhase(ev.title || ev.phase, '');
+          else if (ev.type === 'phase_detail' || ev.type === 'log') streamTxt(ev.detail || ev.msg || JSON.stringify(ev));
+          else if (ev.type === 'phase_done') streamTxt('✓ ' + (ev.title || ev.phase) + ' complete');
+          else if (ev.type === 'tenant_ready' && ev.slug) {
+            streamLink('/' + ev.slug, 'Open your live workspace: ' + ev.slug);
+          } else if (ev.type === 'done') streamPhase('Build complete', '');
+          else streamTxt(JSON.stringify(ev));
+        } catch (e) { /* ignore bad chunks */ }
+      }
+    }
+  }
+
+  // Dispatch: route book / cited_doc / webapp to rosetta/dispatch with the right domain
+  async function runDispatchFlow(prompt, kind) {
+    const domainMap = {
+      book:      'long_form_authoring',
+      cited_doc: 'cited_research',
+      webapp:    'engineering'
+    };
+    const roleMap = {
+      book:      'narrative_writer',
+      cited_doc: 'researcher',
+      webapp:    'cto'
+    };
+    streamPhase('Dispatching to Murphy (Rosetta orchestrator)',
+                'Domain: ' + domainMap[kind] + ' · Role: ' + roleMap[kind]);
+    const resp = await fetch('/api/rosetta/dispatch', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({prompt: prompt, role: roleMap[kind], domain: domainMap[kind]})
+    });
+    const data = await resp.json();
+    if (data.notifications && data.notifications.length) {
+      streamPhase('Pipeline notifications', '');
+      for (const n of data.notifications) {
+        streamTxt(n.msg || JSON.stringify(n));
+      }
+    }
+    if (data.assigned_agents) {
+      streamPhase('Team assembled', data.assigned_agents.length + ' agents on this job');
+      for (const a of data.assigned_agents) streamTxt('· ' + (a.emoji || '') + ' ' + (a.title || a.agent_id || ''));
+    }
+    if (data.mfgc_state) {
+      streamPhase('MFGC gate', data.mfgc_state.verdict || JSON.stringify(data.mfgc_state).slice(0, 200));
+    }
+    if (data.pipeline) {
+      streamPhase('Pipeline state', JSON.stringify(data.pipeline).slice(0, 300));
+    }
+    // Synthesis (the actual deliverable, if Rosetta returns it)
+    const synthesis = data.synthesis || data.answer || data.output || data.result;
+    if (synthesis) {
+      streamPhase('Murphy says', '');
+      const txt = typeof synthesis === 'string' ? synthesis : JSON.stringify(synthesis, null, 2);
+      const pre = document.createElement('pre');
+      pre.style.whiteSpace = 'pre-wrap'; pre.style.wordBreak = 'break-word';
+      pre.style.marginLeft = '12px'; pre.textContent = txt.slice(0, 5000);
+      stream.appendChild(pre);
+    } else if (data.brief_packet_id) {
+      streamPhase('Brief packet generated', 'ID: ' + data.brief_packet_id);
+      streamTxt('Murphy assembled the team and a brief — full text delivery is shipping in R65b.');
+    } else {
+      streamPhase('Note', 'Dispatch ran but did not return synthesis text. R65b will wire long-form delivery.');
+    }
+  }
+
+  // Desktop: stub until R65d ships the real download
+  async function runDesktopFlow(prompt) {
+    streamPhase('Murphy Desktop Agent', 'Privacy-by-design: user data never leaves your device.');
+    streamTxt('• Runs locally at 127.0.0.1:8011 (murphy_edge service)');
+    streamTxt('• Pairs to your account via DLF-Lite (Shogun v0.1 wire format)');
+    streamTxt('• Sends only: rosetta persona, DLF snapshot, capability signatures, paired_score');
+    streamTxt('• Never sends: your prompts, your files, your URLs, agent output');
+    streamPhase('Status', 'Windows installer in final QA. macOS + Linux next.');
+    streamLink('/desktop', 'Join the desktop waitlist');
+    streamTxt('Your prompt: ' + prompt);
+  }
+})();
+</script>
+<!-- ═══════════════════════════════════════════════════════════════════
+     END R65a
+     ═══════════════════════════════════════════════════════════════════ -->
+
+
 <!-- LIVE METRICS BAR -->
 <div class="metrics-bar" id="metricsBar">
   <div class="metric-cell">

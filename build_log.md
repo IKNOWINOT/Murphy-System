@@ -126,3 +126,43 @@ Rollback: copy *.before back over live paths; systemctl restart murphy-productio
 - Asking is acceptable; choosing is NOT my liberty
 - Snapshot before every mutation
 - Live demo every round before moving on
+
+═══════════════════════════════════════════════════════════════════
+R65a — /demo rewire (2026-06-06)
+═══════════════════════════════════════════════════════════════════
+
+## What shipped
+Surfaced the orphaned R404 "Watch It Build" 60-second SSE backend
+(already-built 2026-06-01, never wired to a UI) plus added 4
+new archetype quick-actions and a unified "Ask Murphy" prompt box.
+
+## Changes
+- demo.html: inserted ~350-line R65a block between hero and metrics
+  - 5 chip selectors: 🏢 company, 📖 book, 📚 cited_doc, 🛠 webapp, 💻 desktop
+  - Unified prompt textarea + "Ask Murphy →" button
+  - Live SSE stream renderer (phases, logs, links, errors)
+  - 3 handler routes:
+    1. company → POST /api/demo/build (R404 SSE — already live)
+    2. book/cited_doc/webapp → POST /api/rosetta/dispatch with role+domain
+    3. desktop → stub explainer + waitlist link (R65d will wire)
+
+## Verified live
+- 5 chips render on /demo ✓
+- R404 SSE returns phase_start for "Test Pizza Co" ✓
+- /api/rosetta/dispatch returned 10 notifications + 3 agents +
+  brief_packet_id=dispatch_1b5fd549 ✓
+- All existing live panels below (ROI/swarm/shield/ambient/compliance)
+  remain unchanged ✓
+
+## Known gaps (handled in next rounds)
+- Dispatch returns notifications + assigned agents but NO synthesis text.
+  R65b will wire the actual long-form delivery (chapter loop + citation
+  verify + plagiarism gate) through generate_document() and
+  document_generation_engine.
+- /api/demo/build SSE may stall after first phase (only emits identity
+  start in initial test). Need to walk all 5 phases live to confirm.
+- Desktop button is a stub. R65d will ship pairing + DLF-Lite roundtrip.
+
+## Snapshot
+/var/lib/murphy-production/state_snapshots/r65a_demo_20260606T070615Z
+Rollback: copy demo.html.before back, no service restart needed
