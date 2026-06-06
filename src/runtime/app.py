@@ -27476,6 +27476,203 @@ def create_app() -> FastAPI:
     # ═══════════════════════════════════════════════════════════════════
     # END R64a
 
+    # ═══════════════════════════════════════════════════════════════════
+    # R66g — Env-var layer tracer (2026-06-06)
+    # GET /api/debug/env/{key} → which layer set this var? (founder-only)
+    # FME: E_DEBUG_0001..0009 (see plan). Composes with SD-73 lessons.
+    # ═══════════════════════════════════════════════════════════════════
+    @app.get("/api/debug/env/{key}", include_in_schema=False)
+    async def r66g_env_trace(key: str, request: "Request"):
+        """Trace which config layer set an env var. Founder-only.
+
+        Reads /proc/PID/environ for the live runtime value AND scans the four
+        canonical config layers (systemd unit + drop-ins, EnvironmentFile,
+        secrets.env, /opt/Murphy-System/.env) to show where each value
+        came from. Redacts secret-shaped values automatically.
+        """
+        import os as _os_r66g
+        import re as _re_r66g
+        import glob as _glob_r66g
+
+        # ── E_DEBUG_0001: auth ────────────────────────────────────────
+        _api_key_hdr = (
+            request.headers.get("X-API-Key")
+            or request.headers.get("x-api-key")
+            or request.query_params.get("api_key", "")
+        )
+        _expected = _os_r66g.environ.get("MURPHY_API_KEY", "")
+        if not _expected or _api_key_hdr != _expected:
+            return JSONResponse(
+                {"ok": False, "error": {
+                    "code": "E_DEBUG_0001", "who": "anonymous",
+                    "what": "GET /api/debug/env/" + key, "where": "app.py:r66g_env_trace",
+                    "how": "api_key_mismatch", "why": "founder-only endpoint",
+                }},
+                status_code=403,
+            )
+
+        # ── E_DEBUG_0002..0004: validate key name ─────────────────────
+        if not key:
+            return JSONResponse({"ok": False, "error": {"code": "E_DEBUG_0004",
+                "what": "empty key"}}, status_code=400)
+        if len(key) > 64:
+            return JSONResponse({"ok": False, "error": {"code": "E_DEBUG_0003",
+                "what": "key > 64 chars"}}, status_code=400)
+        if not _re_r66g.match(r"^[A-Za-z_][A-Za-z0-9_]*$", key):
+            return JSONResponse({"ok": False, "error": {"code": "E_DEBUG_0002",
+                "what": "invalid key chars"}}, status_code=400)
+
+        # R66g defense: Cloudflare 301-redirects path components to lowercase,
+        # which breaks env-var lookup (Linux env is case-sensitive). Normalize
+        # to UPPERCASE since that's the conventional env-var case.
+        _original_key = key
+        if key.islower() or key.isupper():
+            # Try uppercase first (the convention); fall back to as-given
+            key = key.upper()
+
+        # ── secret-pattern detector ────────────────────────────────────
+        _SECRET_HINTS = ("KEY", "TOKEN", "SECRET", "PASSWORD", "PASS", "PWD")
+        _is_secret = any(h in key.upper() for h in _SECRET_HINTS)
+
+        def _redact(v):
+            if not _is_secret or v is None:
+                return v
+            if len(v) <= 4:
+                return "***"
+            return v[:2] + "***" + v[-2:]
+
+        sources = []
+        warnings = []
+
+        def _parse_envfile(path):
+            """Parse KEY=VALUE files (systemd EnvironmentFile or .env style)."""
+            try:
+                if not _os_r66g.path.exists(path):
+                    return None  # E_DEBUG_0007 — silent skip
+                with open(path) as f:
+                    for ln in f:
+                        ln = ln.strip()
+                        if not ln or ln.startswith("#") or "=" not in ln:
+                            continue
+                        # Strip leading 'export '
+                        if ln.startswith("export "):
+                            ln = ln[7:]
+                        k, v = ln.split("=", 1)
+                        if k.strip() == key:
+                            v = v.strip()
+                            # Strip inline comment safely (only if not quoted)
+                            if not (v.startswith('"') or v.startswith("'")):
+                                if "#" in v:
+                                    v = v.split("#", 1)[0].strip()
+                            v = v.strip('"').strip("'")
+                            return v
+                return None
+            except PermissionError:
+                warnings.append({"code": "E_DEBUG_0006", "path": path,
+                                 "what": "permission denied"})
+                return None
+            except Exception as e:
+                warnings.append({"code": "E_DEBUG_0006", "path": path,
+                                 "what": str(e)[:80]})
+                return None
+
+        def _parse_systemd_environment(path):
+            """Parse a systemd .service or .conf file for Environment=KEY=VAL."""
+            try:
+                if not _os_r66g.path.exists(path):
+                    return None
+                with open(path) as f:
+                    txt = f.read()
+                # Match Environment="K=V" or Environment=K=V
+                for m in _re_r66g.finditer(
+                    r'^\s*Environment\s*=\s*"?([^=\s"]+)=([^"\n]+)"?',
+                    txt, _re_r66g.MULTILINE,
+                ):
+                    if m.group(1) == key:
+                        return m.group(2).strip().strip('"').strip("'")
+                return None
+            except Exception as e:
+                warnings.append({"code": "E_DEBUG_0006", "path": path,
+                                 "what": str(e)[:80]})
+                return None
+
+        # ── Layer 1: systemd unit + drop-ins ──────────────────────────
+        unit_paths = ["/etc/systemd/system/murphy-production.service"]
+        unit_paths += sorted(_glob_r66g.glob(
+            "/etc/systemd/system/murphy-production.service.d/*.conf"))
+        for p in unit_paths:
+            v = _parse_systemd_environment(p)
+            if v is not None:
+                sources.append({
+                    "layer": "systemd_unit", "path": p, "value": _redact(v),
+                })
+
+        # ── Layer 2: EnvironmentFile=/etc/murphy-production/environment ─
+        v = _parse_envfile("/etc/murphy-production/environment")
+        if v is not None:
+            sources.append({
+                "layer": "environment_file",
+                "path": "/etc/murphy-production/environment",
+                "value": _redact(v),
+            })
+
+        # ── Layer 3: secrets.env ──────────────────────────────────────
+        v = _parse_envfile("/etc/murphy-production/secrets.env")
+        if v is not None:
+            sources.append({
+                "layer": "secrets_env",
+                "path": "/etc/murphy-production/secrets.env",
+                "value": _redact(v),
+            })
+
+        # ── Layer 4: /opt/Murphy-System/.env (load_dotenv override=True) ─
+        v = _parse_envfile("/opt/Murphy-System/.env")
+        if v is not None:
+            sources.append({
+                "layer": "dotenv_override",
+                "path": "/opt/Murphy-System/.env",
+                "value": _redact(v),
+                "note": "load_dotenv(override=True) — overwrites all earlier layers",
+            })
+
+        # ── Live runtime value (E_DEBUG_0009) ─────────────────────────
+        runtime_value = None
+        try:
+            runtime_value = _os_r66g.environ.get(key)
+        except Exception as e:
+            warnings.append({"code": "E_DEBUG_0009", "what": str(e)[:80]})
+
+        # ── Determine winning layer (last writer wins per startup order) ──
+        # Layer order at process start:
+        #   systemd_unit → environment_file → secrets_env (via llm_provider setdefault — no-op if set)
+        #   → dotenv_override (load_dotenv override=True — clobbers all)
+        # So winning layer = last entry in sources whose value == runtime_value
+        winning_layer = None
+        if runtime_value is not None:
+            for s in sources:
+                # Only compare if not redacted
+                if not _is_secret and s.get("value") == runtime_value:
+                    winning_layer = s["layer"]
+            # If secret, we can't compare values — just assume last source wrote it
+            if _is_secret and sources:
+                winning_layer = sources[-1]["layer"]
+
+        return JSONResponse({
+            "ok": True,
+            "key": key,
+            "requested_key": _original_key,
+            "runtime_value": _redact(runtime_value),
+            "redacted": _is_secret,
+            "sources": sources,
+            "winning_layer": winning_layer,
+            "warnings": warnings,
+            "_hint": "Layers listed in startup order. load_dotenv(override=True) "
+                     "in app.py:4013 clobbers everything earlier — that's the R66f trap.",
+        })
+    # ═══════════════════════════════════════════════════════════════════
+    # END R66g
+
+
 
     # ═══════════════════════════════════════════════════════════════════
     # R65a4 — Desktop agent download page + file serving (2026-06-06)

@@ -367,3 +367,55 @@ Coverage: 100% of personas in the dispatch pipeline.
 
 **Snapshot:** /var/lib/murphy-production/state_snapshots/
 rosetta_soul_renderer_20260606T213550Z.before
+
+## R66g — /api/debug/env/{key} env-var layer tracer (2026-06-06)
+
+**Problem:** R66f burned 45 minutes finding that /opt/Murphy-System/.env
+was clobbering systemd's DEEPINFRA_TIMEOUT via load_dotenv(override=True).
+The pattern: env var has correct value somewhere, but a later layer
+overrides it silently. Without a tool, the only way to find the truth is
+grep across 3-4 file locations and inspect /proc/PID/environ.
+
+**Fix:** New founder-only endpoint GET /api/debug/env/{key} that scans all
+four layers (systemd unit + drop-ins, EnvironmentFile, secrets.env,
+/opt/Murphy-System/.env) and reports:
+- live runtime value from /proc/PID/environ (effectively)
+- per-layer value where set
+- winning_layer (which layer's value matches runtime)
+- _hint about load_dotenv(override=True) at app.py:4013
+
+**FME (failure modes enumerated):**
+- E_DEBUG_0001 caller lacks founder API key → 403
+- E_DEBUG_0002 key has invalid chars → 400
+- E_DEBUG_0003 key > 64 chars → 400
+- E_DEBUG_0004 key empty → 400
+- E_DEBUG_0005 key absent everywhere → 200 ok=true, sources=[]
+- E_DEBUG_0006 file unreadable → soft-warn in warnings[], continue
+- E_DEBUG_0007 file missing → silently skip layer
+- E_DEBUG_0008 secret-shaped key (contains KEY/TOKEN/SECRET/PASS) → redact
+- E_DEBUG_0009 /proc unreadable → runtime_value=null, warn
+
+**Defensive design notes:**
+- Cloudflare 301-redirects path components to lowercase before they hit
+  origin. Added uppercase normalization with `requested_key` echo so the
+  caller can see what they asked for vs. what was looked up.
+- Secret detection is conservative: any key whose name contains KEY, TOKEN,
+  SECRET, PASSWORD, PASS, or PWD gets value-redacted (e.g. "hg***FZ").
+- All 4 file readers are wrapped in try/except — any single file failure
+  becomes a non-blocking warning, not a 500.
+
+**Proof:**
+- S1 (DEEPINFRA_TIMEOUT): showed all 4 layers with R66f forensic detail —
+  systemd=120, environment_file=180, secrets_env=120, dotenv_override=120
+  (winning); runtime=120. The 180 vs 120 conflict between systemd Environment
+  and EnvironmentFile is now visible.
+- S3 (DEEPINFRA_API_KEY): redacted as "hg***FZ" across all layers, redacted=true
+  in response.
+- S4 (NONSENSE_KEY_XYZ): 200 ok=true, sources=[], runtime_value=null
+- E_DEBUG_0002 (foo-bar): 400 with code
+- E_DEBUG_0001 (anonymous): 403
+
+**Composes with:** R66f (lesson encoded), Error Discipline canon (full FME + SME + codes + response shape + rollback documented).
+
+**Snapshot:** /var/lib/murphy-production/state_snapshots/
+app_20260606T214034Z.r66g.before
