@@ -277,3 +277,31 @@ Eliot, Stein) buried in 14 capitalized stopwords → extractor returns exactly
 
 NER would be more robust but heavier. This fix unblocks the immediate
 ledger-pollution problem at zero LLM cost.
+
+## R66f — Phantom DEEPINFRA_TIMEOUT=60 mutator EXORCISED (2026-06-06)
+
+**Mystery:** /etc/murphy-production/environment had DEEPINFRA_TIMEOUT=180,
+secrets.env had 120, systemd drop-in had 120. /proc/PID/environ showed 120.
+Yet MurphyLLMProvider.__init__ kept logging "DEEPINFRA_TIMEOUT was 60.0s —
+clamped to 120.0s". SD-73 floor caught it but root cause unknown.
+
+**Root cause:** /opt/Murphy-System/.env line had DEEPINFRA_TIMEOUT=60.
+app.py:4013 (and two other sites) called load_dotenv(.env, override=True)
+which clobbered systemd's value at startup. The .env file is a leftover
+from development setup — secrets.env + systemd environment file are the
+canonical sources.
+
+**Fix:** Updated /opt/Murphy-System/.env: DEEPINFRA_TIMEOUT 60 → 120 with
+inline comment explaining the SD-73 floor.
+
+**Proof:** After restart, /proc/PID/environ shows DEEPINFRA_TIMEOUT=120.
+SD-73 FLOOR warning count in journalctl since restart: 0 (was firing every
+few seconds before).
+
+The in-code max() floor (R65b SD-73) stays as defense in depth — it just
+no longer has work to do.
+
+**Lesson:** When env-var override mysteries persist, check ALL three
+override layers: systemd Environment=, EnvironmentFile=, AND app-level
+load_dotenv(override=True). Last write wins. Add a "where's this value
+really coming from" debug endpoint someday.
