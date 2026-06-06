@@ -1,0 +1,152 @@
+{
+  "module": "r363_revision",
+  "blocks": {
+    "compliance_check": {
+      "intent_plain": "Run compliance check on revision text. Returns dict with status (passing/gap/no_spec), found rules, missing rules, checked count.",
+      "inputs": {
+        "form_code": "str",
+        "text": "str"
+      },
+      "outputs": {
+        "return": "dict with status/found/missing/checked keys"
+      },
+      "side_effects": [],
+      "failure_modes": [
+        "E_PARSE_0010",
+        "E_DEP_0008"
+      ],
+      "must_not": [
+        "modify text",
+        "call LLM directly",
+        "raise on unknown form_code"
+      ],
+      "test_array": {
+        "weak": [
+          {
+            "input": [
+              "",
+              ""
+            ],
+            "expected_return_keys": [
+              "status",
+              "found",
+              "missing",
+              "checked"
+            ]
+          }
+        ],
+        "good": [
+          {
+            "input": [
+              "F1-09",
+              "At-will employment policy. Equal opportunity employer. Anti-harassment training annually."
+            ],
+            "expected_return_keys": [
+              "status",
+              "found",
+              "missing",
+              "checked"
+            ]
+          }
+        ],
+        "precise": [
+          {
+            "input": [
+              "F1-12",
+              "Comprehensive separation packet with COBRA notice and final wage payment."
+            ],
+            "expected_return_keys": [
+              "status",
+              "found",
+              "missing",
+              "checked"
+            ]
+          }
+        ],
+        "really_good": [
+          {
+            "input": [
+              "NONEXISTENT_FORM",
+              "arbitrary text"
+            ],
+            "expected_return_keys": [
+              "status",
+              "found",
+              "missing",
+              "checked"
+            ]
+          }
+        ]
+      }
+    },
+    "extract_text": {
+      "intent_plain": "Extract plain text from a file. Returns tuple (text, status_method, errors_list).",
+      "inputs": {
+        "path": "str (file path)"
+      },
+      "outputs": {
+        "return": "tuple of (str, str, list)"
+      },
+      "side_effects": [
+        "READ-ONLY: file system read"
+      ],
+      "failure_modes": [
+        "E_PARSE_0008",
+        "E_AUTH_0001"
+      ],
+      "must_not": [
+        "modify the source file",
+        "write to disk"
+      ],
+      "test_array": {
+        "weak": [
+          {
+            "input": [
+              "/tmp/nonexistent_r374_xyz.txt"
+            ],
+            "expected_first_falsy": true
+          }
+        ],
+        "good": [
+          {
+            "input": [
+              "/var/lib/murphy-production/test_fixtures/r374_handbook.txt"
+            ],
+            "expected_truthy_first": true
+          }
+        ],
+        "precise": [
+          {
+            "input": [
+              "/var/lib/murphy-production/test_fixtures/r374_handbook.txt"
+            ],
+            "expected_truthy_first": true
+          }
+        ],
+        "really_good": [
+          {
+            "input": [
+              "/var/lib/murphy-production/test_fixtures/r374_handbook.txt"
+            ],
+            "expected_truthy_first": true
+          }
+        ]
+      }
+    }
+  },
+  "pipelines": {
+    "_self_check": {
+      "intent_plain": "Module loads + revision functions exist",
+      "anchors": [
+        "compliance_check",
+        "diff",
+        "err",
+        "extract_text",
+        "history"
+      ],
+      "pipeline_check": {
+        "module_loadable": true
+      }
+    }
+  }
+}

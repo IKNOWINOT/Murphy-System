@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<title>Murphy Universal Core — Doable For Any Business</title>
+<style>
+:root{--bg:#fafaf7;--surface:#fff;--text:#1a1d1f;--muted:#6b7280;--border:#d8d5cc;--rule:#e8e5dc;--primary:#1e3a5f;--secondary:#2e86ab;--accent:#f18f01;--paper:#fafaf7;--mono:'SF Mono',Menlo,monospace;--display:'Inter',-apple-system,sans-serif;--body:'Inter',-apple-system,sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:14px;line-height:1.55}
+.page{max-width:1080px;margin:0 auto;padding:42px 48px;background:#fff;min-height:100vh;box-shadow:0 0 0 1px var(--border)}
+.masthead{border-bottom:3px solid var(--primary);padding-bottom:18px;margin-bottom:28px;display:flex;justify-content:space-between;align-items:flex-end}
+.masthead .mark{width:44px;height:44px;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:700;font-size:14px;border-radius:2px;margin-right:14px}
+.masthead h1{font-family:var(--display);font-size:18px;font-weight:700;color:var(--primary);letter-spacing:0.3px}
+.masthead .legal{color:var(--muted);font-size:11px;margin-top:2px}
+.masthead .meta{text-align:right;font-family:var(--mono);font-size:10px;color:var(--muted);line-height:1.7}
+.doc-title{margin-bottom:28px;padding:18px 22px;background:var(--paper);border-left:4px solid var(--secondary)}
+.doc-title .kicker{font-family:var(--mono);font-size:10px;letter-spacing:1.5px;color:var(--secondary);text-transform:uppercase}
+.doc-title h2{font-family:var(--display);font-size:24px;margin-top:6px;color:var(--text);font-weight:700}
+.doc-title .question{margin-top:10px;color:var(--muted);font-style:italic;font-size:13px}
+section{margin-bottom:28px}
+section h3{font-family:var(--display);font-size:14px;color:var(--primary);font-weight:700;letter-spacing:0.4px;text-transform:uppercase;border-bottom:1px solid var(--rule);padding-bottom:6px;margin-bottom:14px}
+section p{margin-bottom:12px}
+.audit-banner{background:#fef3e6;border:1px solid #fbbf24;color:var(--text);padding:10px 16px;margin-bottom:24px;font-size:12px;border-radius:3px}
+.audit-banner strong{color:var(--accent)}
+table{width:100%;border-collapse:collapse;margin:14px 0;font-size:13px}
+th{text-align:left;background:var(--primary);color:#fff;padding:8px 12px;font-family:var(--mono);font-size:11px;letter-spacing:0.5px;text-transform:uppercase;font-weight:600}
+td{padding:8px 12px;border-bottom:1px solid var(--rule)}
+tr:nth-child(even) td{background:#fafaf7}
+.universe-section{margin-bottom:28px}
+.universe-section .uhead{font-family:var(--display);font-size:13px;color:#fff;background:var(--primary);padding:8px 16px;letter-spacing:1px;text-transform:uppercase;font-weight:700;display:flex;justify-content:space-between;align-items:center}
+.universe-section .uhead .count{background:var(--accent);padding:1px 8px;border-radius:2px;font-family:var(--mono);font-size:10px}
+.form-roster{border:1px solid var(--border);border-top:0;background:#fff}
+.form-roster .row{display:grid;grid-template-columns:50px 1fr 180px;gap:14px;padding:8px 16px;border-bottom:1px solid var(--rule);font-size:12px;align-items:center}
+.form-roster .row:last-child{border-bottom:0}
+.form-roster .row:nth-child(even){background:#fafaf7}
+.form-roster .row .code{font-family:var(--mono);font-size:10px;color:var(--secondary);font-weight:700}
+.form-roster .row .freq{font-family:var(--mono);font-size:10px;color:var(--muted);text-align:right}
+.applies{color:var(--muted);font-size:11px;font-style:italic;padding:4px 16px;background:#fafaf7;border-left:3px solid var(--secondary);margin-bottom:0}
+.overlay-card{background:#fafaf7;border:1px solid var(--border);border-radius:4px;padding:16px;margin-bottom:12px}
+.overlay-card .ohead{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.overlay-card .ohead .name{font-family:var(--display);font-weight:700;font-size:14px;color:var(--primary)}
+.overlay-card .ohead .naics{font-family:var(--mono);font-size:10px;color:var(--muted);background:#fff;padding:2px 8px;border-radius:2px;border:1px solid var(--border)}
+.overlay-card .demo-link{font-family:var(--mono);font-size:10px;color:var(--secondary);text-decoration:none;font-weight:700}
+.overlay-card .demo-link.none{color:var(--muted)}
+.overlay-card .key-list{margin-top:6px;font-size:11px;color:var(--text);line-height:1.7}
+.overlay-card .key-list span{display:inline-block;background:#fff;border:1px solid var(--border);padding:1px 8px;margin:2px 3px 2px 0;border-radius:2px;font-family:var(--mono);font-size:10px;color:var(--secondary)}
+.footer{margin-top:42px;padding-top:18px;border-top:1px solid var(--rule);font-size:10px;color:var(--muted);font-family:var(--mono);display:flex;justify-content:space-between}
+.footer a{color:var(--secondary);text-decoration:none}
+.diagram{background:#fafaf7;border:1px solid var(--border);padding:24px;margin:18px 0;border-radius:4px;font-family:var(--mono);font-size:11px;line-height:1.6;white-space:pre;overflow-x:auto}
+</style>
+</head><body>
+<div class="page">
+
+  <header class="masthead">
+    <div style="display:flex;align-items:center">
+      <div class="mark">M</div>
+      <div>
+        <h1>Murphy Platform</h1>
+        <div class="legal">Universal-Core Spec · One Pattern · Any Business</div>
+      </div>
+    </div>
+    <div class="meta">
+      DOC: R359-SPEC-V1<br>
+      ISSUED: 2026-05-30<br>
+      AUDIENCE: Platform + Tenants<br>
+      MACHINE: <a href="/ui/universal_core_spec.json" style="color:var(--secondary)">.json</a>
+    </div>
+  </header>
+
+  <div class="doc-title">
+    <div class="kicker">R359 — Universal Core Spec</div>
+    <h2>Every business runs on the same 80-form skeleton.</h2>
+    <div class="question">"It needs to be doable for any type of business." — universal core + industry overlay. Same Murphy pipeline, any tenant.</div>
+  </div>
+
+  <div class="audit-banner">
+    <strong>The pattern.</strong> Every business — MEP contractor, accounting firm,
+    restaurant, healthcare practice, SaaS company, retailer — has the same 80-form
+    operational skeleton across People / Money In / Money Out / Compliance /
+    Records / Risk. The vertical-specific layer sits ON TOP of this, never replaces it.
+    R358 proved depth on one industry; R359 proves the pattern is universal.
+  </div>
+
+  <section>
+    <h3>The Architecture</h3>
+    <div class="diagram">
+TENANT_PROFILE (identity + brand + scale + industry)
+   │
+   ├──── UNIVERSAL CORE   (~80 forms — applies to all)
+   │       F-CORE-1  People         (HR + payroll + benefits)
+   │       F-CORE-2  Money In       (sales + AR)
+   │       F-CORE-3  Money Out      (AP + expenses)
+   │       F-CORE-4  Compliance     (entity + tax + registrations)
+   │       F-CORE-5  Records        (governance + board + audit)
+   │       F-CORE-6  Risk           (insurance + contracts)
+   │
+   └──── INDUSTRY OVERLAY  (15–105 forms — vertical-specific)
+           MEP                 → DOB filings, SST, prevailing wage, AIA
+           Accounting          → engagement letters, peer review, 7216
+           Restaurant          → DOH grade, food protection, liquor
+           Healthcare          → HIPAA, BAA, NPI, credentialing
+           SaaS                → SOC2, MSA, DPA, sub-processor list
+           Retail              → sales tax per state, PCI, return policy
+</div>
+    <p>The same Murphy pipeline assembles a tenant's full form pack by joining the
+    universal core to the relevant overlay. Brand assets (logo, colors, fonts,
+    voice) are tenant-specific and override default styling at render time.</p>
+  </section>
+
+  <section>
+    <h3>Summary — How The 80 Universal Forms Split</h3>
+    <table>
+      <tr><th>Section</th><th>Forms</th><th>Why Universal</th></tr>
+      <tr><td>People (HR / Payroll / Benefits)</td><td>24</td><td>every employer regardless of industry</td></tr>
+      <tr><td>Money In (Sales / AR)</td><td>13</td><td>every business with customers</td></tr>
+      <tr><td>Money Out (AP / Expense)</td><td>12</td><td>every business with vendors / costs</td></tr>
+      <tr><td>Compliance (Entity / Tax / Registrations)</td><td>12</td><td>every legal entity</td></tr>
+      <tr><td>Records (Governance / Board / Audit)</td><td>9</td><td>every entity with formal governance</td></tr>
+      <tr><td>Risk (Insurance / Contracts)</td><td>10</td><td>every business with exposure</td></tr>
+      <tr style="font-weight:700;background:var(--paper)"><td>TOTAL UNIVERSAL CORE</td><td>80</td><td>—</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h3>Industry Overlays — Currently Specified</h3>
+    
+    <div class="overlay-card">
+      <div class="ohead">
+        <div>
+          <div class="name">Mechanical / Electrical / Plumbing Contractor</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px">+75 additional forms on top of the 80-form universal core</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+          <span class="naics">NAICS 238220</span>
+          <a href="/ui/cascadia_mep" class="demo-link">demo: oregon_mep_demo →</a>
+        </div>
+      </div>
+      <div class="key-list"><span>NYC DOB PW1/2/3</span><span>TR-1 / TR-8</span><span>PL/EL/MD permits</span><span>SST cards</span><span>WH-347 certified payroll</span><span>AIA G702/G703</span><span>lien waivers</span></div>
+    </div>
+    <div class="overlay-card">
+      <div class="ohead">
+        <div>
+          <div class="name">Public Accounting / CPA Firm</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px">+25 additional forms on top of the 80-form universal core</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+          <span class="naics">NAICS 541211</span>
+          <a href="/ui/rosewood_cpa" class="demo-link">demo: pdx_accounting_demo →</a>
+        </div>
+      </div>
+      <div class="key-list"><span>Audit engagement letter</span><span>Review engagement letter</span><span>Comp engagement letter</span><span>Tax engagement letter</span><span>Section 7216 consent</span><span>Working papers retention</span><span>AICPA peer review docs</span><span>CPA license renewal</span><span>CE tracking log</span><span>Independence checklist</span></div>
+    </div>
+    <div class="overlay-card">
+      <div class="ohead">
+        <div>
+          <div class="name">Full-Service Restaurant</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px">+20 additional forms on top of the 80-form universal core</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+          <span class="naics">NAICS 722511</span>
+          <a href="/ui/bedford_eats" class="demo-link">demo: bedford_eats_demo →</a>
+        </div>
+      </div>
+      <div class="key-list"><span>NYC DOH letter grade</span><span>NYC Food Protection Cert</span><span>NY SLA liquor license</span><span>DOH self-inspection</span><span>Allergen disclosure</span><span>Kitchen temp log</span><span>Supplier food safety audit</span><span>TIPS alcohol training</span><span>Tip pool agreement</span><span>Daily cash drop</span></div>
+    </div>
+    <div class="overlay-card">
+      <div class="ohead">
+        <div>
+          <div class="name">Healthcare Provider</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px">+30 additional forms on top of the 80-form universal core</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+          <span class="naics">NAICS 621111</span>
+          <span class="demo-link none">no demo this round</span>
+        </div>
+      </div>
+      <div class="key-list"><span>HIPAA Privacy / Security</span><span>BAA</span><span>NPI registration</span><span>Provider credentialing</span><span>Prior auth</span><span>Medicare / Medicaid enrollment</span><span>OIG exclusion check</span><span>Controlled substance log</span></div>
+    </div>
+    <div class="overlay-card">
+      <div class="ohead">
+        <div>
+          <div class="name">SaaS / Software Company</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px">+20 additional forms on top of the 80-form universal core</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+          <span class="naics">NAICS 541511</span>
+          <span class="demo-link none">no demo this round</span>
+        </div>
+      </div>
+      <div class="key-list"><span>SOC2 controls binder</span><span>MSA template</span><span>DPA template</span><span>SLA</span><span>Sub-processor list</span><span>Incident response runbook</span><span>Security questionnaire</span><span>ToS</span><span>AUP</span></div>
+    </div>
+    <div class="overlay-card">
+      <div class="ohead">
+        <div>
+          <div class="name">Retail / E-commerce</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px">+15 additional forms on top of the 80-form universal core</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+          <span class="naics">NAICS 452990</span>
+          <span class="demo-link none">no demo this round</span>
+        </div>
+      </div>
+      <div class="key-list"><span>Sales tax per state</span><span>PCI DSS attestation</span><span>Return / exchange policy</span><span>Gift card terms</span><span>Supplier MSA</span><span>Drop-ship agreement</span><span>Inventory shrink log</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h3>The 80-Form Universal Core In Full</h3>
+    <div class="universe-section"><div class="uhead"><span>People (HR / Payroll / Benefits)</span><span class="count">24 forms</span></div><div class="applies">Applies to: every employer regardless of industry</div><div class="form-roster"><div class="row"><span class="code">01</span><span>Offer letter</span><span class="freq">per hire</span></div><div class="row"><span class="code">02</span><span>Background check authorization (FCRA)</span><span class="freq">per hire</span></div><div class="row"><span class="code">03</span><span>I-9 Employment Eligibility</span><span class="freq">per hire (federal)</span></div><div class="row"><span class="code">04</span><span>W-4 Federal Withholding</span><span class="freq">per hire / change</span></div><div class="row"><span class="code">05</span><span>State Withholding (jurisdiction-specific)</span><span class="freq">per hire / state move</span></div><div class="row"><span class="code">06</span><span>Direct Deposit</span><span class="freq">per hire / change</span></div><div class="row"><span class="code">07</span><span>Emergency Contact</span><span class="freq">per hire</span></div><div class="row"><span class="code">08</span><span>EEO Self-Identification</span><span class="freq">per hire</span></div><div class="row"><span class="code">09</span><span>Employee Handbook Acknowledgment</span><span class="freq">per hire / version</span></div><div class="row"><span class="code">10</span><span>IT Acceptable Use Policy</span><span class="freq">per hire / version</span></div><div class="row"><span class="code">11</span><span>Drug/Alcohol Policy</span><span class="freq">per hire</span></div><div class="row"><span class="code">12</span><span>Benefits Election</span><span class="freq">per hire / annual</span></div><div class="row"><span class="code">13</span><span>401(k) Auto-Enroll Notice</span><span class="freq">per hire</span></div><div class="row"><span class="code">14</span><span>PTO Policy Acknowledgment</span><span class="freq">per hire</span></div><div class="row"><span class="code">15</span><span>Sexual Harassment Training</span><span class="freq">state-annual</span></div><div class="row"><span class="code">16</span><span>Workplace Violence Prevention</span><span class="freq">state-required</span></div><div class="row"><span class="code">17</span><span>Job Description / Role Scope</span><span class="freq">per role</span></div><div class="row"><span class="code">18</span><span>30/60/90 Milestone Check</span><span class="freq">per hire</span></div><div class="row"><span class="code">19</span><span>Annual Performance Review</span><span class="freq">annual</span></div><div class="row"><span class="code">20</span><span>Compensation Change Form</span><span class="freq">per event</span></div><div class="row"><span class="code">21</span><span>Garnishment Notice</span><span class="freq">per event</span></div><div class="row"><span class="code">22</span><span>Exit Interview</span><span class="freq">per separation</span></div><div class="row"><span class="code">23</span><span>Separation Notice (state-specific)</span><span class="freq">per separation</span></div><div class="row"><span class="code">24</span><span>COBRA Notification</span><span class="freq">per separation</span></div></div></div><div class="universe-section"><div class="uhead"><span>Money In (Sales / AR)</span><span class="count">13 forms</span></div><div class="applies">Applies to: every business with customers</div><div class="form-roster"><div class="row"><span class="code">25</span><span>Customer Onboarding / KYC</span><span class="freq">per new customer</span></div><div class="row"><span class="code">26</span><span>Master Service Agreement</span><span class="freq">per customer / version</span></div><div class="row"><span class="code">27</span><span>Statement of Work / Scope Letter</span><span class="freq">per engagement</span></div><div class="row"><span class="code">28</span><span>Pricing Schedule / Quote</span><span class="freq">per opportunity</span></div><div class="row"><span class="code">29</span><span>Customer Credit Application</span><span class="freq">per new credit customer</span></div><div class="row"><span class="code">30</span><span>W-9 Request from Customer</span><span class="freq">when customer remits</span></div><div class="row"><span class="code">31</span><span>Invoice Template</span><span class="freq">per billing cycle</span></div><div class="row"><span class="code">32</span><span>Past-Due Notice</span><span class="freq">per occurrence</span></div><div class="row"><span class="code">33</span><span>Final Demand</span><span class="freq">per occurrence</span></div><div class="row"><span class="code">34</span><span>Customer Satisfaction Survey</span><span class="freq">periodic</span></div><div class="row"><span class="code">35</span><span>Renewal Notice</span><span class="freq">per renewal</span></div><div class="row"><span class="code">36</span><span>Refund / Credit Memo</span><span class="freq">per occurrence</span></div><div class="row"><span class="code">37</span><span>AR Aging Report</span><span class="freq">monthly</span></div></div></div><div class="universe-section"><div class="uhead"><span>Money Out (AP / Expense)</span><span class="count">12 forms</span></div><div class="applies">Applies to: every business with vendors / costs</div><div class="form-roster"><div class="row"><span class="code">38</span><span>Vendor New Account (W-9 + COI + Banking)</span><span class="freq">per new vendor</span></div><div class="row"><span class="code">39</span><span>Purchase Order</span><span class="freq">per purchase</span></div><div class="row"><span class="code">40</span><span>PO Change Order</span><span class="freq">per change</span></div><div class="row"><span class="code">41</span><span>Expense Reimbursement</span><span class="freq">per submission</span></div><div class="row"><span class="code">42</span><span>Mileage Log</span><span class="freq">weekly for drivers</span></div><div class="row"><span class="code">43</span><span>Credit Card Monthly Reconciliation</span><span class="freq">monthly</span></div><div class="row"><span class="code">44</span><span>Petty Cash Log</span><span class="freq">ongoing</span></div><div class="row"><span class="code">45</span><span>Check Request</span><span class="freq">per disbursement</span></div><div class="row"><span class="code">46</span><span>AP Invoice Approval Routing</span><span class="freq">per invoice</span></div><div class="row"><span class="code">47</span><span>1099-NEC Year-End Recon</span><span class="freq">annual</span></div><div class="row"><span class="code">48</span><span>Wire Transfer Authorization</span><span class="freq">per wire</span></div><div class="row"><span class="code">49</span><span>ACH Origination Authorization</span><span class="freq">per setup / change</span></div></div></div><div class="universe-section"><div class="uhead"><span>Compliance (Entity / Tax / Registrations)</span><span class="count">12 forms</span></div><div class="applies">Applies to: every legal entity</div><div class="form-roster"><div class="row"><span class="code">50</span><span>Entity Formation (LLC/Corp)</span><span class="freq">at inception</span></div><div class="row"><span class="code">51</span><span>Foreign Entity Authority</span><span class="freq">per non-home state</span></div><div class="row"><span class="code">52</span><span>EIN Application (SS-4) Record</span><span class="freq">at inception</span></div><div class="row"><span class="code">53</span><span>State Tax Registration</span><span class="freq">per state</span></div><div class="row"><span class="code">54</span><span>Annual / Biennial Report</span><span class="freq">per cadence per state</span></div><div class="row"><span class="code">55</span><span>Sales Tax Registration</span><span class="freq">per state where applicable</span></div><div class="row"><span class="code">56</span><span>Use Tax Remittance</span><span class="freq">per cadence</span></div><div class="row"><span class="code">57</span><span>1099 / W-2 Year-End Filings</span><span class="freq">annual</span></div><div class="row"><span class="code">58</span><span>941 Quarterly Employment Tax</span><span class="freq">quarterly</span></div><div class="row"><span class="code">59</span><span>940 Annual FUTA</span><span class="freq">annual</span></div><div class="row"><span class="code">60</span><span>State Unemployment Registration</span><span class="freq">per state</span></div><div class="row"><span class="code">61</span><span>City / Local Business License</span><span class="freq">per locality</span></div></div></div><div class="universe-section"><div class="uhead"><span>Records (Governance / Board / Audit)</span><span class="count">9 forms</span></div><div class="applies">Applies to: every entity with formal governance</div><div class="form-roster"><div class="row"><span class="code">62</span><span>Operating Agreement / Bylaws</span><span class="freq">at inception</span></div><div class="row"><span class="code">63</span><span>Board Minutes</span><span class="freq">per meeting</span></div><div class="row"><span class="code">64</span><span>Member / Shareholder Resolution</span><span class="freq">per major decision</span></div><div class="row"><span class="code">65</span><span>Annual Meeting Notice</span><span class="freq">annual</span></div><div class="row"><span class="code">66</span><span>Conflict of Interest Disclosure</span><span class="freq">annual</span></div><div class="row"><span class="code">67</span><span>Records Retention Policy</span><span class="freq">annual review</span></div><div class="row"><span class="code">68</span><span>Audit Binder Index</span><span class="freq">annual</span></div><div class="row"><span class="code">69</span><span>Banking Resolution</span><span class="freq">per institution / change</span></div><div class="row"><span class="code">70</span><span>Power of Attorney</span><span class="freq">as needed</span></div></div></div><div class="universe-section"><div class="uhead"><span>Risk (Insurance / Contracts)</span><span class="count">10 forms</span></div><div class="applies">Applies to: every business with exposure</div><div class="form-roster"><div class="row"><span class="code">71</span><span>COI Request to Broker</span><span class="freq">per project / annual</span></div><div class="row"><span class="code">72</span><span>COI Received Verification</span><span class="freq">per counterparty</span></div><div class="row"><span class="code">73</span><span>Additional Insured Endorsement Request</span><span class="freq">per project</span></div><div class="row"><span class="code">74</span><span>Waiver of Subrogation Request</span><span class="freq">per project</span></div><div class="row"><span class="code">75</span><span>NDA Mutual / One-Way</span><span class="freq">per opportunity</span></div><div class="row"><span class="code">76</span><span>Contract Review Checklist</span><span class="freq">per contract</span></div><div class="row"><span class="code">77</span><span>Subcontractor / Contractor Agreement</span><span class="freq">per engagement</span></div><div class="row"><span class="code">78</span><span>Indemnification Rider</span><span class="freq">per material contract</span></div><div class="row"><span class="code">79</span><span>Data Processing Agreement</span><span class="freq">per data-touching counterparty</span></div><div class="row"><span class="code">80</span><span>Incident Report (general)</span><span class="freq">per event</span></div></div></div>
+  </section>
+
+  <section>
+    <h3>Decision &amp; Owner</h3>
+    <p><strong>Decision: Treat the 80-form universal core as the foundation
+    for every Murphy tenant.</strong> A new tenant onboarding flow always
+    instantiates the universal core, then layers the industry overlay matching
+    their NAICS / Murphy domain category. Brand is the tenant-specific veneer.</p>
+    <div class="audit-banner" style="background:#e8f5ee;border-color:#1f4e3d">
+      <strong>What R359 proves.</strong> Two new tenants — Rosewood CPA Partners
+      (accounting) and Bedford Stuyvesant Eats (restaurant) — were spun up using
+      the same pattern. Both render the same universal core with their own brand
+      and industry overlay. See the demo links above.
+    </div>
+  </section>
+
+  <div class="footer">
+    <span>R359-SPEC-V1 · Murphy Platform · 80 forms · 6 industry overlays · 2 new demo tenants</span>
+    <span><a href="/ui/cascadia_mep">↩ MEP demo</a> · <a href="/ui/rosewood_cpa">→ CPA demo</a> · <a href="/ui/bedford_eats">→ Restaurant demo</a></span>
+  </div>
+
+</div></body></html>

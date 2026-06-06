@@ -1,0 +1,1 @@
+{"incident_id": "inc_22e0c4fd", "outreach_found": true, "last_contact_date": "2023-03-15T10:30:00Z", "response_received": false, "follow_up_date": "2023-03-22T10:30:00Z", "subject": "APC Partnership Inquiry", "recommendation": "Copy refresh needed for APC outreach due to no inbound replies since last contact."}

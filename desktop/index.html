@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Murphy Desktop Agent — Privacy-by-Design</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  :root{--bg:#0a0a0a;--bg2:#111;--border:rgba(0,212,170,.22);--text:#e0e6ea;--muted:#6b8090;--teal:#00D4AA;--teal-dim:rgba(0,212,170,.08)}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif;line-height:1.6;min-height:100vh}
+  .wrap{max-width:760px;margin:0 auto;padding:4rem 2rem}
+  nav{margin-bottom:3rem}
+  nav a{color:var(--teal);text-decoration:none;font-size:.9rem}
+  nav a:hover{text-decoration:underline}
+  h1{font-size:2.4rem;font-weight:800;line-height:1.15;margin-bottom:1rem}
+  h1 span{color:var(--teal)}
+  .pill{display:inline-flex;align-items:center;gap:8px;background:var(--teal-dim);border:1px solid var(--border);color:var(--teal);padding:6px 14px;border-radius:18px;font-size:.78rem;margin-bottom:1.5rem}
+  .pulse{width:7px;height:7px;background:var(--teal);border-radius:50%;animation:p 1.5s infinite}
+  @keyframes p{0%,100%{opacity:1}50%{opacity:.4}}
+  p{color:var(--text);margin-bottom:1rem;font-size:1rem}
+  .lead{color:var(--text);font-size:1.15rem;margin-bottom:2rem}
+  h2{font-size:1.3rem;font-weight:700;margin:2.5rem 0 0.75rem;color:var(--teal)}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:1.5rem 0}
+  @media(max-width:600px){.grid{grid-template-columns:1fr}}
+  .card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:1.1rem}
+  .card-title{color:var(--teal);font-weight:600;font-size:.92rem;margin-bottom:.3rem}
+  .card-body{color:var(--muted);font-size:.86rem;line-height:1.55}
+  .check{color:var(--teal);font-weight:700;margin-right:.4rem}
+  .x{color:#ff6b6b;font-weight:700;margin-right:.4rem}
+  ul{list-style:none;margin:1rem 0}
+  ul li{padding:.4rem 0;font-size:.95rem}
+  .btn{display:inline-block;background:var(--teal);color:#000;font-weight:700;text-decoration:none;padding:0.7rem 1.5rem;border-radius:8px;margin-right:.5rem;margin-top:.5rem;transition:opacity .15s}
+  .btn:hover{opacity:.85}
+  .btn-outline{background:transparent;border:1px solid var(--teal);color:var(--teal)}
+  .small{color:var(--muted);font-size:.82rem;margin-top:0.5rem}
+  .roadmap{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:1.25rem;margin-top:1.5rem}
+  .roadmap-row{display:flex;justify-content:space-between;padding:.4rem 0;border-bottom:1px solid var(--border);font-size:.88rem}
+  .roadmap-row:last-child{border-bottom:none}
+  .status{color:var(--muted);font-family:monospace}
+  .status.live{color:var(--teal)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav><a href="/demo">← Back to demo</a></nav>
+
+  <div class="pill"><div class="pulse"></div>Privacy-by-design · DLF-Lite wire format</div>
+  <h1>Murphy Desktop Agent.<br><span>Your data stays on your machine.</span></h1>
+
+  <p class="lead">Murphy runs locally on your computer, learns from how you actually work, and never sends your files, prompts, or screen contents to our server. What flows back is metacognition — not content.</p>
+
+  <h2>What we see vs. what we don't</h2>
+  <div class="grid">
+    <div class="card">
+      <div class="card-title"><span class="check">✓</span>What we receive</div>
+      <div class="card-body">
+        • Which Rosetta persona was injected (e.g. "executor")<br>
+        • Your DLF snapshot ID (north star + capacity)<br>
+        • Which capability APIs were used<br>
+        • Paired_score + fitness_delta (0..1 floats)
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="x">✗</span>What we never see</div>
+      <div class="card-body">
+        • Your prompt text<br>
+        • Your files, documents, or screen contents<br>
+        • The URLs you visit<br>
+        • The agent's output text
+      </div>
+    </div>
+  </div>
+  <p class="small">Built on Murphy's existing R105 <code>pair_evaluation()</code> + DLF-Lite (Shogun v0.1) wire format, extended desktop-ward.</p>
+
+  <h2>Download</h2>
+  <a class="btn" href="/desktop/Install_Murphy_Desktop.bat" download>Windows installer (.bat)</a>
+  <a class="btn btn-outline" href="mailto:cpost@murphy.systems?subject=Desktop%20waitlist">Email for macOS / Linux</a>
+  <p class="small">v0.0.1 — pairing flow + local edge service. Ghost controller, multicursor, screen mapper roll out in v0.1.</p>
+
+  <h2>Roadmap</h2>
+  <div class="roadmap">
+    <div class="roadmap-row"><span>Local edge service (FastAPI on 127.0.0.1:8011)</span><span class="status live">● live</span></div>
+    <div class="roadmap-row"><span>Windows installer (bundled Python runtime)</span><span class="status live">● live</span></div>
+    <div class="roadmap-row"><span>Account pairing via DLF-Lite handshake</span><span class="status">○ R65d</span></div>
+    <div class="roadmap-row"><span>Server endpoint /api/dlfr/desktop/pair</span><span class="status">○ R65d</span></div>
+    <div class="roadmap-row"><span>Server endpoint /api/dlfr/desktop/evaluate</span><span class="status">○ R65d</span></div>
+    <div class="roadmap-row"><span>Shadow agent observation (ambient learning)</span><span class="status">○ R66</span></div>
+    <div class="roadmap-row"><span>Ghost controller (mouse/keyboard playback)</span><span class="status">○ R66</span></div>
+    <div class="roadmap-row"><span>Multicursor (parallel input across tabs)</span><span class="status">○ R66</span></div>
+    <div class="roadmap-row"><span>Visual screen mapper across tabs</span><span class="status">○ R67</span></div>
+    <div class="roadmap-row"><span>Self-patch on UI change</span><span class="status">○ R67</span></div>
+    <div class="roadmap-row"><span>Fullscreen + 125% zoom lock</span><span class="status">○ R67</span></div>
+    <div class="roadmap-row"><span>macOS installer (.pkg)</span><span class="status">○ R68</span></div>
+    <div class="roadmap-row"><span>Linux installer (.deb)</span><span class="status">○ R68</span></div>
+  </div>
+
+  <h2>Source</h2>
+  <p>The desktop edge service code lives in the public repo at <code>desktop/murphy_edge.py</code>. Audit before you install — that's the whole point.</p>
+  <p class="small">© 2026 Inoni LLC · BSL 1.1 · Built by Corey Post</p>
+</div>
+</body>
+</html>

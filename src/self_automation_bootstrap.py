@@ -170,10 +170,16 @@ class SelfAutomationBootstrap:
             issues.append("subscription_manager module not available")
 
         # PayPal credentials (primary provider)
+        # _R466_REVENUE_NOWPAYMENTS — actual live revenue rail
+        nowpay_id = os.environ.get("NOWPAYMENTS_API_KEY", "")
+        nowpay_secret = os.environ.get("NOWPAYMENTS_IPN_SECRET", "")
         paypal_id = os.environ.get("PAYPAL_CLIENT_ID", "")
-        paypal_secret = os.environ.get("PAYPAL_CLIENT_SECRET", "")
-        components["paypal_configured"] = bool(paypal_id and paypal_secret)
-        if not components["paypal_configured"]:
+        if not nowpay_id:
+            issues.append("NOWPayments credentials not configured (NOWPAYMENTS_API_KEY) — primary revenue rail")
+        if nowpay_id and not nowpay_secret:
+            issues.append("NOWPAYMENTS_IPN_SECRET missing — webhook signatures will not verify")
+        # PayPal is now legacy; only flag if explicitly opted-in via env
+        if os.environ.get("REQUIRE_PAYPAL", "").lower() in ("1","true","yes") and not paypal_id:
             issues.append("PayPal credentials not configured (PAYPAL_CLIENT_ID / PAYPAL_CLIENT_SECRET)")
 
         # Coinbase Commerce (secondary / crypto)

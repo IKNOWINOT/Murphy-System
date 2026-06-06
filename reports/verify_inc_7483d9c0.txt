@@ -1,0 +1,5 @@
+Incident verified: No inbound replies in over 999 days.
+CRM log confirmed: {"last_outreach_date": "2023-01-01", "last_reply_date": null, "status": "pending", "contact_id": "apc_outreach_001"}
+Action taken: Triggered copy refresh for APC outreach.
+Command executed: python src/workflows/copy_refresh.py --target=apc_outreach
+Status: Resolved

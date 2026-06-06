@@ -1,0 +1,97 @@
+{
+  "module": "r366_state_overlay",
+  "blocks": {
+    "filter_rules_for_tenant": {
+      "intent_plain": "Filter form_compliance_specs by tenant.primary_state. Rules with applicable_states='*' apply to all tenants; state-specific rules (e.g. NY) only apply when tenant.primary_state matches.",
+      "inputs": {
+        "form_code": "str",
+        "tenant_slug": "str"
+      },
+      "outputs": {
+        "return": "dict with applicable, filtered_out, primary_state keys"
+      },
+      "side_effects": [
+        "READ-ONLY: queries form_compliance_specs + tenants tables"
+      ],
+      "failure_modes": [
+        "E_PARSE_0020",
+        "E_DEP_0020"
+      ],
+      "must_not": [
+        "call LLM",
+        "modify DB",
+        "include NY-only rules for non-NY tenants",
+        "include rules with mismatched state"
+      ],
+      "test_array": {
+        "weak": [
+          {
+            "input": [
+              "",
+              ""
+            ],
+            "expected_return_keys": [
+              "applicable",
+              "filtered_out",
+              "primary_state"
+            ]
+          }
+        ],
+        "good": [
+          {
+            "input": [
+              "F1-09",
+              "apex_wellness"
+            ],
+            "expected_return_keys": [
+              "applicable",
+              "filtered_out",
+              "primary_state"
+            ],
+            "expected_primary_state": "OR",
+            "expected_filtered_count_min": 3
+          }
+        ],
+        "precise": [
+          {
+            "input": [
+              "F1-09",
+              "oregon_mep_demo"
+            ],
+            "expected_return_keys": [
+              "applicable",
+              "filtered_out",
+              "primary_state"
+            ],
+            "expected_primary_state": "OR"
+          }
+        ],
+        "really_good": [
+          {
+            "input": [
+              "F1-12",
+              "apex_wellness"
+            ],
+            "expected_return_keys": [
+              "applicable",
+              "filtered_out",
+              "primary_state"
+            ],
+            "expected_primary_state": "OR"
+          }
+        ]
+      }
+    }
+  },
+  "pipelines": {
+    "_self_check": {
+      "intent_plain": "Module loads + filter_rules_for_tenant function exists.",
+      "anchors": [
+        "filter_rules_for_tenant"
+      ],
+      "pipeline_check": {
+        "module_loadable": true
+      }
+    }
+  }
+}

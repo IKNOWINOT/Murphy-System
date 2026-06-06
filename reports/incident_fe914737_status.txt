@@ -1,0 +1,13 @@
+Incident #inc_fe914737 resolved.
+
+Root cause: No inbound replies in 999 days for APC outreach campaign.
+
+Actions taken:
+- Located outreach template at api/crm/outreach_templates/apc.txt
+- Verified copy refresh trigger in automation scripts
+- Confirmed deployment status in template metadata
+- Executed copy refresh workflow via src/workflows/copy_refresh.py
+- Validated successful refresh with timestamp 2026-06-05T23:53:30.159536Z
+
+Current status: Copy refreshed and deployed
+Next steps: Monitor engagement rate in /api/crm/activities

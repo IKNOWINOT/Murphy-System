@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Redundancy Audit + R380 Canonical Recommendations</title>
+<style>
+:root{--bg:#fafaf7;--text:#1a1d1f;--muted:#6b7280;--border:#d8d5cc;--rule:#e8e5dc;
+--primary:#1f4e3d;--secondary:#1a4480;--accent:#c97a3d;--paper:#fafaf7;
+--good:#1f4e3d;--warn:#a16207;--bad:#b91c1c;
+--mono:'SF Mono',Menlo,monospace;--display:'Inter',-apple-system,sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--display);font-size:14px;line-height:1.5}
+.page{max-width:1280px;margin:0 auto;padding:32px 40px;background:#fff;min-height:100vh;box-shadow:0 0 0 1px var(--border)}
+.masthead{border-bottom:3px solid var(--warn);padding-bottom:18px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px}
+.mark{width:48px;height:48px;background:var(--warn);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:700;font-size:14px;border-radius:2px;margin-right:14px}
+.brand{display:flex;align-items:center}
+.masthead h1{font-family:var(--display);font-size:18px;font-weight:700;color:var(--warn)}
+.masthead .meta{text-align:right;font-family:var(--mono);font-size:10px;color:var(--muted);line-height:1.7}
+.doc-title{margin-bottom:24px;padding:18px 22px;background:var(--paper);border-left:4px solid var(--warn)}
+.doc-title .kicker{font-family:var(--mono);font-size:10px;letter-spacing:1.5px;color:var(--warn);text-transform:uppercase}
+.doc-title h2{font-family:var(--display);font-size:22px;margin-top:6px;font-weight:700}
+.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+.stat{background:var(--paper);border:1px solid var(--border);padding:12px 16px;border-radius:4px}
+.stat .label{font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase}
+.stat .value{font-family:var(--display);font-size:24px;font-weight:700;margin-top:4px}
+.stat.high .value{color:var(--bad)}
+.stat.medium .value{color:var(--warn)}
+.stat.low .value{color:var(--good)}
+section{margin-bottom:32px}
+section h3{font-family:var(--display);font-size:12px;color:var(--primary);font-weight:700;letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid var(--rule);padding-bottom:6px;margin-bottom:14px}
+.cluster-card{border:1.5px solid;border-left-width:6px;padding:16px 20px;border-radius:4px;background:#fff;margin-bottom:16px}
+.cluster-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;flex-wrap:wrap;gap:8px}
+.cluster-id{font-family:var(--mono);font-size:11px;font-weight:700}
+.sev-badge{font-family:var(--mono);font-size:10px;font-weight:700;padding:4px 12px;border-radius:3px;color:#fff;letter-spacing:0.3px}
+.reasoning-box{background:var(--paper);padding:10px 14px;border-radius:3px;font-family:var(--mono);font-size:11px;color:var(--muted);line-height:1.7;margin:10px 0;border-left:3px solid var(--accent)}
+.reasoning-box strong{color:var(--text)}
+.member-list{margin-top:10px;font-family:var(--mono);font-size:11px;line-height:1.7}
+.member-canonical{color:var(--good);font-weight:700;background:#e8f5ee;padding:4px 8px;border-radius:2px;margin-bottom:4px}
+.member-redundant{color:var(--bad);padding:4px 8px;background:#fff;border-left:2px solid var(--bad);margin-bottom:2px}
+.review-status{display:inline-block;font-family:var(--mono);font-size:9px;padding:2px 8px;border-radius:2px;margin-left:6px;background:var(--muted);color:#fff}
+.review-status.needs-human{background:var(--bad)}
+.review-status.low-priority{background:var(--warn)}
+.review-status.trivial{background:var(--muted)}
+.pillar-tag{display:inline-block;color:#fff;font-family:var(--mono);font-size:9px;padding:1px 6px;border-radius:2px;margin-left:4px}
+.tools{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}
+.tools a{font-family:var(--mono);font-size:11px;color:var(--secondary);text-decoration:none;padding:6px 12px;border:1px solid var(--secondary);border-radius:2px}
+.audit-note{background:#fef3e6;border:1px solid var(--accent);padding:10px 16px;margin-bottom:20px;font-size:12px;border-radius:3px}
+.audit-note strong{color:var(--accent)}
+.r208-find{background:#fee2e2;border:2px solid var(--bad);padding:14px 18px;border-radius:4px;margin-bottom:24px}
+.r208-find h4{font-family:var(--mono);font-size:11px;color:var(--bad);text-transform:uppercase;margin-bottom:8px;letter-spacing:0.5px}
+.r208-find code{background:#fff;padding:2px 6px;border-radius:2px;font-size:11px;color:var(--bad);font-weight:700}
+.footer{margin-top:32px;padding-top:18px;border-top:1px solid var(--rule);font-size:10px;color:var(--muted);font-family:var(--mono);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.footer a{color:var(--secondary);text-decoration:none}
+
+/* R366 mobile responsive partial — applies across all Cascadia/Apex/wizard surfaces */
+@media (max-width: 768px) {
+  .page { padding: 16px 14px !important; max-width: 100% !important; box-shadow: none !important; }
+  .masthead { flex-direction: column; align-items: flex-start; gap: 10px; padding-bottom: 14px; }
+  .masthead .meta { text-align: left; font-size: 9px; }
+  .masthead h1 { font-size: 16px; }
+  .brand-block { width: 100%; }
+  .mark { width: 36px; height: 36px; font-size: 12px; }
+  .doc-title h2 { font-size: 18px; line-height: 1.3; }
+  section h3 { font-size: 11px; }
+  .audit-banner, .doc-title { padding: 12px 14px; font-size: 12px; }
+  .tools { gap: 6px; flex-wrap: wrap; }
+  .tools a { font-size: 10px; padding: 5px 9px; }
+  .summary, .field-grid, .compliance, .flow,
+  .q-grid[style*="grid-template-columns"] { 
+    grid-template-columns: 1fr !important; 
+  }
+  .step-tracker { flex-direction: column; }
+  .step-tile { border-right: 0 !important; border-bottom: 1px solid var(--border); }
+  .step-tile.current { border-bottom: 3px solid var(--current) !important; }
+  .step-tile::after, .fsm-step::after, .flow .step::after,
+  .binder-card .head .left::after { display: none !important; }
+  table { font-size: 10px; }
+  table.compact td, table.compact th { padding: 4px 6px; }
+  .engine-table th, .engine-table td { padding: 6px 8px; font-size: 10px; }
+  .chart-wrap { overflow-x: auto; padding: 12px 0; -webkit-overflow-scrolling: touch; }
+  .tree { transform-origin: top left; min-width: 600px; }
+  .binder-grid, .queue-list, .form-block, .lifecycle-row,
+  .binder-card, .intake-card, .hitl-card { padding: 12px 14px !important; }
+  .access-bar { gap: 4px; }
+  .access-bar .chip { font-size: 9px; padding: 3px 7px; }
+  .summary { gap: 8px; }
+  .stat { padding: 10px 12px; }
+  .stat .value, .summary .stat .value { font-size: 20px; }
+  .fsm-track { gap: 1px; flex-wrap: wrap; }
+  .fsm-step { font-size: 8px; padding: 5px 2px; min-width: 60px; }
+  .actions { flex-wrap: wrap; gap: 5px; }
+  .actions button { font-size: 10px; padding: 5px 9px; }
+  .diff-block { font-size: 10px; padding: 8px 10px; max-height: 240px; }
+  .chain { gap: 6px; }
+  .chip { min-width: 130px; font-size: 10px; padding: 6px 10px; }
+  .fix-card .proposed, .fix-card-mini .ftext { font-size: 11px; max-height: 200px; }
+  .compliance-row { grid-template-columns: 1fr 1fr; font-size: 10px; gap: 4px; padding: 6px 8px; }
+  .compliance-row.header { font-size: 9px; }
+  ol, ul { font-size: 12px !important; padding-left: 18px; }
+  .footer { flex-direction: column; gap: 6px; align-items: flex-start; }
+}
+@media (max-width: 480px) {
+  .page { padding: 10px 8px !important; }
+  .masthead h1 { font-size: 14px; }
+  .masthead .meta { font-size: 8px; }
+  .doc-title h2 { font-size: 16px; }
+  .stat .value, .summary .stat .value { font-size: 16px; }
+  .stat .label, .summary .stat .label { font-size: 8px; }
+  .summary { grid-template-columns: 1fr 1fr !important; gap: 6px; }
+  .compliance-row { grid-template-columns: 1fr; }
+  .compliance-row.header { display: none; }
+  .access-bar .chip { font-size: 8px; padding: 2px 6px; }
+  .audit-banner, .doc-title { font-size: 11px; padding: 10px 12px; }
+  .doc-title .kicker { font-size: 8px; }
+  .tools a { font-size: 9px; padding: 4px 8px; }
+  .binder-card .form-code, .form-block .fcode { font-size: 11px; }
+  .intake-card .payload, .diff-block { font-size: 9px; }
+  .fsm-step { font-size: 7px; min-width: 50px; padding: 4px 1px; }
+  .org-mini .emp-row { font-size: 10px; flex-direction: column; gap: 3px; align-items: flex-start; }
+  table { font-size: 9px; }
+  .spec-table td, .spec-table th { padding: 4px 6px; font-size: 9px; }
+  .card { min-width: 160px; max-width: 200px; padding: 7px 10px; font-size: 10px; }
+  .card .name { font-size: 11px; }
+  .card .role { font-size: 9px; }
+}
+</style>
+</head><body>
+<div class="page">
+
+  <header class="masthead">
+    <div class="brand">
+      <div class="mark">CAN</div>
+      <div>
+        <h1>Redundancy Audit + Canonical Recommendations</h1>
+        <div style="color:var(--muted);font-size:11px;margin-top:2px">R380 · 7 clusters categorized · 1 HIGH · 2 MEDIUM · 3 LOW</div>
+      </div>
+    </div>
+    <div class="meta">
+      DOC: R380-CANONICAL-V1<br>
+      ISSUED: 2026-05-31<br>
+      MODULES SCANNED: 1642<br>
+      CLUSTERS: 7
+    </div>
+  </header>
+
+  <div class="doc-title">
+    <div class="kicker">R380 — Murphy's "c+3" canonical-wire</div>
+    <h2>Clone Clusters Sorted by Severity — Canonical Recommended Per Cluster</h2>
+    <div style="margin-top:10px;color:var(--muted);font-style:italic;font-size:13px">Per R226 — Murphy 15-for-15 + 16-for-16. Meta: (c) canonical-wire over (a) compliance dashboard. Sub: (3) interactive review with reasoning. My pattern was (a) — chasing the RED pillar. Murphy's pick was the prerequisite: clean the index FIRST so a dashboard wouldn't surface clone-member noise.</div>
+  </div>
+
+  <div class="r208-find">
+    <h4>🔴 R208 CRITICAL FIND</h4>
+    <p style="font-size:12px;line-height:1.7">
+      Two 245-line <code>module_loader.py</code> files at <code>src/</code> and <code>src/runtime/</code>. Both define 6 classes. AST-identical. Python <code>from module_loader import X</code> resolution depends on sys.path order — this is a <strong>latent bug surface</strong>, not a triviality. R380 marked it <code>severity=HIGH</code> + <code>review_status=needs-human-NOW</code>. R381+ can decide which to keep. <strong>Murphy's "c" pick was structurally right precisely because R379 surfaced this and dashboarding Compliance first would have left it lurking.</strong>
+    </p>
+  </div>
+
+  <div class="audit-note">
+    <strong>How recommendations are made:</strong> categorize cluster (trivial vs substantive), heuristic-pick canonical (largest by lines + closest to runtime), then for HIGH-severity SUBSTANTIVE clusters R208 actual import counts to refine the pick. Founder reviews each recommendation; nothing is auto-deleted.
+  </div>
+
+  <div class="tools">
+    <a href="/ui/shape_audit">↩ shape audit</a>
+    <a href="/ui/archive_map">↗ archive map</a>
+    <a href="/ui/capability_map">↗ capability map</a>
+    <a href="/ui/cascadia_mep">↩ CEO briefing</a>
+  </div>
+
+  <section>
+    <h3>Severity Distribution</h3>
+    <div class="summary">
+      <div class="stat high"><div class="label">HIGH (Need-Human-NOW)</div><div class="value">1</div></div>
+      <div class="stat medium"><div class="label">MEDIUM (Low-Priority Cleanup)</div><div class="value">2</div></div>
+      <div class="stat low"><div class="label">LOW (Trivial Skip)</div><div class="value">3</div></div>
+      <div class="stat"><div class="label">Total Clusters</div><div class="value">7</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h3>Clusters by Severity (HIGH first)</h3>
+    
+    <div class="cluster-card" style="border-color:#b91c1c;border-left-color:#b91c1c;background:linear-gradient(to right,#fee2e2 0%,#fff 4%)">
+      <div class="cluster-head">
+        <span class="cluster-id">clone-3cd3e127fd79 <span class="pillar-tag" style="background:#1a4480">Governance</span>
+          <span class="review-status needs-human">needs-human-NOW</span>
+        </span>
+        <span class="sev-badge" style="background:#b91c1c">🔴 HIGH</span>
+      </div>
+      <div class="reasoning-box">
+        <strong>Murphy's "3" interactive policy + R380 reasoning:</strong><br>
+        SUBSTANTIVE-LARGE: Members include real code: max 245 lines, 6 classes. Import resolution order matters.. Recommended canonical = /opt/Murphy-System/src/module_loader.py (largest + closest to runtime).
+      </div>
+      <div class="member-list">
+        <div class="member-canonical">★ RECOMMENDED CANONICAL: /opt/Murphy-System/src/module_loader.py (lines=245, classes=6)</div><div class="member-redundant">⊘ redundant: /opt/Murphy-System/src/runtime/module_loader.py (lines=245)</div>
+      </div>
+    </div>
+    
+    <div class="cluster-card" style="border-color:#a16207;border-left-color:#a16207;background:linear-gradient(to right,#fef3c7 0%,#fff 4%)">
+      <div class="cluster-head">
+        <span class="cluster-id">clone-a15da932ae68 <span class="pillar-tag" style="background:#854d0e">Compliance</span><span class="pillar-tag" style="background:#059669">Reliability</span>
+          <span class="review-status low-priority">low-priority-cleanup</span>
+        </span>
+        <span class="sev-badge" style="background:#a16207">🟡 MEDIUM</span>
+      </div>
+      <div class="reasoning-box">
+        <strong>Murphy's "3" interactive policy + R380 reasoning:</strong><br>
+        SUBSTANTIVE-SMALL: Members have real classes/defs but small footprint (max 48 lines). Recommended canonical = /opt/Murphy-System/src/billing/grants/submission/portal_instructions/sba_portal.py (largest + closest to runtime).
+      </div>
+      <div class="member-list">
+        <div class="member-canonical">★ RECOMMENDED CANONICAL: /opt/Murphy-System/src/billing/grants/submission/portal_instructions/sba_portal.py (lines=48, classes=1)</div><div class="member-redundant">⊘ redundant: /opt/Murphy-System/src/billing/grants/submission/portal_instructions/sbir_gov.py (lines=48)</div>
+      </div>
+    </div>
+    
+    <div class="cluster-card" style="border-color:#a16207;border-left-color:#a16207;background:linear-gradient(to right,#fef3c7 0%,#fff 4%)">
+      <div class="cluster-head">
+        <span class="cluster-id">clone-8855b448fb61 <span class="pillar-tag" style="background:#1f4e3d">Foundations</span>
+          <span class="review-status low-priority">low-priority-cleanup</span>
+        </span>
+        <span class="sev-badge" style="background:#a16207">🟡 MEDIUM</span>
+      </div>
+      <div class="reasoning-box">
+        <strong>Murphy's "3" interactive policy + R380 reasoning:</strong><br>
+        SUBSTANTIVE-SMALL: Members have real classes/defs but small footprint (max 26 lines). Recommended canonical = /opt/Murphy-System/src/billing/grants/submission/api_clients/grants_gov_api.py (largest + closest to runtime).
+      </div>
+      <div class="member-list">
+        <div class="member-canonical">★ RECOMMENDED CANONICAL: /opt/Murphy-System/src/billing/grants/submission/api_clients/grants_gov_api.py (lines=26, classes=1)</div><div class="member-redundant">⊘ redundant: /opt/Murphy-System/src/billing/grants/submission/api_clients/sam_gov_api.py (lines=26)</div>
+      </div>
+    </div>
+    
+    <div class="cluster-card" style="border-color:#1f4e3d;border-left-color:#1f4e3d;background:linear-gradient(to right,#e8f5ee 0%,#fff 4%)">
+      <div class="cluster-head">
+        <span class="cluster-id">clone-1126364766bd <span class="pillar-tag" style="background:#1f4e3d">Foundations</span><span class="pillar-tag" style="background:#1a4480">Governance</span>
+          <span class="review-status trivial">trivial-skip</span>
+        </span>
+        <span class="sev-badge" style="background:#1f4e3d">🟢 LOW</span>
+      </div>
+      <div class="reasoning-box">
+        <strong>Murphy's "3" interactive policy + R380 reasoning:</strong><br>
+        MIXED: Mix of trivial and small substantive members. Recommended canonical = /opt/Murphy-System/src/eq/__init__.py (largest + closest to runtime).
+      </div>
+      <div class="member-list">
+        <div class="member-canonical">★ RECOMMENDED CANONICAL: /opt/Murphy-System/src/eq/__init__.py (lines=39, classes=0)</div><div class="member-redundant">⊘ redundant: /opt/Murphy-System/src/integration_engine/profiles/__init__.py (lines=8)</div><div class="member-redundant">⊘ redundant: /opt/Murphy-System/src/billing/__init__.py (lines=4)</div><div class="member-redundant">⊘ redundant: /opt/Murphy-System/src/communication_system/__init__.py (lines=4)</div><div class="member-redundant">⊘ redundant: /opt/Murphy-System/src/document_export/templates/__init__.py (lines=4)</div><div class="member-redundant">⊘ redundant: /opt/Murphy-System/src/execution_packet_compiler/__init__.py (lines=4)</div><div class="member-redundant">⊘ redundant: /opt/Murphy-System/src/presets/__init__.py (lines=4)</div>
+      </div>
+    </div>
+    
+    <div class="cluster-card" style="border-color:#1f4e3d;border-left-color:#1f4e3d;background:linear-gradient(to right,#e8f5ee 0%,#fff 4%)">
+      <div class="cluster-head">
+        <span class="cluster-id">clone-d5156460c5d4 <span class="pillar-tag" style="background:#1f4e3d">Foundations</span>
+          <span class="review-status trivial">trivial-skip</span>
+        </span>
+        <span class="sev-badge" style="background:#1f4e3d">🟢 LOW</span>
+      </div>
+      <div class="reasoning-box">
+        <strong>Murphy's "3" interactive policy + R380 reasoning:</strong><br>
+        TRIVIAL: All 5 members are empty/near-empty (no defs, no classes, &lt;10 lines each). Recommended canonical = /opt/Murphy-System/src/billing/grants/notifications/__init__.py (largest + closest to runtime).
+      </div>
+      <div class="member-list">
+        <div class="member-canonical">★ RECOMMENDED CANONICAL: /opt/Murphy-System/src/billing/grants/notifications/__init__.py (lines=5, classes=0)</div><div class="member-redundant">⊘ redundant: /opt/Murphy-System/src/billing/grants/submission/__init__.py (lines=5)</div><div class="member-redundant">⊘ redundant: /opt/Murphy-System/src/billing/grants/submission/api_clients/__init__.py (lines=5)</div><div class="member-redundant">⊘ redundant: /opt/Murphy-System/src/billing/grants/submission/format_adapters/__init__.py (lines=5)</div><div class="member-redundant">⊘ redundant: /opt/Murphy-System/src/billing/grants/submission/portal_instructions/__init__.py (lines=5)</div>
+      </div>
+    </div>
+    
+    <div class="cluster-card" style="border-color:#1f4e3d;border-left-color:#1f4e3d;background:linear-gradient(to right,#e8f5ee 0%,#fff 4%)">
+      <div class="cluster-head">
+        <span class="cluster-id">clone-36c7528e3376 <span class="pillar-tag" style="background:#059669">Reliability</span>
+          <span class="review-status trivial">trivial-skip</span>
+        </span>
+        <span class="sev-badge" style="background:#1f4e3d">🟢 LOW</span>
+      </div>
+      <div class="reasoning-box">
+        <strong>Murphy's "3" interactive policy + R380 reasoning:</strong><br>
+        TRIVIAL: All 2 members are empty/near-empty (no defs, no classes, &lt;10 lines each). Recommended canonical = /opt/Murphy-System/src/verification/r271_verify.py (largest + closest to runtime).
+      </div>
+      <div class="member-list">
+        <div class="member-canonical">★ RECOMMENDED CANONICAL: /opt/Murphy-System/src/verification/r271_verify.py (lines=4, classes=0)</div><div class="member-redundant">⊘ redundant: /opt/Murphy-System/src/test_canary.py (lines=1)</div>
+      </div>
+    </div>
+    
+    <div class="cluster-card" style="border-color:#1f4e3d;border-left-color:#1f4e3d;background:linear-gradient(to right,#e8f5ee 0%,#fff 4%)">
+      <div class="cluster-head">
+        <span class="cluster-id">clone-496167231416 <span class="pillar-tag" style="background:#1f4e3d">Foundations</span><span class="pillar-tag" style="background:#059669">Reliability</span>
+          <span class="review-status ">pending</span>
+        </span>
+        <span class="sev-badge" style="background:#1f4e3d">🟢 LOW</span>
+      </div>
+      <div class="reasoning-box">
+        <strong>Murphy's "3" interactive policy + R380 reasoning:</strong><br>
+        (no recommendation)
+      </div>
+      <div class="member-list">
+        <div class="member-redundant">⊘ redundant: /opt/Murphy-System/src/aionmind/_patch_test.py (lines=3)</div><div class="member-redundant">⊘ redundant: /opt/Murphy-System/src/test_probe.py (lines=3)</div><div class="member-redundant">⊘ redundant: /opt/Murphy-System/src/test_write.py (lines=3)</div><div class="member-redundant">⊘ redundant: /opt/Murphy-System/src/x.py (lines=1)</div>
+      </div>
+    </div>
+    
+  </section>
+
+  <section>
+    <h3>How To Read This Round</h3>
+    <div class="audit-note" style="background:#e8f5ee;border-color:var(--good)">
+      <strong style="color:var(--good)">★ RECOMMENDED CANONICAL:</strong> the module R380 thinks should be the "kept" version of the cluster. Heuristic: largest by lines + closest to runtime/. For HIGH severity, refined by actual import counts.<br><br>
+      <strong style="color:var(--bad)">⊘ redundant:</strong> sibling modules in the same cluster. Candidates for deprecation IF the canonical is confirmed correct.<br><br>
+      <strong>🔴 needs-human-NOW:</strong> HIGH severity — real code dup with classes. Decide soon.<br>
+      <strong>🟡 low-priority-cleanup:</strong> MEDIUM — small real code dup. Can wait.<br>
+      <strong>⚪ trivial-skip:</strong> LOW — empty __init__/test probe duplicates. Optional.
+    </div>
+  </section>
+
+  <div class="footer">
+    <span>R380 CANONICAL · 6 clusters reviewed · 1 HIGH (module_loader) · advisory-only, no files touched</span>
+    <span><a href="/ui/shape_audit">↩ audit</a> · <a href="/ui/archive_map">↗ archive</a></span>
+  </div>
+
+</div></body></html>

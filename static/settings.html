@@ -1,0 +1,27 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Settings · Murphy</title>
+<link rel="stylesheet" href="/static/_tenant_shared.css"></head><body>
+<header><h1>Settings</h1></header>
+<nav><a href="/tenant" id="n_dash">Dashboard</a><a href="/ui/billing" id="n_bill">Billing</a><a href="/ui/settings" id="n_set">Settings</a><a href="/ui/account" id="n_acc">Account</a></nav>
+<div class="card"><h2>Email Preferences</h2>
+  <div class="row"><span class="k">Daily brief</span><span class="v"><label><input type="checkbox" checked> 09:00 PT</label></span></div>
+  <div class="row"><span class="k">Inbound alerts</span><span class="v"><label><input type="checkbox" checked> Vendors only</label></span></div>
+</div>
+<div class="card"><h2>HITL Engagements</h2><div id="eng">Loading…</div></div>
+<div class="card"><h2>Connected Services</h2><div id="conn">Loading…</div></div>
+<script>
+async function get(p){try{const r=await fetch(p);if(r.status===401)return{_auth:true};return await r.json()}catch(e){return{_err:e.message}}}
+async function load(){
+  document.getElementById('n_set').classList.add('active');
+  const e = await get('/api/hitl/engagements');
+  if(e._auth){document.getElementById('eng').innerHTML='<div class="empty">Sign in to view HITL engagements</div>';}
+  else if(!e.engagements || !e.engagements.length){document.getElementById('eng').innerHTML='<div class="empty">No active engagements · <a href="/api/hitl/engage" style="color:var(--teal)">create one</a></div>';}
+  else{document.getElementById('eng').innerHTML=e.engagements.map(x=>
+    `<div class="row"><span class="k">${x.action_class}</span><span class="v">valid until ${(x.valid_until||'').slice(0,10)}</span></div>`).join('');}
+  const c = await get('/api/integrations/list');
+  if(c._auth){document.getElementById('conn').innerHTML='<div class="empty">Sign in</div>';}
+  else if(!c.integrations || !c.integrations.length){document.getElementById('conn').innerHTML='<div class="empty">No integrations connected · <a href="/api/integrations/add" style="color:var(--teal)">add one</a></div>';}
+  else{document.getElementById('conn').innerHTML=c.integrations.map(i=>
+    `<div class="row"><span class="k">${i.type}</span><span class="v">${i.status||'connected'}</span></div>`).join('');}
+}
+load();
+</script></body></html>

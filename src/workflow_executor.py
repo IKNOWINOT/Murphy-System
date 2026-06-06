@@ -338,6 +338,41 @@ def run_operations(step: Dict, ctx: StepContext) -> Dict:
         return {"status": "error", "error": str(e)}
 
 
+def run_executor(step: Dict, ctx: StepContext) -> Dict:
+    """PATCH-RUN-EXECUTOR-QUESTION-R195: Dispatch to executor_agent.act() via LLM path.
+    Sends signal with 'question' key (NOT 'brief') so act() takes the LLM TOOL_CALL
+    parser branch instead of the DAG executor branch. R180 aionmind bridge then
+    fires for fs.file_write / sys.shell_exec / etc.
+
+    Step config:
+        question: str — the LLM prompt; must include explicit TOOL_CALL: tool ... lines
+        intent_hint: str (optional) — fallback prompt if 'question' missing
+        intent: str (optional) — label for logging
+    """
+    config = step.get("config", {})
+    # Accept any of: question / brief / intent_hint — normalize to 'question'
+    question = _render(
+        config.get("question") or config.get("brief") or config.get("intent_hint", ""),
+        ctx,
+    )
+    intent = _render(config.get("intent", "execute"), ctx)
+    try:
+        from src.executor_agent import get_executor_agent
+        agent  = get_executor_agent()
+        signal = {
+            "question": question,         # ← R195 key: triggers LLM path
+            "intent_hint": intent,         # fallback for prompt grammar
+            "source": ctx.account_id,
+            "raw_payload": ctx.variables,
+            "workflow_run_id": ctx.run_id,
+        }
+        result = agent.act(signal)
+        ctx.set("executor_result", result)
+        return {"status": "ok", "intent": intent, "result": result}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
 def run_wait(step: Dict, ctx: StepContext) -> Dict:
     config  = step.get("config", {})
     seconds = int(_render(str(config.get("seconds", 0)), ctx))
@@ -426,6 +461,7 @@ STEP_RUNNERS = {
     "merge":      lambda s, c: {"status": "ok"},  # join — no-op
     "executive":  run_executive,
     "operations": run_operations,
+    "executor": run_executor,  # PATCH-RUN-EXECUTOR-R193-DISPATCH,
     "qa":         run_qa,
     "proposal":   run_proposal,
     "workorder":  run_workorder,

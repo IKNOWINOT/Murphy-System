@@ -1,0 +1,1 @@
+{"incident_id": "inc_58bd9b3d", "review_status": "completed", "last_outreach_date": "2023-03-15T10:30:00Z", "method": "email", "subject": "APC Partnership Inquiry", "response_received": false, "follow_up_date": "2023-03-22T10:30:00Z", "recommendation": "Copy refresh needed for APC outreach; no response in over 999 days."}

@@ -289,6 +289,30 @@ def build_router(
     # PSM-003 — POST /launch
     # --------------------------------------------------------------
 
+
+    # PATCH-R502: RSC gate timeout wrapper.
+    # The RSC sink can block indefinitely if its underlying stream stalls.
+    # PSM is supposed to fail-closed — a hang is NOT fail-closed (it's
+    # silent deadlock). Wrap the gate call so a hung sink surfaces as
+    # a named FAILED ledger entry instead.
+    import asyncio as _asyncio_r502
+    import concurrent.futures as _cf_r502
+    _R502_GATE_TIMEOUT_SEC = 5.0
+    async def _gate_check_with_timeout(gate):
+        loop = _asyncio_r502.get_running_loop()
+        with _cf_r502.ThreadPoolExecutor(max_workers=1) as ex:
+            fut = loop.run_in_executor(ex, gate.check_pre_launch)
+            try:
+                return await _asyncio_r502.wait_for(fut, timeout=_R502_GATE_TIMEOUT_SEC)
+            except _asyncio_r502.TimeoutError:
+                from src.platform_self_modification.rsc_gate import GateDecision
+                return GateDecision(
+                    allowed=False,
+                    reason="rsc_gate_timeout",
+                    message=f"PSM-R502: RSC gate did not return within {_R502_GATE_TIMEOUT_SEC}s — sink may be stalled.",
+                    snapshot={"timeout_sec": _R502_GATE_TIMEOUT_SEC},
+                )
+
     @router.post("/launch", status_code=status.HTTP_202_ACCEPTED)
     async def launch_self_modification(  # noqa: D401 — endpoint, not function
         request: Request,
@@ -370,7 +394,7 @@ def build_router(
             )
 
         gate = RSCSelfModificationGate(lyap_source)
-        decision = gate.check_pre_launch()
+        decision = await _gate_check_with_timeout(gate)
         if not decision.allowed:
             vetoed = ledger.record(
                 LedgerEntryKind.VETOED,

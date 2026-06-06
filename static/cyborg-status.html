@@ -1,0 +1,64 @@
+<!doctype html><html><head><title>Murphy Status — Cyborg View</title>
+<style>
+body{font:14px system-ui;margin:20px;max-width:1200px;background:#0a0a0a;color:#eee}
+h1{color:#7af;font-weight:400}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
+.card{background:#111;border:1px solid #333;padding:14px;border-radius:4px}
+.label{color:#7af;font-size:11px;text-transform:uppercase;letter-spacing:1px}
+.val{font-size:24px;color:#fff;margin-top:4px}
+.sub{color:#888;font-size:11px;margin-top:4px}
+.section{margin-top:20px}
+.row{padding:6px 0;border-bottom:1px solid #222;font:12px monospace}
+.ok{color:#9f9}.bad{color:#f88}
+</style></head><body>
+<h1>Murphy — Cyborg Status</h1>
+<div class="grid">
+  <div class="card"><div class="label">Conductor jobs</div><div class="val" id="m_total">—</div></div>
+  <div class="card"><div class="label">Success</div><div class="val" id="m_succ">—</div></div>
+  <div class="card"><div class="label">p50 / p95</div><div class="val" id="m_p">—</div></div>
+  <div class="card"><div class="label">Rate-limited</div><div class="val" id="m_429">—</div></div>
+</div>
+<div class="section"><h3>Customer Journeys (live outcomes)</h3>
+  <div class="grid" style="grid-template-columns:repeat(7,1fr)" id="journey-grid">
+    <div class="card"><div class="label">J1 Pricing</div><div class="val" id="jj1">—</div></div>
+    <div class="card"><div class="label">J2 Inbound→HITL</div><div class="val" id="jj2">—</div></div>
+    <div class="card"><div class="label">J3 Critic</div><div class="val" id="jj3">—</div></div>
+    <div class="card"><div class="label">J4 Webmail</div><div class="val" id="jj4">—</div></div>
+    <div class="card"><div class="label">J5 Mind</div><div class="val" id="jj5">—</div></div>
+    <div class="card"><div class="label">J6 Vendor Gate</div><div class="val" id="jj6">—</div></div>
+    <div class="card"><div class="label">J7 HITL Queue</div><div class="val" id="jj7">—</div></div>
+  </div>
+  <div class="row" id="journey-summary">loading journey state…</div>
+</div>
+<div class="section"><h3>Watchdog events (last 10)</h3><div id="wd"></div></div>
+<div class="section"><h3>Recent conductor jobs</h3><div id="jobs"></div></div>
+<script>
+async function refresh(){
+  const m=await(await fetch('/api/conductor-proxy/conduct/metrics')).json();
+  m_total.textContent=m.total_jobs;
+  m_succ.textContent=((m.success_rate||0)*100).toFixed(0)+'%';
+  m_p.textContent=(m.latency_p50_sec||'-')+'s / '+(m.latency_p95_sec||'-')+'s';
+  m_429.textContent=m.rate_limited;
+
+  const w=await(await fetch('/api/conductor-proxy/watchdog/events')).json();
+  wd.innerHTML=w.count?w.events.map(e=>`<div class="row"><span class="bad">${e.ts}</span> · ${e.event} · ${e.detail}</div>`).join(''):'<div class="row ok">no hang events recorded</div>';
+
+  // R579: journey panel
+  try {
+    const jr = await (await fetch('/api/conductor-proxy/journey/status')).json();
+    if (jr.ok && jr.latest) {
+      jr.latest.journeys.forEach((j,i) => {
+        const el = document.getElementById('jj' + (i+1));
+        if (el) { el.textContent = j.ok ? '🟢' : '🔴'; el.title = j.finding || ''; }
+      });
+      const jsum = document.getElementById('journey-summary');
+      const cls = jr.latest.passed === jr.latest.total ? 'ok' : 'bad';
+      jsum.innerHTML = `<span class="${cls}">${jr.latest.ratio}</span> at ${jr.latest.ts.slice(0,19)} · 24h avg ${jr.trend_24h.avg_pass_rate}% over ${jr.trend_24h.runs} runs`;
+    }
+  } catch(e) {}
+
+  const j=await(await fetch('/api/conductor-proxy/conduct/jobs?limit=10')).json();
+  jobs.innerHTML=j.jobs.map(x=>`<div class="row">psm=<b>${x.psm_seq||'-'}</b> ${(x.error?'<span class="bad">'+x.error.slice(0,40)+'</span>':'<span class="ok">ok</span>')} · ${x.ask.slice(0,80)}</div>`).join('');
+}
+refresh();setInterval(refresh,5000);
+</script></body></html>

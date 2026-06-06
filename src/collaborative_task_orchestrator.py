@@ -584,16 +584,29 @@ class CollaborativeTaskOrchestrator:
         return _StubProposal(task_description)
 
     def _generate_proposal(self, task_description: str) -> Any:
+        # PATCH-CTO-ASYNC-R184 (2026-05-29) — detect running event loop;
+        # asyncio.run() crashes inside FastAPI handlers. Use loop-aware path.
         if self._swarm_proposal_gen is None:
             return self._build_stub_proposal(task_description)
         try:
-            proposal = asyncio.run(
-                self._swarm_proposal_gen.generate_proposal(task_description)
-            )
+            coro = self._swarm_proposal_gen.generate_proposal(task_description)
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                loop = None
+            if loop is not None:
+                # Inside running loop — run the coro on a worker thread with its own loop
+                import concurrent.futures
+                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as ex:
+                    fut = ex.submit(asyncio.run, coro)
+                    proposal = fut.result(timeout=60)
+            else:
+                proposal = asyncio.run(coro)
             return proposal
         except Exception as exc:
             logger.warning("CTO: generate_proposal failed (%s), using stub", exc)
             return self._build_stub_proposal(task_description)
+
 
     def _register_workflow(self, proposal: Any) -> Optional[str]:
         if self._dag_engine is None or not _DAG_AVAILABLE:

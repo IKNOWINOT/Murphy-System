@@ -1,0 +1,1 @@
+{"incident_id": "inc_7a2a5350", "status": "verified", "findings": "No inbound email replies found in the last 999 days. Outreach copy refresh recommended for APC campaigns. CRM activities and email interactions were checked via API.", "resolution": "Copy refresh needed for APC outreach campaigns", "timestamp": "2024-06-15T10:00:00Z"}

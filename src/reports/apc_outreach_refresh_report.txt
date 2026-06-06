@@ -1,0 +1,1 @@
+APC outreach copy refresh completed. No inbound replies in 999 days. Outreach log checked at /api/crm/activities. Stale outreach records queried from crm.db. APC outreach copy effectiveness verified. Refresh completed if necessary.

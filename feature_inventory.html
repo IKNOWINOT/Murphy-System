@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Murphy · Feature Inventory</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{
+  --bg:#050608;--bg2:#0a0d12;--surface:#0f141b;--elevated:#161d28;
+  --border:rgba(0,212,170,.18);--border-hi:rgba(0,212,170,.45);
+  --teal:#00D4AA;--cyan:#7afcff;--pink:#ff7eb6;--amber:#ffa940;
+  --green:#00ff6a;--red:#ff5c7c;
+  --text:#e8f0ec;--text-dim:#8fa9a0;--text-dimer:#5a6e66;
+  --font:'Inter',-apple-system,Segoe UI,sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;line-height:1.5}
+
+.topbar{
+  position:sticky;top:0;z-index:50;background:rgba(5,6,8,.92);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--border);padding:14px 28px;
+  display:flex;align-items:center;gap:18px
+}
+.topbar .logo{width:32px;height:32px}
+.topbar h1{font-size:15px;font-weight:700;letter-spacing:.02em}
+.topbar h1 .sub{color:var(--text-dim);font-size:11px;font-family:var(--mono);
+  text-transform:uppercase;letter-spacing:.1em;margin-left:8px;font-weight:500}
+.topbar .spacer{flex:1}
+.topbar .meta{font-family:var(--mono);font-size:11px;color:var(--text-dim)}
+
+.summary{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  gap:12px;padding:24px 28px;background:var(--bg2);
+  border-bottom:1px solid var(--border)
+}
+.stat{
+  background:linear-gradient(180deg,var(--surface) 0%,rgba(15,20,27,.6) 100%);
+  border:1px solid var(--border);border-radius:10px;padding:16px 18px
+}
+.stat-label{font-family:var(--mono);font-size:10px;color:var(--text-dimer);
+  text-transform:uppercase;letter-spacing:.12em;margin-bottom:6px}
+.stat-val{font-size:1.75rem;font-weight:700;color:var(--teal);font-family:var(--mono)}
+.stat.warn .stat-val{color:var(--amber)}
+.stat.red .stat-val{color:var(--red)}
+.stat.green .stat-val{color:var(--green)}
+
+.main{padding:28px;max-width:1400px;margin:0 auto}
+
+.category{margin-bottom:36px}
+.category-head{
+  display:flex;align-items:center;gap:14px;
+  margin-bottom:16px;padding-bottom:12px;
+  border-bottom:1px solid var(--border)
+}
+.category-icon{width:36px;height:36px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;border:1px solid currentColor}
+.category-name{font-size:18px;font-weight:700;letter-spacing:-0.01em}
+.category-count{font-family:var(--mono);font-size:11px;color:var(--text-dim);
+  background:var(--surface);padding:3px 10px;border-radius:100px;
+  border:1px solid var(--border)}
+.category[data-cat="Marketing"] .category-icon{color:var(--cyan)}
+.category[data-cat="Conversion"] .category-icon{color:var(--teal)}
+.category[data-cat="Tenant"] .category-icon{color:var(--pink)}
+.category[data-cat="Founder"] .category-icon{color:var(--amber)}
+
+.feat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px}
+.feat{
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  padding:18px 20px;text-decoration:none;color:inherit;
+  display:flex;flex-direction:column;gap:10px;
+  transition:all .2s ease
+}
+.feat:hover{border-color:var(--border-hi);transform:translateY(-2px);
+  box-shadow:0 8px 24px rgba(0,212,170,.08)}
+.feat-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.feat-name{font-size:15px;font-weight:700;letter-spacing:-0.01em}
+.feat-status{
+  display:inline-flex;align-items:center;gap:5px;
+  font-family:var(--mono);font-size:10px;font-weight:600;
+  padding:3px 9px;border-radius:100px;text-transform:uppercase;letter-spacing:.05em
+}
+.feat-status.live{background:rgba(0,255,106,.08);color:var(--green);border:1px solid rgba(0,255,106,.25)}
+.feat-status.partial{background:rgba(255,169,64,.08);color:var(--amber);border:1px solid rgba(255,169,64,.25)}
+.feat-status.broken{background:rgba(255,92,124,.08);color:var(--red);border:1px solid rgba(255,92,124,.25)}
+.feat-status.stub{background:rgba(90,110,102,.12);color:var(--text-dim);border:1px solid var(--text-dimer)}
+.feat-status .dot{width:5px;height:5px;border-radius:50%;background:currentColor;
+  animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.feat-desc{font-size:13px;color:var(--text-dim);line-height:1.5;flex:1}
+.feat-url{font-family:var(--mono);font-size:11px;color:var(--cyan);
+  text-decoration:none;word-break:break-all}
+.feat-url:hover{color:var(--teal);text-decoration:underline}
+.feat-apis{
+  display:flex;flex-wrap:wrap;gap:5px;
+  padding-top:10px;border-top:1px dashed var(--border)
+}
+.api-tag{
+  font-family:var(--mono);font-size:10px;color:var(--text-dim);
+  background:var(--bg2);border:1px solid var(--border);
+  padding:2px 7px;border-radius:4px
+}
+.api-tag b{color:var(--teal);font-weight:600;margin-left:4px}
+.feat-tier{
+  font-family:var(--mono);font-size:9px;color:var(--text-dimer);
+  text-transform:uppercase;letter-spacing:.1em
+}
+
+.orphans{
+  margin-top:48px;padding:28px;
+  background:linear-gradient(135deg,rgba(255,169,64,.04),rgba(255,92,124,.02));
+  border:1px solid rgba(255,169,64,.25);border-radius:14px
+}
+.orphans h2{font-size:18px;font-weight:700;color:var(--amber);margin-bottom:6px}
+.orphans .sub{color:var(--text-dim);font-size:13px;margin-bottom:18px}
+.orphan-groups{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px}
+.orphan-grp{
+  background:var(--surface);border:1px solid var(--border);border-radius:8px;
+  padding:12px 14px;cursor:pointer;transition:all .15s ease
+}
+.orphan-grp:hover{border-color:var(--amber)}
+.orphan-grp .name{font-family:var(--mono);font-size:12px;color:var(--cyan);font-weight:600}
+.orphan-grp .count{font-family:var(--mono);font-size:18px;color:var(--amber);
+  font-weight:700;margin-top:4px}
+.orphan-grp .label{font-family:var(--mono);font-size:9px;color:var(--text-dimer);
+  text-transform:uppercase;letter-spacing:.1em;margin-top:2px}
+
+footer{padding:32px 28px;color:var(--text-dimer);font-size:11px;
+  font-family:var(--mono);text-align:center;border-top:1px solid var(--border)}
+footer a{color:var(--teal);text-decoration:none}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="logo"><div class="murphy-logo-live" style="width:32px;height:32px;"></div></div>
+  <h1>Feature Inventory <span class="sub">unified catalog</span></h1>
+  <div class="spacer"></div>
+  <div class="meta" id="meta">loading…</div>
+</header>
+
+<section class="summary" id="summary">
+  <div class="stat"><div class="stat-label">Features</div><div class="stat-val" id="s-total">—</div></div>
+  <div class="stat green"><div class="stat-label">Live</div><div class="stat-val" id="s-live">—</div></div>
+  <div class="stat warn"><div class="stat-label">Partial</div><div class="stat-val" id="s-partial">—</div></div>
+  <div class="stat red"><div class="stat-label">Broken</div><div class="stat-val" id="s-broken">—</div></div>
+  <div class="stat"><div class="stat-label">APIs Claimed</div><div class="stat-val" id="s-claimed">—</div></div>
+  <div class="stat warn"><div class="stat-label">APIs Orphan</div><div class="stat-val" id="s-orphan">—</div></div>
+</section>
+
+<main class="main" id="main">
+  <div style="color:var(--text-dim);text-align:center;padding:40px">Loading inventory…</div>
+</main>
+
+<footer>
+  Generated by <code>src/feature_inventory.py</code> · backed by <code>/var/lib/murphy-production/feature_inventory.json</code> ·
+  rebuild via <a href="#" onclick="rebuild();return false">POST /api/inventory/rebuild</a>
+  · <a href="/api/inventory">raw JSON</a>
+</footer>
+
+<script src="/static/murphy-gaze.js" defer></script>
+<script>
+async function load(){
+  const r = await fetch('/api/inventory');
+  if(!r.ok){
+    document.getElementById('main').innerHTML = '<div style="color:#ff5c7c">Failed to load inventory: '+r.status+'</div>';
+    return;
+  }
+  const d = await r.json();
+  render(d);
+}
+
+function render(d){
+  document.getElementById('meta').textContent = 'Generated ' + new Date(d.generated_at_iso).toLocaleString();
+  document.getElementById('s-total').textContent = d.total_features;
+  document.getElementById('s-live').textContent = d.live;
+  document.getElementById('s-partial').textContent = d.partial;
+  document.getElementById('s-broken').textContent = d.broken;
+  document.getElementById('s-claimed').textContent = d.total_api_endpoints_claimed;
+  document.getElementById('s-orphan').textContent = d.orphan_api_count;
+
+  const main = document.getElementById('main');
+  main.innerHTML = '';
+
+  const catOrder = Object.entries(d.categories).sort((a,b)=>a[1].order - b[1].order).map(e=>e[0]);
+
+  for(const cat of catOrder){
+    const feats = d.by_category[cat] || [];
+    if(!feats.length) continue;
+    const meta = d.categories[cat];
+    const section = document.createElement('section');
+    section.className = 'category';
+    section.dataset.cat = cat;
+    section.innerHTML = `
+      <div class="category-head">
+        <div class="category-icon">${meta.icon}</div>
+        <div class="category-name">${cat}</div>
+        <div class="category-count">${feats.length} ${feats.length===1?'feature':'features'}</div>
+      </div>
+      <div class="feat-grid" id="grid-${cat}"></div>
+    `;
+    main.appendChild(section);
+    const grid = section.querySelector('.feat-grid');
+    for(const f of feats){
+      const status = d.status_meta[f.status] || {};
+      const apiTags = Object.entries(f.api_route_count || {})
+        .map(([p,c]) => `<span class="api-tag">${p}<b>${c}</b></span>`).join('');
+      const card = document.createElement('a');
+      card.className = 'feat';
+      card.href = f.primary_url;
+      card.innerHTML = `
+        <div class="feat-row">
+          <div class="feat-name">${f.name}</div>
+          <div class="feat-status ${f.status}"><span class="dot"></span>${status.label||f.status}</div>
+        </div>
+        <div class="feat-desc">${f.description}</div>
+        <div class="feat-row">
+          <span class="feat-url">${f.primary_url}</span>
+          <span class="feat-tier">${f.tier}</span>
+        </div>
+        ${apiTags ? '<div class="feat-apis">'+apiTags+'</div>' : ''}
+      `;
+      grid.appendChild(card);
+    }
+  }
+
+  // Orphans section
+  const groups = Object.entries(d.orphans_by_group).sort((a,b)=>b[1].length - a[1].length);
+  if(groups.length){
+    const orph = document.createElement('section');
+    orph.className = 'orphans';
+    orph.innerHTML = `
+      <h2>Orphan APIs — backend without UI</h2>
+      <div class="sub">${d.orphan_api_count} endpoints across ${groups.length} groups have no UI surface mapped to them. Each is a feature waiting to be exposed.</div>
+      <div class="orphan-groups" id="orph-grid"></div>
+    `;
+    main.appendChild(orph);
+    const og = orph.querySelector('#orph-grid');
+    for(const [grp, paths] of groups.slice(0, 30)){
+      const div = document.createElement('div');
+      div.className = 'orphan-grp';
+      div.innerHTML = `
+        <div class="name">/api/${grp}/*</div>
+        <div class="count">${paths.length}</div>
+        <div class="label">endpoints</div>
+      `;
+      div.onclick = ()=>{ alert('Paths:\\n\\n' + paths.slice(0, 25).join('\\n') + (paths.length>25?'\\n…+'+(paths.length-25)+' more':'')); };
+      og.appendChild(div);
+    }
+  }
+}
+
+async function rebuild(){
+  const r = await fetch('/api/inventory/rebuild', {method:'POST'});
+  if(r.ok){ const d = await r.json(); alert('Rebuilt: '+JSON.stringify(d, null, 2)); load(); }
+  else alert('Rebuild failed: '+r.status);
+}
+
+load();
+</script>
+</body>
+</html>

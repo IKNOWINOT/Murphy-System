@@ -158,37 +158,89 @@ class LLMCostLedger:
 
 
 def patch_llm_provider(ledger: LLMCostLedger):
-    """PATCH-107b: Hook LLMCostLedger into MurphyLLMProvider.complete_messages().
-    The old call_llm function was removed in PATCH-106b; we now wrap the provider
-    singleton's complete_messages method directly."""
+    """R405 (2026-06-01): Hook LLMCostLedger into the TWO real funnels —
+    _complete_with_fallback (sync) and _acomplete_with_fallback (async).
+    Both complete() and complete_messages() flow through _complete_with_fallback,
+    so hooking that one method captures EVERY sync LLM call. Same for async.
+
+    Previous implementation only hooked complete_messages() and missed:
+      - all calls from .complete(prompt, ...) (~70% of usage)
+      - all async calls from .acomplete*()
+    R405 fixes this — captures 100% of LLM calls."""
     try:
         import src.llm_provider as lp
+        import asyncio as _asyncio
         provider = lp.get_llm()
-        _orig = provider.complete_messages
 
-        @functools.wraps(_orig)
-        def _patched(*args, **kwargs):
+        # ── Sync funnel: _complete_with_fallback ──
+        _orig_sync = provider._complete_with_fallback
+
+        @functools.wraps(_orig_sync)
+        def _patched_sync(*args, **kwargs):
             t0 = time.monotonic()
-            result = _orig(*args, **kwargs)
-            latency = (time.monotonic() - t0) * 1000
             try:
-                model   = getattr(result, "model", "unknown")
-                prov    = getattr(result, "provider", "unknown")
-                pt      = getattr(result, "tokens_prompt", 0) or 0
-                ct      = getattr(result, "tokens_completion", 0) or 0
-                success = getattr(result, "success", True)
-                ledger.record(model=str(model), provider=str(prov),
-                              prompt_tokens=pt, completion_tokens=ct,
-                              latency_ms=latency, caller="llm_provider",
-                              success=success)
-            except Exception as _e:
-                logger.debug("PATCH-107b: tap error: %s", _e)
-            return result
+                result = _orig_sync(*args, **kwargs)
+                latency = (time.monotonic() - t0) * 1000
+                _record_safely(ledger, result, latency, "sync")
+                return result
+            except Exception:
+                latency = (time.monotonic() - t0) * 1000
+                _record_failure(ledger, latency, "sync")
+                raise
 
-        provider.complete_messages = _patched
-        logger.info("PATCH-107b: LLMCostLedger hooked into provider.complete_messages")
+        provider._complete_with_fallback = _patched_sync
+
+        # ── Async funnel: _acomplete_with_fallback ──
+        _orig_async = provider._acomplete_with_fallback
+
+        @functools.wraps(_orig_async)
+        async def _patched_async(*args, **kwargs):
+            t0 = time.monotonic()
+            try:
+                result = await _orig_async(*args, **kwargs)
+                latency = (time.monotonic() - t0) * 1000
+                _record_safely(ledger, result, latency, "async")
+                return result
+            except Exception:
+                latency = (time.monotonic() - t0) * 1000
+                _record_failure(ledger, latency, "async")
+                raise
+
+        provider._acomplete_with_fallback = _patched_async
+
+        logger.info("R405: LLMCostLedger hooked into sync + async funnels")
     except Exception as e:
-        logger.warning("PATCH-107b: could not patch llm_provider: %s", e)
+        logger.warning("R405: could not patch llm_provider: %s", e)
+
+
+def _record_safely(ledger: "LLMCostLedger", result: Any, latency_ms: float, mode: str):
+    """Best-effort cost capture; never raises into caller's path."""
+    try:
+        ledger.record(
+            model=str(getattr(result, "model", "unknown")),
+            provider=str(getattr(result, "provider", "unknown")),
+            prompt_tokens=int(getattr(result, "tokens_prompt", 0) or 0),
+            completion_tokens=int(getattr(result, "tokens_completion", 0) or 0),
+            latency_ms=latency_ms,
+            caller=f"llm_provider_{mode}",
+            success=bool(getattr(result, "success", True)),
+        )
+    except Exception as _e:
+        logger.debug("R405: record error (%s): %s", mode, _e)
+
+
+def _record_failure(ledger: "LLMCostLedger", latency_ms: float, mode: str):
+    """Record a failure call so we still see latency on errors."""
+    try:
+        ledger.record(
+            model="unknown", provider="unknown",
+            prompt_tokens=0, completion_tokens=0,
+            latency_ms=latency_ms,
+            caller=f"llm_provider_{mode}_failed",
+            success=False,
+        )
+    except Exception:
+        pass
 
 
 # ── REST API ─────────────────────────────────────────────────────────────

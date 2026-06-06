@@ -39,7 +39,7 @@ def _check_ollama_available(base_url: str = None) -> bool:
         with urllib.request.urlopen(req, timeout=2) as resp:
             return resp.status == 200
     except Exception as exc:
-        logger.warning("SUPPRESSED EXCEPTION (audit): %s", exc)
+        logger.debug("ollama unavailable (suppressed): %s", exc)  # PATCH-QUICKWIN-6 2026-05-27
         return False
 
 
@@ -85,11 +85,11 @@ def _query_ollama(
             headers={"Content-Type": "application/json"},
             method="POST",
         )
-        with urllib.request.urlopen(req, timeout=30) as resp:
+        with urllib.request.urlopen(req, timeout=180) as resp:  # R479: was 30, swarm-floor 180s
             data = _json.loads(resp.read().decode("utf-8"))
             return data.get("response", "")
     except Exception as exc:
-        logger.warning("SUPPRESSED EXCEPTION (audit): %s", exc)
+        logger.debug("ollama unavailable (suppressed): %s", exc)  # PATCH-QUICKWIN-6 2026-05-27
         return None
 
 

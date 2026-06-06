@@ -1,0 +1,1 @@
+{"incident_id": "inc_72cad385", "findings": "No inbound replies to APC campaigns in the last 1000 days confirmed via database query.", "action_required": "Refresh apc_outreach_v2.html copy", "assigned_to": "eng-copy-queue", "timestamp": "$(date -u)"}

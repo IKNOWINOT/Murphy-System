@@ -122,6 +122,11 @@ def _db():
     conn.row_factory = sqlite3.Row
     return conn
 
+
+def _sms_db():
+    """SQLite connection to murphy_voice.db for sms_messages table."""
+    return sqlite3.connect(DB_PATH, timeout=2)
+
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -541,49 +546,238 @@ def init_voice_routes(app):
     @app.websocket("/api/phone/twilio/media")
     async def twilio_media_stream(ws: WebSocket):
         """
-        Bidirectional audio bridge. Twilio sends us 20ms PCM chunks @ 8kHz μ-law.
-        In 406a we just log + count chunks. 406b will fork: outbound → Deepgram STT;
-        inbound from TTS → write back to socket.
+        Real-time voice bridge. Hands off to src.voice_bridge.run_voice_loop
+        which does VAD → Whisper STT → murphy_voice → Piper TTS → μ-law back.
         """
         await ws.accept()
-        call_id = None
-        stream_sid = None
-        chunk_count = 0
+        # Pull call_id from query param (Twilio passes it in customParameters,
+        # but we also set it explicitly via TwiML <Parameter>)
+        call_id = ws.query_params.get("call_id", "unknown")
         try:
-            while True:
-                msg = await ws.receive_text()
-                data = json.loads(msg)
-                event = data.get("event")
-                if event == "start":
-                    start = data.get("start", {})
-                    stream_sid = start.get("streamSid")
-                    params = start.get("customParameters", {})
-                    call_id = params.get("call_id", "unknown")
-                    _emit_event(call_id, "stream_started",
-                              {"stream_sid": stream_sid, "tracks": start.get("tracks")})
-                    log.info("voice: stream started for call %s sid=%s", call_id, stream_sid)
-                elif event == "media":
-                    chunk_count += 1
-                    # 406a: count only. 406b will: audio_b64 = data['media']['payload']
-                    # then ship to Deepgram via the STT subsystem.
-                    if chunk_count % 250 == 0:  # log every ~5 sec
-                        log.debug("voice: %d chunks received for %s", chunk_count, call_id)
-                elif event == "stop":
-                    if call_id:
-                        _emit_event(call_id, "stream_stopped",
-                                  {"chunks_received": chunk_count})
-                    log.info("voice: stream stopped for %s (%d chunks)", call_id, chunk_count)
-                    break
-        except WebSocketDisconnect:
-            if call_id:
-                _emit_event(call_id, "stream_disconnect", {"chunks_received": chunk_count})
+            from src.voice_bridge import run_voice_loop
+            await run_voice_loop(ws, call_id)
         except Exception as e:
-            log.exception("voice: stream error: %s", e)
-            if call_id:
-                _emit_event(call_id, "stream_error", {"error": str(e)})
+            import logging
+            logging.getLogger("murphy.voice").exception("voice loop crashed: %s", e)
+        finally:
+            try: await ws.close()
+            except: pass
+
 
     @app.get("/phone")
     async def phone_ui():
         return HTMLResponse(PHONE_UI_HTML)
+
+    # ═══════════════════════════════════════════════════════════════════════
+    # BLOCK-A.6.1 — SMS webhook + outbound SMS notify
+    # ═══════════════════════════════════════════════════════════════════════
+
+    @app.post("/api/phone/twilio/sms")
+    async def twilio_sms_webhook(request: Request, dept: str = "founder"):
+        """Twilio hits this when an SMS arrives at one of our 5 dept numbers."""
+        try:
+            from twilio_signature import validate_twilio_signature
+            _fetch_credentials()  # Lazy-load Twilio creds into _CRED_CACHE
+            if not await validate_twilio_signature(request, _CRED_CACHE.get("TWILIO_AUTH_TOKEN")):
+                log.warning("twilio_sms_webhook: signature FAILED for dept=%s", dept)
+                return PlainTextResponse(
+                    "<Response/>", status_code=403, media_type="application/xml"
+                )
+        except Exception as e:
+            log.error("twilio_sms_webhook: validation error: %s", e)
+            return PlainTextResponse(
+                "<Response/>", status_code=403, media_type="application/xml"
+            )
+
+        try:
+            form = await request.form()
+            message_sid = form.get("MessageSid", "")
+            from_phone = form.get("From", "")
+            to_phone = form.get("To", "")
+            body = form.get("Body", "")
+
+            import hashlib
+            thread_id = hashlib.sha256(
+                f"{dept}|{from_phone}".encode()
+            ).hexdigest()[:16]
+
+            sms_id = _gid("SMS")
+
+            try:
+                conn = _sms_db()
+                conn.execute(
+                    "INSERT OR IGNORE INTO sms_messages "
+                    "(id, message_sid, direction, from_phone, to_phone, "
+                    " dept, body, status, thread_id, created_at) "
+                    "VALUES (?, ?, 'inbound', ?, ?, ?, ?, 'received', ?, ?)",
+                    (sms_id, message_sid, from_phone, to_phone, dept,
+                     body, thread_id, _now()),
+                )
+                conn.commit()
+                conn.close()
+                _emit_event(sms_id, "sms_received", {
+                    "dept": dept, "from": from_phone, "body_preview": body[:80],
+                })
+            except Exception as store_exc:
+                log.error("sms_messages INSERT failed: %s", store_exc)
+        except Exception as e:
+            log.error("twilio_sms_webhook: parse error: %s", e)
+
+        try:
+            from src.murphy_voice import reply_in_voice
+            from src.self_audit import snapshot
+            reply_text = reply_in_voice(body, audit=snapshot(), channel="sms")
+            twiml = "<Response><Message>" + reply_text.replace("&", "&amp;").replace("<", "&lt;") + "</Message></Response>"
+            return PlainTextResponse(twiml, status_code=200, media_type="application/xml")
+        except Exception as e:
+            log.error("sms voice fail: %s", e)
+            return PlainTextResponse("<Response/>", status_code=200, media_type="application/xml")
+
+    @app.post("/api/phone/twilio/sms-status")
+    async def twilio_sms_status_webhook(request: Request):
+        """Twilio delivery status callbacks for outbound SMS we sent."""
+        try:
+            from twilio_signature import validate_twilio_signature
+            _fetch_credentials()  # Lazy-load Twilio creds into _CRED_CACHE
+            if not await validate_twilio_signature(request, _CRED_CACHE.get("TWILIO_AUTH_TOKEN")):
+                return PlainTextResponse("forbidden", status_code=403)
+        except Exception:
+            return PlainTextResponse("forbidden", status_code=403)
+
+        try:
+            form = await request.form()
+            message_sid = form.get("MessageSid", "")
+            status = (form.get("MessageStatus", "") or "").lower()
+            error_code = form.get("ErrorCode")
+            error_msg = form.get("ErrorMessage")
+
+            if message_sid and status:
+                conn = _sms_db()
+                fields = ["status = ?"]
+                params = [status]
+                if status == "delivered":
+                    fields.append("delivered_at = ?"); params.append(_now())
+                elif status == "sent":
+                    fields.append("sent_at = ?"); params.append(_now())
+                elif status in ("failed", "undelivered"):
+                    detail = f"code={error_code} msg={error_msg}"
+                    fields.append("direction_status_detail = ?"); params.append(detail)
+                params.append(message_sid)
+                conn.execute(
+                    f"UPDATE sms_messages SET {', '.join(fields)} WHERE message_sid = ?",
+                    params,
+                )
+                conn.commit()
+                conn.close()
+        except Exception as e:
+            log.error("twilio_sms_status_webhook error: %s", e)
+
+        return PlainTextResponse("ok", status_code=200)
+
+    @app.post("/api/phone/sms/notify")
+    async def hitl_sms_notify(request: Request):
+        """Generic outbound SMS — called by Murphy modules to notify founder."""
+        if not request.headers.get("X-Internal-Token") and \
+           not request.headers.get("X-API-Key"):
+            return JSONResponse(
+                {"success": False, "error": "unauthorized"}, status_code=401
+            )
+
+        try:
+            payload = await request.json()
+        except Exception as e:
+            return JSONResponse(
+                {"success": False, "error": f"bad json: {e}"}, status_code=400
+            )
+
+        to_phone = payload.get("to_phone", "").strip()
+        body = payload.get("body", "").strip()
+        source_module = payload.get("source_module", "unknown")
+        hitl_id = payload.get("hitl_id")
+        dept = payload.get("dept", "founder")
+
+        if not to_phone or not body:
+            return JSONResponse(
+                {"success": False, "error": "to_phone and body required"},
+                status_code=400,
+            )
+        if len(body) > 1600:
+            return JSONResponse(
+                {"success": False, "error": "body exceeds 1600 chars"},
+                status_code=400,
+            )
+
+        try:
+            vault_conn = sqlite3.connect(
+                "/var/lib/murphy-production/murphy_vault.db", timeout=2
+            )
+            row = vault_conn.execute(
+                "SELECT phone_number FROM department_phones WHERE slug = ?",
+                (dept,),
+            ).fetchone()
+            vault_conn.close()
+            from_phone = row[0] if row else None
+        except Exception as e:
+            log.error("dept_phone lookup failed: %s", e)
+            from_phone = None
+
+        if not from_phone:
+            return JSONResponse(
+                {"success": False, "error": f"no phone for dept={dept}"},
+                status_code=400,
+            )
+
+        try:
+            from twilio.rest import Client
+            _fetch_credentials()  # Lazy-load
+            account_sid = _CRED_CACHE.get("TWILIO_ACCOUNT_SID")
+            auth_token = _CRED_CACHE.get("TWILIO_AUTH_TOKEN")
+            webhook_base = _CRED_CACHE.get(
+                "TWILIO_WEBHOOK_PUBLIC_URL", "https://murphy.systems"
+            )
+            if not (account_sid and auth_token):
+                return JSONResponse(
+                    {"success": False, "error": "twilio creds not loaded"},
+                    status_code=500,
+                )
+            client = Client(account_sid, auth_token)
+            msg = client.messages.create(
+                body=body,
+                from_=from_phone,
+                to=to_phone,
+                status_callback=f"{webhook_base}/api/phone/twilio/sms-status",
+            )
+            message_sid = msg.sid
+        except Exception as e:
+            log.error("twilio send failed: %s", e)
+            return JSONResponse(
+                {"success": False, "error": f"twilio send failed: {e}"},
+                status_code=502,
+            )
+
+        sms_id = _gid("SMS")
+        try:
+            conn = _sms_db()
+            conn.execute(
+                "INSERT INTO sms_messages "
+                "(id, message_sid, direction, from_phone, to_phone, "
+                " dept, body, status, hitl_id, thread_id, source_module, created_at) "
+                "VALUES (?, ?, 'outbound', ?, ?, ?, ?, 'queued', ?, ?, ?, ?)",
+                (sms_id, message_sid, from_phone, to_phone, dept, body,
+                 hitl_id, hitl_id or sms_id, source_module, _now()),
+            )
+            conn.commit()
+            conn.close()
+            _emit_event(sms_id, "sms_sent_outbound", {
+                "to": to_phone, "source_module": source_module, "hitl_id": hitl_id,
+            })
+        except Exception as e:
+            log.error("sms_messages outbound INSERT failed: %s", e)
+
+        return JSONResponse({
+            "success": True,
+            "message_sid": message_sid,
+            "sms_id": sms_id,
+        })
 
     return app

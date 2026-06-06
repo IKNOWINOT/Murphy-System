@@ -1,0 +1,16 @@
+{
+  "module": "r364_suggest_fix",
+  "blocks": {},
+  "pipelines": {
+    "_self_check": {
+      "intent_plain": "Module loads + suggest_fix function exists (LLM call deferred for batch)",
+      "anchors": [
+        "load_rule",
+        "suggest_fix"
+      ],
+      "pipeline_check": {
+        "module_loadable": true
+      }
+    }
+  }
+}

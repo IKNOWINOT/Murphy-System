@@ -146,8 +146,11 @@ MODULE_HEALTH_EXEMPT_PATHS: Set[str] = {
 }
 
 EXEMPT_PREFIXES: Tuple[str, ...] = (
-    "/api/internal/",   # service-to-service diagnostics
-    "/api/bus/status",  # bus is read-only diagnostic
+    "/api/internal/",                 # service-to-service diagnostics
+    "/api/bus/status",                # bus is read-only diagnostic
+    "/api/phone/twilio/",             # BLOCK-A.6.1: Twilio webhooks (HMAC-validated instead)
+    "/api/llm/spend",                 # R492
+    "/api/brain/",                    # R493 — Desktop Brain API: LLM spend dashboard (read-only)
 )
 
 

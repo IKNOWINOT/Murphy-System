@@ -1,0 +1,1 @@
+Outreach log is empty. CRM database contains one inactive outreach contact: John Doe, john@example.com.

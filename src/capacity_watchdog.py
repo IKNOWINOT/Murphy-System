@@ -83,15 +83,20 @@ def _notify_corey(message: str, severity: str = "warning", data: dict = None):
     """Send notification via /api/murphy/ask-steve (internal call)."""
     try:
         import urllib.request
+        # Re-routed to incident router (PATCH-INC-001) 2026-05-27
+        # Maps watchdog severities to incident severities
+        sev_map = {"info": "low", "warning": "normal", "warn": "normal",
+                   "error": "high", "critical": "urgent", "alert": "urgent"}
         payload = json.dumps({
-            "message": f"[MURPHY CAPACITY {severity.upper()}]\n\n{message}",
             "source": "capacity_watchdog",
-            "severity": severity,
-            "data": data or {},
-            "ts": datetime.now(timezone.utc).isoformat(),
+            "severity": sev_map.get(severity.lower(), "normal"),
+            "title": f"Capacity {severity}: {message[:80]}",
+            "body": message,
+            "metadata": {"raw_severity": severity, "data": data or {},
+                         "ts": datetime.now(timezone.utc).isoformat()},
         }).encode()
         req = urllib.request.Request(
-            "http://127.0.0.1:8000/api/murphy/ask-steve",
+            "http://127.0.0.1:8000/api/incidents/route",
             data=payload,
             headers={"Content-Type": "application/json", "X-Internal": "capacity_watchdog"},
             method="POST"

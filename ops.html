@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Murphy Ops — Landing</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  :root{
+    --bg:#0a0e0f;--surface:#1a2025;--elevated:#22282c;--border:#2a3036;
+    --text:#d0d8e0;--text-dim:#7a8590;--teal:#00d4aa;--amber:#fbbf24;
+    --green:#10b981;--red:#ef4444;--mono:'SF Mono',Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:-apple-system,sans-serif;
+       padding:24px;min-height:100vh}
+  .topbar{display:flex;justify-content:space-between;align-items:center;
+          max-width:1280px;margin:0 auto 18px}
+  h1{font-family:var(--mono);font-size:18px;color:var(--teal);
+     letter-spacing:1px}
+  .nav a{color:var(--teal);text-decoration:none;font-family:var(--mono);
+         font-size:11px;padding:6px 12px;border:1px solid var(--teal);
+         border-radius:3px;margin-left:8px}
+  .layout{max-width:1280px;margin:0 auto;display:grid;
+          grid-template-columns:1fr 1fr;gap:14px}
+  .col{display:flex;flex-direction:column;gap:14px}
+  .panel{background:var(--surface);border:1px solid var(--border);
+         border-radius:6px;padding:16px}
+  .panel h2{font-family:var(--mono);font-size:11px;color:var(--text-dim);
+            text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;
+            border-bottom:1px solid var(--border);padding-bottom:8px}
+  .stat-row{display:flex;justify-content:space-between;align-items:center;
+            padding:6px 0;font-size:13px;border-bottom:1px solid rgba(42,48,54,0.3)}
+  .stat-row:last-child{border-bottom:0}
+  .stat-label{color:var(--text-dim)}
+  .stat-val{color:var(--text);font-family:var(--mono)}
+  .stat-val.good{color:var(--green)}
+  .stat-val.warn{color:var(--amber)}
+  .stat-val.err{color:var(--red)}
+  .grid-cards{display:grid;grid-template-columns:1fr;gap:8px}
+  .card{background:var(--elevated);border:1px solid var(--border);
+        border-radius:4px;padding:10px 14px;transition:border 0.15s}
+  .card:hover{border-color:var(--teal)}
+  .card a{color:var(--teal);text-decoration:none;font-family:var(--mono);
+          font-size:12px;font-weight:600;display:block}
+  .card .title{color:var(--text);font-size:12px;margin-top:3px}
+  .card .meta{color:var(--text-dim);font-size:10px;font-family:var(--mono);
+              margin-top:3px}
+  .err-banner{background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);
+              color:var(--red);padding:8px 12px;border-radius:4px;
+              font-size:11px;font-family:var(--mono);margin-bottom:12px;display:none}
+  .err-banner.show{display:block}
+  .footer{max-width:1280px;margin:18px auto 0;color:var(--text-dim);
+          font-size:10px;font-family:var(--mono);text-align:center}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>🎯 MURPHY OPS — LANDING</h1>
+  <div class="nav">
+    <a href="/ui/console">Console</a>
+    <a href="/ui/console#sales">Sales</a>
+    <a href="javascript:loadAll()">↻ Refresh</a>
+  </div>
+</div>
+
+<div id="err-banner" class="err-banner">stats degraded — see console</div>
+
+<div class="layout">
+
+  <div class="col">
+
+    <div class="panel">
+      <h2>SUBSTRATE</h2>
+      <div class="stat-row"><span class="stat-label">/api/health</span>
+        <span class="stat-val" id="s-health">—</span></div>
+      <div class="stat-row"><span class="stat-label">pid</span>
+        <span class="stat-val" id="s-pid">—</span></div>
+      <div class="stat-row"><span class="stat-label">uptime</span>
+        <span class="stat-val" id="s-uptime">—</span></div>
+      <div class="stat-row"><span class="stat-label">CPU %</span>
+        <span class="stat-val" id="s-cpu">—</span></div>
+      <div class="stat-row"><span class="stat-label">RAM %</span>
+        <span class="stat-val" id="s-ram">—</span></div>
+    </div>
+
+    <div class="panel">
+      <h2>SALES PIPELINE</h2>
+      <div class="stat-row"><span class="stat-label">drafts ready</span>
+        <span class="stat-val" id="s-drafts">—</span></div>
+      <div class="stat-row"><span class="stat-label">critic ≥ 90</span>
+        <span class="stat-val" id="s-critic">—</span></div>
+      <div class="stat-row"><span class="stat-label">real sends ever</span>
+        <span class="stat-val" id="s-sends">—</span></div>
+      <div class="stat-row"><span class="stat-label">send window</span>
+        <span class="stat-val" id="s-window">—</span></div>
+    </div>
+
+    <div class="panel">
+      <h2>ERROR CODES (R355)</h2>
+      <div class="stat-row"><span class="stat-label">codes registered</span>
+        <span class="stat-val" id="s-codes">—</span></div>
+      <div class="stat-row"><span class="stat-label">buckets</span>
+        <span class="stat-val" id="s-buckets">—</span></div>
+      <div class="stat-row"><span class="stat-label">last code fired</span>
+        <span class="stat-val" id="s-lastcode">—</span></div>
+    </div>
+
+  </div>
+
+  <div class="col">
+
+    <div class="panel">
+      <h2>OPS PAGE CANDIDATES — CLICK TO PIN AS CANONICAL</h2>
+      <div class="grid-cards" id="cards"></div>
+    </div>
+
+    <div class="panel">
+      <h2>RECENT /UI ACTIVITY</h2>
+      <div id="recent" style="font-family:var(--mono);font-size:10px;
+                              color:var(--text-dim);max-height:200px;
+                              overflow:auto">loading…</div>
+    </div>
+
+  </div>
+
+</div>
+
+<div class="footer">
+  R356 OPS-PAGE-UPGRADE — error codes per R355 discipline.
+  All widgets carry E_NET_0002 graceful fallback.
+  Last loaded: <span id="loaded-at">—</span>
+</div>
+
+<script>
+const CANDIDATES = [
+  {url:'/ui/ops_center',     name:'WorkOps Center',           file:'ops_center.html',   size:'33 KB', badge:'most-named ops'},
+  {url:'/ui/management',     name:'System Management',        file:'management.html',   size:'75 KB', badge:'largest + founder ops'},
+  {url:'/ui/murphy_os',      name:'Murphy OS — Command',      file:'murphy_os.html',    size:'41 KB', badge:'most recent'},
+  {url:'/ui/swarm_command',  name:'🌐 Swarm Command Center', file:'swarm_command.html',size:'30 KB', badge:'command theme'},
+  {url:'/ui/roi_ops',        name:'ROI Operations',           file:'roi_ops.html',      size:'25 KB', badge:'money-focused'},
+  {url:'/ui/security_ops',   name:'🔐 Security Operations',  file:'security_ops.html', size:'9 KB',  badge:'smaller'}
+];
+
+const errBanner = document.getElementById('err-banner');
+function flagErr(msg){ errBanner.textContent = msg; errBanner.classList.add('show'); }
+
+function fmtUptime(s){
+  if (!s || isNaN(s)) return '—';
+  s = Number(s);
+  if (s < 60) return s + 's';
+  if (s < 3600) return Math.floor(s/60) + 'm';
+  if (s < 86400) return Math.floor(s/3600) + 'h';
+  return Math.floor(s/86400) + 'd';
+}
+
+async function fetchWithTimeout(url, ms){
+  // R356 E_NET_0002 implementation — graceful AbortController
+  const ctl = new AbortController();
+  const t = setTimeout(() => ctl.abort(), ms);
+  try {
+    const r = await fetch(url, {signal: ctl.signal});
+    clearTimeout(t);
+    return r;
+  } catch(e){
+    clearTimeout(t);
+    console.warn('[E_NET_0002]', {who:'ops_landing', what:url, when:new Date().toISOString(),
+                                   where:'ops.html', how:'fetch_timeout_'+ms+'ms', why:e.message});
+    return null;
+  }
+}
+
+async function loadSubstrate(){
+  const r = await fetchWithTimeout('/api/health', 5000);
+  if (!r){
+    document.getElementById('s-health').textContent = 'timeout';
+    document.getElementById('s-health').className = 'stat-val err';
+    flagErr('substrate /api/health timed out');
+    return;
+  }
+  try {
+    const d = await r.json();
+    const ok = r.status === 200;
+    document.getElementById('s-health').textContent = ok ? 'OK' : 'DEGRADED';
+    document.getElementById('s-health').className = 'stat-val ' + (ok ? 'good' : 'warn');
+    // /api/health returns minimal info; try diag endpoint for more
+    const diag = await fetchWithTimeout('/diag/psutil-now', 5000);
+    if (diag){
+      try {
+        const dd = await diag.json();
+        document.getElementById('s-cpu').textContent = (dd.actual?.cpu_percent ?? '—') + '%';
+        document.getElementById('s-ram').textContent = (dd.actual?.ram_percent ?? '—') + '%';
+        const cpu = dd.actual?.cpu_percent ?? 0;
+        document.getElementById('s-cpu').className = 'stat-val ' + (cpu > 85 ? 'err' : cpu > 50 ? 'warn' : 'good');
+      } catch(e){}
+    }
+  } catch(e){
+    document.getElementById('s-health').textContent = 'parse-err';
+    flagErr('substrate /api/health parse error');
+  }
+}
+
+async function loadSales(){
+  const r = await fetchWithTimeout('/console-api/sales/overview', 5000);
+  if (!r){
+    document.getElementById('s-drafts').textContent = 'timeout';
+    return;
+  }
+  try {
+    const d = await r.json();
+    document.getElementById('s-drafts').textContent = d.draft_count ?? '—';
+    document.getElementById('s-critic').textContent = d.high_quality_drafts ?? '—';
+    document.getElementById('s-sends').textContent = d.real_sends ?? '0';
+    // Send window: PT-aware
+    const now = new Date();
+    const ptHour = parseInt(now.toLocaleString('en-US',{hour:'2-digit',hour12:false,timeZone:'America/Los_Angeles'}));
+    const inWindow = ptHour >= 8 && ptHour < 18;
+    document.getElementById('s-window').textContent = inWindow ? 'OPEN' : 'closed';
+    document.getElementById('s-window').className = 'stat-val ' + (inWindow ? 'good' : 'warn');
+  } catch(e){
+    document.getElementById('s-drafts').textContent = 'parse-err';
+  }
+}
+
+async function loadCodes(){
+  // No public endpoint for error_codes.json yet — show static count from R355
+  document.getElementById('s-codes').textContent = '12';  // 6 R355 + 6 R356
+  document.getElementById('s-buckets').textContent = '10';
+  document.getElementById('s-lastcode').textContent = 'E_PROMPT_0002';
+}
+
+function renderCards(){
+  const c = document.getElementById('cards');
+  const pinned = localStorage.getItem('canonical_ops') || '';
+  c.innerHTML = CANDIDATES.map(card => {
+    const isPinned = pinned === card.url;
+    const pinBadge = isPinned ? '<span style="color:var(--green);font-size:9px;font-family:var(--mono);">★ PINNED</span>' : '';
+    return `
+      <div class="card" style="${isPinned ? 'border-color:var(--green);' : ''}">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <a href="${card.url}">${card.url}</a>
+          ${pinBadge}
+        </div>
+        <div class="title">${card.name}</div>
+        <div class="meta">${card.file} · ${card.size} · ${card.badge}
+          <a href="javascript:pinCanonical('${card.url}')"
+             style="color:var(--amber);margin-left:8px">[pin]</a></div>
+      </div>`;
+  }).join('');
+}
+
+function pinCanonical(url){
+  localStorage.setItem('canonical_ops', url);
+  renderCards();
+  alert('Pinned ' + url + ' as your canonical ops page. Console topbar 🎯 Ops button will go here next session.');
+}
+
+async function loadRecent(){
+  // No public access-log endpoint; show a placeholder with helpful note
+  document.getElementById('recent').innerHTML =
+    `<div style="padding:8px">Recent /ui activity panel pending — would need /console-api/access-tail endpoint.</div>` +
+    `<div style="padding:8px;color:var(--text-dim)">For now: <code>journalctl -u nginx | grep /ui/</code></div>`;
+}
+
+function loadAll(){
+  loadSubstrate();
+  loadSales();
+  loadCodes();
+  loadRecent();
+  renderCards();
+  document.getElementById('loaded-at').textContent = new Date().toLocaleTimeString();
+}
+
+loadAll();
+setInterval(loadAll, 30000);
+</script>
+
+</body>
+</html>

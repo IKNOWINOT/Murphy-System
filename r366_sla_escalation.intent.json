@@ -1,0 +1,150 @@
+{
+  "module": "r366_sla_escalation",
+  "blocks": {
+    "get_employee": {
+      "intent_plain": "Look up an employee by tenant + email. Returns dict or None.",
+      "inputs": {
+        "con": "sqlite3.Connection",
+        "tenant_slug": "str",
+        "email": "str"
+      },
+      "outputs": {
+        "return": "dict|None"
+      },
+      "side_effects": [
+        "READ-ONLY: SELECT from tenant_employees"
+      ],
+      "failure_modes": [
+        "E_DB_0021"
+      ],
+      "must_not": [
+        "modify DB",
+        "return wrong tenant's employee"
+      ],
+      "test_array": {
+        "weak": [
+          {
+            "input_signature": "con_first",
+            "input": [
+              "apex_wellness",
+              "nonexistent@apex.example"
+            ],
+            "expected_return": null
+          }
+        ],
+        "good": [
+          {
+            "input_signature": "con_first",
+            "input": [
+              "apex_wellness",
+              "james.rodriguez@apexwellness.example"
+            ],
+            "expected_truthy": true
+          }
+        ],
+        "precise": [
+          {
+            "input_signature": "con_first",
+            "input": [
+              "oregon_mep_demo",
+              "aisha.okonkwo@cascadia-mep.example"
+            ],
+            "expected_truthy": true
+          }
+        ],
+        "really_good": [
+          {
+            "input_signature": "con_first",
+            "input": [
+              "oregon_mep_demo",
+              "evelyn.shapiro@cascadia-mep.example"
+            ],
+            "expected_truthy": true,
+            "expected_field": "status",
+            "expected_field_value": "departed"
+          }
+        ]
+      }
+    },
+    "pick_escalation_target": {
+      "intent_plain": "Pick escalation target via delegate_to (if active) \u2192 reports_to (walking up past departed). Returns (email, method, note) or (None, code, note).",
+      "inputs": {
+        "con": "sqlite3.Connection",
+        "tenant_slug": "str",
+        "assignee_email": "str"
+      },
+      "outputs": {
+        "return": "tuple of (target_email_or_None, method, note)"
+      },
+      "side_effects": [
+        "READ-ONLY: SELECT from tenant_employees"
+      ],
+      "failure_modes": [
+        "E_STATE_0014",
+        "E_STATE_0015",
+        "E_STATE_0023"
+      ],
+      "must_not": [
+        "return departed employee as target",
+        "modify DB",
+        "return None for assignee that has a reports_to chain"
+      ],
+      "test_array": {
+        "weak": [
+          {
+            "input_signature": "con_first",
+            "input": [
+              "apex_wellness",
+              ""
+            ],
+            "expected_first_is_none": true
+          }
+        ],
+        "good": [
+          {
+            "input_signature": "con_first",
+            "input": [
+              "apex_wellness",
+              "james.rodriguez@apexwellness.example"
+            ],
+            "expected_truthy_first": true
+          }
+        ],
+        "precise": [
+          {
+            "input_signature": "con_first",
+            "input": [
+              "oregon_mep_demo",
+              "evelyn.shapiro@cascadia-mep.example"
+            ],
+            "expected_truthy_first": true,
+            "expected_target_not_departed": true
+          }
+        ],
+        "really_good": [
+          {
+            "input_signature": "con_first",
+            "input": [
+              "oregon_mep_demo",
+              "aisha.okonkwo@cascadia-mep.example"
+            ],
+            "expected_truthy_first": true
+          }
+        ]
+      }
+    }
+  },
+  "pipelines": {
+    "_self_check": {
+      "intent_plain": "Module loads + 3 anchors exist.",
+      "anchors": [
+        "get_employee",
+        "pick_escalation_target",
+        "sweep"
+      ],
+      "pipeline_check": {
+        "module_loadable": true
+      }
+    }
+  }
+}

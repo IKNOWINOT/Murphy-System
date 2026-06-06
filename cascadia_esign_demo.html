@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>R367 — E-Signature Demo</title>
+<style>
+:root{--bg:#fafaf7;--text:#1a1d1f;--muted:#6b7280;--border:#d8d5cc;--rule:#e8e5dc;
+--primary:#1f4e3d;--secondary:#1a4480;--accent:#c97a3d;--paper:#fafaf7;
+--electronic:#1a4480;--wet:#8b4513;--stub:#c97a3d;--complete:#1f4e3d;
+--mono:'SF Mono',Menlo,monospace;--display:'Inter',-apple-system,sans-serif;
+--cursive:'Brush Script MT','Lucida Handwriting',cursive}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--display);font-size:14px;line-height:1.5}
+.page{max-width:1280px;margin:0 auto;padding:32px 40px;background:#fff;min-height:100vh;box-shadow:0 0 0 1px var(--border)}
+.masthead{border-bottom:3px solid var(--electronic);padding-bottom:18px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:flex-end}
+.mark{width:42px;height:42px;background:var(--electronic);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:700;font-size:14px;border-radius:2px;margin-right:14px}
+.brand-block{display:flex;align-items:center}
+.masthead h1{font-family:var(--display);font-size:18px;font-weight:700;color:var(--electronic)}
+.masthead .meta{text-align:right;font-family:var(--mono);font-size:10px;color:var(--muted);line-height:1.7}
+.doc-title{margin-bottom:24px;padding:18px 22px;background:var(--paper);border-left:4px solid var(--electronic)}
+.doc-title .kicker{font-family:var(--mono);font-size:10px;letter-spacing:1.5px;color:var(--electronic);text-transform:uppercase}
+.doc-title h2{font-family:var(--display);font-size:22px;margin-top:6px;font-weight:700}
+.audit-banner{background:#e6ecf5;border:1px solid var(--electronic);padding:10px 16px;margin-bottom:20px;font-size:12px;border-radius:3px}
+.audit-banner strong{color:var(--electronic)}
+section{margin-bottom:32px}
+section h3{font-family:var(--display);font-size:12px;color:var(--primary);font-weight:700;letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid var(--rule);padding-bottom:6px;margin-bottom:14px}
+.tools{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}
+.tools a{font-family:var(--mono);font-size:11px;color:var(--secondary);text-decoration:none;padding:6px 12px;border:1px solid var(--secondary);border-radius:2px}
+.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+.stat{background:var(--paper);border:1px solid var(--border);padding:12px 16px;border-radius:4px}
+.stat .label{font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px}
+.stat .value{font-family:var(--display);font-size:24px;font-weight:700;margin-top:4px}
+.stat.elec .value{color:var(--electronic)}
+.stat.wet .value{color:var(--wet)}
+.stat.stub .value{color:var(--stub)}
+
+.tenant-policy-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+.tenant-policy{background:#fff;border:1.5px solid var(--border);border-left-width:5px;padding:12px 16px;border-radius:3px}
+.tenant-policy.electronic{border-left-color:var(--electronic)}
+.tenant-policy.wet{border-left-color:var(--wet)}
+.tenant-policy.hybrid{border-left-color:var(--stub)}
+.tenant-policy .tslug{font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px}
+.tenant-policy .tname{font-weight:700;font-size:14px;margin-top:3px}
+.tenant-policy .tpolicy{margin-top:8px;font-family:var(--mono);font-size:11px;font-weight:700;padding:3px 10px;border-radius:2px;display:inline-block;color:#fff}
+.tenant-policy.electronic .tpolicy{background:var(--electronic)}
+.tenant-policy.wet .tpolicy{background:var(--wet)}
+.tenant-policy.hybrid .tpolicy{background:var(--stub)}
+
+.sig-card{border:1.5px solid var(--border);border-left-width:5px;padding:16px 20px;margin-bottom:14px;border-radius:3px;background:#fff}
+.sig-card.electronic_stub{border-left-color:var(--electronic);background:linear-gradient(to right,#e6ecf5 0%,#fff 20%)}
+.sig-card.wet_confirmed{border-left-color:var(--wet);background:linear-gradient(to right,#f5ede0 0%,#fff 20%)}
+.sig-card .shead{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:6px}
+.sig-card .sid{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--secondary)}
+.sig-card .smethod{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:1px;padding:3px 10px;border-radius:2px;color:#fff;font-weight:700}
+.sig-card.electronic_stub .smethod{background:var(--electronic)}
+.sig-card.wet_confirmed .smethod{background:var(--wet)}
+.sig-card .smeta{font-family:var(--mono);font-size:11px;color:var(--muted);line-height:1.7;margin-bottom:10px}
+.sig-card .smeta strong{color:var(--text)}
+
+.envelope-card{background:#fff;border:1px dashed var(--electronic);padding:10px 14px;border-radius:3px;margin-top:8px;font-family:var(--mono);font-size:11px}
+.envelope-card .elabel{font-size:9px;color:var(--electronic);text-transform:uppercase;letter-spacing:0.5px;font-weight:700;margin-bottom:4px}
+.envelope-card .eid{font-weight:700;color:var(--secondary);word-break:break-all}
+.envelope-card .eurl{color:var(--electronic);text-decoration:underline;font-size:10px;display:block;margin-top:4px}
+.envelope-card .enote{color:var(--muted);font-size:10px;font-style:italic;margin-top:6px;line-height:1.5}
+
+.wet-card{background:#fdfaf3;border:1px dashed var(--wet);padding:14px 18px;border-radius:3px;margin-top:8px}
+.wet-card .wlabel{font-size:9px;color:var(--wet);text-transform:uppercase;letter-spacing:0.5px;font-weight:700;margin-bottom:8px;font-family:var(--mono)}
+.wet-card .wsig{font-family:var(--cursive);font-size:28px;color:#3a2410;border-bottom:1px solid #aa8866;padding-bottom:4px;margin-bottom:6px;display:inline-block;min-width:200px}
+.wet-card .wblock{font-family:var(--mono);font-size:10px;color:var(--muted);white-space:pre-wrap;line-height:1.6}
+
+.r355-note{background:#fef3e6;border-left:3px solid var(--accent);padding:12px 16px;margin-top:14px;border-radius:3px;font-size:11px}
+.r355-note strong{color:var(--accent)}
+
+.footer{margin-top:32px;padding-top:18px;border-top:1px solid var(--rule);font-size:10px;color:var(--muted);font-family:var(--mono);display:flex;justify-content:space-between}
+.footer a{color:var(--secondary);text-decoration:none}
+
+/* R366 mobile responsive — inlined */
+/* R366 mobile responsive partial — applies across all Cascadia/Apex/wizard surfaces */
+@media (max-width: 768px) {
+  .page { padding: 16px 14px !important; max-width: 100% !important; box-shadow: none !important; }
+  .masthead { flex-direction: column; align-items: flex-start; gap: 10px; padding-bottom: 14px; }
+  .masthead .meta { text-align: left; font-size: 9px; }
+  .masthead h1 { font-size: 16px; }
+  .brand-block { width: 100%; }
+  .mark { width: 36px; height: 36px; font-size: 12px; }
+  .doc-title h2 { font-size: 18px; line-height: 1.3; }
+  section h3 { font-size: 11px; }
+  .audit-banner, .doc-title { padding: 12px 14px; font-size: 12px; }
+  .tools { gap: 6px; flex-wrap: wrap; }
+  .tools a { font-size: 10px; padding: 5px 9px; }
+  .summary, .field-grid, .compliance, .flow,
+  .q-grid[style*="grid-template-columns"] { 
+    grid-template-columns: 1fr !important; 
+  }
+  .step-tracker { flex-direction: column; }
+  .step-tile { border-right: 0 !important; border-bottom: 1px solid var(--border); }
+  .step-tile.current { border-bottom: 3px solid var(--current) !important; }
+  .step-tile::after, .fsm-step::after, .flow .step::after,
+  .binder-card .head .left::after { display: none !important; }
+  table { font-size: 10px; }
+  table.compact td, table.compact th { padding: 4px 6px; }
+  .engine-table th, .engine-table td { padding: 6px 8px; font-size: 10px; }
+  .chart-wrap { overflow-x: auto; padding: 12px 0; -webkit-overflow-scrolling: touch; }
+  .tree { transform-origin: top left; min-width: 600px; }
+  .binder-grid, .queue-list, .form-block, .lifecycle-row,
+  .binder-card, .intake-card, .hitl-card { padding: 12px 14px !important; }
+  .access-bar { gap: 4px; }
+  .access-bar .chip { font-size: 9px; padding: 3px 7px; }
+  .summary { gap: 8px; }
+  .stat { padding: 10px 12px; }
+  .stat .value, .summary .stat .value { font-size: 20px; }
+  .fsm-track { gap: 1px; flex-wrap: wrap; }
+  .fsm-step { font-size: 8px; padding: 5px 2px; min-width: 60px; }
+  .actions { flex-wrap: wrap; gap: 5px; }
+  .actions button { font-size: 10px; padding: 5px 9px; }
+  .diff-block { font-size: 10px; padding: 8px 10px; max-height: 240px; }
+  .chain { gap: 6px; }
+  .chip { min-width: 130px; font-size: 10px; padding: 6px 10px; }
+  .fix-card .proposed, .fix-card-mini .ftext { font-size: 11px; max-height: 200px; }
+  .compliance-row { grid-template-columns: 1fr 1fr; font-size: 10px; gap: 4px; padding: 6px 8px; }
+  .compliance-row.header { font-size: 9px; }
+  ol, ul { font-size: 12px !important; padding-left: 18px; }
+  .footer { flex-direction: column; gap: 6px; align-items: flex-start; }
+}
+@media (max-width: 480px) {
+  .page { padding: 10px 8px !important; }
+  .masthead h1 { font-size: 14px; }
+  .masthead .meta { font-size: 8px; }
+  .doc-title h2 { font-size: 16px; }
+  .stat .value, .summary .stat .value { font-size: 16px; }
+  .stat .label, .summary .stat .label { font-size: 8px; }
+  .summary { grid-template-columns: 1fr 1fr !important; gap: 6px; }
+  .compliance-row { grid-template-columns: 1fr; }
+  .compliance-row.header { display: none; }
+  .access-bar .chip { font-size: 8px; padding: 2px 6px; }
+  .audit-banner, .doc-title { font-size: 11px; padding: 10px 12px; }
+  .doc-title .kicker { font-size: 8px; }
+  .tools a { font-size: 9px; padding: 4px 8px; }
+  .binder-card .form-code, .form-block .fcode { font-size: 11px; }
+  .intake-card .payload, .diff-block { font-size: 9px; }
+  .fsm-step { font-size: 7px; min-width: 50px; padding: 4px 1px; }
+  .org-mini .emp-row { font-size: 10px; flex-direction: column; gap: 3px; align-items: flex-start; }
+  table { font-size: 9px; }
+  .spec-table td, .spec-table th { padding: 4px 6px; font-size: 9px; }
+  .card { min-width: 160px; max-width: 200px; padding: 7px 10px; font-size: 10px; }
+  .card .name { font-size: 11px; }
+  .card .role { font-size: 9px; }
+}
+</style>
+</head><body>
+<div class="page">
+
+  <header class="masthead">
+    <div class="brand-block">
+      <div class="mark">R67</div>
+      <div>
+        <h1>R367 — E-Signature</h1>
+        <div style="color:var(--muted);font-size:11px;margin-top:2px">Last Item of Original 13 · DocuSign Stub · Wet Sign · Per-Tenant Policy · Mobile-Ready</div>
+      </div>
+    </div>
+    <div class="meta">
+      DOC: R367-ESIGN-V1<br>
+      ISSUED: 2026-05-31<br>
+      SIGNATURES: 3<br>
+      POLICY MODEL: per-tenant
+    </div>
+  </header>
+
+  <div class="doc-title">
+    <div class="kicker">R367 — The Last Vertebra</div>
+    <h2>Signatures Captured · Same Substrate Handles Wet And Electronic</h2>
+    <div style="margin-top:10px;color:var(--muted);font-style:italic;font-size:13px">"Continue working on core shape of complete plan." — R367 closes item 13 of the original 13-item anything-else list. ALL 13 items now shipped across R360-R369.</div>
+  </div>
+
+  <div class="audit-banner">
+    <strong>This round, Murphy + me agreed on both Qs.</strong> R226 reconciliation: Murphy picked (c) maximal in 0.48s and (2) per-tenant signature policy in 0.65s. My own audit agreed with both — Murphy's structural knowledge that real HR departments standardize sig policy at the org level (not per-form) matches reality. The R354/R355 prompt-guard work is paying off: tight prompts give Murphy reliable substrate answers.
+  </div>
+
+  <div class="tools">
+    <a href="/ui/cascadia_mep">↩ CEO briefing</a>
+    <a href="/ui/cascadia_notifications_demo">↗ R369 notifications</a>
+    <a href="/ui/cascadia_offboarding_demo">↗ R368 offboarding</a>
+    <a href="/ui/cascadia_employee_view">↗ HR inbox</a>
+  </div>
+
+  <section>
+    <h3>Per-Tenant Signature Policy (R367's Structural Choice)</h3>
+    <div class="tenant-policy-grid">
+      
+    <div class="tenant-policy hybrid">
+      <span class="tslug">inoni</span>
+      <div class="tname">Inoni LLC</div>
+      <span class="tpolicy">HYBRID</span>
+    </div>
+    <div class="tenant-policy hybrid">
+      <span class="tslug">acmecorp</span>
+      <div class="tname">ACME Corp LLC</div>
+      <span class="tpolicy">HYBRID</span>
+    </div>
+    <div class="tenant-policy hybrid">
+      <span class="tslug">testorg320</span>
+      <div class="tname">R320 TestOrg Inc</div>
+      <span class="tpolicy">HYBRID</span>
+    </div>
+    <div class="tenant-policy electronic">
+      <span class="tslug">oregon_mep_demo</span>
+      <div class="tname">Cascadia MEP Contractors, LLC</div>
+      <span class="tpolicy">ELECTRONIC</span>
+    </div>
+    <div class="tenant-policy hybrid">
+      <span class="tslug">pdx_accounting_demo</span>
+      <div class="tname">Rosewood CPA Partners, PLLC</div>
+      <span class="tpolicy">HYBRID</span>
+    </div>
+    <div class="tenant-policy hybrid">
+      <span class="tslug">bedford_eats_demo</span>
+      <div class="tname">Bedford Stuyvesant Eats, LLC</div>
+      <span class="tpolicy">HYBRID</span>
+    </div>
+    <div class="tenant-policy wet">
+      <span class="tslug">apex_wellness</span>
+      <div class="tname">Apex Wellness Clinic, P.C.</div>
+      <span class="tpolicy">WET</span>
+    </div>
+    </div>
+  </section>
+
+  <section>
+    <h3>Summary</h3>
+    <div class="summary">
+      <div class="stat elec"><div class="label">Electronic Stubs</div><div class="value">2</div></div>
+      <div class="stat wet"><div class="label">Wet Signatures</div><div class="value">1</div></div>
+      <div class="stat stub"><div class="label">Total Signed</div><div class="value">3</div></div>
+      <div class="stat"><div class="label">Tenants w/ Policy</div><div class="value">7</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h3>Signature Log (Retroactive Proof)</h3>
+    
+    <div class="sig-card electronic_stub">
+      <div class="shead">
+        <span class="sid">Signature #1 · Q#1 (F1-01)</span>
+        <span class="smethod">ELECTRONIC STUB</span>
+      </div>
+      <div class="smeta">
+        SIGNER: <strong>evelyn.shapiro@cascadia-mep.example</strong><br>
+        TENANT: <strong>oregon_mep_demo</strong> · POLICY: <strong>electronic</strong><br>
+        STATUS: <strong>stubbed</strong> · CODE: <strong>E_AUTH_0015</strong><br>
+        SIGNED AT: <strong>2026-05-31T07:30:23.741849Z</strong>
+      </div>
+      
+          <div class="envelope-card">
+            <div class="elabel">DocuSign envelope (stub)</div>
+            <div class="eid">stub-env-0be4f9ee2773</div>
+            <a class="eurl" href="#" onclick="alert('R367 stub — real DocuSign link would open here when DOCUSIGN_INTEGRATION_KEY env set')">https://demo.docusign.net/Signing/?envelopeId=stub-env-0be4f9ee2773</a>
+            <div class="enote">E_AUTH_0015 stubbed: this envelope was created in-memory only. Set DOCUSIGN_INTEGRATION_KEY + DOCUSIGN_USER_ID + DOCUSIGN_ACCOUNT_ID env vars on the box and r367_esign.py automatically switches from stub to real DocuSign API call. Same pattern as R369 SMS (E_AUTH_0013).</div>
+          </div>
+    </div>
+    <div class="sig-card electronic_stub">
+      <div class="shead">
+        <span class="sid">Signature #2 · Q#9 (F1-12)</span>
+        <span class="smethod">ELECTRONIC STUB</span>
+      </div>
+      <div class="smeta">
+        SIGNER: <strong>aisha.okonkwo@cascadia-mep.example</strong><br>
+        TENANT: <strong>oregon_mep_demo</strong> · POLICY: <strong>electronic</strong><br>
+        STATUS: <strong>stubbed</strong> · CODE: <strong>E_AUTH_0015</strong><br>
+        SIGNED AT: <strong>2026-05-31T07:30:23.745675Z</strong>
+      </div>
+      
+          <div class="envelope-card">
+            <div class="elabel">DocuSign envelope (stub)</div>
+            <div class="eid">stub-env-cfcdd468d25a</div>
+            <a class="eurl" href="#" onclick="alert('R367 stub — real DocuSign link would open here when DOCUSIGN_INTEGRATION_KEY env set')">https://demo.docusign.net/Signing/?envelopeId=stub-env-cfcdd468d25a</a>
+            <div class="enote">E_AUTH_0015 stubbed: this envelope was created in-memory only. Set DOCUSIGN_INTEGRATION_KEY + DOCUSIGN_USER_ID + DOCUSIGN_ACCOUNT_ID env vars on the box and r367_esign.py automatically switches from stub to real DocuSign API call. Same pattern as R369 SMS (E_AUTH_0013).</div>
+          </div>
+    </div>
+    <div class="sig-card wet_confirmed">
+      <div class="shead">
+        <span class="sid">Signature #3 · Q#10 (F1-12)</span>
+        <span class="smethod">WET CONFIRMED</span>
+      </div>
+      <div class="smeta">
+        SIGNER: <strong>james.rodriguez@apexwellness.example</strong><br>
+        TENANT: <strong>apex_wellness</strong> · POLICY: <strong>wet</strong><br>
+        STATUS: <strong>complete</strong><br>
+        SIGNED AT: <strong>2026-05-31T07:30:23.748981Z</strong>
+      </div>
+      
+          <div class="wet-card">
+            <div class="wlabel">📜 Wet signature block</div>
+            <div class="wsig">James.Rodriguez</div>
+            <div class="wblock">Signer:    james.rodriguez@apexwellness.example
+Date:      2026-05-31
+Form:      F1-12
+Tenant:    apex_wellness
+Method:    WET (ink on paper)
+Vault:     vault://signatures/wet/10/james.rodriguez/scan.pdf</div>
+          </div>
+    </div>
+  </section>
+
+  <section>
+    <h3>The Signature Method Matrix</h3>
+    <table style="width:100%;border-collapse:collapse;font-size:12px;background:#fff;border:1px solid var(--border)">
+      <tr style="background:var(--primary);color:#fff"><th style="padding:8px 12px;text-align:left;font-family:var(--mono);font-size:10px">Tenant Policy</th><th style="padding:8px 12px;text-align:left;font-family:var(--mono);font-size:10px">Effect on r367_esign.py</th><th style="padding:8px 12px;text-align:left;font-family:var(--mono);font-size:10px">Current Status</th></tr>
+      <tr><td style="padding:8px 12px;font-family:var(--mono);font-size:11px;color:var(--electronic);font-weight:700">electronic</td><td style="padding:8px 12px;font-size:11px">Always attempt DocuSign API; stub if no creds (E_AUTH_0015)</td><td style="padding:8px 12px;font-size:11px"><span style="color:var(--stub);font-weight:700">~ stubbed (no DocuSign creds set)</span></td></tr>
+      <tr style="background:var(--paper)"><td style="padding:8px 12px;font-family:var(--mono);font-size:11px;color:var(--wet);font-weight:700">wet</td><td style="padding:8px 12px;font-size:11px">Generate signature block; mark wet_confirmed for demo (real-world starts at wet_pending until scan-back)</td><td style="padding:8px 12px;font-size:11px"><span style="color:var(--complete);font-weight:700">✓ proven live</span></td></tr>
+      <tr><td style="padding:8px 12px;font-family:var(--mono);font-size:11px;color:var(--stub);font-weight:700">hybrid</td><td style="padding:8px 12px;font-size:11px">Default — accept either; current demo picks electronic when ambiguous</td><td style="padding:8px 12px;font-size:11px"><span style="color:var(--complete);font-weight:700">✓ default behavior</span></td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h3>R208 Footer (Honest Report)</h3>
+    <div class="r355-note">
+      <strong>Zero in-round catches this round.</strong> Clean first-run for all 3 signatures. The R369 lesson stuck: the stub pattern (mirror R369 SMS E_AUTH_0013 → R367 E_AUTH_0015 for esign) avoided the bounce-by-design issue from R369. No real DocuSign API calls attempted, no external delivery failures, signature_log populated correctly with audit chains.
+      <br><br>
+      <strong>Idempotency proven</strong>: re-signing Q#9 returned <code>already_signed=True</code> with <code>E_DEP_0017</code> — preserves the original signature_id.
+      <br><br>
+      <strong>R370+ deferred</strong>: real DocuSign OAuth/JWT integration (needs DOCUSIGN_INTEGRATION_KEY env), per-form spec overrides (wet-required forms), multi-party signatures, biometric add-on, notary integration.
+    </div>
+  </section>
+
+  <div class="footer">
+    <span>R367-ESIGN-V1 · Last item of original 13 closed · 103 error codes registered</span>
+    <span><a href="/ui/cascadia_mep">↩ index</a></span>
+  </div>
+
+</div></body></html>

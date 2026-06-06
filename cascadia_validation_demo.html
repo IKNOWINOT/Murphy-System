@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>R377 — Eventual-Consistency Chain (r362 → r369)</title>
+<style>
+:root{--bg:#fafaf7;--text:#1a1d1f;--muted:#6b7280;--border:#d8d5cc;--rule:#e8e5dc;
+--primary:#1f4e3d;--secondary:#1a4480;--accent:#c97a3d;--paper:#fafaf7;
+--pass:#1f4e3d;--fail:#b91c1c;--warn:#c97a3d;--block:#1a4480;--pipeline:#7c3aed;--recursive:#dc2626;--compose:#0891b2;--coverage:#059669;--depth:#7c2d12;--r375:#854d0e;--r377:#0e7490;
+--mono:'SF Mono',Menlo,monospace;--display:'Inter',-apple-system,sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--display);font-size:14px;line-height:1.5}
+.page{max-width:1280px;margin:0 auto;padding:32px 40px;background:#fff;min-height:100vh;box-shadow:0 0 0 1px var(--border)}
+.masthead{border-bottom:3px solid var(--pass);padding-bottom:18px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px}
+.mark{width:42px;height:42px;background:var(--pass);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:700;font-size:14px;border-radius:2px;margin-right:14px}
+.brand-block{display:flex;align-items:center}
+.masthead h1{font-family:var(--display);font-size:18px;font-weight:700;color:var(--pass)}
+.masthead .meta{text-align:right;font-family:var(--mono);font-size:10px;color:var(--muted);line-height:1.7}
+.doc-title{margin-bottom:24px;padding:18px 22px;background:var(--paper);border-left:4px solid var(--pass)}
+.doc-title .kicker{font-family:var(--mono);font-size:10px;letter-spacing:1.5px;color:var(--pass);text-transform:uppercase}
+.doc-title h2{font-family:var(--display);font-size:22px;margin-top:6px;font-weight:700}
+.verdict-banner{background:#e8f5ee;border:2px solid var(--pass);border-left-width:6px;padding:18px 22px;margin-bottom:20px;border-radius:4px}
+.verdict-banner .vlabel{font-family:var(--mono);font-size:10px;color:var(--pass);text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:6px}
+.verdict-banner h3{font-family:var(--display);font-size:24px;color:var(--pass);font-weight:700;margin-bottom:6px}
+.verdict-banner .rule{font-family:var(--mono);font-size:11px;color:var(--muted);line-height:1.7}
+.verdict-banner .rule strong{color:var(--text)}
+.audit-banner{background:#fef3e6;border:1px solid var(--accent);padding:10px 16px;margin-bottom:20px;font-size:12px;border-radius:3px}
+.audit-banner strong{color:var(--accent)}
+section{margin-bottom:32px}
+section h3{font-family:var(--display);font-size:12px;color:var(--primary);font-weight:700;letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid var(--rule);padding-bottom:6px;margin-bottom:14px}
+.tools{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}
+.tools a{font-family:var(--mono);font-size:11px;color:var(--secondary);text-decoration:none;padding:6px 12px;border:1px solid var(--secondary);border-radius:2px}
+.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+.stat{background:var(--paper);border:1px solid var(--border);padding:12px 16px;border-radius:4px}
+.stat .label{font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px}
+.stat .value{font-family:var(--display);font-size:24px;font-weight:700;margin-top:4px}
+.stat.pass .value{color:var(--pass)}
+.stat.depth .value{color:var(--depth)}
+.stat.compose .value{color:var(--r377)}
+.stat.coverage .value{color:var(--coverage)}
+
+.module-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.module-card{border:1.5px solid var(--border);border-left-width:4px;padding:12px 16px;border-radius:4px;background:#fff}
+.module-card.r374_depth{border-left-color:var(--depth);background:linear-gradient(to right,#fef3e6 0%,#fff 5%)}
+.module-card.r375_depth{border-left-color:var(--r375);background:linear-gradient(to right,#fef3c7 0%,#fff 5%)}
+.module-card.r370_validator{border-left-color:var(--recursive);background:linear-gradient(to right,#fee2e2 0%,#fff 5%)}
+.module-card.r374_composition_intake,.module-card.r375_composition_sign_depart{border-left-color:var(--compose);background:linear-gradient(to right,#cffafe 0%,#fff 5%)}
+.module-card.r377_composition_lifecycle_notify{border-left-color:var(--r377);background:linear-gradient(to right,#cffafe 0%,#fff 5%)}
+.module-card.r372_composition_test,.module-card.r372_composition_runs{border-left-color:var(--accent);background:linear-gradient(to right,#fef3e6 0%,#fff 5%)}
+.module-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:4px}
+.module-name{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--text)}
+.module-verdict{font-family:var(--mono);font-size:9px;font-weight:700;padding:2px 8px;border-radius:2px;color:#fff;letter-spacing:0.3px;background:var(--pass)}
+.module-verdict.fail{background:var(--fail)}
+.module-stats{font-family:var(--mono);font-size:9px;color:var(--muted);line-height:1.5}
+.module-stats strong{color:var(--text)}
+
+.depth-badge,.r375-badge,.r377-badge,.compose-badge,.recursive-badge{font-family:var(--mono);font-size:8px;padding:1px 5px;border-radius:2px;color:#fff;letter-spacing:0.3px;margin-left:4px}
+.depth-badge{background:var(--depth)}
+.r375-badge{background:var(--r375)}
+.r377-badge{background:var(--r377)}
+.compose-badge{background:var(--compose)}
+.recursive-badge{background:var(--recursive)}
+
+.footer{margin-top:32px;padding-top:18px;border-top:1px solid var(--rule);font-size:10px;color:var(--muted);font-family:var(--mono);display:flex;justify-content:space-between}
+.footer a{color:var(--secondary);text-decoration:none}
+
+/* mobile */
+/* R366 mobile responsive partial — applies across all Cascadia/Apex/wizard surfaces */
+@media (max-width: 768px) {
+  .page { padding: 16px 14px !important; max-width: 100% !important; box-shadow: none !important; }
+  .masthead { flex-direction: column; align-items: flex-start; gap: 10px; padding-bottom: 14px; }
+  .masthead .meta { text-align: left; font-size: 9px; }
+  .masthead h1 { font-size: 16px; }
+  .brand-block { width: 100%; }
+  .mark { width: 36px; height: 36px; font-size: 12px; }
+  .doc-title h2 { font-size: 18px; line-height: 1.3; }
+  section h3 { font-size: 11px; }
+  .audit-banner, .doc-title { padding: 12px 14px; font-size: 12px; }
+  .tools { gap: 6px; flex-wrap: wrap; }
+  .tools a { font-size: 10px; padding: 5px 9px; }
+  .summary, .field-grid, .compliance, .flow,
+  .q-grid[style*="grid-template-columns"] { 
+    grid-template-columns: 1fr !important; 
+  }
+  .step-tracker { flex-direction: column; }
+  .step-tile { border-right: 0 !important; border-bottom: 1px solid var(--border); }
+  .step-tile.current { border-bottom: 3px solid var(--current) !important; }
+  .step-tile::after, .fsm-step::after, .flow .step::after,
+  .binder-card .head .left::after { display: none !important; }
+  table { font-size: 10px; }
+  table.compact td, table.compact th { padding: 4px 6px; }
+  .engine-table th, .engine-table td { padding: 6px 8px; font-size: 10px; }
+  .chart-wrap { overflow-x: auto; padding: 12px 0; -webkit-overflow-scrolling: touch; }
+  .tree { transform-origin: top left; min-width: 600px; }
+  .binder-grid, .queue-list, .form-block, .lifecycle-row,
+  .binder-card, .intake-card, .hitl-card { padding: 12px 14px !important; }
+  .access-bar { gap: 4px; }
+  .access-bar .chip { font-size: 9px; padding: 3px 7px; }
+  .summary { gap: 8px; }
+  .stat { padding: 10px 12px; }
+  .stat .value, .summary .stat .value { font-size: 20px; }
+  .fsm-track { gap: 1px; flex-wrap: wrap; }
+  .fsm-step { font-size: 8px; padding: 5px 2px; min-width: 60px; }
+  .actions { flex-wrap: wrap; gap: 5px; }
+  .actions button { font-size: 10px; padding: 5px 9px; }
+  .diff-block { font-size: 10px; padding: 8px 10px; max-height: 240px; }
+  .chain { gap: 6px; }
+  .chip { min-width: 130px; font-size: 10px; padding: 6px 10px; }
+  .fix-card .proposed, .fix-card-mini .ftext { font-size: 11px; max-height: 200px; }
+  .compliance-row { grid-template-columns: 1fr 1fr; font-size: 10px; gap: 4px; padding: 6px 8px; }
+  .compliance-row.header { font-size: 9px; }
+  ol, ul { font-size: 12px !important; padding-left: 18px; }
+  .footer { flex-direction: column; gap: 6px; align-items: flex-start; }
+}
+@media (max-width: 480px) {
+  .page { padding: 10px 8px !important; }
+  .masthead h1 { font-size: 14px; }
+  .masthead .meta { font-size: 8px; }
+  .doc-title h2 { font-size: 16px; }
+  .stat .value, .summary .stat .value { font-size: 16px; }
+  .stat .label, .summary .stat .label { font-size: 8px; }
+  .summary { grid-template-columns: 1fr 1fr !important; gap: 6px; }
+  .compliance-row { grid-template-columns: 1fr; }
+  .compliance-row.header { display: none; }
+  .access-bar .chip { font-size: 8px; padding: 2px 6px; }
+  .audit-banner, .doc-title { font-size: 11px; padding: 10px 12px; }
+  .doc-title .kicker { font-size: 8px; }
+  .tools a { font-size: 9px; padding: 4px 8px; }
+  .binder-card .form-code, .form-block .fcode { font-size: 11px; }
+  .intake-card .payload, .diff-block { font-size: 9px; }
+  .fsm-step { font-size: 7px; min-width: 50px; padding: 4px 1px; }
+  .org-mini .emp-row { font-size: 10px; flex-direction: column; gap: 3px; align-items: flex-start; }
+  table { font-size: 9px; }
+  .spec-table td, .spec-table th { padding: 4px 6px; font-size: 9px; }
+  .card { min-width: 160px; max-width: 200px; padding: 7px 10px; font-size: 10px; }
+  .card .name { font-size: 11px; }
+  .card .role { font-size: 9px; }
+}
+</style>
+</head><body>
+<div class="page">
+
+  <header class="masthead">
+    <div class="brand-block">
+      <div class="mark">R77</div>
+      <div>
+        <h1>R377 — Eventual-Consistency Chain</h1>
+        <div style="color:var(--muted);font-size:11px;margin-top:2px">19 modules · 4 composition chains · 11-for-11 Murphy · NEW pattern: shared-column coupling</div>
+      </div>
+    </div>
+    <div class="meta">
+      DOC: R377-CHAIN-V1<br>
+      ISSUED: 2026-05-31<br>
+      DEPTH TOOLS: 10<br>
+      OVERALL: ✅ ALL PASS
+    </div>
+  </header>
+
+  <div class="doc-title">
+    <div class="kicker">R377 — r362_lifecycle → r369_notifier via shared DB column</div>
+    <h2>NEW pattern: indirect coupling tested via eventual consistency</h2>
+    <div style="margin-top:10px;color:var(--muted);font-style:italic;font-size:13px">Per R226 — Murphy picked "e" (this chain) over (a) RESUME-TX-WRAP in 7.3s. My pattern would have closed R376's open loop. Murphy's logic: r362+r369 already have full depth (R374+R373); chain sits cleanly on top. Lowest-risk highest-momentum.</div>
+  </div>
+
+  <div class="verdict-banner">
+    <div class="vlabel">FOUNDER RULE VERDICT (live from validation_runs)</div>
+    <h3>✅ ALL 19 MODULES — DESIGNED-TO-DO</h3>
+    <div class="rule">
+      <strong>Total:</strong> 88 pass, 0 fail<br>
+      <strong>Composition chains:</strong> 4 tested (R372 r366×r366 + R374 r361×r363 + R375 r367×r368 + R377 r362×r369)<br>
+      <strong>R377 unique:</strong> first chain testing INDIRECT coupling via shared DB column (lifecycle_state). r362 writes it. r369 reads it later. The "chain" is eventual consistency.<br>
+      <strong>R377 zero in-round catches</strong> — the discipline (R354 + R355 + R208 pre-verify) prevented contract authoring errors that plagued R374 (4 catches) and R375 (1 catch).
+    </div>
+  </div>
+
+  <div class="audit-banner">
+    <strong>New pattern surfaced this round.</strong> Prior chains tested explicit handoffs (R374 pipe) or temporal invariants (R375 cross-round). R377 tests <em>eventual consistency through a shared state column</em>: r362 doesn't call r369; they communicate through form_intake_queue.lifecycle_state. The test verifies r369's read-side filter is correct for what r362's write-side produces.
+  </div>
+
+  <div class="tools">
+    <a href="/ui/cascadia_mep">↩ CEO briefing</a>
+    <a href="/ui/capability_map">↗ capability map</a>
+    <a href="/ui/cascadia_notifications_demo">↗ R369 notifications</a>
+  </div>
+
+  <section>
+    <h3>Summary</h3>
+    <div class="summary">
+      <div class="stat pass"><div class="label">Tests Passed</div><div class="value">88</div></div>
+      <div class="stat depth"><div class="label">Depth Tools (4-tier)</div><div class="value">10</div></div>
+      <div class="stat compose"><div class="label">Composition Chains</div><div class="value">4</div></div>
+      <div class="stat coverage"><div class="label">Modules</div><div class="value">19</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h3>All 19 Modules (2-column grid)</h3>
+    <div class="module-grid">
+      
+    <div class="module-card r360_org_import">
+      <div class="module-head">
+        <span class="module-name">r360_org_import</span>
+        <span class="module-verdict ">✓ PASS</span>
+      </div>
+      <div class="module-stats">
+        pass: <strong>1</strong> · fail: <strong>0</strong>
+      </div>
+    </div>
+    <div class="module-card r361_intake_router">
+      <div class="module-head">
+        <span class="module-name">r361_intake_router</span>
+        <span class="module-verdict ">✓ PASS</span>
+      </div>
+      <div class="module-stats">
+        pass: <strong>1</strong> · fail: <strong>0</strong>
+      </div>
+    </div>
+    <div class="module-card r361_pii_scrubber">
+      <div class="module-head">
+        <span class="module-name">r361_pii_scrubber</span>
+        <span class="module-verdict ">✓ PASS</span>
+      </div>
+      <div class="module-stats">
+        pass: <strong>5</strong> · fail: <strong>0</strong>
+      </div>
+    </div>
+    <div class="module-card r374_depth">
+      <div class="module-head">
+        <span class="module-name">r362_lifecycle</span>
+        <span class="module-verdict ">✓ PASS</span>
+      </div>
+      <div class="module-stats">
+        pass: <strong>9</strong> · fail: <strong>0</strong><span class="depth-badge">🔬 R374 DEPTH</span>
+      </div>
+    </div>
+    <div class="module-card r362_retention_sweep">
+      <div class="module-head">
+        <span class="module-name">r362_retention_sweep</span>
+        <span class="module-verdict ">✓ PASS</span>
+      </div>
+      <div class="module-stats">
+        pass: <strong>1</strong> · fail: <strong>0</strong>
+      </div>
+    </div>
+    <div class="module-card r374_depth">
+      <div class="module-head">
+        <span class="module-name">r363_revision</span>
+        <span class="module-verdict ">✓ PASS</span>
+      </div>
+      <div class="module-stats">
+        pass: <strong>9</strong> · fail: <strong>0</strong><span class="depth-badge">🔬 R374 DEPTH</span>
+      </div>
+    </div>
+    <div class="module-card r364_semantic_compliance">
+      <div class="module-head">
+        <span class="module-name">r364_semantic_compliance</span>
+        <span class="module-verdict ">✓ PASS</span>
+      </div>
+      <div class="module-stats">
+        pass: <strong>5</strong> · fail: <strong>0</strong>
+      </div>
+    </div>
+    <div class="module-card r364_suggest_fix">
+      <div class="module-head">
+        <span class="module-name">r364_suggest_fix</span>
+        <span class="module-verdict ">✓ PASS</span>
+      </div>
+      <div class="module-stats">
+        pass: <strong>1</strong> · fail: <strong>0</strong>
+      </div>
+    </div>
+    <div class="module-card r366_state_overlay">
+      <div class="module-head">
+        <span class="module-name">r366_state_overlay</span>
+        <span class="module-verdict ">✓ PASS</span>
+      </div>
+      <div class="module-stats">
+        pass: <strong>5</strong> · fail: <strong>0</strong><span class="compose-badge">🔗 R366 PAIR</span>
+      </div>
+    </div>
+    <div class="module-card r366_sla_escalation">
+      <div class="module-head">
+        <span class="module-name">r366_sla_escalation</span>
+        <span class="module-verdict ">✓ PASS</span>
+      </div>
+      <div class="module-stats">
+        pass: <strong>9</strong> · fail: <strong>0</strong><span class="compose-badge">🔗 R366 PAIR</span>
+      </div>
+    </div>
+    <div class="module-card r375_depth">
+      <div class="module-head">
+        <span class="module-name">r367_esign</span>
+        <span class="module-verdict ">✓ PASS</span>
+      </div>
+      <div class="module-stats">
+        pass: <strong>9</strong> · fail: <strong>0</strong><span class="r375-badge">🆕 R375 DEPTH</span>
+      </div>
+    </div>
+    <div class="module-card r374_depth">
+      <div class="module-head">
+        <span class="module-name">r368_offboarding</span>
+        <span class="module-verdict ">✓ PASS</span>
+      </div>
+      <div class="module-stats">
+        pass: <strong>9</strong> · fail: <strong>0</strong><span class="depth-badge">🔬 R374 DEPTH</span>
+      </div>
+    </div>
+    <div class="module-card r369_notifier">
+      <div class="module-head">
+        <span class="module-name">r369_notifier</span>
+        <span class="module-verdict ">✓ PASS</span>
+      </div>
+      <div class="module-stats">
+        pass: <strong>9</strong> · fail: <strong>0</strong>
+      </div>
+    </div>
+    <div class="module-card r370_validator">
+      <div class="module-head">
+        <span class="module-name">r370_validator</span>
+        <span class="module-verdict ">✓ PASS</span>
+      </div>
+      <div class="module-stats">
+        pass: <strong>9</strong> · fail: <strong>0</strong><span class="recursive-badge">🔁 RECURSIVE</span>
+      </div>
+    </div>
+    <div class="module-card r372_composition_test">
+      <div class="module-head">
+        <span class="module-name">r372_composition_test</span>
+        <span class="module-verdict ">✓ PASS</span>
+      </div>
+      <div class="module-stats">
+        pass: <strong>1</strong> · fail: <strong>0</strong><span class="compose-badge">🔗 R372 PAIR</span>
+      </div>
+    </div>
+    <div class="module-card r372_composition_runs">
+      <div class="module-head">
+        <span class="module-name">r372_composition_runs</span>
+        <span class="module-verdict ">✓ PASS</span>
+      </div>
+      <div class="module-stats">
+        pass: <strong>2</strong> · fail: <strong>0</strong><span class="compose-badge">🔗 R372 PAIR</span>
+      </div>
+    </div>
+    <div class="module-card r374_composition_intake">
+      <div class="module-head">
+        <span class="module-name">r374_composition_intake</span>
+        <span class="module-verdict ">✓ PASS</span>
+      </div>
+      <div class="module-stats">
+        pass: <strong>1</strong> · fail: <strong>0</strong><span class="compose-badge">🔗 R374 CHAIN</span>
+      </div>
+    </div>
+    <div class="module-card r375_composition_sign_depart">
+      <div class="module-head">
+        <span class="module-name">r375_composition_sign_depart</span>
+        <span class="module-verdict ">✓ PASS</span>
+      </div>
+      <div class="module-stats">
+        pass: <strong>1</strong> · fail: <strong>0</strong><span class="r375-badge">🆕 R375 CHAIN</span>
+      </div>
+    </div>
+    <div class="module-card r377_composition_lifecycle_notify">
+      <div class="module-head">
+        <span class="module-name">r377_composition_lifecycle_notify</span>
+        <span class="module-verdict ">✓ PASS</span>
+      </div>
+      <div class="module-stats">
+        pass: <strong>1</strong> · fail: <strong>0</strong><span class="r377-badge">🆕 R377 EVENTUAL</span>
+      </div>
+    </div>
+    </div>
+  </section>
+
+  <section>
+    <h3>R377 Chain Detail (r362_lifecycle → r369_notifier)</h3>
+    <div style="background:var(--paper);padding:14px 18px;border-radius:4px;border-left:3px solid var(--r377);font-size:12px;line-height:1.7">
+      5 eventual-consistency assertions exercised the shared-column boundary:
+      <ol style="margin:8px 0 0 20px">
+        <li><strong>r362_state_visible_to_r369</strong> — Q#5 in pending_approval (per r362) IS picked up by r369's filter <code>lifecycle_state IN ('pending_approval','in_review')</code></li>
+        <li><strong>r369_filters_terminal_states</strong> — 3 terminal rows (rejected, retained) found in fixtures; r369's filter correctly EXCLUDES all 3 (incorrectly_picked: 0)</li>
+        <li><strong>retention_for_returns_valid_dict</strong> — r362.retention_for('F1-09') → {days: 2555, basis: 'HR conservative 7-yr default'}</li>
+        <li><strong>r362_r369_tenant_agreement</strong> — Q#5.tenant_slug == r369.get_employee(...).tenant_slug == 'oregon_mep_demo'</li>
+        <li><strong>read_only_invariant</strong> — pre/post deltas on form_intake_queue, notification_log, tenant_employees all = 0. Zero side effects.</li>
+      </ol>
+      All 5 pass on first run. No in-round catches needed.
+    </div>
+  </section>
+
+  <section>
+    <h3>R226 Pattern: 11-for-11 Murphy Substrate-Truth Wins</h3>
+    <div style="background:var(--paper);padding:14px 18px;border-radius:4px;border-left:3px solid var(--secondary);font-size:12px;line-height:1.7">
+      <ul style="margin:8px 0 0 20px;line-height:1.9">
+        <li><strong>R366→R375</strong>: see prior rounds</li>
+        <li><strong>R376</strong>: capability_map over fs-walk (10/10)</li>
+        <li><strong>R377</strong>: r362→r369 over resume-TX-wrap (11/11) — picked the chain that sat on already-proven depth, lowest-risk highest-momentum</li>
+      </ul>
+      <strong>R321 reinforced</strong>: Murphy's letters/numbers reliable across 11 rounds. Murphy's narrative drift continues (mentioned "tested in staging" — no staging). Pattern: trust letters, R208 every detail.
+    </div>
+  </section>
+
+  <section>
+    <h3>R355 Catches This Round: ZERO</h3>
+    <div style="background:#e8f5ee;padding:14px 18px;border-radius:4px;border-left:3px solid var(--pass);font-size:12px;line-height:1.7">
+      First round with zero in-round catches. Track record:
+      <ul style="margin:8px 0 0 20px">
+        <li>R372: 2 catches</li>
+        <li>R373: 2 catches</li>
+        <li>R374: 4 catches (peak)</li>
+        <li>R375: 1 catch</li>
+        <li>R377: 0 catches</li>
+      </ul>
+      The R208-live-verify-everything pattern is now reflexive. Every assertion was checked against actual return values before the validator ran. No surprises.
+    </div>
+  </section>
+
+  <div class="footer">
+    <span>R377-CHAIN-V1 · 19 modules ✅ · 177 error codes</span>
+    <span><a href="/ui/cascadia_mep">↩ index</a></span>
+  </div>
+
+</div></body></html>

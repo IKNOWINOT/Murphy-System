@@ -1,0 +1,83 @@
+{
+  "module": "r364_semantic_compliance",
+  "blocks": {
+    "regex_verdict": {
+      "intent_plain": "Pure-regex presence check. Returns True if rule's detect_regex matches text, False otherwise.",
+      "inputs": {
+        "rule": "dict with detect_regex",
+        "text": "str"
+      },
+      "outputs": {
+        "return": "bool"
+      },
+      "side_effects": [],
+      "failure_modes": [
+        "E_PARSE_0010"
+      ],
+      "must_not": [
+        "call LLM",
+        "modify rule",
+        "raise on missing detect_regex"
+      ],
+      "test_array": {
+        "weak": [
+          {
+            "input": [
+              {
+                "detect_regex": ""
+              },
+              ""
+            ],
+            "expected_return": false
+          }
+        ],
+        "good": [
+          {
+            "input": [
+              {
+                "detect_regex": "(?i)at[\\s-]?will"
+              },
+              "Employment is at will."
+            ],
+            "expected_return": true
+          }
+        ],
+        "precise": [
+          {
+            "input": [
+              {
+                "detect_regex": "(?i)equal\\s+(?:employment\\s+)?opportunity"
+              },
+              "We provide equal employment opportunity."
+            ],
+            "expected_return": true
+          }
+        ],
+        "really_good": [
+          {
+            "input": [
+              {
+                "detect_regex": "(?i)at[\\s-]?will"
+              },
+              "The clinic operates under various employment principles."
+            ],
+            "expected_return": false
+          }
+        ]
+      }
+    }
+  },
+  "pipelines": {
+    "_self_check": {
+      "intent_plain": "Module loads cleanly and exposes the expected functions.",
+      "anchors": [
+        "regex_verdict",
+        "llm_check_one",
+        "check_semantic"
+      ],
+      "pipeline_check": {
+        "module_loadable": true
+      }
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "incident_id": "inc_c4a596f3",
+  "campaign_id": "apc_outreach",
+  "findings": {
+    "days_since_last_reply": 999,
+    "last_reply_timestamp": null,
+    "campaign_status": "no_replies",
+    "current_copy_subject": "Elevate Your Workflow with Murphy",
+    "current_copy_body": "Hi {{name}},\n\nOur records show you're using legacy automation. Murphy cuts task time by 60% with zero downtime.\n\nCan we schedule a 9-minute demo?\n\n— Team Murphy"
+  },
+  "recommendation": "A/B test new copy with stronger value proposition and lower time commitment ask",
+  "proposed_subject_lines": [
+    "Reduce engineering toil by 60%? (90-second demo)",
+    "Your team could save 11 hours/week — proof inside"
+  ],
+  "proposed_body_lines": [
+    "Hi {{name}},\n\nMurphy automates repetitive tasks like log analysis, deployment rollbacks, and incident triage — freeing engineers for high-impact work.\n\nUsed by Inoni, Vanta, and Linear.\n\nCan I send you a 90-second demo video?",
+    "Hi {{name}},\n\nTeams using Murphy redeploy 2+ engineers worth of time monthly.\n\nWant to see how it works? I'll keep it under 2 minutes."
+  ],
+  "next_step": "run_ab_test",
+  "evidence_timestamp": "$(date -u)"
+}

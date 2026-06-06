@@ -1,0 +1,8 @@
+Investigated incident #inc_f84cff91 regarding lack of inbound replies in 999 days for APC outreach. Reviewed source code and CRM system structure. Found no direct evidence of outreach logs at /api/crm/activities as suggested. The CRM system uses a SQLite backend with activities stored in the 'activities' table. However, no specific outreach log entries or related endpoints were found in the codebase that would indicate recent outreach activity. Recommended action: Refresh APC outreach copy and verify delivery mechanisms.
+
+Findings:
+- No 'api/crm/activities' endpoint exists
+- CRM stores activities in SQLite, but no outreach-specific logging observed
+- Twitter outreach is scheduled every 6 hours per src/swarm_scheduler.py
+- No evidence of email or other outreach channels in current configuration
+- Suggest auditing outreach channels and refreshing copy to improve response rates

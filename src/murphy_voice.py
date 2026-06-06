@@ -68,7 +68,8 @@ VOICE RULES:
 HALLUCINATION GUARD (added 2026-05-28 — five confabulations in one session):
 - Specific factual claims (file:line, function names, import state, counts of N items, yes/no on "is X wired/active/loaded") require evidence FROM THIS CONVERSATION.
 - If you have not been shown grep output, sql output, or tool output that confirms the claim, prefix your answer with [unverified] OR say "I don't know — would need to grep/query."
-- NEVER fabricate file:line numbers. NEVER invent counts. NEVER assert "X is wired" without seeing an import line.
+- NEVER fabricate file:line numbers. NEVER invent counts. NEVER assert 
+  - _r416_command_guard (2026-06-01): NEVER fabricate CLI commands. Real Murphy has NO 'murphyctl', NO 'murphy-cli', NO 'apply-patch' script. The platform is patched by editing /opt/Murphy-System/src/runtime/app.py and restarting 'systemctl restart murphy-production.service'. If asked how to apply X, name the actual file and the actual systemctl command; never invent tooling."X is wired" without seeing an import line.
 - A correct "I don't know" beats a confident fabrication every time.
 - Strategy/discipline/recommendation answers are exempt from [unverified] — only factual specifics require evidence.
 
@@ -386,6 +387,29 @@ def _format_ground_truth(audit: Optional[Dict[str, Any]]) -> str:
     pq = c.get("postfix_queue")
     if isinstance(pq, int) and pq > 0:
         lines.append(f"- Email queue: {pq} stuck (port 25 holiday block)")
+
+    # _r416_recent_shipments (2026-06-01): inject last 6 R-shipments from build_log
+    # so Murphy knows what was just done — fixes hallucinated commands like
+    # "murphyctl patch --apply-staged" and gives memory continuity across sessions.
+    try:
+        import os as _r416_os, re as _r416_re
+        _r416_log = "/var/lib/murphy-production/build_log.md"
+        if _r416_os.path.exists(_r416_log):
+            with open(_r416_log, "r") as _r416_f:
+                _r416_content = _r416_f.read()
+            # Find lines like "## R413 — title (date)" — take last 6
+            _r416_hits = _r416_re.findall(
+                r"^##\s+(R\d+[a-z]?)\s+[—-]\s+([^\(\n]+)",
+                _r416_content, _r416_re.MULTILINE
+            )
+            if _r416_hits:
+                _r416_last = _r416_hits[-6:]
+                _r416_summary = "; ".join(f"{rid}: {title.strip()}" for rid, title in _r416_last)
+                lines.append(f"- Recent shipments: {_r416_summary}")
+    except Exception:
+        pass
+    # ── end _r416_recent_shipments ───────────────────────────────────────
+
     return "\n".join(lines) if lines else "(audit available but no notable state)"
 
 
@@ -553,12 +577,16 @@ def reply_in_voice(
         Murphy's reply — same voice no matter which channel called.
     """
     # Channel-specific tuning of length, but NEVER personality.
+    # _R416_CHAT_CTX (2026-06-01): bump chat ceiling so multi-section answers
+    # don't truncate mid-word. Was 300 → now 700 for chat. SMS/voice unchanged.
     if channel == "sms":
         max_tokens = min(max_tokens, 100)  # 160-char zone
     elif channel == "voice":
         max_tokens = min(max_tokens, 150)  # spoken aloud
     elif channel == "email":
         max_tokens = min(max_tokens, 500)
+    elif channel == "chat":
+        max_tokens = max(max_tokens, 700)  # R416: prevent truncation on situation reports
 
     context_lines = []
     if channel != "chat":
@@ -591,8 +619,11 @@ def reply_in_voice(
     prompt = system + f"\n\nCorey: {message}\nMurphy:"
 
     # Lazy import — avoids circular deps at startup
-    from src.llm_provider import MurphyLLMProvider
-    llm = MurphyLLMProvider()
+    # R405 (2026-06-01): use singleton so LLMCostLedger captures calls.
+    # Previously created a fresh MurphyLLMProvider() per call which bypassed
+    # the patched hook in src.llm_cost_ledger.patch_llm_provider().
+    from src.llm_provider import get_llm as _r405_get_llm
+    llm = _r405_get_llm()
     result = llm.complete(prompt=prompt, max_tokens=max_tokens)
     text = (result.content if hasattr(result, "content") else str(result)).strip()
 

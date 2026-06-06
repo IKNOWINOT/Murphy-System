@@ -1,0 +1,10 @@
+Incident #inc_6061335e: APC outreach copy refresh required.
+
+Last outreach: 2023-03-15T10:30:00Z
+No response received in over 999 days.
+
+Current copy (v3) is stale:
+<p>We're excited to reconnect! Our latest automation suite boosts efficiency by 40%. Ready to upgrade your workflow?</p>
+<button>Respond Now</button>
+
+Recommendation: Update apc_outreach copy and re-engage prospects.

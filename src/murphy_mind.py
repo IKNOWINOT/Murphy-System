@@ -369,6 +369,15 @@ def _verify_failure_modes() -> List[Dict]:
 
 # ── PATCH-128: System Awareness Helpers ──────────────────────────────────────
 
+def _snapshot_audit() -> Dict[str, Any]:
+    """Inject ground-truth state into mind context - prevents hallucinations."""
+    try:
+        from src.self_audit import snapshot
+        return snapshot()
+    except Exception as e:
+        return {"error": str(e)}
+
+
 def _llm_status() -> Dict[str, Any]:
     """Check if real LLM providers are available or we're on onboard fallback."""
     try:
@@ -744,6 +753,141 @@ def _source_inventory() -> Dict:
 
 # ---- The Mind Cycle ----------------------------------------------------------
 
+
+def _emit_cycle_dlfr(cycle: int, entry: 'SelfModelEntry', duration_s: float, llm_model: str) -> str:
+    """Phase 3: emit a DLF-R package per mind cycle.
+
+    Captures the cognitive state of one self-awareness cycle as a portable
+    semantic continuity package. Threads = raw text payloads. Nodes = the
+    cognitive anchors Murphy identified (gaps, failure modes, invariants,
+    proposed action). Weaves = the logical relationships between them.
+
+    Best-effort. Failure here MUST NOT break the cycle loop or pulse emit.
+    Returns the package_id or "skipped".
+    """
+    try:
+        from src.dlf_r import pack, store
+        ts = entry.timestamp
+
+        # ── Threads ──────────────────────────────────────────────────────
+        threads = [{
+            "id": f"thr_arch_{cycle}",
+            "payload": entry.architecture_summary[:2000],
+            "created_at_utc": ts,
+            "metadata": {"kind": "architecture_summary", "cycle": cycle},
+        }, {
+            "id": f"thr_priority_{cycle}",
+            "payload": entry.priority_gap[:1500],
+            "created_at_utc": ts,
+            "metadata": {"kind": "priority_gap", "cycle": cycle},
+        }, {
+            "id": f"thr_action_{cycle}",
+            "payload": entry.proposed_action[:1500],
+            "created_at_utc": ts,
+            "metadata": {"kind": "proposed_action", "cycle": cycle},
+        }]
+        if entry.critic_findings_summary:
+            threads.append({
+                "id": f"thr_critic_{cycle}",
+                "payload": entry.critic_findings_summary[:1500],
+                "created_at_utc": ts,
+                "metadata": {"kind": "critic_findings", "cycle": cycle},
+            })
+
+        # ── Nodes ────────────────────────────────────────────────────────
+        nodes = [{
+            "id": f"node_cycle_{cycle}",
+            "label": f"mind_cycle:{cycle}",
+            "thread_refs": [f"thr_arch_{cycle}"],
+            "metadata": {"confidence": float(entry.confidence),
+                         "duration_s": float(duration_s),
+                         "llm_model": llm_model},
+        }, {
+            "id": f"node_priority_{cycle}",
+            "label": "priority_gap",
+            "thread_refs": [f"thr_priority_{cycle}"],
+            "metadata": {"text": entry.priority_gap[:200]},
+        }, {
+            "id": f"node_action_{cycle}",
+            "label": "proposed_action",
+            "thread_refs": [f"thr_action_{cycle}"],
+            "metadata": {"text": entry.proposed_action[:200]},
+        }]
+        # Each known failure mode is a node
+        for i, fm in enumerate((entry.known_failure_modes or [])[:8]):
+            nodes.append({
+                "id": f"node_fm_{cycle}_{i}",
+                "label": f"failure_mode:{fm[:60]}",
+                "thread_refs": [], "metadata": {"text": fm[:300]},
+            })
+        # Each active gap is a node
+        for i, gp in enumerate((entry.active_gaps or [])[:8]):
+            nodes.append({
+                "id": f"node_gap_{cycle}_{i}",
+                "label": f"active_gap:{gp[:60]}",
+                "thread_refs": [], "metadata": {"text": gp[:300]},
+            })
+        # Each invariant is a node
+        for i, inv in enumerate((entry.invariants or [])[:8]):
+            nodes.append({
+                "id": f"node_inv_{cycle}_{i}",
+                "label": f"invariant:{inv[:60]}",
+                "thread_refs": [], "metadata": {"text": inv[:300]},
+            })
+
+        # ── Weaves ───────────────────────────────────────────────────────
+        weaves = [{
+            "id": f"w_pgap_{cycle}",
+            "source": f"node_cycle_{cycle}",
+            "target": f"node_priority_{cycle}",
+            "type": "DEPENDS_ON", "confidence": float(entry.confidence),
+            "provenance": "murphy_mind._run_cycle",
+        }, {
+            "id": f"w_pact_{cycle}",
+            "source": f"node_priority_{cycle}",
+            "target": f"node_action_{cycle}",
+            "type": "SEQUENCE", "confidence": float(entry.confidence),
+            "provenance": "murphy_mind: priority → action",
+        }]
+        # Priority gap REFERENCES the failure modes / active gaps that caused it
+        for i, _ in enumerate((entry.known_failure_modes or [])[:8]):
+            weaves.append({
+                "id": f"w_fm_ref_{cycle}_{i}",
+                "source": f"node_priority_{cycle}",
+                "target": f"node_fm_{cycle}_{i}",
+                "type": "REFERENCE", "confidence": 0.8,
+                "provenance": "known_failure_modes",
+            })
+        for i, _ in enumerate((entry.active_gaps or [])[:8]):
+            weaves.append({
+                "id": f"w_gap_ref_{cycle}_{i}",
+                "source": f"node_priority_{cycle}",
+                "target": f"node_gap_{cycle}_{i}",
+                "type": "REFERENCE", "confidence": 0.8,
+                "provenance": "active_gaps",
+            })
+        # Proposed action DEPENDS_ON the invariants it must preserve
+        for i, _ in enumerate((entry.invariants or [])[:8]):
+            weaves.append({
+                "id": f"w_inv_dep_{cycle}_{i}",
+                "source": f"node_action_{cycle}",
+                "target": f"node_inv_{cycle}_{i}",
+                "type": "DEPENDS_ON", "confidence": 0.9,
+                "provenance": "invariants must hold",
+            })
+
+        blob = pack(threads, nodes, weaves,
+                    creator=f"murphy_mind.cycle_{cycle}",
+                    metadata={"cycle": cycle, "llm_model": llm_model,
+                              "duration_s": duration_s})
+        pkg_id = store(blob, label=f"mind_cycle:{cycle}")
+        logger.info("DLF-R: cycle %d packaged as %s", cycle, pkg_id)
+        return pkg_id
+    except Exception as exc:
+        logger.warning("DLF-R cycle pack failed: %s", exc)
+        return "skipped"
+
+
 class MurphyMind:
     """
     PATCH-124: Continuous self-awareness agent.
@@ -784,6 +928,7 @@ class MurphyMind:
     def _build_context(self) -> Dict:
         """Gather everything Murphy needs to think about itself."""
         return {
+            "self_audit": _snapshot_audit(),
             "recent_patches": _git_recent_patches(8),
             "boot_errors": _read_boot_errors(),
             "critic_findings": _critic_recent_findings(),
@@ -1078,6 +1223,25 @@ class MurphyMind:
             "MurphyMind: cycle %d complete -- priority_gap=%r confidence=%.2f (%.1fs, %s)",
             cycle, entry.priority_gap[:60], entry.confidence, duration, llm_model
         )
+
+        # PATCH-DLF-R-002 (2026-05-27): emit a DLF-R semantic package for this
+        # cycle. Captures cognitive state as Threads/Nodes/Weaves with a live
+        # Rosetta snapshot. Best-effort, never breaks the loop.
+        _emit_cycle_dlfr(cycle, entry, duration, llm_model)
+
+        # BLOCK-A.4.2 — pulse emit: mark Murphy Mind alive after each cycle.
+        # Never raises; cadence_emit catches its own errors.
+        try:
+            from src.cadence_emit import emit_heartbeat
+            emit_heartbeat(
+                'murphy_mind.cycle_loop',
+                duration_ms=int(duration * 1000),
+                success=True,
+                payload={'cycle': cycle, 'confidence': float(entry.confidence)},
+            )
+        except Exception:
+            pass  # telemetry must never break the loop it measures
+
         return result_obj
 
     def run_once(self) -> MindCycleResult:

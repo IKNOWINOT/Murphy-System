@@ -426,11 +426,16 @@ def _dispatch_low(conn, entry: Dict, presc: Dict, presc_id: str):
             project_id=entry.get("project_id"),
             detail_item_id=entry.get("detail_item_id"),
         )
-        conn.execute(
-            "UPDATE gap_prescriptions SET status='dispatched',dispatched_at=? WHERE id=?",
-            (_now(), presc_id)
+        # R62 idempotency: only flip 'open' → 'dispatched'
+        cur = conn.execute(
+            "UPDATE gap_prescriptions SET status='dispatched',dispatched_at=?,updated_at=? "
+            "WHERE id=? AND status='open'",
+            (_now(), _now(), presc_id)
         )
-        logger.info("LOW dispatch: work_order created for gap %s", entry["id"])
+        if cur.rowcount == 0:
+            logger.info("LOW dispatch: gap %s already past 'open' — no-op (idempotent)", entry["id"])
+        else:
+            logger.info("LOW dispatch: work_order created for gap %s", entry["id"])
     except Exception as e:
         logger.warning("LOW dispatch failed: %s", e)
 
@@ -476,10 +481,14 @@ def _dispatch_high(conn, entry: Dict, presc: Dict, presc_id: str, project_id: st
          presc["risk_score"], "HIGH",
          presc["reason"], presc["financial_exposure_usd"])
     )
-    conn.execute(
-        "UPDATE gap_prescriptions SET status='dispatched',dispatched_at=? WHERE id=?",
-        (_now(), presc_id)
+    # R62 idempotency: only flip 'open' → 'dispatched'
+    _cur_b = conn.execute(
+        "UPDATE gap_prescriptions SET status='dispatched',dispatched_at=?,updated_at=? "
+        "WHERE id=? AND status='open'",
+        (_now(), _now(), presc_id)
     )
+    if _cur_b.rowcount == 0:
+        logger.info("HIGH dispatch: gap %s already past 'open' — escalation not re-dispatched", presc_id)
     try:
         from src.records_engine import create_record as _cr
         gap_title = str(entry.get("title",""))[:60]
@@ -617,13 +626,21 @@ def close_gap(prescription_id: str, closed_by: str = "system",
         ).fetchone()
         if not gp:
             return {"error": "Prescription not found"}
-        conn.execute(
-            "UPDATE gap_prescriptions SET status='fulfilled',fulfilled_at=?,updated_at=? WHERE id=?",
+        # R62 idempotency: only fulfill if currently in a non-terminal state
+        cur_c = conn.execute(
+            "UPDATE gap_prescriptions SET status='fulfilled',fulfilled_at=?,updated_at=? "
+            "WHERE id=? AND status IN ('open','dispatched')",
             (now, now, prescription_id)
         )
-        # Also resolve the underlying manifold entry
+        if cur_c.rowcount == 0:
+            # Already fulfilled or cancelled — return without touching manifold_entries
+            logger.info("close_gap: %s already terminal (status=%s) — no-op", prescription_id, gp["status"])
+            return {"status": gp["status"], "id": prescription_id,
+                    "idempotent": True, "dependents_affected": 0}
+        # Only resolve manifold entry on actual transition
         conn.execute(
-            "UPDATE manifold_entries SET is_resolved=1,resolved_by=?,resolved_at=? WHERE id=?",
+            "UPDATE manifold_entries SET is_resolved=1,resolved_by=?,resolved_at=? "
+            "WHERE id=? AND is_resolved=0",
             (closed_by, now, gp["entry_id"])
         )
         # Propagate: re-scan dependents
@@ -645,6 +662,15 @@ def escalate_gap(prescription_id: str, reason: str = "",
         ).fetchone()
         if not gp:
             return {"error": "Not found"}
+        # R62 idempotency: if open escalation already exists for this prescription, no-op
+        existing = conn.execute(
+            "SELECT id FROM gap_escalations WHERE prescription_id=? AND status='open' LIMIT 1",
+            (prescription_id,)
+        ).fetchone()
+        if existing:
+            logger.info("escalate_gap: %s already has open escalation %s — no-op",
+                        prescription_id, existing["id"])
+            return {"escalated": True, "escalation_id": existing["id"], "idempotent": True}
         esc_id = _id("ge")
         conn.execute(
             """INSERT INTO gap_escalations
@@ -654,8 +680,10 @@ def escalate_gap(prescription_id: str, reason: str = "",
              gp["risk_score"], "HIGH",
              reason or gp.get("risk_tier",""), gp["financial_exposure_usd"])
         )
+        # Only bump risk_tier if not already HIGH
         conn.execute(
-            "UPDATE gap_prescriptions SET risk_tier='HIGH',updated_at=? WHERE id=?",
+            "UPDATE gap_prescriptions SET risk_tier='HIGH',updated_at=? "
+            "WHERE id=? AND risk_tier!='HIGH'",
             (_now(), prescription_id)
         )
     return {"escalated": True, "escalation_id": esc_id}

@@ -126,8 +126,14 @@ def wire_feedback_loop(
 # ---------------------------------------------------------------------------
 
 
-def _on_task_completed(payload: Dict[str, Any]) -> None:
-    """Handle a TASK_COMPLETED event from the backbone."""
+def _on_task_completed(event) -> None:
+    """Handle a TASK_COMPLETED event from the backbone.
+
+    PATCH-HANDLER-SIG-R218 (2026-05-29): EventBackbone delivers Event objects,
+    not dicts. Extract payload from event.payload defensively (also tolerate
+    a raw dict for callers that pre-extracted).
+    """
+    payload = event.payload if hasattr(event, "payload") else (event if isinstance(event, dict) else {})
     _record_outcome(
         feedback_type="task_execution",
         operation_id=payload.get("task_id", "unknown"),
@@ -137,8 +143,12 @@ def _on_task_completed(payload: Dict[str, Any]) -> None:
     )
 
 
-def _on_task_failed(payload: Dict[str, Any]) -> None:
-    """Handle a TASK_FAILED event from the backbone."""
+def _on_task_failed(event) -> None:
+    """Handle a TASK_FAILED event from the backbone.
+
+    PATCH-HANDLER-SIG-R218 (2026-05-29): see _on_task_completed.
+    """
+    payload = event.payload if hasattr(event, "payload") else (event if isinstance(event, dict) else {})
     _record_outcome(
         feedback_type="task_execution",
         operation_id=payload.get("task_id", "unknown"),

@@ -1,0 +1,551 @@
+{
+  "_meta": {
+    "version": "1.0",
+    "round": "R359",
+    "established": "2026-05-30",
+    "founder_directive": "doable for any type of business",
+    "shape": "UNIVERSAL_CORE + INDUSTRY_OVERLAY per tenant"
+  },
+  "universal_core": {
+    "F-CORE-1_people": {
+      "label": "People (HR / Payroll / Benefits)",
+      "applies_to": "every employer regardless of industry",
+      "forms": [
+        [
+          "01",
+          "Offer letter",
+          "per hire"
+        ],
+        [
+          "02",
+          "Background check authorization (FCRA)",
+          "per hire"
+        ],
+        [
+          "03",
+          "I-9 Employment Eligibility",
+          "per hire (federal)"
+        ],
+        [
+          "04",
+          "W-4 Federal Withholding",
+          "per hire / change"
+        ],
+        [
+          "05",
+          "State Withholding (jurisdiction-specific)",
+          "per hire / state move"
+        ],
+        [
+          "06",
+          "Direct Deposit",
+          "per hire / change"
+        ],
+        [
+          "07",
+          "Emergency Contact",
+          "per hire"
+        ],
+        [
+          "08",
+          "EEO Self-Identification",
+          "per hire"
+        ],
+        [
+          "09",
+          "Employee Handbook Acknowledgment",
+          "per hire / version"
+        ],
+        [
+          "10",
+          "IT Acceptable Use Policy",
+          "per hire / version"
+        ],
+        [
+          "11",
+          "Drug/Alcohol Policy",
+          "per hire"
+        ],
+        [
+          "12",
+          "Benefits Election",
+          "per hire / annual"
+        ],
+        [
+          "13",
+          "401(k) Auto-Enroll Notice",
+          "per hire"
+        ],
+        [
+          "14",
+          "PTO Policy Acknowledgment",
+          "per hire"
+        ],
+        [
+          "15",
+          "Sexual Harassment Training",
+          "state-annual"
+        ],
+        [
+          "16",
+          "Workplace Violence Prevention",
+          "state-required"
+        ],
+        [
+          "17",
+          "Job Description / Role Scope",
+          "per role"
+        ],
+        [
+          "18",
+          "30/60/90 Milestone Check",
+          "per hire"
+        ],
+        [
+          "19",
+          "Annual Performance Review",
+          "annual"
+        ],
+        [
+          "20",
+          "Compensation Change Form",
+          "per event"
+        ],
+        [
+          "21",
+          "Garnishment Notice",
+          "per event"
+        ],
+        [
+          "22",
+          "Exit Interview",
+          "per separation"
+        ],
+        [
+          "23",
+          "Separation Notice (state-specific)",
+          "per separation"
+        ],
+        [
+          "24",
+          "COBRA Notification",
+          "per separation"
+        ]
+      ]
+    },
+    "F-CORE-2_money_in": {
+      "label": "Money In (Sales / AR)",
+      "applies_to": "every business with customers",
+      "forms": [
+        [
+          "25",
+          "Customer Onboarding / KYC",
+          "per new customer"
+        ],
+        [
+          "26",
+          "Master Service Agreement",
+          "per customer / version"
+        ],
+        [
+          "27",
+          "Statement of Work / Scope Letter",
+          "per engagement"
+        ],
+        [
+          "28",
+          "Pricing Schedule / Quote",
+          "per opportunity"
+        ],
+        [
+          "29",
+          "Customer Credit Application",
+          "per new credit customer"
+        ],
+        [
+          "30",
+          "W-9 Request from Customer",
+          "when customer remits"
+        ],
+        [
+          "31",
+          "Invoice Template",
+          "per billing cycle"
+        ],
+        [
+          "32",
+          "Past-Due Notice",
+          "per occurrence"
+        ],
+        [
+          "33",
+          "Final Demand",
+          "per occurrence"
+        ],
+        [
+          "34",
+          "Customer Satisfaction Survey",
+          "periodic"
+        ],
+        [
+          "35",
+          "Renewal Notice",
+          "per renewal"
+        ],
+        [
+          "36",
+          "Refund / Credit Memo",
+          "per occurrence"
+        ],
+        [
+          "37",
+          "AR Aging Report",
+          "monthly"
+        ]
+      ]
+    },
+    "F-CORE-3_money_out": {
+      "label": "Money Out (AP / Expense)",
+      "applies_to": "every business with vendors / costs",
+      "forms": [
+        [
+          "38",
+          "Vendor New Account (W-9 + COI + Banking)",
+          "per new vendor"
+        ],
+        [
+          "39",
+          "Purchase Order",
+          "per purchase"
+        ],
+        [
+          "40",
+          "PO Change Order",
+          "per change"
+        ],
+        [
+          "41",
+          "Expense Reimbursement",
+          "per submission"
+        ],
+        [
+          "42",
+          "Mileage Log",
+          "weekly for drivers"
+        ],
+        [
+          "43",
+          "Credit Card Monthly Reconciliation",
+          "monthly"
+        ],
+        [
+          "44",
+          "Petty Cash Log",
+          "ongoing"
+        ],
+        [
+          "45",
+          "Check Request",
+          "per disbursement"
+        ],
+        [
+          "46",
+          "AP Invoice Approval Routing",
+          "per invoice"
+        ],
+        [
+          "47",
+          "1099-NEC Year-End Recon",
+          "annual"
+        ],
+        [
+          "48",
+          "Wire Transfer Authorization",
+          "per wire"
+        ],
+        [
+          "49",
+          "ACH Origination Authorization",
+          "per setup / change"
+        ]
+      ]
+    },
+    "F-CORE-4_compliance": {
+      "label": "Compliance (Entity / Tax / Registrations)",
+      "applies_to": "every legal entity",
+      "forms": [
+        [
+          "50",
+          "Entity Formation (LLC/Corp)",
+          "at inception"
+        ],
+        [
+          "51",
+          "Foreign Entity Authority",
+          "per non-home state"
+        ],
+        [
+          "52",
+          "EIN Application (SS-4) Record",
+          "at inception"
+        ],
+        [
+          "53",
+          "State Tax Registration",
+          "per state"
+        ],
+        [
+          "54",
+          "Annual / Biennial Report",
+          "per cadence per state"
+        ],
+        [
+          "55",
+          "Sales Tax Registration",
+          "per state where applicable"
+        ],
+        [
+          "56",
+          "Use Tax Remittance",
+          "per cadence"
+        ],
+        [
+          "57",
+          "1099 / W-2 Year-End Filings",
+          "annual"
+        ],
+        [
+          "58",
+          "941 Quarterly Employment Tax",
+          "quarterly"
+        ],
+        [
+          "59",
+          "940 Annual FUTA",
+          "annual"
+        ],
+        [
+          "60",
+          "State Unemployment Registration",
+          "per state"
+        ],
+        [
+          "61",
+          "City / Local Business License",
+          "per locality"
+        ]
+      ]
+    },
+    "F-CORE-5_records": {
+      "label": "Records (Governance / Board / Audit)",
+      "applies_to": "every entity with formal governance",
+      "forms": [
+        [
+          "62",
+          "Operating Agreement / Bylaws",
+          "at inception"
+        ],
+        [
+          "63",
+          "Board Minutes",
+          "per meeting"
+        ],
+        [
+          "64",
+          "Member / Shareholder Resolution",
+          "per major decision"
+        ],
+        [
+          "65",
+          "Annual Meeting Notice",
+          "annual"
+        ],
+        [
+          "66",
+          "Conflict of Interest Disclosure",
+          "annual"
+        ],
+        [
+          "67",
+          "Records Retention Policy",
+          "annual review"
+        ],
+        [
+          "68",
+          "Audit Binder Index",
+          "annual"
+        ],
+        [
+          "69",
+          "Banking Resolution",
+          "per institution / change"
+        ],
+        [
+          "70",
+          "Power of Attorney",
+          "as needed"
+        ]
+      ]
+    },
+    "F-CORE-6_risk": {
+      "label": "Risk (Insurance / Contracts)",
+      "applies_to": "every business with exposure",
+      "forms": [
+        [
+          "71",
+          "COI Request to Broker",
+          "per project / annual"
+        ],
+        [
+          "72",
+          "COI Received Verification",
+          "per counterparty"
+        ],
+        [
+          "73",
+          "Additional Insured Endorsement Request",
+          "per project"
+        ],
+        [
+          "74",
+          "Waiver of Subrogation Request",
+          "per project"
+        ],
+        [
+          "75",
+          "NDA Mutual / One-Way",
+          "per opportunity"
+        ],
+        [
+          "76",
+          "Contract Review Checklist",
+          "per contract"
+        ],
+        [
+          "77",
+          "Subcontractor / Contractor Agreement",
+          "per engagement"
+        ],
+        [
+          "78",
+          "Indemnification Rider",
+          "per material contract"
+        ],
+        [
+          "79",
+          "Data Processing Agreement",
+          "per data-touching counterparty"
+        ],
+        [
+          "80",
+          "Incident Report (general)",
+          "per event"
+        ]
+      ]
+    }
+  },
+  "industry_overlays": {
+    "mep_contractor": {
+      "label": "Mechanical / Electrical / Plumbing Contractor",
+      "naics": "238220",
+      "demo_tenant": "oregon_mep_demo",
+      "demo_url": "/ui/cascadia_mep",
+      "additional_forms_count": 75,
+      "key_artifacts": [
+        "NYC DOB PW1/2/3",
+        "TR-1 / TR-8",
+        "PL/EL/MD permits",
+        "SST cards",
+        "WH-347 certified payroll",
+        "AIA G702/G703",
+        "lien waivers"
+      ]
+    },
+    "professional_services_accounting": {
+      "label": "Public Accounting / CPA Firm",
+      "naics": "541211",
+      "demo_tenant": "pdx_accounting_demo",
+      "demo_url": "/ui/rosewood_cpa",
+      "additional_forms_count": 25,
+      "key_artifacts": [
+        "Audit engagement letter",
+        "Review engagement letter",
+        "Comp engagement letter",
+        "Tax engagement letter",
+        "Section 7216 consent",
+        "Working papers retention",
+        "AICPA peer review docs",
+        "CPA license renewal",
+        "CE tracking log",
+        "Independence checklist"
+      ]
+    },
+    "restaurant": {
+      "label": "Full-Service Restaurant",
+      "naics": "722511",
+      "demo_tenant": "bedford_eats_demo",
+      "demo_url": "/ui/bedford_eats",
+      "additional_forms_count": 20,
+      "key_artifacts": [
+        "NYC DOH letter grade",
+        "NYC Food Protection Cert",
+        "NY SLA liquor license",
+        "DOH self-inspection",
+        "Allergen disclosure",
+        "Kitchen temp log",
+        "Supplier food safety audit",
+        "TIPS alcohol training",
+        "Tip pool agreement",
+        "Daily cash drop"
+      ]
+    },
+    "healthcare": {
+      "label": "Healthcare Provider",
+      "naics": "621111",
+      "demo_tenant": null,
+      "additional_forms_count": 30,
+      "key_artifacts": [
+        "HIPAA Privacy / Security",
+        "BAA",
+        "NPI registration",
+        "Provider credentialing",
+        "Prior auth",
+        "Medicare / Medicaid enrollment",
+        "OIG exclusion check",
+        "Controlled substance log"
+      ]
+    },
+    "saas": {
+      "label": "SaaS / Software Company",
+      "naics": "541511",
+      "demo_tenant": null,
+      "additional_forms_count": 20,
+      "key_artifacts": [
+        "SOC2 controls binder",
+        "MSA template",
+        "DPA template",
+        "SLA",
+        "Sub-processor list",
+        "Incident response runbook",
+        "Security questionnaire",
+        "ToS",
+        "AUP"
+      ]
+    },
+    "retail": {
+      "label": "Retail / E-commerce",
+      "naics": "452990",
+      "demo_tenant": null,
+      "additional_forms_count": 15,
+      "key_artifacts": [
+        "Sales tax per state",
+        "PCI DSS attestation",
+        "Return / exchange policy",
+        "Gift card terms",
+        "Supplier MSA",
+        "Drop-ship agreement",
+        "Inventory shrink log"
+      ]
+    }
+  }
+}

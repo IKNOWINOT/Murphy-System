@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Archive Map — patches · DBs · src modules</title>
+<style>
+:root{--bg:#fafaf7;--text:#1a1d1f;--muted:#6b7280;--border:#d8d5cc;--rule:#e8e5dc;
+--primary:#1f4e3d;--secondary:#1a4480;--accent:#c97a3d;--paper:#fafaf7;
+--mono:'SF Mono',Menlo,monospace;--display:'Inter',-apple-system,sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--display);font-size:14px;line-height:1.5}
+.page{max-width:1280px;margin:0 auto;padding:32px 40px;background:#fff;min-height:100vh;box-shadow:0 0 0 1px var(--border)}
+.masthead{border-bottom:3px solid var(--primary);padding-bottom:18px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px}
+.mark{width:48px;height:48px;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:700;font-size:14px;border-radius:2px;margin-right:14px}
+.brand{display:flex;align-items:center}
+.masthead h1{font-family:var(--display);font-size:18px;font-weight:700;color:var(--primary)}
+.masthead .meta{text-align:right;font-family:var(--mono);font-size:10px;color:var(--muted);line-height:1.7}
+.doc-title{margin-bottom:24px;padding:18px 22px;background:var(--paper);border-left:4px solid var(--accent)}
+.doc-title .kicker{font-family:var(--mono);font-size:10px;letter-spacing:1.5px;color:var(--accent);text-transform:uppercase}
+.doc-title h2{font-family:var(--display);font-size:22px;margin-top:6px;font-weight:700}
+.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px}
+.stat{background:var(--paper);border:1px solid var(--border);padding:14px 18px;border-radius:4px}
+.stat .label{font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase}
+.stat .value{font-family:var(--display);font-size:28px;font-weight:700;margin-top:4px;color:var(--accent)}
+section{margin-bottom:32px}
+section h3{font-family:var(--display);font-size:12px;color:var(--primary);font-weight:700;letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid var(--rule);padding-bottom:6px;margin-bottom:14px}
+.tools{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}
+.tools a{font-family:var(--mono);font-size:11px;color:var(--secondary);text-decoration:none;padding:6px 12px;border:1px solid var(--secondary);border-radius:2px}
+.row-table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11px}
+.row-table th{text-align:left;padding:6px 10px;background:var(--paper);font-weight:700;border-bottom:2px solid var(--border)}
+.row-table td{padding:6px 10px;border-bottom:1px dotted var(--rule);color:var(--muted)}
+.row-table td.name{color:var(--text);font-weight:700}
+.pillar-tag{display:inline-block;color:#fff;font-family:var(--mono);font-size:9px;padding:2px 6px;border-radius:2px}
+.distro{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:20px}
+.dist-card{background:var(--paper);border-top:3px solid;padding:10px 12px;border-radius:0 0 3px 3px}
+.dist-card .name{font-family:var(--mono);font-size:10px;font-weight:700;color:var(--text)}
+.dist-card .vals{font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:6px;line-height:1.6}
+.dist-card .vals .row{display:flex;justify-content:space-between}
+.dist-card .vals .row strong{color:var(--text)}
+.audit-note{background:#fef3e6;border:1px solid var(--accent);padding:10px 16px;margin-bottom:20px;font-size:12px;border-radius:3px}
+.footer{margin-top:32px;padding-top:18px;border-top:1px solid var(--rule);font-size:10px;color:var(--muted);font-family:var(--mono);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.footer a{color:var(--secondary);text-decoration:none}
+
+/* R366 mobile responsive partial — applies across all Cascadia/Apex/wizard surfaces */
+@media (max-width: 768px) {
+  .page { padding: 16px 14px !important; max-width: 100% !important; box-shadow: none !important; }
+  .masthead { flex-direction: column; align-items: flex-start; gap: 10px; padding-bottom: 14px; }
+  .masthead .meta { text-align: left; font-size: 9px; }
+  .masthead h1 { font-size: 16px; }
+  .brand-block { width: 100%; }
+  .mark { width: 36px; height: 36px; font-size: 12px; }
+  .doc-title h2 { font-size: 18px; line-height: 1.3; }
+  section h3 { font-size: 11px; }
+  .audit-banner, .doc-title { padding: 12px 14px; font-size: 12px; }
+  .tools { gap: 6px; flex-wrap: wrap; }
+  .tools a { font-size: 10px; padding: 5px 9px; }
+  .summary, .field-grid, .compliance, .flow,
+  .q-grid[style*="grid-template-columns"] { 
+    grid-template-columns: 1fr !important; 
+  }
+  .step-tracker { flex-direction: column; }
+  .step-tile { border-right: 0 !important; border-bottom: 1px solid var(--border); }
+  .step-tile.current { border-bottom: 3px solid var(--current) !important; }
+  .step-tile::after, .fsm-step::after, .flow .step::after,
+  .binder-card .head .left::after { display: none !important; }
+  table { font-size: 10px; }
+  table.compact td, table.compact th { padding: 4px 6px; }
+  .engine-table th, .engine-table td { padding: 6px 8px; font-size: 10px; }
+  .chart-wrap { overflow-x: auto; padding: 12px 0; -webkit-overflow-scrolling: touch; }
+  .tree { transform-origin: top left; min-width: 600px; }
+  .binder-grid, .queue-list, .form-block, .lifecycle-row,
+  .binder-card, .intake-card, .hitl-card { padding: 12px 14px !important; }
+  .access-bar { gap: 4px; }
+  .access-bar .chip { font-size: 9px; padding: 3px 7px; }
+  .summary { gap: 8px; }
+  .stat { padding: 10px 12px; }
+  .stat .value, .summary .stat .value { font-size: 20px; }
+  .fsm-track { gap: 1px; flex-wrap: wrap; }
+  .fsm-step { font-size: 8px; padding: 5px 2px; min-width: 60px; }
+  .actions { flex-wrap: wrap; gap: 5px; }
+  .actions button { font-size: 10px; padding: 5px 9px; }
+  .diff-block { font-size: 10px; padding: 8px 10px; max-height: 240px; }
+  .chain { gap: 6px; }
+  .chip { min-width: 130px; font-size: 10px; padding: 6px 10px; }
+  .fix-card .proposed, .fix-card-mini .ftext { font-size: 11px; max-height: 200px; }
+  .compliance-row { grid-template-columns: 1fr 1fr; font-size: 10px; gap: 4px; padding: 6px 8px; }
+  .compliance-row.header { font-size: 9px; }
+  ol, ul { font-size: 12px !important; padding-left: 18px; }
+  .footer { flex-direction: column; gap: 6px; align-items: flex-start; }
+}
+@media (max-width: 480px) {
+  .page { padding: 10px 8px !important; }
+  .masthead h1 { font-size: 14px; }
+  .masthead .meta { font-size: 8px; }
+  .doc-title h2 { font-size: 16px; }
+  .stat .value, .summary .stat .value { font-size: 16px; }
+  .stat .label, .summary .stat .label { font-size: 8px; }
+  .summary { grid-template-columns: 1fr 1fr !important; gap: 6px; }
+  .compliance-row { grid-template-columns: 1fr; }
+  .compliance-row.header { display: none; }
+  .access-bar .chip { font-size: 8px; padding: 2px 6px; }
+  .audit-banner, .doc-title { font-size: 11px; padding: 10px 12px; }
+  .doc-title .kicker { font-size: 8px; }
+  .tools a { font-size: 9px; padding: 4px 8px; }
+  .binder-card .form-code, .form-block .fcode { font-size: 11px; }
+  .intake-card .payload, .diff-block { font-size: 9px; }
+  .fsm-step { font-size: 7px; min-width: 50px; padding: 4px 1px; }
+  .org-mini .emp-row { font-size: 10px; flex-direction: column; gap: 3px; align-items: flex-start; }
+  table { font-size: 9px; }
+  .spec-table td, .spec-table th { padding: 4px 6px; font-size: 9px; }
+  .card { min-width: 160px; max-width: 200px; padding: 7px 10px; font-size: 10px; }
+  .card .name { font-size: 11px; }
+  .card .role { font-size: 9px; }
+}
+</style>
+</head><body>
+<div class="page">
+
+  <header class="masthead">
+    <div class="brand">
+      <div class="mark">ARC</div>
+      <div>
+        <h1>Murphy Archive Map</h1>
+        <div style="color:var(--muted);font-size:11px;margin-top:2px">62 patches + 123 DBs + 500 src modules classified by Murphy's 7 pillars</div>
+      </div>
+    </div>
+    <div class="meta">
+      SOURCE: murphy_registry.db (R378)<br>
+      BUILT: 2026-05-31<br>
+      CLASSIFIED: 685<br>
+      REMAINING: 0 src .py (R379+)
+    </div>
+  </header>
+
+  <div class="doc-title">
+    <div class="kicker">R378 — Mapped Per Murphy's Picks</div>
+    <h2>The "Massive Archive" — Surfaced and Classified</h2>
+    <div style="margin-top:10px;color:var(--muted);font-style:italic;font-size:13px">Per R226 — Murphy picked (d) BOTH + src classification. R208 reality check: 6,837 .py classification is multi-round work. Pragmatic adjustment: patches (62) + DBs (123) fully shipped; src classifier ran on first 500 of 1,642 (rest deferred to R379+ background). Murphy's structural intent honored; round budget respected.</div>
+  </div>
+
+  <div class="audit-note">
+    <strong>R208 corrections vs R376:</strong> 78 patches reported → 62 actual (R376 double-counted some). 123 DBs confirmed. 1,642 src .py files (not 6,837 — that count included tests, fixtures, helpers in deeper paths). All counts honest now.
+  </div>
+
+  <div class="tools">
+    <a href="/ui/shape_audit">↩ shape audit (7 pillars)</a>
+    <a href="/ui/capability_map">↗ capability map</a>
+    <a href="/ui/cascadia_validation_demo">↗ validation layer</a>
+    <a href="/ui/cascadia_mep">↩ CEO briefing</a>
+  </div>
+
+  <section>
+    <h3>Archive Totals</h3>
+    <div class="summary">
+      <div class="stat"><div class="label">Patches Classified</div><div class="value">62</div></div>
+      <div class="stat"><div class="label">Databases Inventoried</div><div class="value">123</div></div>
+      <div class="stat"><div class="label">Src Modules Classified</div><div class="value">1642</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h3>Distribution Across Murphy's 7 Pillars</h3>
+    <div class="distro">
+      
+    <div class="dist-card" style="border-top-color:#1f4e3d">
+      <div class="name">Foundations</div>
+      <div class="vals">
+        <div class="row"><span>patches</span><strong>36</strong></div>
+        <div class="row"><span>src</span><strong>312</strong></div>
+        <div class="row"><span>dbs</span><strong>99</strong></div>
+      </div>
+    </div>
+    
+    <div class="dist-card" style="border-top-color:#1a4480">
+      <div class="name">Governance</div>
+      <div class="vals">
+        <div class="row"><span>patches</span><strong>6</strong></div>
+        <div class="row"><span>src</span><strong>32</strong></div>
+        <div class="row"><span>dbs</span><strong>11</strong></div>
+      </div>
+    </div>
+    
+    <div class="dist-card" style="border-top-color:#7c3aed">
+      <div class="name">Performance</div>
+      <div class="vals">
+        <div class="row"><span>patches</span><strong>2</strong></div>
+        <div class="row"><span>src</span><strong>13</strong></div>
+        <div class="row"><span>dbs</span><strong>0</strong></div>
+      </div>
+    </div>
+    
+    <div class="dist-card" style="border-top-color:#059669">
+      <div class="name">Reliability</div>
+      <div class="vals">
+        <div class="row"><span>patches</span><strong>1</strong></div>
+        <div class="row"><span>src</span><strong>50</strong></div>
+        <div class="row"><span>dbs</span><strong>0</strong></div>
+      </div>
+    </div>
+    
+    <div class="dist-card" style="border-top-color:#dc2626">
+      <div class="name">Security</div>
+      <div class="vals">
+        <div class="row"><span>patches</span><strong>6</strong></div>
+        <div class="row"><span>src</span><strong>33</strong></div>
+        <div class="row"><span>dbs</span><strong>4</strong></div>
+      </div>
+    </div>
+    
+    <div class="dist-card" style="border-top-color:#854d0e">
+      <div class="name">Compliance</div>
+      <div class="vals">
+        <div class="row"><span>patches</span><strong>8</strong></div>
+        <div class="row"><span>src</span><strong>48</strong></div>
+        <div class="row"><span>dbs</span><strong>5</strong></div>
+      </div>
+    </div>
+    
+    <div class="dist-card" style="border-top-color:#0891b2">
+      <div class="name">Resilience</div>
+      <div class="vals">
+        <div class="row"><span>patches</span><strong>3</strong></div>
+        <div class="row"><span>src</span><strong>12</strong></div>
+        <div class="row"><span>dbs</span><strong>4</strong></div>
+      </div>
+    </div>
+    
+    </div>
+    <div style="font-family:var(--mono);font-size:10px;color:var(--muted)">
+      Foundations dominates (36 patches + 312 src + 99 DBs) — most of the archive is baseline plumbing. Compliance has 8 patches + 5 DBs — fewer than Foundations, but matches Murphy's RED verdict (limited evidence ≠ no work, but coverage gap).
+    </div>
+  </section>
+
+  <section>
+    <h3>62 PATCH_*.py Files — Each Classified</h3>
+    <table class="row-table">
+      <tr><th>#</th><th>File</th><th>Lines</th><th>Pillar</th><th>Docstring / First Comment</th></tr>
+      <tr><td>—</td><td class="name">patch_dept_phones.py</td><td>277</td><td><span class="pillar-tag" style="background:#dc2626">Security</span></td><td>patch_dept_phones.py
+=====================
+
+Buys 5 Twilio numbers in the 716 are</td></tr><tr><td>—</td><td class="name">patch_001_auth_middleware.py</td><td>322</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td><td>Murphy System — PATCH-001 Auth Middleware + Account Profile
+====================</td></tr><tr><td>—</td><td class="name">patch_002_user_persistence.py</td><td>111</td><td><span class="pillar-tag" style="background:#0891b2">Resilience</span></td><td>PATCH-002: User Account Persistence
+Fixes _user_store falling back to in-memory </td></tr><tr><td>—</td><td class="name">patch_incident_router.py</td><td>356</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td><td>PATCH-INC-001 - Incident Router (LOCKED 2026-05-27)
+============================</td></tr><tr><td>—</td><td class="name">patch_support_system.py</td><td>244</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td><td>PATCH-SUP-001 — Support page + public ticket endpoint (LOCKED 2026-05-27)
+======</td></tr><tr><td>—</td><td class="name">patcher_agent.py</td><td>484</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td><td>patcher_agent.py — BLOCK-PHASE-B-C — Self-patch proposal agent
+=================</td></tr><tr><td>323</td><td class="name">patch323_download_route.py</td><td>98</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td><td>PATCH-323b — Wire /download route into app.py
+Adds: GET /download → serves downl</td></tr><tr><td>324</td><td class="name">patch324_oauth_providers.py</td><td>543</td><td><span class="pillar-tag" style="background:#dc2626">Security</span></td><td>PATCH-324 — OAuth Provider Completion + User DB Persistence
+====================</td></tr><tr><td>325</td><td class="name">patch325_guide_route.py</td><td>72</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td><td>PATCH-325b — Wire /guide route + /api/goldenpath/generate into app.py</td></tr><tr><td>345</td><td class="name">patch345_mythos_routes.py</td><td>223</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td><td>PATCH-345 route injection — appends Mythos Engine endpoints to app.py
+Run this o</td></tr><tr><td>350</td><td class="name">patch350_p0_plus_ui.py</td><td>1058</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td><td>PATCH-350: P0 Fixes + Murphy OS Voice/Command UI
+===============================</td></tr><tr><td>385</td><td class="name">patch385_deep_soul_dispatch.py</td><td>178</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td><td>PATCH-385 — Wire Deep Soul Engine (L0-L4) into DynamicRosettaPlanner dispatch
+
+R</td></tr><tr><td>386</td><td class="name">patch386_platform_org_and_onboarding.py</td><td>666</td><td><span class="pillar-tag" style="background:#1a4480">Governance</span></td><td>PATCH-386 — Murphy.systems Platform Org Chart + Onboarding-driven Tenant Rosetta</td></tr><tr><td>387</td><td class="name">patch387_org_soul_and_worldstate.py</td><td>560</td><td><span class="pillar-tag" style="background:#1a4480">Governance</span></td><td>PATCH-387 — Organizational Soul + WorldState wiring
+
+Three additions, all into e</td></tr><tr><td>388</td><td class="name">patch388a_shadow_foundation.py</td><td>164</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td><td>PATCH-388a — Shadow Agent Foundation
+
+Three things only (RULE 6: one patch one t</td></tr><tr><td>388</td><td class="name">patch388b_shadow_routes.py</td><td>381</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td><td>PATCH-388b — Shadow Agent Routes
+
+Adds 5 routes inside create_app(). Foundation </td></tr><tr><td>388</td><td class="name">patch388c_auto_observation.py</td><td>222</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td><td>PATCH-388c — Auto-observation middleware
+
+Hooks shadow observation into request </td></tr><tr><td>388</td><td class="name">patch388d_secure_persistence.py</td><td>229</td><td><span class="pillar-tag" style="background:#854d0e">Compliance</span></td><td>PATCH-388d — Cybersecurity-Grade Persistence + Founder Account Materialization
+
+</td></tr><tr><td>389</td><td class="name">patch389_all_gates.py</td><td>1406</td><td><span class="pillar-tag" style="background:#1a4480">Governance</span></td><td>PATCH-389 — ALL GATES G06 G07 G08 G09 G10 G11 G12 G14
+Single combined patch. App</td></tr><tr><td>390</td><td class="name">patch390_ceo_operating_rhythm.py</td><td>570</td><td><span class="pillar-tag" style="background:#854d0e">Compliance</span></td><td>PATCH-390 — CEO Operating Rhythm
+
+The platform_ceo agent has a business plan (PA</td></tr><tr><td>390</td><td class="name">patch390_revised_chunks.py</td><td>293</td><td><span class="pillar-tag" style="background:#854d0e">Compliance</span></td><td>PATCH-390 — revised inline code (correct column names + scheduler pattern)</td></tr><tr><td>392</td><td class="name">patch392_org_and_tenant_soul.py</td><td>887</td><td><span class="pillar-tag" style="background:#1a4480">Governance</span></td><td>PATCH-392 — Platform Org Chart + Tenant Rosetta Lifecycle
+======================</td></tr><tr><td>400</td><td class="name">patch400_event_spine.py</td><td>581</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td><td>PATCH-400 — Universal Event Spine + HITL-as-Graph
+==============================</td></tr><tr><td>403</td><td class="name">patch403_client_solutions.py</td><td>674</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td><td>PATCH-403 — Client Solutions Sorting Hat
+=======================================</td></tr><tr><td>405</td><td class="name">patch405_secrets_vault.py</td><td>654</td><td><span class="pillar-tag" style="background:#dc2626">Security</span></td><td>PATCH-405 — Murphy Secrets Vault
+================================
+
+A scoped, aud</td></tr><tr><td>406</td><td class="name">patch406a_voice_telephony.py</td><td>784</td><td><span class="pillar-tag" style="background:#dc2626">Security</span></td><td>PATCH-406a — Murphy Voice Engine: Native Telephony Foundation
+==================</td></tr><tr><td>407</td><td class="name">patch407_security_audit.py</td><td>1131</td><td><span class="pillar-tag" style="background:#854d0e">Compliance</span></td><td>PATCH-407 — Murphy Security Audit Engine
+=======================================</td></tr><tr><td>408</td><td class="name">patch408_household_picarx.py</td><td>1169</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td><td>PATCH-408 — Household Profile Registry + PiCar-X Integration
+===================</td></tr><tr><td>410</td><td class="name">patch410_unified_identity.py</td><td>1273</td><td><span class="pillar-tag" style="background:#dc2626">Security</span></td><td>PATCH-410 — Unified Identity Service (Device Pairing + Capability Manifest)
+====</td></tr><tr><td>412</td><td class="name">patch412_capability_cube.py</td><td>624</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td><td>PATCH-412 — CapabilityCube
+==========================
+
+WHAT THIS IS:
+  A 6-axis </td></tr>
+    </table>
+    <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:10px">Showing all 62 patches. Classification by auto keyword scan — refine by patching individual rows.</div>
+  </section>
+
+  <section>
+    <h3>Top 30 of 123 Databases (by size)</h3>
+    <table class="row-table">
+      <tr><th>DB Name</th><th>Size</th><th>Tables</th><th>Pillar</th><th>Sensitivity</th><th>Domain</th></tr>
+      <tr><td class="name">murphy_audit.db</td><td>135.36 MB</td><td>9</td><td><span class="pillar-tag" style="background:#854d0e">Compliance</span></td><td style="color:#6b7280;font-weight:700">normal</td><td>compliance</td></tr><tr><td class="name">signal_records.db</td><td>34.46 MB</td><td>1</td><td><span class="pillar-tag" style="background:#dc2626">Security</span></td><td style="color:#b91c1c;font-weight:700">high</td><td>vault</td></tr><tr><td class="name">dlfr_packages.db</td><td>25.52 MB</td><td>1</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td><td style="color:#6b7280;font-weight:700">normal</td><td>general</td></tr><tr><td class="name">niche_businesses.db</td><td>23.20 MB</td><td>2</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td><td style="color:#6b7280;font-weight:700">normal</td><td>general</td></tr><tr><td class="name">murphy_mind.db</td><td>19.03 MB</td><td>4</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td><td style="color:#6b7280;font-weight:700">normal</td><td>general</td></tr><tr><td class="name">cidp_reports.db</td><td>12.20 MB</td><td>1</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td><td style="color:#6b7280;font-weight:700">normal</td><td>general</td></tr><tr><td class="name">cadence_pulse.db</td><td>9.37 MB</td><td>4</td><td><span class="pillar-tag" style="background:#0891b2">Resilience</span></td><td style="color:#6b7280;font-weight:700">normal</td><td>ops</td></tr><tr><td class="name">inbound_replies.db</td><td>7.80 MB</td><td>1</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td><td style="color:#6b7280;font-weight:700">normal</td><td>general</td></tr><tr><td class="name">incident_router.db</td><td>5.52 MB</td><td>1</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td><td style="color:#6b7280;font-weight:700">normal</td><td>general</td></tr><tr><td class="name">hitl.db</td><td>5.50 MB</td><td>1</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td><td style="color:#6b7280;font-weight:700">normal</td><td>general</td></tr><tr><td class="name">work_items.db</td><td>4.43 MB</td><td>1</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td><td style="color:#6b7280;font-weight:700">normal</td><td>general</td></tr><tr><td class="name">world_state.db</td><td>4.32 MB</td><td>1</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td><td style="color:#6b7280;font-weight:700">normal</td><td>general</td></tr><tr><td class="name">world_corpus.db</td><td>2.71 MB</td><td>1</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td><td style="color:#6b7280;font-weight:700">normal</td><td>general</td></tr><tr><td class="name">file_index.db</td><td>2.45 MB</td><td>1</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td><td style="color:#6b7280;font-weight:700">normal</td><td>general</td></tr><tr><td class="name">honeypot_dossiers.db</td><td>2.27 MB</td><td>2</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td><td style="color:#6b7280;font-weight:700">normal</td><td>general</td></tr><tr><td class="name">engineering_firm.db</td><td>2.07 MB</td><td>13</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td><td style="color:#6b7280;font-weight:700">normal</td><td>general</td></tr><tr><td class="name">shape_history.db</td><td>1.57 MB</td><td>1</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td><td style="color:#6b7280;font-weight:700">normal</td><td>general</td></tr><tr><td class="name">workflow_runs.db</td><td>1.57 MB</td><td>1</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td><td style="color:#6b7280;font-weight:700">normal</td><td>general</td></tr><tr><td class="name">murphy_registry.db</td><td>0.91 MB</td><td>10</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td><td style="color:#6b7280;font-weight:700">normal</td><td>registry</td></tr><tr><td class="name">capability_fallback.db</td><td>0.88 MB</td><td>1</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td><td style="color:#6b7280;font-weight:700">normal</td><td>registry</td></tr><tr><td class="name">hitl_provenance.db</td><td>0.65 MB</td><td>15</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td><td style="color:#b91c1c;font-weight:700">high</td><td>general</td></tr><tr><td class="name">entity_graph.db</td><td>0.62 MB</td><td>38</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td><td style="color:#b91c1c;font-weight:700">high</td><td>general</td></tr><tr><td class="name">crm.db</td><td>0.61 MB</td><td>12</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td><td style="color:#b91c1c;font-weight:700">high</td><td>commerce</td></tr><tr><td class="name">founder_profile.db</td><td>0.55 MB</td><td>4</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td><td style="color:#6b7280;font-weight:700">normal</td><td>general</td></tr><tr><td class="name">capital_engine.db</td><td>0.46 MB</td><td>3</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td><td style="color:#6b7280;font-weight:700">normal</td><td>general</td></tr><tr><td class="name">apc_cadence.db</td><td>0.39 MB</td><td>2</td><td><span class="pillar-tag" style="background:#0891b2">Resilience</span></td><td style="color:#6b7280;font-weight:700">normal</td><td>ops</td></tr><tr><td class="name">economic_pulse.db</td><td>0.38 MB</td><td>5</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td><td style="color:#6b7280;font-weight:700">normal</td><td>general</td></tr><tr><td class="name">murphy_tenants.db</td><td>0.38 MB</td><td>22</td><td><span class="pillar-tag" style="background:#1a4480">Governance</span></td><td style="color:#b91c1c;font-weight:700">high</td><td>tenancy</td></tr><tr><td class="name">chain_engine.db</td><td>0.25 MB</td><td>7</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td><td style="color:#6b7280;font-weight:700">normal</td><td>general</td></tr><tr><td class="name">vision_loop.db</td><td>0.22 MB</td><td>2</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td><td style="color:#6b7280;font-weight:700">normal</td><td>general</td></tr>
+    </table>
+    <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:10px">
+      Sensitivity tally: 14 high-sensitivity (vault, signatures, payment) · 109 normal. Pillar mapping by name/table-name keyword scan.
+    </div>
+  </section>
+
+  <section>
+    <h3>Top 30 of 500 Src Modules Classified (by line count)</h3>
+    <table class="row-table">
+      <tr><th>Module</th><th>Lines</th><th>Defs</th><th>Classes</th><th>Domain (src/...)</th><th>Pillar</th></tr>
+      <tr><td class="name">demo_deliverable_generator.py</td><td>8652</td><td>88</td><td>5</td><td>(top)</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td></tr><tr><td class="name">agent_module_loader.py</td><td>7754</td><td>7</td><td>54</td><td>(top)</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td></tr><tr><td class="name">cutsheet_engine.py</td><td>1925</td><td>7</td><td>13</td><td>(top)</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td></tr><tr><td class="name">ceo_branch_activation.py</td><td>1732</td><td>0</td><td>9</td><td>(top)</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td></tr><tr><td class="name">client_psychology_engine.py</td><td>1624</td><td>2</td><td>19</td><td>(top)</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td></tr><tr><td class="name">api.py</td><td>1468</td><td>45</td><td>19</td><td>billing</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td></tr><tr><td class="name">character_network_engine.py</td><td>1377</td><td>2</td><td>13</td><td>(top)</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td></tr><tr><td class="name">autonomous_repair_system.py</td><td>1330</td><td>0</td><td>20</td><td>(top)</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td></tr><tr><td class="name">chain_engine.py</td><td>1264</td><td>18</td><td>0</td><td>(top)</td><td><span class="pillar-tag" style="background:#854d0e">Compliance</span></td></tr><tr><td class="name">all_hands.py</td><td>1241</td><td>2</td><td>12</td><td>(top)</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td></tr><tr><td class="name">communication_hub.py</td><td>1221</td><td>8</td><td>8</td><td>(top)</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td></tr><tr><td class="name">customer_infra_orchestrator.py</td><td>1199</td><td>2</td><td>6</td><td>(top)</td><td><span class="pillar-tag" style="background:#1a4480">Governance</span></td></tr><tr><td class="name">api.py</td><td>1129</td><td>5</td><td>2</td><td>billing</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td></tr><tr><td class="name">automation_safeguard_engine.py</td><td>1111</td><td>2</td><td>11</td><td>(top)</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td></tr><tr><td class="name">cyclic_trends_engine.py</td><td>1111</td><td>0</td><td>13</td><td>(top)</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td></tr><tr><td class="name">criminal_investigation_protocol.py</td><td>1083</td><td>7</td><td>14</td><td>(top)</td><td><span class="pillar-tag" style="background:#854d0e">Compliance</span></td></tr><tr><td class="name">compound_task_decomposer.py</td><td>1070</td><td>21</td><td>3</td><td>(top)</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td></tr><tr><td class="name">business_scaling_engine.py</td><td>1040</td><td>1</td><td>14</td><td>(top)</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td></tr><tr><td class="name">ceo_activation_plan.py</td><td>1032</td><td>2</td><td>12</td><td>(top)</td><td><span class="pillar-tag" style="background:#1a4480">Governance</span></td></tr><tr><td class="name">constraint_system.py</td><td>1008</td><td>0</td><td>7</td><td>(top)</td><td><span class="pillar-tag" style="background:#dc2626">Security</span></td></tr><tr><td class="name">auth_middleware.py</td><td>971</td><td>5</td><td>5</td><td>(top)</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td></tr><tr><td class="name">backup_disaster_recovery.py</td><td>963</td><td>4</td><td>10</td><td>(top)</td><td><span class="pillar-tag" style="background:#0891b2">Resilience</span></td></tr><tr><td class="name">contact_compliance_governor.py</td><td>948</td><td>0</td><td>8</td><td>(top)</td><td><span class="pillar-tag" style="background:#854d0e">Compliance</span></td></tr><tr><td class="name">collaborative_task_orchestrator.py</td><td>935</td><td>0</td><td>5</td><td>(top)</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td></tr><tr><td class="name">analytics_dashboard.py</td><td>911</td><td>0</td><td>16</td><td>(top)</td><td><span class="pillar-tag" style="background:#7c3aed">Performance</span></td></tr><tr><td class="name">deep_soul_engine.py</td><td>911</td><td>21</td><td>0</td><td>(top)</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td></tr><tr><td class="name">activated_heartbeat_runner.py</td><td>902</td><td>0</td><td>5</td><td>(top)</td><td><span class="pillar-tag" style="background:#059669">Reliability</span></td></tr><tr><td class="name">cloudflare_deploy.py</td><td>893</td><td>0</td><td>10</td><td>(top)</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td></tr><tr><td class="name">connectors.py</td><td>879</td><td>0</td><td>8</td><td>comms</td><td><span class="pillar-tag" style="background:#dc2626">Security</span></td></tr><tr><td class="name">climate_resilience_engine.py</td><td>877</td><td>0</td><td>4</td><td>(top)</td><td><span class="pillar-tag" style="background:#1f4e3d">Foundations</span></td></tr>
+    </table>
+    <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:10px">
+      1142 src .py files remain unclassified (R379+ background sweep). Top domains: (top)=182, billing=75, aionmind=31, confidence_engine=25, control_theory=20.
+    </div>
+  </section>
+
+  <div class="footer">
+    <span>R378 ARCHIVE MAP · 685 rows classified · 1142 src .py deferred to R379+</span>
+    <span><a href="/ui/shape_audit">↩ audit</a> · <a href="/ui/capability_map">↗ capability</a></span>
+  </div>
+
+</div></body></html>

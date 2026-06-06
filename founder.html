@@ -1,130 +1,391 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Murphy — Founder View</title>
+<meta charset="utf-8">
+<title>Founder Control · Murphy</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{background:#080808;color:#e0e0e0;font-family:'Inter',system-ui,sans-serif;min-height:100vh;padding:24px}
-h1{font-size:1.5rem;font-weight:700;color:#fff;margin-bottom:4px}
-.sub{color:#444;font-size:.85rem;margin-bottom:28px}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:24px}
-.metric{background:#0f0f0f;border:1px solid #1a1a1a;border-radius:10px;padding:20px}
-.metric-label{font-size:.75rem;color:#444;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
-.metric-val{font-size:1.8rem;font-weight:700;color:#00D4AA}
-.metric-sub{font-size:.75rem;color:#333;margin-top:4px}
-.section{background:#0f0f0f;border:1px solid #1a1a1a;border-radius:10px;padding:20px;margin-bottom:12px}
-.section h2{font-size:.9rem;font-weight:600;color:#fff;margin-bottom:14px;text-transform:uppercase;letter-spacing:.05em}
-table{width:100%;border-collapse:collapse;font-size:.82rem}
-th{text-align:left;color:#333;font-weight:500;padding:6px 0;border-bottom:1px solid #111}
-td{padding:9px 0;border-bottom:1px solid #0d0d0d;color:#bbb}
-.stage{display:inline-block;padding:2px 7px;border-radius:4px;font-size:.72rem;font-weight:600}
-.stage-closed_won{background:#0d2b1a;color:#00D4AA}.stage-prospect{background:#111;color:#555}
-.stage-booked,.stage-appointment_booked{background:#0d1a2b;color:#4aa3ff}
-.stage-proposal{background:#2b1a0d;color:#ff9944}.stage-negotiation{background:#2b0d1a;color:#ff6b9d}
-.stage-trial{background:#1a0d2b;color:#b44aff}.stage-qualified{background:#1a1a0d;color:#aaaa00}
-.actions{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px}
-.btn{background:#111;border:1px solid #1e1e1e;color:#888;padding:9px 18px;border-radius:7px;cursor:pointer;font-size:.82rem;transition:all .2s;text-decoration:none;display:inline-block}
-.btn:hover{border-color:#00D4AA;color:#00D4AA}
-.btn-go{border-color:#00D4AA44;color:#00D4AA;background:#00D4AA0a}
-input{background:#050505;border:1px solid #1a1a1a;border-radius:6px;padding:9px 13px;color:#fff;font-size:.85rem;outline:none;transition:border-color .2s}
-input:focus{border-color:#00D4AA}
-.log{background:#050505;border:1px solid #0d0d0d;border-radius:6px;padding:12px;font-size:.78rem;font-family:monospace;max-height:180px;overflow-y:auto}
-.ok{color:#00D4AA}.warn{color:#ff9944}.dim{color:#333}
-.dot{width:7px;height:7px;border-radius:50%;background:#00D4AA;display:inline-block;margin-right:6px;animation:pulse 2s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-.two-col{display:grid;grid-template-columns:2fr 1fr;gap:12px}
-@media(max-width:700px){.two-col{grid-template-columns:1fr}}
+:root{
+  --bg:#050608;--bg2:#0a0d12;--surface:#0f141b;--elevated:#161d28;
+  --border:rgba(0,212,170,.18);--border-hi:rgba(0,212,170,.45);
+  --teal:#00D4AA;--teal-soft:#7afcff;--pink:#ff7eb6;
+  --green:#00ff6a;--amber:#ffa940;--red:#ff5c7c;
+  --text:#e8f0ec;--text-dim:#8fa9a0;--text-dimer:#5a6e66;
+  --font:'Inter',-apple-system,Segoe UI,sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh}
+
+/* Top bar */
+.topbar{
+  position:sticky;top:0;z-index:50;background:rgba(5,6,8,.92);
+  backdrop-filter:blur(10px);border-bottom:1px solid var(--border);
+  padding:12px 24px;display:flex;align-items:center;gap:16px;
+}
+.topbar .logo-wrap{width:32px;height:32px;flex:0 0 32px}
+.topbar .brand{font-weight:700;font-size:14px;letter-spacing:.02em}
+.topbar .brand .sub{color:var(--text-dim);font-size:11px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.1em;margin-left:8px}
+.topbar .spacer{flex:1}
+.topbar .pill{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;
+  background:rgba(0,255,106,.08);border:1px solid var(--green);border-radius:100px;
+  font-family:var(--mono);font-size:11px;color:var(--green);font-weight:600}
+.topbar .pill .dot{width:6px;height:6px;background:var(--green);border-radius:50%;
+  animation:pulse 1.4s infinite}
+@keyframes pulse{0%,100%{opacity:.4}50%{opacity:1}}
+.topbar .key-ind{font-family:var(--mono);font-size:11px;color:var(--text-dim)}
+.topbar .key-ind .ok{color:var(--green)}
+.topbar .key-ind .bad{color:var(--red)}
+
+/* Layout */
+.shell{display:grid;grid-template-columns:300px 1fr 360px;gap:0;min-height:calc(100vh - 60px)}
+@media(max-width:1200px){.shell{grid-template-columns:1fr}.sidebar,.rightpanel{display:none}}
+
+.sidebar{background:var(--bg2);border-right:1px solid var(--border);padding:20px 16px;overflow-y:auto}
+.sidebar .group{margin-bottom:20px}
+.sidebar .group-title{font-family:var(--mono);font-size:10px;color:var(--text-dimer);
+  letter-spacing:.12em;text-transform:uppercase;margin-bottom:8px;padding:0 8px}
+.sidebar a{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;
+  color:var(--text-dim);text-decoration:none;font-size:13px;transition:all .15s}
+.sidebar a:hover{background:var(--surface);color:var(--text)}
+.sidebar a .icon{width:16px;text-align:center;color:var(--teal);font-family:var(--mono);font-size:11px}
+.sidebar a .status{margin-left:auto;font-family:var(--mono);font-size:10px}
+.sidebar a .status.ok{color:var(--green)}
+.sidebar a .status.warn{color:var(--amber)}
+.sidebar a .status.bad{color:var(--red)}
+
+/* Main chat */
+.main{display:flex;flex-direction:column;height:calc(100vh - 60px)}
+.main-header{padding:16px 24px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:14px}
+.main-header h1{font-size:18px;font-weight:700}
+.main-header .ctx{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--text-dim)}
+
+.messages{flex:1;overflow-y:auto;padding:24px;display:flex;flex-direction:column;gap:16px}
+.msg{display:flex;gap:12px;max-width:90%}
+.msg.user{align-self:flex-end;flex-direction:row-reverse}
+.msg .avatar{width:32px;height:32px;flex:0 0 32px;border-radius:6px;
+  background:var(--surface);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;color:var(--teal)}
+.msg.user .avatar{background:linear-gradient(135deg,var(--teal),var(--pink));color:#000;font-weight:700}
+.msg .bubble{background:var(--surface);border:1px solid var(--border);
+  border-radius:10px;padding:14px 16px;font-size:14px;line-height:1.55;color:var(--text)}
+.msg.user .bubble{background:linear-gradient(135deg,rgba(0,212,170,.08),rgba(255,126,182,.04));border-color:var(--border-hi)}
+.msg .bubble strong{color:var(--teal-soft)}
+.msg .bubble code{font-family:var(--mono);background:rgba(0,212,170,.08);color:var(--teal);
+  padding:1px 6px;border-radius:3px;font-size:.85em}
+.msg .bubble ul,.msg .bubble ol{margin:8px 0;padding-left:20px}
+.msg .bubble li{margin:3px 0}
+.msg .bubble pre{background:var(--bg2);padding:10px;border-radius:6px;overflow-x:auto;
+  font-family:var(--mono);font-size:12px;margin:8px 0;border:1px solid var(--border)}
+.msg .meta{font-family:var(--mono);font-size:10px;color:var(--text-dimer);margin-top:4px}
+.msg.thinking .bubble{color:var(--text-dim);font-style:italic}
+.msg.thinking .bubble::after{content:'';display:inline-block;width:6px;height:6px;
+  background:var(--teal);border-radius:50%;margin-left:6px;animation:pulse 1s infinite}
+.msg.error .bubble{border-color:var(--red);color:var(--red)}
+
+.composer{padding:16px 24px;border-top:1px solid var(--border);background:var(--bg2)}
+.composer-row{display:flex;gap:10px;align-items:flex-end}
+.composer textarea{flex:1;background:var(--surface);border:1px solid var(--border);
+  border-radius:8px;color:var(--text);font-family:var(--font);font-size:14px;line-height:1.5;
+  padding:12px 14px;resize:none;min-height:48px;max-height:160px}
+.composer textarea:focus{outline:none;border-color:var(--teal)}
+.composer button{background:var(--teal);color:#000;border:none;border-radius:8px;
+  padding:12px 20px;font-weight:700;font-size:13px;letter-spacing:.05em;cursor:pointer;
+  font-family:var(--mono);text-transform:uppercase;transition:all .15s}
+.composer button:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.composer button:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.composer-hints{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.hint{background:var(--surface);border:1px solid var(--border);border-radius:14px;
+  padding:5px 11px;font-size:11px;font-family:var(--mono);color:var(--text-dim);
+  cursor:pointer;transition:all .15s}
+.hint:hover{border-color:var(--teal);color:var(--teal)}
+
+/* Right panel — live state */
+.rightpanel{background:var(--bg2);border-left:1px solid var(--border);padding:20px 16px;overflow-y:auto}
+.rp-section{margin-bottom:24px}
+.rp-title{font-family:var(--mono);font-size:10px;color:var(--text-dimer);
+  letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px;
+  display:flex;align-items:center;gap:8px}
+.rp-title::after{content:'';flex:1;height:1px;background:var(--border)}
+.rp-stat{display:flex;justify-content:space-between;padding:8px 10px;
+  background:var(--surface);border:1px solid var(--border);border-radius:6px;margin-bottom:6px;font-size:12px}
+.rp-stat .k{color:var(--text-dim);font-family:var(--mono)}
+.rp-stat .v{color:var(--teal);font-weight:600;font-family:var(--mono)}
+.rp-stat.warn .v{color:var(--amber)}
+.rp-stat.bad .v{color:var(--red)}
+
+.decision{padding:10px;background:var(--surface);border:1px solid var(--border);
+  border-radius:6px;margin-bottom:6px;font-size:12px}
+.decision .when{font-family:var(--mono);font-size:10px;color:var(--text-dimer)}
+.decision .what{color:var(--text);margin-top:3px;line-height:1.4}
+.decision .src{font-family:var(--mono);font-size:10px;color:var(--teal);margin-top:3px}
+
+/* Mobile */
+.mobile-toggle{display:none;background:none;border:none;color:var(--text);font-size:20px;cursor:pointer}
+@media(max-width:1200px){
+  .mobile-toggle{display:block}
+  .sidebar.open,.rightpanel.open{display:block;position:fixed;top:60px;width:280px;height:calc(100vh - 60px);z-index:40}
+  .sidebar.open{left:0}
+  .rightpanel.open{right:0}
+}
 </style>
 </head>
 <body>
-<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:20px">
-  <div>
-    <h1><span class="dot"></span>Murphy — Founder View</h1>
-    <div class="sub">Live metrics · <span id="ts">loading...</span> · <a href="/start" style="color:#333;text-decoration:none">Start page</a> · <a href="/dashboard" style="color:#333;text-decoration:none">Full dashboard</a></div>
-  </div>
-  <div class="actions">
-    <button class="btn btn-go" onclick="runOutreach()">▶ Run outreach</button>
-    <button class="btn" onclick="runProspect()">🔍 Find prospects</button>
-    <a href="/book" class="btn">📅 Book audit</a>
-    <a href="/download" class="btn">↓ Downloads</a>
-  </div>
-</div>
 
-<div class="grid">
-  <div class="metric"><div class="metric-label">Pipeline</div><div class="metric-val" id="m-pipeline">—</div><div class="metric-sub">All deals</div></div>
-  <div class="metric"><div class="metric-label">Total Deals</div><div class="metric-val" id="m-deals">—</div><div class="metric-sub">In CRM</div></div>
-  <div class="metric"><div class="metric-label">Closed Won</div><div class="metric-val" id="m-won">—</div><div class="metric-sub" id="m-wonval">revenue</div></div>
-  <div class="metric"><div class="metric-label">Prospects</div><div class="metric-val" id="m-pros">—</div><div class="metric-sub">Uncontacted</div></div>
-  <div class="metric"><div class="metric-label">Booked</div><div class="metric-val" id="m-book">—</div><div class="metric-sub">Audits scheduled</div></div>
-  <div class="metric"><div class="metric-label">Shield</div><div class="metric-val" id="m-shield">—</div><div class="metric-sub">Security layers</div></div>
-</div>
+<header class="topbar">
+  <div class="logo-wrap"><div class="murphy-logo-live" style="width:32px;height:32px;"></div></div>
+  <div class="brand">Murphy <span class="sub">Founder Control</span></div>
+  <div class="spacer"></div>
+  <span class="pill"><span class="dot"></span><span id="subpill">Substrate</span></span>
+  <span class="key-ind">Auth: <span id="auth-state" class="bad">no key</span></span>
+</header>
 
-<div class="two-col">
-  <div class="section">
-    <h2>Recent Deals</h2>
-    <table><thead><tr><th>Title</th><th>Stage</th><th>Value</th><th>Date</th></tr></thead>
-    <tbody id="deals-body"><tr><td colspan="4" style="color:#222">Loading...</td></tr></tbody></table>
-  </div>
-  <div>
-    <div class="section">
-      <h2>System Activity</h2>
-      <div class="log" id="activity-log"><div class="dim">Loading agents...</div></div>
+<div class="shell">
+
+  <!-- LEFT — known surfaces -->
+  <aside class="sidebar">
+    <div class="group">
+      <div class="group-title">Control</div>
+      <a href="/founder"><span class="icon">●</span> Founder Control <span class="status ok">here</span></a>
+      <a href="/os"><span class="icon">▣</span> Murphy OS <span class="status ok">live</span></a>
+      <a href="/mission"><span class="icon">◎</span> Mission Control <span class="status ok">live</span></a>
+      <a href="/hitl"><span class="icon">!</span> HITL Queue <span class="status warn" id="hitl-count">—</span></a>
+      <a href="/patcher"><span class="icon">⚙</span> Self-Patches</a>
     </div>
-    <div class="section" style="margin-top:0">
-      <h2>APC Status</h2>
-      <div id="apc-status" style="font-size:.82rem;color:#444">—</div>
+    <div class="group">
+      <div class="group-title">Public</div>
+      <a href="/"><span class="icon">⌂</span> Landing</a>
+      <a href="/deck"><span class="icon">▸</span> Pitch Deck</a>
+      <a href="/demo"><span class="icon">▶</span> Live Demo</a>
+      <a href="/logo-demo"><span class="icon">◉</span> Logo (gaze)</a>
+      <a href="/book"><span class="icon">✎</span> Book Audit</a>
+      <a href="/contact"><span class="icon">✉</span> Contact</a>
     </div>
-  </div>
+    <div class="group">
+      <div class="group-title">Operator</div>
+      <a href="/dashboard"><span class="icon">▤</span> Dashboard</a>
+      <a href="/customers"><span class="icon">◆</span> Customers</a>
+      <a href="/onboarding"><span class="icon">→</span> Onboarding</a>
+      <a href="/chat"><span class="icon">◌</span> Chat (public)</a>
+    </div>
+    <div class="group">
+      <div class="group-title">Direct API</div>
+      <a href="/api/public/pulse" target="_blank"><span class="icon">≣</span> Live Pulse (JSON)</a>
+      <a href="/api/swarm/agents/status" target="_blank"><span class="icon">≣</span> Agents</a>
+      <a href="/api/platform/self-modification/ledger" target="_blank"><span class="icon">≣</span> PSM Ledger</a>
+    </div>
+  </aside>
+
+  <!-- CENTER — chat with Murphy -->
+  <main class="main">
+    <div class="main-header">
+      <h1>Talk to Murphy</h1>
+      <div class="ctx">Same <code>/api/chat</code> I use · founder-context</div>
+    </div>
+    <div class="messages" id="messages">
+      <div class="msg">
+        <div class="avatar">M</div>
+        <div>
+          <div class="bubble">
+Hey Corey. This is the founder console — same authority as the SSH side.
+<br><br>
+You can ask me anything: <em>"What's the substrate doing right now?"</em>, <em>"Show me the HITL queue"</em>, <em>"What's broken on /jobs?"</em>, <em>"Restart the mind"</em>.
+<br><br>
+I'll answer with live data from the actual system, not canned text.
+          </div>
+          <div class="meta">murphy · just now</div>
+        </div>
+      </div>
+    </div>
+    <div class="composer">
+      <div class="composer-row">
+        <textarea id="input" placeholder="Ask Murphy anything..." rows="1"></textarea>
+        <button id="send">Send</button>
+      </div>
+      <div class="composer-hints">
+        <span class="hint" data-q="What's the substrate status right now?">substrate status</span>
+        <span class="hint" data-q="Show me the HITL queue">HITL queue</span>
+        <span class="hint" data-q="What are the open issues?">open issues</span>
+        <span class="hint" data-q="What patches shipped today?">today's patches</span>
+        <span class="hint" data-q="What's the mind doing?">mind status</span>
+      </div>
+    </div>
+  </main>
+
+  <!-- RIGHT — live state -->
+  <aside class="rightpanel">
+    <div class="rp-section">
+      <div class="rp-title">Substrate</div>
+      <div class="rp-stat"><span class="k">services</span><span class="v" id="rp-services">—</span></div>
+      <div class="rp-stat"><span class="k">latest patch</span><span class="v" id="rp-patch">—</span></div>
+      <div class="rp-stat"><span class="k">patches total</span><span class="v" id="rp-patches">—</span></div>
+      <div class="rp-stat"><span class="k">uptime days</span><span class="v" id="rp-uptime">—</span></div>
+      <div class="rp-stat"><span class="k">error codes</span><span class="v" id="rp-errors">—</span></div>
+    </div>
+    <div class="rp-section">
+      <div class="rp-title">Swarm</div>
+      <div class="rp-stat"><span class="k">agents</span><span class="v" id="rp-agents">—</span></div>
+      <div class="rp-stat"><span class="k">mind cycles</span><span class="v" id="rp-mind">—</span></div>
+      <div class="rp-stat"><span class="k">mind confidence</span><span class="v" id="rp-conf">—</span></div>
+    </div>
+    <div class="rp-section">
+      <div class="rp-title">HITL · pending</div>
+      <div class="rp-stat" id="rp-hitl-stat"><span class="k">items</span><span class="v" id="rp-hitl">—</span></div>
+      <div class="rp-stat"><span class="k">mail queue</span><span class="v" id="rp-mail">—</span></div>
+    </div>
+    <div class="rp-section">
+      <div class="rp-title">Recent decisions</div>
+      <div id="rp-decisions"></div>
+    </div>
+  </aside>
+
 </div>
 
-<div class="section" style="margin-top:12px">
-  <h2>🎯 Target Outreach — LinkedIn Profile</h2>
-  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-    <input id="li-url" style="flex:1;min-width:220px" placeholder="https://linkedin.com/in/corey-post-aab22548"/>
-    <select id="li-mode" style="background:#050505;border:1px solid #1a1a1a;border-radius:6px;padding:9px 13px;color:#fff;font-size:.85rem;outline:none">
-      <option value="customer">Customer outreach</option>
-      <option value="investor">Investor outreach</option>
-      <option value="partner">Partner outreach</option>
-    </select>
-    <button class="btn btn-go" onclick="outreachToLinkedIn()">Send Murphy →</button>
-  </div>
-  <div id="li-result" style="margin-top:10px;font-size:.82rem;color:#00D4AA;display:none"></div>
-</div>
-
+<script src="/static/murphy-gaze.js" defer></script>
 <script>
-async function loadData(){
-  document.getElementById('ts').textContent=new Date().toLocaleTimeString();
-  const dr=await fetch('/api/crm/deals').then(r=>r.json()).catch(()=>[]);
-  const deals=Array.isArray(dr)?dr:dr.deals||[];
-  const stages={};let tv=0,wv=0;
-  deals.forEach(d=>{stages[d.stage]=(stages[d.stage]||0)+1;tv+=parseFloat(d.value||0);if(d.stage==='closed_won')wv+=parseFloat(d.value||0);});
-  document.getElementById('m-pipeline').textContent='$'+Math.round(tv/1e6*10)/10+'M';
-  document.getElementById('m-deals').textContent=deals.length;
-  document.getElementById('m-won').textContent=stages.closed_won||0;
-  document.getElementById('m-wonval').textContent='$'+Math.round(wv/1e3)+'K revenue';
-  document.getElementById('m-pros').textContent=stages.prospect||0;
-  document.getElementById('m-book').textContent=(stages.booked||0)+(stages.appointment_booked||0);
-  const recent=[...deals].sort((a,b)=>b.created_at>a.created_at?1:-1).slice(0,8);
-  document.getElementById('deals-body').innerHTML=recent.map(d=>`<tr><td>${(d.title||'—').slice(0,40)}</td><td><span class="stage stage-${d.stage}">${d.stage}</span></td><td>$${Math.round(d.value||0).toLocaleString()}</td><td>${(d.created_at||'').slice(0,10)}</td></tr>`).join('');
-  fetch('/api/shield/status').then(r=>r.json()).then(d=>{const s=d.summary||{};document.getElementById('m-shield').textContent=(s.active||'?')+'/'+( s.total||20);}).catch(()=>{});
-  fetch('/api/apc/status').then(r=>r.json()).then(d=>{document.getElementById('apc-status').textContent=d.success?'✓ Active · discovery:'+d.discovery_enabled+' outreach:'+d.outreach_enabled:'status unknown';}).catch(()=>{});
-  fetch('/api/swarm/agents/status').then(r=>r.json()).then(d=>{
-    const agents=d.agents||[];
-    document.getElementById('activity-log').innerHTML=agents.slice(0,6).map(a=>`<div class="ok">▸ ${a.name} · runs:${a.runs_total||0}</div>`).join('')||'<div class="dim">No agents found</div>';
-  }).catch(()=>{});
+// ─── Founder API key — kept in localStorage so you don't re-paste ────────
+const KEY_LS = 'murphy_founder_key';
+
+function getKey(){ return localStorage.getItem(KEY_LS) || ''; }
+function setKey(k){ localStorage.setItem(KEY_LS, k); updateKeyIndicator(); }
+function updateKeyIndicator(){
+  const el = document.getElementById('auth-state');
+  if(getKey().startsWith('founder_')){ el.textContent='founder ✓'; el.className='ok'; }
+  else { el.textContent='click to set'; el.className='bad'; }
 }
-async function runOutreach(){document.getElementById('apc-status').textContent='Running...';const r=await fetch('/api/prospector/cadence',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}).then(x=>x.json()).catch(e=>({error:e.message}));document.getElementById('apc-status').textContent=JSON.stringify(r).slice(0,200);}
-async function runProspect(){document.getElementById('apc-status').textContent='Discovering...';const r=await fetch('/api/prospector/run',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}).then(x=>x.json()).catch(e=>({error:e.message}));document.getElementById('apc-status').textContent=JSON.stringify(r).slice(0,200);}
-async function outreachToLinkedIn(){
-  const url=document.getElementById('li-url').value.trim();const mode=document.getElementById('li-mode').value;
-  if(!url){alert('Paste a LinkedIn URL');return;}
-  const el=document.getElementById('li-result');el.style.display='block';el.textContent='Analyzing and queuing...';
-  const r=await fetch('/api/growth/outreach',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({linkedin_url:url,mode})}).then(x=>x.json()).catch(e=>({error:e.message}));
-  el.textContent=r.success?'✓ '+(r.message||'Queued'):'⚠ '+(r.error||JSON.stringify(r));
+document.getElementById('auth-state').addEventListener('click', () => {
+  const cur = getKey();
+  const k = prompt('Founder API key:', cur);
+  if(k!==null) setKey(k);
+});
+updateKeyIndicator();
+
+async function apiGet(path){
+  const k = getKey();
+  const r = await fetch(path, {headers: k ? {'X-API-Key': k} : {}});
+  if(!r.ok) throw new Error(`${path} → ${r.status}`);
+  return r.json();
 }
-loadData();setInterval(loadData,30000);
+async function apiPostChat(message){
+  const k = getKey();
+  const r = await fetch('/api/chat', {
+    method:'POST',
+    headers:{'Content-Type':'application/json', ...(k?{'X-API-Key':k}:{})},
+    body: JSON.stringify({message})
+  });
+  if(!r.ok) throw new Error(`/api/chat → ${r.status}`);
+  return r.json();
+}
+
+// ─── Right-panel live state refresh ────────────────────────────────────
+async function refreshPulse(){
+  try{
+    const d = await apiGet('/api/public/pulse');
+    document.getElementById('rp-services').textContent = `${d.services_active}/${d.services_total}`;
+    document.getElementById('rp-patch').textContent = d.latest_patch?.id || '—';
+    document.getElementById('rp-patches').textContent = d.patches_shipped_total || '—';
+    document.getElementById('rp-uptime').textContent = d.uptime_days?.toFixed(1) || '—';
+    document.getElementById('rp-errors').textContent = d.error_codes_registered || '—';
+
+    const decs = document.getElementById('rp-decisions');
+    decs.innerHTML = '';
+    (d.recent_decisions||[]).slice(0,5).forEach(dec=>{
+      const div = document.createElement('div');
+      div.className='decision';
+      const t = new Date(dec.when).toLocaleTimeString();
+      div.innerHTML = `<div class="when">${t}</div><div class="what">${dec.what}</div><div class="src">${dec.source}</div>`;
+      decs.appendChild(div);
+    });
+  }catch(e){ console.error(e); }
+}
+async function refreshSwarm(){
+  try{
+    const ag = await apiGet('/api/swarm/agents/status');
+    const count = Array.isArray(ag.agents) ? ag.agents.length : (ag.count||'—');
+    document.getElementById('rp-agents').textContent = count;
+  }catch(e){}
+  try{
+    const mi = await apiGet('/api/swarm/mind/status');
+    document.getElementById('rp-mind').textContent = mi.cycles ?? mi.cycle_count ?? '—';
+    document.getElementById('rp-conf').textContent = (mi.confidence!=null) ? mi.confidence.toFixed(2) : '—';
+  }catch(e){}
+}
+async function refreshHITL(){
+  try{
+    const h = await apiGet('/api/swarm/hitl/pending');
+    const n = Array.isArray(h.items) ? h.items.length : (h.count ?? Array.isArray(h)?h.length:'—');
+    document.getElementById('rp-hitl').textContent = n;
+    document.getElementById('hitl-count').textContent = n;
+  }catch(e){}
+  try{
+    const m = await apiGet('/api/mail/outbound/queue');
+    const n = Array.isArray(m.queue) ? m.queue.length : (m.count ?? (Array.isArray(m)?m.length:'—'));
+    document.getElementById('rp-mail').textContent = n;
+  }catch(e){}
+}
+function refreshAll(){ refreshPulse(); refreshSwarm(); refreshHITL(); }
+refreshAll();
+setInterval(refreshAll, 30000);
+
+// ─── Chat ──────────────────────────────────────────────────────────────
+const msgsEl = document.getElementById('messages');
+const inputEl = document.getElementById('input');
+const sendBtn = document.getElementById('send');
+
+function addMsg(role, content, meta){
+  const div = document.createElement('div');
+  div.className = 'msg ' + role;
+  const avatar = role==='user' ? 'C' : (role==='error' ? '!' : 'M');
+  div.innerHTML = `<div class="avatar">${avatar}</div><div><div class="bubble"></div><div class="meta">${meta||''}</div></div>`;
+  div.querySelector('.bubble').innerHTML = content;
+  msgsEl.appendChild(div);
+  msgsEl.scrollTop = msgsEl.scrollHeight;
+  return div;
+}
+function fmtMarkdown(s){
+  // Light markdown: **bold**, `code`, lists, line breaks
+  return s
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/`([^`]+)`/g,'<code>$1</code>')
+    .replace(/^### (.+)$/gm,'<strong>$1</strong>')
+    .replace(/^## (.+)$/gm,'<strong>$1</strong>')
+    .replace(/^- (.+)$/gm,'• $1')
+    .replace(/\n/g,'<br>');
+}
+
+async function send(){
+  const text = inputEl.value.trim();
+  if(!text) return;
+  inputEl.value=''; inputEl.style.height='auto';
+  sendBtn.disabled = true;
+  addMsg('user', text.replace(/</g,'&lt;'), 'corey · '+new Date().toLocaleTimeString());
+  const thinking = addMsg('thinking', 'Murphy is thinking', '');
+  try{
+    const r = await apiPostChat(text);
+    thinking.remove();
+    const reply = r.reply || r.message || JSON.stringify(r);
+    addMsg('assistant', fmtMarkdown(reply), 'murphy · '+new Date().toLocaleTimeString());
+  }catch(e){
+    thinking.remove();
+    addMsg('error', 'Error: ' + e.message + '<br><small>Check your founder key (click "Auth" in topbar)</small>', '');
+  }finally{
+    sendBtn.disabled = false;
+  }
+}
+sendBtn.addEventListener('click', send);
+inputEl.addEventListener('keydown', e => {
+  if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); send(); }
+});
+inputEl.addEventListener('input', e=>{
+  e.target.style.height='auto';
+  e.target.style.height = Math.min(e.target.scrollHeight, 160) + 'px';
+});
+document.querySelectorAll('.hint').forEach(h=>{
+  h.addEventListener('click', ()=>{ inputEl.value = h.dataset.q; inputEl.focus(); });
+});
 </script>
 </body>
 </html>

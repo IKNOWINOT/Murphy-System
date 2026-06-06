@@ -1,0 +1,13 @@
+Incident #inc_fce8faeb: Capacity info: No inbound replies in 999 days. APC outreach may need copy refresh.
+
+Investigation:
+- The CRM system is implemented in src/crm/ with a SQLite backend at /var/lib/murphy-production/crm.db.
+- Core modules:
+  - api.py: FastAPI router exposing /api/crm endpoints
+  - crm_manager.py: Main logic with SQLite persistence and seed data
+  - models.py: Dataclasses and enums for CRM entities
+- The outreach log is accessible via the /api/crm/activities endpoint, which maps to the CRMManager.list_activities() method.
+- Activity types include 'call', 'email', 'meeting', 'note', 'task' (ActivityType enum).
+- Email interactions are tracked separately via EmailInteraction model with open/click tracking.
+
+Conclusion: The system is operational with a persistent backend. The lack of inbound replies suggests a need to refresh outreach copy as suggested. Manual review of the CRM data via SQL or API is recommended to confirm activity patterns.

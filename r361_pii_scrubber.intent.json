@@ -1,0 +1,67 @@
+{
+  "module": "r361_pii_scrubber",
+  "blocks": {
+    "scrub": {
+      "intent_plain": "Redact PII (phone, email, SSN) from input text. Returns tuple (redacted_text, flags_dict).",
+      "inputs": {
+        "text": "str"
+      },
+      "outputs": {
+        "return": "tuple of (str, dict)"
+      },
+      "side_effects": [],
+      "failure_modes": [
+        "E_PARSE_0010"
+      ],
+      "must_not": [
+        "leak unredacted PII",
+        "modify input string"
+      ],
+      "test_array": {
+        "weak": [
+          {
+            "input": [
+              "x"
+            ],
+            "expected_truthy_first": true
+          }
+        ],
+        "good": [
+          {
+            "input": [
+              "Call me at 555-123-4567"
+            ],
+            "expected_truthy_first": true
+          }
+        ],
+        "precise": [
+          {
+            "input": [
+              "Email john@example.com"
+            ],
+            "expected_truthy_first": true
+          }
+        ],
+        "really_good": [
+          {
+            "input": [
+              "SSN 123-45-6789 phone 555-987-6543 email jane@example.com"
+            ],
+            "expected_truthy_first": true
+          }
+        ]
+      }
+    }
+  },
+  "pipelines": {
+    "_self_check": {
+      "intent_plain": "Module loads + scrub exists",
+      "anchors": [
+        "scrub"
+      ],
+      "pipeline_check": {
+        "module_loadable": true
+      }
+    }
+  }
+}

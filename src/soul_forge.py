@@ -415,9 +415,9 @@ Keep it under 300 words."""
         return souls
 
     def inject_soul_into_prompt(self, soul: ForgedSoul, task: str) -> str:
-        """Prepend soul context to a task prompt for LLM injection."""
+        """Prepend soul context to a task prompt for LLM injection. R428-bugfix: l0 lives under soul.soul."""
         return (
-            f"[SOUL: {soul.l0}]\n"
+            f"[SOUL: {soul.soul.l0}]\n"
             f"[CRITICAL CONTEXT]\n{soul.soul.l1}\n\n"
             f"[YOUR TASK]\n{task}"
         )

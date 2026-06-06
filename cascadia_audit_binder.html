@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<title>Cascadia — Audit Binder (R362)</title>
+<style>
+:root{--bg:#fafaf7;--text:#1a1d1f;--muted:#6b7280;--border:#d8d5cc;--rule:#e8e5dc;
+--primary:#1f4e3d;--secondary:#1a4480;--accent:#c97a3d;--paper:#fafaf7;
+--high:#b91c1c;--retained:#1f4e3d;--rejected:#b91c1c;--filed:#1a4480;
+--archived:#6b7280;--expired:#9ca3af;
+--mono:'SF Mono',Menlo,monospace;--display:'Inter',-apple-system,sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--display);font-size:14px;line-height:1.5}
+.page{max-width:1280px;margin:0 auto;padding:32px 40px;background:#fff;min-height:100vh;box-shadow:0 0 0 1px var(--border)}
+.masthead{border-bottom:3px solid var(--primary);padding-bottom:18px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:flex-end}
+.mark{width:42px;height:42px;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:700;font-size:14px;border-radius:2px;margin-right:14px}
+.brand-block{display:flex;align-items:center}
+.masthead h1{font-family:var(--display);font-size:18px;font-weight:700;color:var(--primary)}
+.masthead .meta{text-align:right;font-family:var(--mono);font-size:10px;color:var(--muted);line-height:1.7}
+.doc-title{margin-bottom:24px;padding:18px 22px;background:var(--paper);border-left:4px solid var(--secondary)}
+.doc-title .kicker{font-family:var(--mono);font-size:10px;letter-spacing:1.5px;color:var(--secondary);text-transform:uppercase}
+.doc-title h2{font-family:var(--display);font-size:22px;margin-top:6px;font-weight:700}
+.doc-title .question{margin-top:10px;color:var(--muted);font-style:italic;font-size:13px}
+.audit-banner{background:#e8f5ee;border:1px solid var(--primary);padding:10px 16px;margin-bottom:20px;font-size:12px;border-radius:3px}
+.audit-banner strong{color:var(--primary)}
+section{margin-bottom:28px}
+section h3{font-family:var(--display);font-size:12px;color:var(--primary);font-weight:700;letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid var(--rule);padding-bottom:6px;margin-bottom:14px}
+.tools{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}
+.tools a{font-family:var(--mono);font-size:11px;color:var(--secondary);text-decoration:none;padding:6px 12px;border:1px solid var(--secondary);border-radius:2px}
+.tools a:hover{background:var(--secondary);color:#fff}
+.fsm-diagram{background:var(--paper);border:1px solid var(--border);padding:18px;border-radius:4px;margin-bottom:24px;font-family:var(--mono);font-size:11px;line-height:1.7;white-space:pre;overflow-x:auto}
+.binder-grid{display:grid;grid-template-columns:1fr;gap:14px}
+.binder-card{border:1.5px solid var(--border);border-left-width:5px;padding:14px 18px;border-radius:3px}
+.binder-card.retained{border-left-color:var(--retained);background:linear-gradient(to right,#e8f5ee 0%,#fff 4%)}
+.binder-card.filed{border-left-color:var(--filed)}
+.binder-card.archived{border-left-color:var(--archived)}
+.binder-card.expired{border-left-color:var(--expired);opacity:0.7}
+.binder-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.binder-head .left{display:flex;align-items:center;gap:8px}
+.binder-head .form-code{font-family:var(--mono);font-size:13px;color:var(--secondary);font-weight:700}
+.binder-head .state{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:1px;padding:2px 8px;border-radius:2px;font-weight:700;color:#fff}
+.binder-head .state.retained{background:var(--retained)}
+.binder-head .state.filed{background:var(--filed)}
+.binder-head .state.archived{background:var(--archived)}
+.binder-head .state.expired{background:var(--expired)}
+.binder-head .retention{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.binder-meta{font-family:var(--mono);font-size:10px;color:var(--muted);margin-bottom:8px;line-height:1.7}
+.binder-meta strong{color:var(--text)}
+.binder-files{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.binder-files .f{font-family:var(--mono);font-size:9px;background:var(--paper);border:1px solid var(--border);padding:2px 8px;border-radius:2px;color:var(--secondary)}
+.binder-audit{font-family:var(--mono);font-size:10px;color:var(--muted);background:var(--paper);padding:8px 12px;border-radius:2px;border:1px dashed var(--border);max-height:140px;overflow-y:auto}
+.binder-audit .step{padding:3px 0;border-bottom:1px solid var(--rule)}
+.binder-audit .step:last-child{border-bottom:0}
+.binder-audit .who{color:var(--primary);font-weight:700}
+.binder-audit .what{color:var(--secondary)}
+.empty{padding:24px;text-align:center;color:var(--muted);background:var(--paper);border:1px dashed var(--border);border-radius:4px;font-family:var(--mono);font-size:12px}
+.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+.summary .stat{background:var(--paper);border:1px solid var(--border);padding:12px 16px;border-radius:4px}
+.summary .stat .label{font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px}
+.summary .stat .value{font-family:var(--display);font-size:24px;font-weight:700;color:var(--primary);margin-top:4px}
+.summary .stat .sub{font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:2px}
+.footer{margin-top:32px;padding-top:18px;border-top:1px solid var(--rule);font-size:10px;color:var(--muted);font-family:var(--mono);display:flex;justify-content:space-between}
+.footer a{color:var(--secondary);text-decoration:none}
+
+/* R366 mobile responsive — inlined */
+/* R366 mobile responsive partial — applies across all Cascadia/Apex/wizard surfaces */
+@media (max-width: 768px) {
+  .page { padding: 16px 14px !important; max-width: 100% !important; box-shadow: none !important; }
+  .masthead { flex-direction: column; align-items: flex-start; gap: 10px; padding-bottom: 14px; }
+  .masthead .meta { text-align: left; font-size: 9px; }
+  .masthead h1 { font-size: 16px; }
+  .brand-block { width: 100%; }
+  .mark { width: 36px; height: 36px; font-size: 12px; }
+  .doc-title h2 { font-size: 18px; line-height: 1.3; }
+  section h3 { font-size: 11px; }
+  .audit-banner, .doc-title { padding: 12px 14px; font-size: 12px; }
+  .tools { gap: 6px; flex-wrap: wrap; }
+  .tools a { font-size: 10px; padding: 5px 9px; }
+  .summary, .field-grid, .compliance, .flow,
+  .q-grid[style*="grid-template-columns"] { 
+    grid-template-columns: 1fr !important; 
+  }
+  .step-tracker { flex-direction: column; }
+  .step-tile { border-right: 0 !important; border-bottom: 1px solid var(--border); }
+  .step-tile.current { border-bottom: 3px solid var(--current) !important; }
+  .step-tile::after, .fsm-step::after, .flow .step::after,
+  .binder-card .head .left::after { display: none !important; }
+  table { font-size: 10px; }
+  table.compact td, table.compact th { padding: 4px 6px; }
+  .engine-table th, .engine-table td { padding: 6px 8px; font-size: 10px; }
+  .chart-wrap { overflow-x: auto; padding: 12px 0; -webkit-overflow-scrolling: touch; }
+  .tree { transform-origin: top left; min-width: 600px; }
+  .binder-grid, .queue-list, .form-block, .lifecycle-row,
+  .binder-card, .intake-card, .hitl-card { padding: 12px 14px !important; }
+  .access-bar { gap: 4px; }
+  .access-bar .chip { font-size: 9px; padding: 3px 7px; }
+  .summary { gap: 8px; }
+  .stat { padding: 10px 12px; }
+  .stat .value, .summary .stat .value { font-size: 20px; }
+  .fsm-track { gap: 1px; flex-wrap: wrap; }
+  .fsm-step { font-size: 8px; padding: 5px 2px; min-width: 60px; }
+  .actions { flex-wrap: wrap; gap: 5px; }
+  .actions button { font-size: 10px; padding: 5px 9px; }
+  .diff-block { font-size: 10px; padding: 8px 10px; max-height: 240px; }
+  .chain { gap: 6px; }
+  .chip { min-width: 130px; font-size: 10px; padding: 6px 10px; }
+  .fix-card .proposed, .fix-card-mini .ftext { font-size: 11px; max-height: 200px; }
+  .compliance-row { grid-template-columns: 1fr 1fr; font-size: 10px; gap: 4px; padding: 6px 8px; }
+  .compliance-row.header { font-size: 9px; }
+  ol, ul { font-size: 12px !important; padding-left: 18px; }
+  .footer { flex-direction: column; gap: 6px; align-items: flex-start; }
+}
+@media (max-width: 480px) {
+  .page { padding: 10px 8px !important; }
+  .masthead h1 { font-size: 14px; }
+  .masthead .meta { font-size: 8px; }
+  .doc-title h2 { font-size: 16px; }
+  .stat .value, .summary .stat .value { font-size: 16px; }
+  .stat .label, .summary .stat .label { font-size: 8px; }
+  .summary { grid-template-columns: 1fr 1fr !important; gap: 6px; }
+  .compliance-row { grid-template-columns: 1fr; }
+  .compliance-row.header { display: none; }
+  .access-bar .chip { font-size: 8px; padding: 2px 6px; }
+  .audit-banner, .doc-title { font-size: 11px; padding: 10px 12px; }
+  .doc-title .kicker { font-size: 8px; }
+  .tools a { font-size: 9px; padding: 4px 8px; }
+  .binder-card .form-code, .form-block .fcode { font-size: 11px; }
+  .intake-card .payload, .diff-block { font-size: 9px; }
+  .fsm-step { font-size: 7px; min-width: 50px; padding: 4px 1px; }
+  .org-mini .emp-row { font-size: 10px; flex-direction: column; gap: 3px; align-items: flex-start; }
+  table { font-size: 9px; }
+  .spec-table td, .spec-table th { padding: 4px 6px; font-size: 9px; }
+  .card { min-width: 160px; max-width: 200px; padding: 7px 10px; font-size: 10px; }
+  .card .name { font-size: 11px; }
+  .card .role { font-size: 9px; }
+}
+
+</style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head><body>
+<div class="page">
+
+  <header class="masthead">
+    <div class="brand-block">
+      <div class="mark">CMC</div>
+      <div>
+        <h1>Cascadia MEP Contractors, LLC</h1>
+        <div style="color:var(--muted);font-size:11px;margin-top:2px">Audit Binder · R362 Lifecycle FSM · Live from /var/lib/murphy-production/artifacts/</div>
+      </div>
+    </div>
+    <div class="meta">
+      DOC: R362-BINDER-V1<br>
+      ISSUED: 2026-05-30<br>
+      ARTIFACTS: live filesystem<br>
+      SWEEP: every 30 min
+    </div>
+  </header>
+
+  <div class="doc-title">
+    <div class="kicker">R362 — Form Lifecycle FSM</div>
+    <h2>The Audit Binder · Where Approved Forms Live</h2>
+    <div class="question">"All forms route to the right person → HITL approval → audit binder → retention clock." R362 closes the lifecycle.</div>
+  </div>
+
+  <div class="audit-banner">
+    <strong>The loop is fully closed.</strong> Forms enter via R361 multi-channel intake, route via R360 org chart, get PII-redacted, approved through this R362 FSM, filed as immutable artifacts on disk, and held until statutory retention expires. Heartbeat sweep runs every 30 minutes (murphy-r362-retention.timer).
+  </div>
+
+  <div class="tools">
+    <a href="/ui/cascadia_mep">↩ CEO briefing</a>
+    <a href="/ui/cascadia_intake_demo">↗ intake queue</a>
+    <a href="/ui/cascadia_employee_view">↗ Evelyn's HR inbox</a>
+    <a href="/ui/cascadia_lifecycle_demo">↗ FSM visualization</a>
+    <a href="/ui/cascadia_org_chart">↗ org chart</a>
+  </div>
+
+  <section>
+    <h3>Audit Binder Summary</h3>
+    <div class="summary">
+      <div class="stat"><div class="label">Total Artifacts</div><div class="value">2</div><div class="sub">files on disk</div></div>
+      <div class="stat"><div class="label">Retained</div><div class="value">2</div><div class="sub">retention active</div></div>
+      <div class="stat"><div class="label">Rejected</div><div class="value">1</div><div class="sub">no artifact filed</div></div>
+      <div class="stat"><div class="label">Disk Used</div><div class="value">3221</div><div class="sub">bytes</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h3>The Lifecycle FSM (STANDARD-7)</h3>
+    <div class="fsm-diagram">
+pending_approval ─→ in_review ─→ approved ─→ filed ─→ retained ─→ archived ─→ expired
+       │                │           │
+       │                └─→ rejected (terminal — no artifact)
+       └─→ rejected (skipped review)
+
+ALLOWED TRANSITIONS:
+  pending_approval → in_review, rejected
+  in_review        → approved, rejected
+  approved         → filed             (system, automatic)
+  filed            → retained          (system, automatic)
+  retained         → archived          (sweep, when retention_until &lt; today)
+  archived         → expired           (sweep, after 30 days in archived)
+
+ENFORCED:
+  E_STATE_0008 → invalid edge attempted
+  E_AUTH_0005  → non-assignee approve/reject
+  E_DB_0007    → concurrent transition race (first writer wins)</div>
+  </section>
+
+  <section>
+    <h3>Filed Artifacts (2)</h3>
+    <div class="binder-grid">
+    <div class="binder-card retained">
+      <div class="binder-head">
+        <div class="left">
+          <span class="form-code">F1-01</span>
+          <span class="state retained">retained</span>
+        </div>
+        <div class="retention">retention: 2029-05-30 (1095 days)</div>
+      </div>
+      <div class="binder-meta">
+        <strong>queue #1</strong> · 
+        channel: email · 
+        from: trevor.lindholm@cascadia-mep.example · 
+        approved by: evelyn.shapiro@cascadia-mep.example · 
+        artifact UUID: <code>01865a8f3cfe</code> (1732 bytes)<br>
+        PII redacted: ssn_dashed, dob_slash, phone_us, email_pii · 
+        basis: 8 CFR 274a.2 — 3 yr post-hire OR 1 yr post-separation, whichever later
+      </div>
+      <div class="binder-files">
+        <span class="f">📄 payload_redacted.txt</span>
+        <span class="f">📋 metadata.json</span>
+        <span class="f">⛓ audit_chain.json</span>
+        <span class="f">⏱ retention.json</span>
+      </div>
+      <div class="binder-audit"><div class="step"><span class="who">intake_router</span> <span class="what">ingest</span> @ 2026-05-31T05:28:19 — R361 multi-channel intake</div><div class="step"><span class="who">evelyn.shapiro@cascadia-mep.example</span> <span class="what">transition_pending_approval_to_in_review</span> @ 2026-05-31T05:41:44 — opened for review</div><div class="step"><span class="who">evelyn.shapiro@cascadia-mep.example</span> <span class="what">transition_in_review_to_approved</span> @ 2026-05-31T05:41:44 — I-9 Section 1 complete; ready for HR Section 2 review within 3 business days per</div><div class="step"><span class="who">system</span> <span class="what">file_artifact</span> @ 2026-05-31T05:41:44 — approval → permanent record</div><div class="step"><span class="who">system</span> <span class="what">enter_retention</span> @ 2026-05-31T05:41:44 — retention period begins</div></div>
+    </div>
+    <div class="binder-card retained">
+      <div class="binder-head">
+        <div class="left">
+          <span class="form-code">F3-08</span>
+          <span class="state retained">retained</span>
+        </div>
+        <div class="retention">retention: 2033-05-29 (2555 days)</div>
+      </div>
+      <div class="binder-meta">
+        <strong>queue #2</strong> · 
+        channel: upload · 
+        from: ben.holloway@cascadia-mep.example · 
+        approved by: priya.shenoy@cascadia-mep.example · 
+        artifact UUID: <code>3c8d4708de4d</code> (1489 bytes)<br>
+        PII redacted: dob_dash · 
+        basis: NY construction defect statute 6-7 yr
+      </div>
+      <div class="binder-files">
+        <span class="f">📄 payload_redacted.txt</span>
+        <span class="f">📋 metadata.json</span>
+        <span class="f">⛓ audit_chain.json</span>
+        <span class="f">⏱ retention.json</span>
+      </div>
+      <div class="binder-audit"><div class="step"><span class="who">intake_router</span> <span class="what">ingest</span> @ 2026-05-31T05:28:19 — R361 multi-channel intake</div><div class="step"><span class="who">priya.shenoy@cascadia-mep.example</span> <span class="what">transition_pending_approval_to_in_review</span> @ 2026-05-31T05:41:44 — opened for review</div><div class="step"><span class="who">priya.shenoy@cascadia-mep.example</span> <span class="what">transition_in_review_to_approved</span> @ 2026-05-31T05:41:44 — RFI clarified — ceiling height confirmed at 9 ft per drawing A-101 rev 3</div><div class="step"><span class="who">system</span> <span class="what">file_artifact</span> @ 2026-05-31T05:41:44 — approval → permanent record</div><div class="step"><span class="who">system</span> <span class="what">enter_retention</span> @ 2026-05-31T05:41:44 — retention period begins</div></div>
+    </div></div>
+  </section>
+
+  <div class="footer">
+    <span>R362-BINDER-V1 · Cascadia · Live disk + queue</span>
+    <span><a href="/ui/cascadia_mep">↩ index</a></span>
+  </div>
+
+</div></body></html>

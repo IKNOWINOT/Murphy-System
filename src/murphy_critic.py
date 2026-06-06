@@ -409,15 +409,51 @@ def check_duplicate_definitions(tree, source: str) -> List[Dict]:
 
 
 def check_route_duplication(tree, source: str) -> List[Dict]:
+    """
+    FM-013: Route duplication — same method+path registered twice in same module.
+    FastAPI silently serves only the first registration. Second is dead code.
+
+    Prefix-aware (added 2026-05-26): Resolves `<var> = APIRouter(prefix="...")`
+    assignments so that @sub_router.get("/status") on a router with prefix
+    "/api/foo" is keyed as "get:/api/foo/status", not "get:/status".
+    This eliminates false positives when multiple sub-routers in one file
+    each define a relative path like "/status".
+    """
     findings = []
     routes: Dict[str, int] = {}
+
+    # ── Pass 1: build variable_name → router_prefix map ──────────────────────
+    # Pattern: kg_router = APIRouter(prefix="/api/kg", ...)
+    router_prefixes: Dict[str, str] = {}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign):
+            if (isinstance(node.value, ast.Call)
+                and isinstance(node.value.func, ast.Name)
+                and node.value.func.id == "APIRouter"):
+                # Find prefix= keyword argument
+                prefix = ""
+                for kw in node.value.keywords:
+                    if kw.arg == "prefix" and isinstance(kw.value, ast.Constant):
+                        prefix = kw.value.value or ""
+                # Record each target name (usually one)
+                for target in node.targets:
+                    if isinstance(target, ast.Name):
+                        router_prefixes[target.id] = prefix
+
+    # ── Pass 2: scan decorators with prefix resolution ───────────────────────
     for node in ast.walk(tree):
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             for dec in node.decorator_list:
                 if isinstance(dec, ast.Call) and isinstance(dec.func, ast.Attribute):
                     if dec.func.attr in ("get", "post", "put", "delete", "patch"):
                         if dec.args and isinstance(dec.args[0], ast.Constant):
-                            key = f"{dec.func.attr}:{dec.args[0].value}"
+                            # Resolve prefix from the decorator's owner variable
+                            owner_prefix = ""
+                            if isinstance(dec.func.value, ast.Name):
+                                owner_prefix = router_prefixes.get(dec.func.value.id, "")
+                            rel_path = dec.args[0].value
+                            full_path = (owner_prefix + rel_path) if owner_prefix else rel_path
+                            key = f"{dec.func.attr}:{full_path}"
                             if key in routes:
                                 findings.append({
                                     "line": node.lineno,
@@ -737,6 +773,14 @@ class MurphyCritic:
             "MurphyCritic [%s] %s -- %d blocks, %d warns, score=%.2f (%.0fms)",
             verdict, filename, len(blocks), len(warns), score, duration_ms,
         )
+        # SD-75 fix (R60 2026-06-05): also log the specific findings.
+        # Without this, callers see "3 blocks" with no idea WHICH blocks fired,
+        # making fix-the-river impossible. Now every block/warn logs its FID,
+        # name, line so the upstream prompt or code can be corrected.
+        for _f in blocks:
+            logger.error("  BLOCK %s @ line %s: %s", _f.fid, _f.line, _f.name)
+        for _f in warns:
+            logger.warning("  WARN %s @ line %s: %s", _f.fid, _f.line, _f.name)
 
         return CriticVerdict(
             verdict=verdict, score=score, findings=findings,
@@ -782,3 +826,79 @@ def get_critic() -> MurphyCritic:
             if _critic is None:
                 _critic = MurphyCritic()
     return _critic
+
+
+# ── PATCH-ROUTE-DUP: startup scan helper (added 2026-05-26) ─────────────────
+def run_startup_route_scan(src_root: str = "/opt/Murphy-System/src",
+                            audit_db: str = "/var/lib/murphy-production/murphy_audit.db",
+                            ) -> Dict[str, int]:
+    """
+    Run check_route_duplication across the entire src/ tree at startup.
+    Writes findings to murphy_audit.events with severity=warn.
+
+    Returns: {"files_scanned": int, "findings": int, "duration_ms": int}
+
+    Intended call site: app.py startup, after audit DB is ready.
+    Best-effort — never raises; on error returns {"error": str}.
+    """
+    import os
+    import time
+    import sqlite3
+    import json as _json
+
+    t0 = time.time()
+    total_findings = 0
+    files_scanned = 0
+
+    try:
+        for root, dirs, files in os.walk(src_root):
+            dirs[:] = [d for d in dirs if d != "__pycache__" and "_archive" not in d]
+            for fname in files:
+                if not fname.endswith(".py") or ".bak" in fname:
+                    continue
+                fpath = os.path.join(root, fname)
+                try:
+                    with open(fpath) as f:
+                        source = f.read()
+                    tree = ast.parse(source)
+                    findings = check_route_duplication(tree, source)
+                    files_scanned += 1
+                    if findings:
+                        relpath = fpath.replace(src_root + "/", "")
+                        # Write each finding to audit log as WARN
+                        try:
+                            conn = sqlite3.connect(audit_db, timeout=2)
+                            for f_ in findings:
+                                conn.execute(
+                                    """INSERT INTO events
+                                       (tenant_id, actor, event_type, payload, severity, created_at)
+                                       VALUES (?, ?, ?, ?, ?, datetime('now'))""",
+                                    ("system", "murphy_critic", "route_duplicate_warn",
+                                     _json.dumps({
+                                         "file": relpath,
+                                         "line": f_["line"],
+                                         "detail": f_["detail"],
+                                         "failure_mode": "FM-013",
+                                     }),
+                                     "warn"))
+                            conn.commit()
+                            conn.close()
+                        except Exception:
+                            pass  # audit table may not exist yet
+                        total_findings += len(findings)
+                except SyntaxError:
+                    pass
+                except Exception:
+                    pass
+    except Exception as exc:
+        return {"error": str(exc), "files_scanned": files_scanned,
+                "findings": total_findings,
+                "duration_ms": int((time.time() - t0) * 1000)}
+
+    duration_ms = int((time.time() - t0) * 1000)
+    logger.info(
+        "MurphyCritic: startup route scan complete — %d files, %d findings, %dms",
+        files_scanned, total_findings, duration_ms,
+    )
+    return {"files_scanned": files_scanned, "findings": total_findings,
+            "duration_ms": duration_ms}

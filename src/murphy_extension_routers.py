@@ -164,7 +164,7 @@ def build_confidence_router() -> APIRouter:
             result = ce.compute_confidence(req.artifacts)
             if hasattr(result, "__await__"):
                 import asyncio
-                result = await asyncio.wait_for(result, timeout=10)
+                result = await asyncio.wait_for(result, timeout=180)  # R479: was 10, swarm-floor 180s
             score = result if isinstance(result, (int, float)) else getattr(result, "score", 0.0)
             return {"ok": True, "score": float(score), "result": str(result)[:200]}
         except Exception as exc:

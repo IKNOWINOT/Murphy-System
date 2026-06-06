@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="550" viewBox="0 0 900 550">
+  <defs>
+    <marker id="arrow-start" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto"><polygon points="10 0, 10 7, 0 3.5" fill="black"/></marker>
+    <marker id="arrow-end" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto-start-reverse"><polygon points="10 0, 10 7, 0 3.5" fill="black"/></marker>
+    <pattern id="hatch-ansi31" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="8" stroke="black" stroke-width="0.5"/></pattern>
+    <pattern id="hatch-ansi32" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="8" stroke="black" stroke-width="0.5"/><line x1="4" y1="0" x2="4" y2="8" stroke="black" stroke-width="0.5"/></pattern>
+    <pattern id="hatch-ansi33" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(30)"><line x1="0" y1="0" x2="0" y2="8" stroke="black" stroke-width="0.5"/><line x1="4" y1="0" x2="4" y2="8" stroke="black" stroke-width="0.75"/></pattern>
+    <pattern id="hatch-ansi37" patternUnits="userSpaceOnUse" width="10" height="10"><rect width="10" height="10" fill="none" stroke="black" stroke-width="0.3"/><line x1="0" y1="5" x2="10" y2="5" stroke="black" stroke-width="0.3"/></pattern>
+  </defs>
+  <line x1="100" y1="100" x2="700" y2="100" stroke="black" stroke-width="0.5"/>
+  <line x1="700" y1="100" x2="700" y2="400" stroke="black" stroke-width="0.5"/>
+  <line x1="700" y1="400" x2="100" y2="400" stroke="black" stroke-width="0.5"/>
+  <line x1="100" y1="400" x2="100" y2="100" stroke="black" stroke-width="0.5"/>
+  <line x1="80" y1="250" x2="720" y2="250" stroke="black" stroke-width="0.25" stroke-dasharray="12,3,3,3"/>
+  <line x1="400" y1="80" x2="400" y2="420" stroke="black" stroke-width="0.25" stroke-dasharray="12,3,3,3"/>
+  <circle cx="150" cy="150" r="12" fill="none" stroke="black" stroke-width="0.5"/>
+  <circle cx="650" cy="150" r="12" fill="none" stroke="black" stroke-width="0.5"/>
+  <circle cx="650" cy="350" r="12" fill="none" stroke="black" stroke-width="0.5"/>
+  <circle cx="150" cy="350" r="12" fill="none" stroke="black" stroke-width="0.5"/>
+  <circle cx="400" cy="250" r="30" fill="none" stroke="black" stroke-width="0.5"/>
+  <text x="200" y="60" font-size="16" font-family="sans-serif" fill="black">L-BRACKET MOUNTING PLATE - 200 × 120 × 8 mm</text>
+  <text x="250" y="450" font-size="12" font-family="sans-serif" fill="black">MATERIAL: 6061-T6 ALUMINUM, ANODIZED BLACK</text>
+  <text x="130" y="175" font-size="9" font-family="sans-serif" fill="black">Ø6.4 THRU (4x)</text>
+  <text x="360" y="245" font-size="9" font-family="sans-serif" fill="black">Ø30 THRU</text>
+  <rect x="615" y="485" width="280" height="60" fill="white" stroke="black" stroke-width="0.5"/>
+  <text x="619" y="497" font-size="8" font-weight="bold" fill="black">INONI LLC / MURPHY SYSTEMS</text>
+  <text x="619" y="509" font-size="8" fill="black">MURPHY DEMO DRAWING</text>
+  <text x="619" y="521" font-size="8" fill="black">DWG: MD-001</text>
+  <text x="619" y="533" font-size="8" fill="black">By: Murphy AI  Chk: (pending)  Rev: A</text>
+</svg>

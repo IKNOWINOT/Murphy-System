@@ -128,7 +128,57 @@ class GlobalFeedbackDispatcher:
         submission.remediation_plan_id = plan.id
         self._plans[plan.id] = plan
 
+        # PATCH-INC-001 (2026-05-27): route HIGH/CRITICAL feedback to incident router
+        # so the founder gets unified visibility. low/medium stay in the feedback store only.
+        try:
+            self._route_to_incident_router(submission)
+        except Exception as exc:
+            logger.warning("feedback %s -> incident router failed: %s", submission.id, exc)
+
         return submission
+
+    def _route_to_incident_router(self, submission) -> None:
+        """Fire an incident for high/critical feedback. Bypasses low/medium noise."""
+        # FeedbackSeverity enum: low=1, medium=2, high=3, critical=4
+        sev_name = (submission.severity.value
+                    if hasattr(submission.severity, "value") else str(submission.severity))
+        if sev_name not in ("high", "critical"):
+            return
+        sev_map = {"high": "high", "critical": "urgent"}
+        import urllib.request, json as _json
+        title = (submission.title or "(no title)")[:120]
+        body_parts = [submission.description or ""]
+        if submission.actual_behavior:
+            body_parts.append("Actual: " + submission.actual_behavior)
+        if submission.expected_behavior:
+            body_parts.append("Expected: " + submission.expected_behavior)
+        if submission.page_url:
+            body_parts.append("Page: " + submission.page_url)
+        payload = _json.dumps({
+            "source": "global_feedback",
+            "severity": sev_map[sev_name],
+            "title": "User feedback (" + sev_name + "): " + title,
+            "body": "\n\n".join(body_parts)[:8000],
+            "origin_id": submission.id,
+            "origin_tenant_id": submission.tenant_id or "",
+            "metadata": {"feedback_id": submission.id,
+                         "user_id": submission.user_id,
+                         "source": str(submission.source),
+                         "component": submission.component}
+        }).encode()
+        try:
+            req = urllib.request.Request(
+                "http://127.0.0.1:8000/api/incidents/route",
+                data=payload,
+                headers={"Content-Type": "application/json",
+                         "X-Internal": "global_feedback"},
+                method="POST"
+            )
+            urllib.request.urlopen(req, timeout=8)
+            logger.info("feedback %s (sev=%s) routed to incident router",
+                        submission.id, sev_name)
+        except Exception as e:
+            logger.warning("feedback %s router failed: %s", submission.id, e)
 
     # ------------------------------------------------------------------
     # 2. Dispatch to GitHub

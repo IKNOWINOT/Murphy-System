@@ -1,0 +1,114 @@
+{
+  "module": "r361_intake_router",
+  "blocks": {
+    "ingest": {
+      "intent_plain": "Ingest a form payload from a channel. Writes vault_form_intake (PII summary) + form_intake_queue (HITL row). Returns dict with ref + queue_id + assignee, OR error dict.",
+      "inputs": {
+        "channel": "str (api|sms|email|portal)",
+        "source_identity": "str (canonical sender identifier \u2014 must be unique per ingest)",
+        "form_code": "str (e.g. F1-09)",
+        "tenant_slug": "str",
+        "raw_payload": "str (JSON-encoded form data)"
+      },
+      "outputs": {
+        "return": "dict with ref/queue_id/assignee on success OR code/where on error"
+      },
+      "side_effects": [
+        "WRITES vault_form_intake row (PII)",
+        "WRITES form_intake_queue row (HITL queue)",
+        "tested via R376 TX-wrap pattern (cleanup by R376_TEST_ marker)"
+      ],
+      "failure_modes": [
+        "E_AUTH_0002",
+        "E_DB_0005",
+        "E_AUTH_0003",
+        "E_PARSE_0028"
+      ],
+      "must_not": [
+        "leak PII into form_intake_queue",
+        "create queue row without vault row",
+        "succeed for unknown tenant",
+        "create rows in production WHEN VALIDATOR INVOKES (TX-wrap cleanup verifies)"
+      ],
+      "test_array_tx_wrap": {
+        "weak": {
+          "input": [
+            "api",
+            "R376_TEST_weak_<ts>",
+            "F1-09",
+            "NONEXISTENT_TENANT",
+            "{}"
+          ],
+          "expected_return_keys": [
+            "code"
+          ],
+          "expected_no_writes": true
+        },
+        "good": {
+          "input": [
+            "api",
+            "R376_TEST_good_<ts>",
+            "F1-09",
+            "apex_wellness",
+            "{\"a\":\"b\"}"
+          ],
+          "expected_return_keys": [
+            "ref",
+            "queue_id"
+          ],
+          "expected_writes": [
+            "vault_form_intake",
+            "form_intake_queue"
+          ]
+        },
+        "precise": {
+          "input": [
+            "sms",
+            "R376_TEST_precise_<ts>",
+            "F1-12",
+            "oregon_mep_demo",
+            "{\"text\":\"call hr\"}"
+          ],
+          "expected_return_keys": [
+            "ref",
+            "queue_id"
+          ],
+          "expected_writes": [
+            "vault_form_intake",
+            "form_intake_queue"
+          ]
+        },
+        "really_good": {
+          "input": [
+            "email",
+            "R376_TEST_really_<ts>",
+            "F1-09",
+            "apex_wellness",
+            "{\"complex\":\"payload with email@x.example and 555-1234\"}"
+          ],
+          "expected_return_keys": [
+            "ref",
+            "queue_id"
+          ],
+          "expected_writes": [
+            "vault_form_intake",
+            "form_intake_queue"
+          ]
+        }
+      }
+    }
+  },
+  "pipelines": {
+    "_self_check": {
+      "intent_plain": "Module loads + ingest function exists",
+      "anchors": [
+        "err",
+        "ingest",
+        "ts"
+      ],
+      "pipeline_check": {
+        "module_loadable": true
+      }
+    }
+  }
+}

@@ -896,6 +896,12 @@ _PUBLIC_PATHS: tuple = (
     "/api/auth/oauth",
     # Public reviews — displayed on landing/pricing pages without login
     "/api/reviews",
+    # R492 — LLM spend dashboard (read-only, no PII)
+    "/api/llm/spend",
+    "/api/brain/inject",     # R493
+    "/api/brain/telemetry",  # R493
+    "/api/brain/revoke",     # R493
+    "/api/brain/status",     # R493
 )
 
 
@@ -1393,6 +1399,9 @@ if _STARLETTE_AVAILABLE:
 
             try:
                 user_id = request.headers.get("X-User-ID", "").strip() or "anonymous"
+                # _R422_FOUNDER_EXEMPT: founder and internal tool calls bypass rate limits
+                if user_id == "founder" or request.headers.get("X-Internal-Tool-Call") == "1":
+                    return await call_next(request)
 
                 # 1. Per-endpoint-tier check (stricter limits for sensitive endpoints)
                 for prefix, rpm, burst in self._endpoint_tiers:

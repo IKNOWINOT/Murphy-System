@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<title>Cascadia — R363 Compliance Follow-ups</title>
+<style>
+:root{--bg:#fafaf7;--text:#1a1d1f;--muted:#6b7280;--border:#d8d5cc;--rule:#e8e5dc;
+--primary:#1f4e3d;--secondary:#1a4480;--accent:#c97a3d;--paper:#fafaf7;
+--high:#b91c1c;--normal:#1f4e3d;--gap-bg:#fee2e2;
+--mono:'SF Mono',Menlo,monospace;--display:'Inter',-apple-system,sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--display);font-size:14px;line-height:1.5}
+.page{max-width:1280px;margin:0 auto;padding:32px 40px;background:#fff;min-height:100vh;box-shadow:0 0 0 1px var(--border)}
+.masthead{border-bottom:3px solid var(--primary);padding-bottom:18px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:flex-end}
+.mark{width:42px;height:42px;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:700;font-size:14px;border-radius:2px;margin-right:14px}
+.brand-block{display:flex;align-items:center}
+.masthead h1{font-family:var(--display);font-size:18px;font-weight:700;color:var(--primary)}
+.masthead .meta{text-align:right;font-family:var(--mono);font-size:10px;color:var(--muted);line-height:1.7}
+.doc-title{margin-bottom:24px;padding:18px 22px;background:var(--paper);border-left:4px solid var(--secondary)}
+.doc-title .kicker{font-family:var(--mono);font-size:10px;letter-spacing:1.5px;color:var(--secondary);text-transform:uppercase}
+.doc-title h2{font-family:var(--display);font-size:22px;margin-top:6px;font-weight:700}
+.audit-banner{background:var(--gap-bg);border:1px solid var(--high);padding:10px 16px;margin-bottom:20px;font-size:12px;border-radius:3px}
+.audit-banner strong{color:var(--high)}
+section{margin-bottom:28px}
+section h3{font-family:var(--display);font-size:12px;color:var(--primary);font-weight:700;letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid var(--rule);padding-bottom:6px;margin-bottom:14px}
+.tools{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}
+.tools a{font-family:var(--mono);font-size:11px;color:var(--secondary);text-decoration:none;padding:6px 12px;border:1px solid var(--secondary);border-radius:2px}
+.hitl-card{border:1.5px solid var(--high);border-left-width:5px;background:#fff;padding:16px 20px;border-radius:3px;margin-bottom:14px}
+.hitl-card .hh{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.hitl-card .qid{font-family:var(--mono);font-size:13px;color:var(--high);font-weight:700}
+.hitl-card .sev{font-family:var(--mono);font-size:9px;letter-spacing:1px;text-transform:uppercase;padding:2px 8px;border-radius:2px;background:var(--high);color:#fff;font-weight:700}
+.hitl-card .meta-line{font-family:var(--mono);font-size:10px;color:var(--muted);margin-bottom:10px}
+.hitl-card .payload{background:var(--paper);border:1px dashed var(--border);padding:10px 14px;font-family:var(--mono);font-size:11px;white-space:pre-wrap;margin-bottom:10px;max-height:280px;overflow-y:auto}
+.spec-table{width:100%;border-collapse:collapse;font-size:11px;font-family:var(--mono);background:#fff;border:1px solid var(--border);margin-bottom:14px}
+.spec-table th{background:var(--primary);color:#fff;padding:6px 10px;text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:0.5px}
+.spec-table td{padding:6px 10px;border-bottom:1px solid var(--rule)}
+.spec-table .field-key{color:var(--secondary);font-weight:700}
+.spec-table .citation{color:var(--muted);font-size:10px}
+.spec-table .high{color:var(--high);font-weight:700}
+.footer{margin-top:32px;padding-top:18px;border-top:1px solid var(--rule);font-size:10px;color:var(--muted);font-family:var(--mono);display:flex;justify-content:space-between}
+.footer a{color:var(--secondary);text-decoration:none}
+
+/* R366 mobile responsive — inlined */
+/* R366 mobile responsive partial — applies across all Cascadia/Apex/wizard surfaces */
+@media (max-width: 768px) {
+  .page { padding: 16px 14px !important; max-width: 100% !important; box-shadow: none !important; }
+  .masthead { flex-direction: column; align-items: flex-start; gap: 10px; padding-bottom: 14px; }
+  .masthead .meta { text-align: left; font-size: 9px; }
+  .masthead h1 { font-size: 16px; }
+  .brand-block { width: 100%; }
+  .mark { width: 36px; height: 36px; font-size: 12px; }
+  .doc-title h2 { font-size: 18px; line-height: 1.3; }
+  section h3 { font-size: 11px; }
+  .audit-banner, .doc-title { padding: 12px 14px; font-size: 12px; }
+  .tools { gap: 6px; flex-wrap: wrap; }
+  .tools a { font-size: 10px; padding: 5px 9px; }
+  .summary, .field-grid, .compliance, .flow,
+  .q-grid[style*="grid-template-columns"] { 
+    grid-template-columns: 1fr !important; 
+  }
+  .step-tracker { flex-direction: column; }
+  .step-tile { border-right: 0 !important; border-bottom: 1px solid var(--border); }
+  .step-tile.current { border-bottom: 3px solid var(--current) !important; }
+  .step-tile::after, .fsm-step::after, .flow .step::after,
+  .binder-card .head .left::after { display: none !important; }
+  table { font-size: 10px; }
+  table.compact td, table.compact th { padding: 4px 6px; }
+  .engine-table th, .engine-table td { padding: 6px 8px; font-size: 10px; }
+  .chart-wrap { overflow-x: auto; padding: 12px 0; -webkit-overflow-scrolling: touch; }
+  .tree { transform-origin: top left; min-width: 600px; }
+  .binder-grid, .queue-list, .form-block, .lifecycle-row,
+  .binder-card, .intake-card, .hitl-card { padding: 12px 14px !important; }
+  .access-bar { gap: 4px; }
+  .access-bar .chip { font-size: 9px; padding: 3px 7px; }
+  .summary { gap: 8px; }
+  .stat { padding: 10px 12px; }
+  .stat .value, .summary .stat .value { font-size: 20px; }
+  .fsm-track { gap: 1px; flex-wrap: wrap; }
+  .fsm-step { font-size: 8px; padding: 5px 2px; min-width: 60px; }
+  .actions { flex-wrap: wrap; gap: 5px; }
+  .actions button { font-size: 10px; padding: 5px 9px; }
+  .diff-block { font-size: 10px; padding: 8px 10px; max-height: 240px; }
+  .chain { gap: 6px; }
+  .chip { min-width: 130px; font-size: 10px; padding: 6px 10px; }
+  .fix-card .proposed, .fix-card-mini .ftext { font-size: 11px; max-height: 200px; }
+  .compliance-row { grid-template-columns: 1fr 1fr; font-size: 10px; gap: 4px; padding: 6px 8px; }
+  .compliance-row.header { font-size: 9px; }
+  ol, ul { font-size: 12px !important; padding-left: 18px; }
+  .footer { flex-direction: column; gap: 6px; align-items: flex-start; }
+}
+@media (max-width: 480px) {
+  .page { padding: 10px 8px !important; }
+  .masthead h1 { font-size: 14px; }
+  .masthead .meta { font-size: 8px; }
+  .doc-title h2 { font-size: 16px; }
+  .stat .value, .summary .stat .value { font-size: 16px; }
+  .stat .label, .summary .stat .label { font-size: 8px; }
+  .summary { grid-template-columns: 1fr 1fr !important; gap: 6px; }
+  .compliance-row { grid-template-columns: 1fr; }
+  .compliance-row.header { display: none; }
+  .access-bar .chip { font-size: 8px; padding: 2px 6px; }
+  .audit-banner, .doc-title { font-size: 11px; padding: 10px 12px; }
+  .doc-title .kicker { font-size: 8px; }
+  .tools a { font-size: 9px; padding: 4px 8px; }
+  .binder-card .form-code, .form-block .fcode { font-size: 11px; }
+  .intake-card .payload, .diff-block { font-size: 9px; }
+  .fsm-step { font-size: 7px; min-width: 50px; padding: 4px 1px; }
+  .org-mini .emp-row { font-size: 10px; flex-direction: column; gap: 3px; align-items: flex-start; }
+  table { font-size: 9px; }
+  .spec-table td, .spec-table th { padding: 4px 6px; font-size: 9px; }
+  .card { min-width: 160px; max-width: 200px; padding: 7px 10px; font-size: 10px; }
+  .card .name { font-size: 11px; }
+  .card .role { font-size: 9px; }
+}
+
+</style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head><body>
+<div class="page">
+
+  <header class="masthead">
+    <div class="brand-block">
+      <div class="mark">CMC</div>
+      <div>
+        <h1>Cascadia MEP Contractors, LLC</h1>
+        <div style="color:var(--muted);font-size:11px;margin-top:2px">R363 Compliance Gap → HITL Follow-ups</div>
+      </div>
+    </div>
+    <div class="meta">
+      DOC: R363-COMP-V1<br>
+      ISSUED: 2026-05-30<br>
+      OPEN HITLs: 1<br>
+      SPEC RULES: 11
+    </div>
+  </header>
+
+  <div class="doc-title">
+    <div class="kicker">R363 — When Compliance Misses, HITL Fires</div>
+    <h2>1 Open Compliance Follow-up</h2>
+  </div>
+
+  <div class="audit-banner">
+    <strong>What happens when a revision fails compliance.</strong> R363 ran the rules in <code>form_compliance_specs</code> against every uploaded revision. Where required fields were missing, a follow-up row was inserted into <code>form_intake_queue</code> (the same R361 queue Evelyn already uses), with channel <code>compliance_followup</code> and severity matching the most-severe missing rule. R361 HITL assignee picking + R362 lifecycle FSM apply — no separate machinery.
+  </div>
+
+  <div class="tools">
+    <a href="/ui/cascadia_mep">↩ CEO briefing</a>
+    <a href="/ui/cascadia_revisions">↗ revision chains + diff</a>
+    <a href="/ui/cascadia_employee_view">↗ Evelyn's inbox</a>
+    <a href="/ui/cascadia_audit_binder">↗ audit binder</a>
+    <a href="/ui/cascadia_lifecycle_demo">↗ lifecycle FSM</a>
+  </div>
+
+  <section>
+    <h3>Live Compliance Follow-Ups</h3>
+    
+    <div class="hitl-card">
+      <div class="hh">
+        <div>
+          <span class="qid">Q #4</span>
+          <span style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-left:8px">F1-09 · via compliance_followup</span>
+        </div>
+        <span class="sev">high</span>
+      </div>
+      <div class="meta-line">
+        ASSIGNEE: <strong>evelyn.shapiro@cascadia-mep.example</strong> (people) · 
+        STATE: <code>pending_approval</code> · 
+        CREATED: 2026-05-31T05:57:38
+      </div>
+      <div class="payload">Compliance gap in F1-09 v.X — missing: NYC_paid_safe_leave, NY_workplace_violence
+
+[
+  {
+    "field": "NYC_paid_safe_leave",
+    "description": "NYC Earned Safe & Sick Time Act",
+    "citation": "NYC Admin Code \u00a720-911",
+    "severity": "high"
+  },
+  {
+    "field": "NY_workplace_violence",
+    "description": "NY workplace violence prevention program",
+    "citation": "NY Labor Law \u00a727-b",
+    "severity": "high"
+  }
+]</div>
+    </div>
+  </section>
+
+  <section>
+    <h3>The Active Rule Set (11 rules across 3 forms)</h3>
+    
+    <div style="margin-bottom:18px">
+      <h4 style="font-family:var(--mono);font-size:11px;color:var(--secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">F1-01 (3 required fields)</h4>
+      <table class="spec-table">
+        <tr><th>Field key</th><th>Description</th><th>Detect regex</th><th>Citation</th><th>Severity</th></tr>
+        <tr><td class="field-key">employer_signature</td><td>I-9 Section 2 employer signature block</td><td><code>(?i)(authorized representative|employer </code>…</td><td class="citation">8 CFR 274a.2</td><td class="high">high</td></tr><tr><td class="field-key">section_1_attestation</td><td>I-9 citizenship attestation</td><td><code>(?i)(citizen|noncitizen national|lawful </code>…</td><td class="citation">8 CFR 274a.2</td><td class="high">high</td></tr><tr><td class="field-key">section_2_doc_list</td><td>I-9 Section 2 document categories</td><td><code>(?i)(List A|List B|List C)</code>…</td><td class="citation">8 CFR 274a.2</td><td class="high">high</td></tr>
+      </table>
+    </div>
+    <div style="margin-bottom:18px">
+      <h4 style="font-family:var(--mono);font-size:11px;color:var(--secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">F1-09 (5 required fields)</h4>
+      <table class="spec-table">
+        <tr><th>Field key</th><th>Description</th><th>Detect regex</th><th>Citation</th><th>Severity</th></tr>
+        <tr><td class="field-key">NYC_paid_safe_leave</td><td>NYC Earned Safe & Sick Time Act</td><td><code>(?i)(paid safe leave|PSL\b)</code>…</td><td class="citation">NYC Admin Code §20-911</td><td class="high">high</td></tr><tr><td class="field-key">NY_harassment_training</td><td>NY annual sexual harassment prevention training</td><td><code>(?i)(harassment training|sexual harassme</code>…</td><td class="citation">NY Labor Law §201-g</td><td class="high">high</td></tr><tr><td class="field-key">NY_workplace_violence</td><td>NY workplace violence prevention program</td><td><code>(?i)(workplace violence|WPV prevention)</code>…</td><td class="citation">NY Labor Law §27-b</td><td class="high">high</td></tr><tr><td class="field-key">at_will</td><td>At-will employment acknowledgment</td><td><code>(?i)(at-will|at will employment)</code>…</td><td class="citation">best practice</td><td class="">normal</td></tr><tr><td class="field-key">equal_opportunity</td><td>Federal EEO statement</td><td><code>(?i)(equal employment opportunity|EEO)</code>…</td><td class="citation">Title VII</td><td class="">normal</td></tr>
+      </table>
+    </div>
+    <div style="margin-bottom:18px">
+      <h4 style="font-family:var(--mono);font-size:11px;color:var(--secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">F4-09 (3 required fields)</h4>
+      <table class="spec-table">
+        <tr><th>Field key</th><th>Description</th><th>Detect regex</th><th>Citation</th><th>Severity</th></tr>
+        <tr><td class="field-key">fall_protection</td><td>OSHA fall protection</td><td><code>(?i)(fall protection)</code>…</td><td class="citation">29 CFR 1926.501</td><td class="high">high</td></tr><tr><td class="field-key">osha_30</td><td>OSHA 30-hour construction</td><td><code>(?i)(OSHA[- ]?30)</code>…</td><td class="citation">29 CFR 1926</td><td class="high">high</td></tr><tr><td class="field-key">sst_card</td><td>NYC LL196 SST card</td><td><code>(?i)(SST card|Site Safety Training)</code>…</td><td class="citation">NYC Admin Code §28-401.3</td><td class="high">high</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h3>What R364 Will Add</h3>
+    <ul style="font-size:13px;line-height:1.9;margin-left:20px">
+      <li><strong>Semantic compliance</strong> — LLM-based intent matching, not just regex (e.g. "we provide leave for safety reasons" ≈ NYC PSL)</li>
+      <li><strong>Cross-form compliance</strong> — handbook claims SST training; does F4-09 record exist?</li>
+      <li><strong>Image-PDF OCR</strong> — handles scanned forms (E_DEP_0009 path)</li>
+      <li><strong>Suggested-fix LLM</strong> — when gap detected, propose corrective text the HR director can paste into v3</li>
+      <li><strong>Regulation-currency check</strong> — flag rules where citation has new amendments</li>
+    </ul>
+  </section>
+
+  <div class="footer">
+    <span>R363-COMP-V1 · Cascadia · Compliance stub — full semantic in R364</span>
+    <span><a href="/ui/cascadia_revisions">↩ revisions</a></span>
+  </div>
+
+</div></body></html>

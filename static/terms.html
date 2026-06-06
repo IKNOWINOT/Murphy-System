@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+<head>
+<link rel="stylesheet" href="/static/murphy-app-shell.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy System — Terms of Service</title>
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/static/murphy-design-system.css">
+<style>
+  .murphy-terminal, .murphy-output, pre, code {
+    font-family: var(--font-code, 'JetBrains Mono', monospace);
+    color: #00ff41;
+    background: #0a0a0a;
+  }
+  *:focus-visible { outline: 2px solid #00ff41; outline-offset: 2px; }
+
+  .terms-page { min-height: 100vh; background: #0a0a0a; display: flex; flex-direction: column; }
+  .terms-layout {
+    flex: 1; display: flex;
+    max-width: 1100px; margin: 0 auto; width: 100%;
+    padding: 2.5rem 1rem 4rem; gap: 2.5rem;
+  }
+
+  .terms-sidebar {
+    width: 220px; flex-shrink: 0;
+    position: sticky; top: 72px; align-self: flex-start;
+    max-height: calc(100vh - 90px); overflow-y: auto;
+  }
+  .terms-sidebar-title {
+    font-size: var(--text-xs); font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.07em;
+    color: var(--text-tertiary); margin-bottom: 0.5rem;
+  }
+  .terms-toc-link {
+    display: block; padding: 0.35rem 0.5rem; border-radius: var(--radius-sm);
+    font-size: var(--text-sm); color: var(--text-secondary);
+    text-decoration: none; transition: color var(--transition-base), background var(--transition-base);
+  }
+  .terms-toc-link:hover { color: var(--teal); background: rgba(0, 212, 170, 0.08); }
+
+  .terms-main { flex: 1; min-width: 0; color: #c9d1d9; }
+  .terms-hero { margin-bottom: 2.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border-subtle); }
+  .terms-hero h1 { color: #00ff41; font-size: 2rem; margin-bottom: 0.5rem; font-family: var(--font-code, monospace); }
+  .terms-hero .meta { color: var(--text-tertiary); font-size: var(--text-sm); }
+
+  .terms-main h2 {
+    color: #00D4AA; font-size: 1.3rem; margin-top: 2.2rem; margin-bottom: 0.8rem;
+    font-family: var(--font-code, monospace); border-left: 3px solid #00ff41;
+    padding-left: 0.75rem;
+  }
+  .terms-main h3 { color: #00ffff; font-size: 1.05rem; margin-top: 1.4rem; margin-bottom: 0.5rem; }
+  .terms-main p, .terms-main li { line-height: 1.65; margin-bottom: 0.7rem; }
+  .terms-main ul { padding-left: 1.5rem; margin-bottom: 1rem; }
+  .terms-main a { color: #00D4AA; text-decoration: none; }
+  .terms-main a:hover { text-decoration: underline; }
+  .terms-main strong { color: #c9d1d9; font-weight: 600; }
+
+  .terms-callout {
+    background: rgba(0, 212, 170, 0.06); border: 1px solid rgba(0, 212, 170, 0.25);
+    border-radius: 6px; padding: 1rem 1.2rem; margin: 1.2rem 0;
+    font-size: 0.95rem;
+  }
+
+  .terms-foot {
+    margin-top: 3rem; padding-top: 1.5rem;
+    border-top: 1px solid var(--border-subtle);
+    color: var(--text-tertiary); font-size: var(--text-sm);
+  }
+
+  @media (max-width: 800px) {
+    .terms-layout { flex-direction: column; padding: 1.5rem 1rem; }
+    .terms-sidebar { width: 100%; position: static; max-height: none; }
+  }
+</style>
+</head>
+<body class="terms-page">
+
+<header style="padding: 1rem 2rem; border-bottom: 1px solid var(--border-subtle);">
+  <a href="/" style="color: #00ff41; text-decoration: none; font-family: var(--font-code, monospace); font-weight: 600;">
+    ← Murphy Systems
+  </a>
+</header>
+
+<div class="terms-layout">
+  <aside class="terms-sidebar">
+    <div class="terms-sidebar-title">On this page</div>
+    <a class="terms-toc-link" href="#acceptance">1. Acceptance</a>
+    <a class="terms-toc-link" href="#professional-acceptance" style="padding-left: 1.2rem; font-size: 0.85rem;">1A. Professional &amp; Credential Binding</a>
+    <a class="terms-toc-link" href="#hitl-engagement" style="padding-left: 1.2rem; font-size: 0.85rem;">1B. HITL Engagement Contract</a>
+    <a class="terms-toc-link" href="#hitl-acceptance" style="padding-left: 2.0rem; font-size: 0.8rem;">→ Per-Item Acceptance</a>
+    <a class="terms-toc-link" href="#service">2. The Service</a>
+    <a class="terms-toc-link" href="#accounts">3. Accounts</a>
+    <a class="terms-toc-link" href="#subscriptions">4. Subscriptions &amp; Payment</a>
+    <a class="terms-toc-link" href="#refunds">5. Refunds</a>
+    <a class="terms-toc-link" href="#acceptable-use">6. Acceptable Use</a>
+    <a class="terms-toc-link" href="#data">7. Your Data</a>
+    <a class="terms-toc-link" href="#ai">8. AI &amp; Autonomous Agents</a>
+    <a class="terms-toc-link" href="#ip">9. Intellectual Property</a>
+    <a class="terms-toc-link" href="#warranty">10. Warranty Disclaimer</a>
+    <a class="terms-toc-link" href="#liability">11. Limitation of Liability</a>
+    <a class="terms-toc-link" href="#termination">12. Termination</a>
+    <a class="terms-toc-link" href="#changes">13. Changes</a>
+    <a class="terms-toc-link" href="#law">14. Governing Law</a>
+    <a class="terms-toc-link" href="#contact">15. Contact</a>
+  </aside>
+
+  <main class="terms-main">
+    <div class="terms-hero">
+      <h1>Terms of Service</h1>
+      <div class="meta">Effective: June 2, 2026 · Operated by Inoni LLC (d/b/a Murphy Systems)</div>
+    </div>
+
+    <p>These Terms of Service ("Terms") govern your access to and use of murphy.systems, the Murphy autonomous AI platform, and any related services (collectively, the "Service") provided by Inoni LLC ("Murphy", "we", "us"). By accessing or using the Service, you agree to be bound by these Terms.</p>
+
+    <div class="terms-callout">
+      <strong>Plain-English version:</strong> Murphy is an autonomous AI business platform. You pay a subscription, we provide the system. You own your data. Don't use it to break laws or hurt people. We try hard to keep it running but can't guarantee perfection.
+    </div>
+
+    <h2 id="acceptance">1. Acceptance of Terms</h2>
+    <p>By creating an account, completing checkout, clicking any "I accept", "Agree", "Submit", or equivalent acceptance control, or otherwise using the Service, you confirm that you (a) are at least 18 years old, (b) have authority to enter into this agreement on behalf of yourself or your organization, and (c) agree to these Terms and our <a href="/privacy">Privacy Policy</a>.</p>
+
+    <p><strong>Electronic signature.</strong> Your click, tap, or equivalent affirmative action constitutes your electronic signature under the U.S. Electronic Signatures in Global and National Commerce Act (ESIGN), the Uniform Electronic Transactions Act (UETA), and analogous laws in other jurisdictions. You agree that electronic records and signatures have the same legal force and effect as handwritten signatures on paper.</p>
+
+    <h2 id="professional-acceptance">1A. Professional Acceptance &amp; Credential Binding</h2>
+
+    <div class="terms-callout">
+      <strong>Plain-English version:</strong> If you accept terms, accept work, or edit any agreement on Murphy while logged in under professional credentials (license, certification, organizational role), you are personally and professionally on the hook for that acceptance. Your credentials sign the contract — not just your email.
+    </div>
+
+    <p>Murphy is used by licensed professionals, certified operators, and credentialed organizational representatives. Where the acceptor of any agreement, work scope, or term is logged in under, or has linked to their account, professional credentials (including but not limited to professional licenses, industry certifications, regulatory registrations, bar admissions, engineering stamps, healthcare licenses, contractor licenses, organizational role assignments, or fiduciary designations), the following additional terms apply:</p>
+
+    <h3>1A.1. Acceptance is binding under the acceptor's credentials</h3>
+    <p>By clicking accept, you (the "Acceptor") represent and warrant that:</p>
+    <ul>
+      <li>The credentials on file with your account are <strong>current, valid, accurately represented, and in good standing</strong> at the moment of acceptance.</li>
+      <li>You are <strong>personally and professionally responsible</strong> for the acceptance, to the same extent as if you had signed a paper contract using those credentials.</li>
+      <li>You have <strong>actual authority</strong> to bind any organization, principal, or client on whose behalf you are acting, and you accept personal liability for any acceptance made without such authority.</li>
+      <li>Any work, services, deliverables, advice, or representations flowing from your acceptance are <strong>subject to the professional standards of care, licensure requirements, and regulatory obligations</strong> applicable to your credentials.</li>
+    </ul>
+
+    <h3>1A.2. Editing or customizing terms re-binds you</h3>
+    <p>If you edit, modify, customize, redline, or accept a modified version of these Terms or any related agreement (including statements of work, HITL approvals, vendor agreements, or other deliverable acceptances) through the Service, that modification is treated as a fresh acceptance: it re-binds you under your credentials, and you re-affirm all representations in §1A.1 with respect to the modified terms.</p>
+
+    <h3>1A.3. Acceptance is logged as evidence</h3>
+    <p>At the moment of any acceptance or modification under this Section 1A, Murphy will record an immutable acceptance event, including: (a) timestamp (UTC), (b) IP address, (c) user agent, (d) snapshot of the credentials on file at that moment, (e) cryptographic hash of the exact text accepted, (f) the specific control activated, and (g) any HITL gate decisions in the chain. You consent to the creation, retention, and admissibility of these records as evidence of your acceptance in any dispute, audit, or regulatory inquiry.</p>
+
+    <h3>1A.4. Misrepresentation of credentials</h3>
+    <p>Accepting under credentials you do not hold, that are expired, suspended, revoked, or that you misrepresented to Murphy is a <strong>material breach</strong> of these Terms and may constitute fraud. You are personally liable for all damages, restitution, regulatory penalties, and third-party claims arising from such misrepresentation, regardless of any organizational shield you might otherwise enjoy.</p>
+
+    <h3>1A.5. No agency, no waiver by Murphy</h3>
+    <p>Murphy is a platform; it is not your employer, principal, supervising professional, or co-licensee. Murphy does not verify the substantive validity of professional credentials beyond the verification flow disclosed in the credential-linking process, and Murphy does not assume any of the obligations that flow from your professional status. Your professional responsibility runs to your clients, regulators, and the public — not to Murphy.</p>
+
+    <h2 id="hitl-engagement">1B. HITL (Human-In-The-Loop) Engagement Contract</h2>
+
+    <div class="terms-callout">
+      <strong>Plain-English version:</strong> Acting as a HITL approver isn't a click — it's a contract. Before any approval item ever lands in your queue, you have already contractually agreed, under your professional credentials, to be the responsible human for that class of action. Every individual approve/edit/reject afterward is a further act under that contract. You can't be assigned HITL responsibility without contracting in, and you can't disclaim responsibility for items you accepted into your queue.
+    </div>
+
+    <p>Murphy routes designated high-stakes actions through Human-In-The-Loop ("HITL") approval gates before execution. A HITL action may include, without limitation: outbound communications to third parties (emails, SMS, calls), payment authorizations, contractual commitments on behalf of you or a principal, data deletions, agent employment decisions, regulatory filings, public statements, deployments to production, or any other action Murphy or its operators have configured as gated.</p>
+
+    <h3>1B.0. Engagement contract precedes any item</h3>
+    <p><strong>You may not be assigned, nor may you accept assignment, as a HITL approver for any action class without first executing a HITL Engagement Contract.</strong> The Engagement Contract is a discrete agreement, separate from these Terms, that binds you under your professional credentials per §1A to be the responsible human for actions of one or more specified classes. The Engagement Contract is formed when each of the following occurs:</p>
+    <ul>
+      <li>You are presented with the specific action class(es) for which engagement is sought, the expected approval cadence, the standard of care expected, and the credentials Murphy will record as the binding basis.</li>
+      <li>You affirmatively engage — by clicking "Accept Engagement", e-signing, or completing an equivalent affirmative control — under the credentials disclosed at that moment.</li>
+      <li>Murphy records the Engagement Event per §1B.4 (timestamp, IP, UA, credential snapshot, hash of the engagement text, action classes covered, and effective dates).</li>
+    </ul>
+    <p>Engagement may be scoped to specific action classes, specific principals, specific time windows, specific volumes, or specific delegation chains. An Engagement Contract for one class is not engagement for another; an Engagement Contract bound to one set of credentials does not transfer if you switch credentials. Engagement may be revoked by you at any time prospectively, but revocation does not retroactively unwind responsibility for items already accepted into your queue or already approved.</p>
+    <p>If an action requiring HITL approval surfaces in your queue without a valid Engagement Contract in force, Murphy will either (a) refuse to route the item to you, (b) escalate to a properly engaged approver, or (c) hold the action until engagement is established. <strong>You may not approve an item by clicking through if you have not contractually engaged for its class.</strong></p>
+
+    <h3>1B.1. Per-Item Acceptance — approval authorizes execution as-presented</h3>
+    <p id="hitl-acceptance">Each individual approval is a discrete contractual act under your Engagement Contract. Your approval is Murphy's authorization to execute the action <strong>exactly as presented or as you edited it</strong> at the moment of approval. By engaging per §1B.0 you acknowledged in advance that you would have a meaningful opportunity to inspect each item's content, recipients, payload, scope, and side-effects before approving, and that the engagement does not relieve you of that per-item duty. You may not later claim that you did not see what you approved.</p>
+    <p>Your approval is Murphy's authorization to execute the action <strong>exactly as presented or as you edited it</strong> at the moment of approval. You acknowledge that you have had a meaningful opportunity to inspect the action's content, recipients, payload, scope, and side-effects before approving. You may not later claim that you did not see what you approved.</p>
+
+    <h3>1B.2. Editing a HITL item before approval re-binds you to the edit</h3>
+    <p>If you modify any element of a HITL item — recipients, body text, dollar amount, deadline, target system, payload, parameters, or any other field — before approving, the executed action is your edited version, not the original Murphy proposal. Your edit is, for all legal purposes, treated as if you had drafted it yourself, and the responsibility for the content, accuracy, lawfulness, and consequences of the edit is yours. Murphy is not responsible for content you supplied or modified.</p>
+
+    <h3>1B.3. Approval under professional credentials carries professional weight</h3>
+    <p>Where the HITL approver is logged in under, or is associated with, professional credentials per §1A, the approval is an exercise of professional judgment under those credentials. This means:</p>
+    <ul>
+      <li>Your approval is subject to the <strong>professional standard of care</strong> applicable to your credentials, even though it took the form of a single click.</li>
+      <li>Approvals of communications, advice, recommendations, or technical decisions emitted under your credentials carry the same weight as if you had authored and signed them yourself.</li>
+      <li>You are responsible for ensuring the action complies with the rules of your licensing authority, regulator, or organizational policy — Murphy does not verify substantive compliance at the gate.</li>
+      <li>If you are not qualified, not authorized, or otherwise should not be the approver for a given action, you must reject, defer, or escalate rather than approve.</li>
+    </ul>
+
+    <h3>1B.4. The approval is logged as evidence</h3>
+    <p>Every HITL action — approve, reject, edit, defer, escalate — is recorded by Murphy as a non-repudiable event, including: (a) UTC timestamp, (b) IP address and user agent, (c) snapshot of the credentials on file at the moment of action, (d) cryptographic hash of the exact item presented, (e) cryptographic hash of the item as approved (capturing any edits), (f) the specific control activated, (g) any HITL chain ancestry, and (h) the resulting execution outcome. You consent to the creation, retention, and admissibility of these records as evidence of your approval in any dispute, audit, regulatory inquiry, malpractice action, or internal review.</p>
+
+    <h3>1B.5. Rejections and escalations are also actions</h3>
+    <p>Rejecting or escalating a HITL item is a deliberate decision. You may not approve by inaction (auto-expiry of a HITL item does not constitute approval), and a rejection or escalation under your credentials is logged with the same evidentiary weight as an approval. If you reject or escalate, you are responsible for documenting your reasoning where your professional standards or organizational policy require it.</p>
+
+    <h3>1B.6. Murphy is not the approver of last resort</h3>
+    <p>Murphy is a platform that presents actions for human approval. Murphy does not substitute its own judgment for yours, does not insure against the consequences of your approval, and is not your professional supervisor. The substantive decision at every HITL gate is yours; the approval workflow is merely the mechanism by which your decision is recorded and executed.</p>
+
+    <h3>1B.7. No approval by inaction; standing authorizations are within engagement scope</h3>
+    <p>Where you have pre-configured an allowlist, auto-approval rule, or standing authorization for certain action classes (e.g., "auto-approve replies to known senders"), such standing authorization is only valid where it falls within the scope of an Engagement Contract you have executed per §1B.0 for that action class. Within scope, each auto-approval is treated as a per-item act under your Engagement Contract — as if you had affirmatively approved that specific action under your credentials at the moment it executed — and you remain responsible for the configuration of, and outcomes from, every standing authorization on your account. Outside scope, standing authorizations are inoperative and Murphy will refuse to act on them.</p>
+
+    <h3>1B.8. Engagement is the binding event Murphy looks to</h3>
+    <p>For purposes of liability allocation, audit, regulatory inquiry, and dispute resolution, Murphy treats the Engagement Contract as the upstream binding event and each per-item action as a downstream act under that contract. A claim that "the click was accidental" or "I didn't mean to approve this one item" is evaluated against the standing engagement: by contracting in, you accepted that the per-item interface would be the operative mechanism for your decisions, and you accepted responsibility for using it with the care your credentials require.</p>
+
+    <h2 id="service">2. The Service</h2>
+    <p>Murphy provides an autonomous AI platform including, without limitation: automated agent employment, workflow orchestration, payments integration, customer relationship management, and self-modifying system behaviors. Features available to you depend on your subscription tier.</p>
+    <p>We may update, improve, or discontinue features at our discretion. We will provide reasonable notice for material changes that significantly reduce existing functionality you depend on.</p>
+
+    <h2 id="accounts">3. Accounts</h2>
+    <p>You are responsible for: (a) maintaining the confidentiality of your credentials, (b) all activity under your account, and (c) notifying us promptly of any unauthorized access. We may suspend accounts that violate these Terms or pose security risks.</p>
+
+    <h2 id="subscriptions">4. Subscriptions &amp; Payment</h2>
+    <p>Murphy offers tiered subscriptions: Free, Pilot ($99/mo), Growth ($499/mo), Scale ($1,499/mo), and Enterprise (custom). Pricing is listed at <a href="/pricing">/pricing</a> and may be updated; you will be notified of price changes affecting your active subscription at least 30 days in advance.</p>
+    <h3>Billing cycles</h3>
+    <ul>
+      <li><strong>Monthly:</strong> billed at the start of each calendar month.</li>
+      <li><strong>Annual:</strong> billed once per year, with a discount versus monthly.</li>
+    </ul>
+    <h3>Payment methods</h3>
+    <p>We accept cryptocurrency (via NOWPayments — BTC, ETH, USDT, and 50+ others) and, for annual plans, invoiced payment with Net-30 terms.</p>
+    <h3>Failed payments</h3>
+    <p>If a payment fails, we will attempt to notify you and allow a 7-day grace period to resolve the issue before suspending the Service.</p>
+
+    <h2 id="refunds">5. Refunds</h2>
+    <p>We offer a <strong>30-day money-back guarantee</strong> for first-time paid subscribers. If you are dissatisfied within 30 days of your first paid charge, contact us at <a href="mailto:cpost@murphy.systems">cpost@murphy.systems</a> for a full refund of that initial charge.</p>
+    <p>Beyond the initial 30 days, subscription fees are non-refundable except where required by law. You may cancel at any time and will retain access through the end of your current paid period.</p>
+
+    <h2 id="acceptable-use">6. Acceptable Use</h2>
+    <p>You agree NOT to use the Service to:</p>
+    <ul>
+      <li>Violate any law, regulation, or third party's rights.</li>
+      <li>Send spam, run unauthorized outreach campaigns, or impersonate others.</li>
+      <li>Attempt to gain unauthorized access to the Service, other accounts, or our infrastructure.</li>
+      <li>Reverse-engineer the Service except to the extent permitted by applicable law.</li>
+      <li>Use the Service to generate or distribute malware, illegal content, or content that incites violence.</li>
+      <li>Process sensitive personal data (medical, financial, biometric) in tiers not enabled for that data class.</li>
+    </ul>
+
+    <h2 id="data">7. Your Data</h2>
+    <p>You retain ownership of all content, data, and materials you provide to the Service ("Customer Data"). You grant Murphy a limited license to process Customer Data solely to provide and improve the Service in accordance with our <a href="/privacy">Privacy Policy</a>.</p>
+    <p>You are responsible for the legality of Customer Data you submit and for obtaining all necessary consents from individuals whose data you process.</p>
+    <p>Upon termination, you may export your data within 30 days. After that period, we may delete Customer Data in accordance with our retention policies.</p>
+
+    <h2 id="ai">8. AI &amp; Autonomous Agents</h2>
+    <p>Murphy is an autonomous AI platform. This means:</p>
+    <ul>
+      <li><strong>Autonomy:</strong> Murphy may take actions on your behalf (sending emails, making API calls, generating content, employing agents) based on instructions you provide or workflows you configure.</li>
+      <li><strong>HITL gates:</strong> High-stakes actions are routed through Human-In-The-Loop approval queues; you remain responsible for approving these actions.</li>
+      <li><strong>Outputs:</strong> AI-generated outputs may contain errors, omissions, or inaccuracies. You are responsible for reviewing AI outputs before relying on them for material decisions.</li>
+      <li><strong>External integrations:</strong> When you connect third-party services (Gmail, Stripe, NOWPayments, etc.), you authorize Murphy to act on your behalf within those services per the scopes you grant.</li>
+    </ul>
+
+    <h2 id="ip">9. Intellectual Property</h2>
+    <p>The Service, including all software, designs, trademarks, and underlying systems, is owned by Inoni LLC and protected by applicable IP laws. These Terms do not transfer any ownership rights to you beyond the limited license to use the Service as provided.</p>
+    <p>You retain ownership of outputs generated specifically for you using your Customer Data, subject to third-party AI provider terms where applicable.</p>
+
+    <h2 id="warranty">10. Warranty Disclaimer</h2>
+    <p>THE SERVICE IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTIES OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, OR NON-INFRINGEMENT. WE DO NOT WARRANT THAT THE SERVICE WILL BE UNINTERRUPTED, ERROR-FREE, OR SECURE.</p>
+
+    <h2 id="liability">11. Limitation of Liability</h2>
+    <p>TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL INONI LLC OR ITS AFFILIATES BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR ANY LOSS OF PROFITS OR REVENUES, ARISING FROM YOUR USE OF THE SERVICE.</p>
+    <p>OUR TOTAL CUMULATIVE LIABILITY FOR ANY CLAIM ARISING OUT OF THESE TERMS OR THE SERVICE SHALL NOT EXCEED THE GREATER OF (A) THE AMOUNT YOU PAID US IN THE 12 MONTHS PRECEDING THE CLAIM, OR (B) $100 USD.</p>
+
+    <h2 id="termination">12. Termination</h2>
+    <p>You may cancel your subscription at any time through your account settings or by emailing <a href="mailto:cpost@murphy.systems">cpost@murphy.systems</a>. We may suspend or terminate your access if you materially breach these Terms, with reasonable notice except in cases of security risk, payment failure beyond grace period, or legal requirement.</p>
+
+    <h2 id="changes">13. Changes to These Terms</h2>
+    <p>We may update these Terms periodically. Material changes will be announced at least 30 days before taking effect via email or in-product notice. Continued use of the Service after the effective date constitutes acceptance.</p>
+
+    <h2 id="law">14. Governing Law</h2>
+    <p>These Terms are governed by the laws of the State of New York, USA, without regard to its conflict of laws principles. Any disputes shall be resolved in the state or federal courts located in Erie County, New York, and you consent to personal jurisdiction in those courts.</p>
+
+    <h2 id="contact">15. Contact</h2>
+    <p>Questions about these Terms? Contact us:</p>
+    <ul>
+      <li><strong>Email:</strong> <a href="mailto:cpost@murphy.systems">cpost@murphy.systems</a></li>
+      <li><strong>Legal entity:</strong> Inoni LLC, doing business as Murphy Systems</li>
+      <li><strong>Domain:</strong> murphy.systems</li>
+    </ul>
+
+    <div class="terms-foot">
+      Last updated: June 2, 2026 ·
+      <a href="/privacy">Privacy Policy</a> ·
+      <a href="/pricing">Pricing</a> ·
+      <a href="/">Home</a>
+    </div>
+  </main>
+</div>
+
+</body>
+</html>

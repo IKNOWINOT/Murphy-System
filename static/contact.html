@@ -1,89 +1,257 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Contact — Murphy Systems</title>
-  <link rel="icon" href="/static/favicon.ico" />
-  <style>
-    :root { color-scheme: light dark; }
-    body { font-family: -apple-system, system-ui, sans-serif; max-width: 880px;
-            margin: 0 auto; padding: 2rem 1rem; line-height: 1.55;
-            color: #1a1a1a; background: #fafafa; }
-    h1 { font-size: 2.25rem; margin-bottom: 0.5rem; }
-    .sub { color: #666; margin-bottom: 2rem; }
-    table { width: 100%; border-collapse: collapse; background: white;
-             border-radius: 12px; overflow: hidden;
-             box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
-    th, td { text-align: left; padding: 1rem 1.25rem;
-              border-bottom: 1px solid #eee; }
-    th { background: #f4f4f5; font-size: 0.85rem; text-transform: uppercase;
-          letter-spacing: 0.05em; color: #555; }
-    tr:last-child td { border-bottom: none; }
-    .dept { font-weight: 600; width: 22%; }
-    .num a { font-family: ui-monospace, SF Mono, Menlo, monospace;
-              font-size: 1.05rem; color: #0066cc; text-decoration: none;
-              font-weight: 600; }
-    .num a:hover { text-decoration: underline; }
-    .desc { color: #555; font-size: 0.95rem; }
-    .footer { margin-top: 2rem; font-size: 0.9rem; color: #666; }
-    .footer a { color: #0066cc; }
-    @media (max-width: 600px) {
-      table, thead, tbody, tr, th, td { display: block; }
-      thead { display: none; }
-      tr { margin-bottom: 1rem; border-radius: 12px; overflow: hidden; }
-      td { padding: 0.5rem 1rem; }
-      .dept { background: #f4f4f5; font-size: 1.05rem; }
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contact · Murphy</title>
+<meta name="murphy-version" content="R489-contact-v1">
+<meta http-equiv="Cache-Control" content="no-store, max-age=0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/murphy-brand.css">
+<style>
+  /* Topbar — match landing page exactly */
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 32px; background: var(--bg);
+    border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 50;
+  }
+  .topbar-brand {
+    display: flex; align-items: center; gap: 10px;
+    color: var(--text); font-weight: 700; font-size: 18px;
+    letter-spacing: -0.01em; text-decoration: none;
+  }
+  .topbar-brand .brand-name { color: var(--text); }
+  .murphy-logo-live { width: 32px; height: 32px; display: inline-block; vertical-align: middle; }
+  .topbar-nav { display: flex; gap: 4px; align-items: center; }
+  .topbar-nav a {
+    padding: 8px 14px; border-radius: 8px;
+    color: var(--text-dim); font-size: 14px; font-weight: 500;
+    transition: color .15s, background .15s;
+  }
+  .topbar-nav a:hover { color: var(--text); background: var(--surface); }
+  .topbar-nav a.active { color: var(--teal); background: rgba(0,212,170,.08); }
+  .topbar-actions { display: flex; gap: 8px; align-items: center; }
+  .btn-login {
+    color: var(--text); padding: 8px 16px; border-radius: 8px;
+    border: 1px solid var(--border-hi); font-size: 14px; font-weight: 500;
+  }
+  .btn-login:hover { background: var(--surface); }
+  .btn-start {
+    color: var(--bg); background: var(--teal); padding: 8px 16px;
+    border-radius: 8px; font-size: 14px; font-weight: 600;
+  }
+  .btn-start:hover { background: var(--green); opacity: 1; }
+
+  /* Page layout */
+  .wrap { max-width: 720px; margin: 0 auto; padding: 0 24px; }
+  .hero { text-align: center; padding: 56px 24px 36px; }
+  .hero h1 { font-size: 42px; font-weight: 800; letter-spacing: -0.025em; margin-bottom: 12px; }
+  .hero .tag { color: var(--text-dim); font-size: 16px; max-width: 540px; margin: 0 auto; }
+
+  /* Form */
+  .form-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 32px; margin-bottom: 32px;
+  }
+  .form-row { margin-bottom: 18px; }
+  .form-row label {
+    display: block; margin-bottom: 8px;
+    font-size: 13px; font-weight: 600; color: var(--text);
+    letter-spacing: 0.01em;
+  }
+  .form-row label .req { color: var(--teal); margin-left: 2px; }
+  .form-row input,
+  .form-row select,
+  .form-row textarea {
+    width: 100%; padding: 12px 14px;
+    background: var(--bg2); color: var(--text);
+    border: 1px solid var(--border); border-radius: var(--radius);
+    font-family: var(--font); font-size: 14px;
+    transition: border-color .15s, background .15s;
+  }
+  .form-row textarea { min-height: 140px; resize: vertical; line-height: 1.5; }
+  .form-row input:focus,
+  .form-row select:focus,
+  .form-row textarea:focus {
+    outline: none; border-color: var(--teal); background: var(--surface);
+  }
+  .form-row .hint { font-size: 12px; color: var(--text-mute); margin-top: 6px; }
+
+  .btn-submit {
+    background: var(--teal); color: var(--bg);
+    padding: 14px 28px; border-radius: var(--radius);
+    border: none; font-family: var(--font); font-size: 15px; font-weight: 700;
+    cursor: pointer; transition: background .15s, transform .1s;
+    width: 100%; letter-spacing: 0.01em;
+  }
+  .btn-submit:hover { background: var(--green); }
+  .btn-submit:active { transform: translateY(1px); }
+  .btn-submit:disabled { opacity: 0.6; cursor: wait; }
+
+  .form-status {
+    margin-top: 16px; padding: 12px 14px; border-radius: var(--radius);
+    font-size: 14px; display: none;
+  }
+  .form-status.ok { display: block; background: rgba(0,212,170,.10); border: 1px solid var(--border-hi); color: var(--teal); }
+  .form-status.err { display: block; background: rgba(255,95,87,.10); border: 1px solid rgba(255,95,87,.3); color: var(--red); }
+
+  .alt-lines {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 18px 22px; margin-bottom: 32px;
+    color: var(--text-dim); font-size: 14px;
+  }
+  .alt-lines .line { display: flex; gap: 12px; padding: 8px 0; }
+  .alt-lines .label { color: var(--text-mute); min-width: 110px; }
+  .alt-lines .value { color: var(--text); }
+  .alt-lines .value a { color: var(--teal); }
+  .alt-lines .value .mono { font-family: var(--font-code); font-size: 13px; }
+
+  .footer-note {
+    text-align: center; padding: 24px; color: var(--text-mute);
+    font-size: 12px; border-top: 1px solid var(--border); margin-top: 32px;
+  }
+</style>
 </head>
 <body>
-  <h1>Contact Murphy</h1>
-  <p class="sub">Reach the right department directly. Every line is
-     answered by Murphy first; complex requests escalate to the founder.</p>
 
-  <table>
-    <thead>
-      <tr>
-        <th>Department</th>
-        <th>Phone</th>
-        <th>What it's for</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr>
-          <td class="dept">Sales</td>
-          <td class="num"><a href="tel:+17165763872">(716) 576-3872</a></td>
-          <td class="desc">Murphy Sales — autonomous prospecting & inbound demos</td>
-        </tr>
-        <tr>
-          <td class="dept">Engineering</td>
-          <td class="num"><a href="tel:+17165266207">(716) 526-6207</a></td>
-          <td class="desc">Murphy Engineering — RFI, RFQ, technical questions</td>
-        </tr>
-        <tr>
-          <td class="dept">Support</td>
-          <td class="num"><a href="tel:+17163171164">(716) 317-1164</a></td>
-          <td class="desc">Murphy Support — existing customer help</td>
-        </tr>
-        <tr>
-          <td class="dept">Operations</td>
-          <td class="num"><a href="tel:+17166413445">(716) 641-3445</a></td>
-          <td class="desc">Murphy Ops — billing, account, admin</td>
-        </tr>
-        <tr>
-          <td class="dept">Founder</td>
-          <td class="num"><a href="tel:+17164195325">(716) 419-5325</a></td>
-          <td class="desc">Corey Post direct — escalations only</td>
-        </tr>
-    </tbody>
-  </table>
+<header class="topbar" role="banner">
+  <a class="topbar-brand" href="/" aria-label="Murphy home">
+    <div class="murphy-logo-live" id="murphy-logo-live"></div>
+    <span class="brand-name">Murphy</span>
+  </a>
+  <nav class="topbar-nav" id="main-nav">
+    <a href="/pricing">Pricing</a>
+    <a href="/docs">Docs</a>
+    <a href="/jobs">Jobs</a>
+    <a href="/contact" class="active">Contact</a>
+  </nav>
+  <div class="topbar-actions">
+    <a href="/ui/login" class="btn-login">Log in</a>
+    <a href="/ui/signup" class="btn-start">Start Free</a>
+  </div>
+</header>
 
-  <p class="footer">
-    Email: <a href="mailto:hello@murphy.systems">hello@murphy.systems</a>
-    &nbsp;·&nbsp; Pricing: <a href="/static/pricing.html">/pricing</a>
-    &nbsp;·&nbsp; Numbers powered by Twilio. Calls may be recorded
-    for quality and training.
-  </p>
+<div class="wrap">
+  <div class="hero">
+    <h1>Get in touch</h1>
+    <p class="tag">Send a message and Corey will see it. He runs Murphy. He picks up.</p>
+  </div>
+
+  <div class="form-card">
+    <form id="contact-form" novalidate>
+      <div class="form-row">
+        <label for="name">Name<span class="req">*</span></label>
+        <input id="name" name="name" type="text" required autocomplete="name" />
+      </div>
+      <div class="form-row">
+        <label for="email">Email<span class="req">*</span></label>
+        <input id="email" name="email" type="email" required autocomplete="email" />
+        <div class="hint">So we can write back.</div>
+      </div>
+      <div class="form-row">
+        <label for="company">Company</label>
+        <input id="company" name="company" type="text" autocomplete="organization" />
+      </div>
+      <div class="form-row">
+        <label for="topic">Topic</label>
+        <select id="topic" name="topic">
+          <option value="general">General question</option>
+          <option value="sales">Sales / pricing</option>
+          <option value="partnership">Partnership</option>
+          <option value="press">Press</option>
+          <option value="support">Support — I'm a customer</option>
+          <option value="legal">Legal / privacy</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label for="message">Message<span class="req">*</span></label>
+        <textarea id="message" name="message" required placeholder="What's on your mind?"></textarea>
+      </div>
+      <button class="btn-submit" id="submit-btn" type="submit">Send message</button>
+      <div class="form-status" id="form-status"></div>
+    </form>
+  </div>
+
+  <div class="alt-lines">
+    <div class="line"><div class="label">Direct email</div><div class="value"><a href="mailto:cpost@murphy.systems">cpost@murphy.systems</a></div></div>
+    <div class="line"><div class="label">Founder line</div><div class="value mono"><a href="tel:+17164003440">+1 (716) 400-3440</a></div></div>
+    <div class="line"><div class="label">Mailing</div><div class="value">Inoni LLC · Buffalo, NY</div></div>
+  </div>
+
+  <div class="footer-note">
+    Submissions land in cpost@murphy.systems → forwarded to corey.gfc@gmail.com.<br>
+    Usually answered within a day.
+  </div>
+</div>
+
+<script src="/static/murphy-gaze.js" defer></script>
+<script>
+(function() {
+  const form = document.getElementById('contact-form');
+  const btn = document.getElementById('submit-btn');
+  const status = document.getElementById('form-status');
+
+  function setStatus(kind, text) {
+    status.className = 'form-status ' + kind;
+    status.textContent = text;
+  }
+
+  form.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    status.className = 'form-status';
+    status.textContent = '';
+
+    const fd = new FormData(form);
+    const payload = {
+      name: (fd.get('name') || '').toString().trim(),
+      email: (fd.get('email') || '').toString().trim(),
+      company: (fd.get('company') || '').toString().trim(),
+      topic: (fd.get('topic') || 'general').toString(),
+      message: (fd.get('message') || '').toString().trim(),
+      source_url: window.location.href,
+      submitted_at: new Date().toISOString(),
+    };
+
+    // Quick client-side validation
+    if (!payload.name) { setStatus('err', 'Please tell us your name.'); return; }
+    if (!payload.email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(payload.email)) {
+      setStatus('err', 'Please enter a valid email address.'); return;
+    }
+    if (!payload.message || payload.message.length < 8) {
+      setStatus('err', 'Please write a few more words so we can help.'); return;
+    }
+
+    btn.disabled = true;
+    const origText = btn.textContent;
+    btn.textContent = 'Sending…';
+
+    try {
+      const r = await fetch('/api/contact/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        credentials: 'omit',
+      });
+      const data = await r.json().catch(() => ({}));
+      if (r.ok && data.ok) {
+        setStatus('ok', 'Got it. Corey will be in touch.');
+        form.reset();
+      } else {
+        let msg = (data && data.error) ? String(data.error) : ('Send failed (HTTP ' + r.status + ')');
+        setStatus('err', msg);
+      }
+    } catch (err) {
+      setStatus('err', 'Network error: ' + String(err));
+    } finally {
+      btn.disabled = false;
+      btn.textContent = origText;
+    }
+  });
+})();
+</script>
+
 </body>
 </html>

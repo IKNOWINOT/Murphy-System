@@ -1,0 +1,44 @@
+{
+  "module": "r369_notifier",
+  "blocks": {
+    "send_email": {
+      "intent_plain": "Honestly report DELIVERY status (not queue status). For demo domains (.example/.test/.invalid), return bounce_expected upfront without invoking sendmail to prevent bounce mail to root.",
+      "inputs": {"recipient":"str","subject":"str","body":"str"},
+      "outputs": {"status":["sent","bounce_expected","skipped","failed"],"code":"str|null"},
+      "side_effects": ["may invoke sendmail (only for non-demo domains)","no notifications_log row (caller handles that)"],
+      "failure_modes": ["E_NET_0012","E_NET_0014","E_AUTH_0014","E_PARSE_0014"],
+      "must_not": ["claim 'sent' for RFC 6761 reserved test domains","leak PII to logs"],
+      "test_array": {
+        "weak": [{"input":["","",""],"expected_status":"skipped","expected_code":"E_PARSE_0014"}],
+        "good": [{"input":["aisha.okonkwo@cascadia-mep.example","Test","Body"],"expected_status":"bounce_expected","expected_code":"E_NET_0014"}],
+        "precise": [{"input":["james@apexwellness.example","Q#10","payload"],"expected_status":"bounce_expected","expected_code":"E_NET_0014"}],
+        "really_good": [{"input":["external@unauthorized.com","subject","body"],"expected_status":"skipped","expected_code":"E_AUTH_0014"}]
+      }
+    },
+    "send_sms_stub": {
+      "intent_plain": "Stub SMS send when Twilio creds absent; log intent without actually calling Twilio.",
+      "inputs": {"recipient_phone":"str","message":"str"},
+      "outputs": {"status":"str","code":"str","extra":"str"},
+      "side_effects": ["MUST NOT call real Twilio when TWILIO_ACCOUNT_SID unset"],
+      "failure_modes": ["E_AUTH_0013"],
+      "must_not": ["actually call Twilio when creds missing"],
+      "test_array": {
+        "weak": [{"input":["","x"],"expected_status":"stubbed","expected_code":"E_AUTH_0013"}],
+        "good": [{"input":["+15551234567","Murphy: Q#9 high"],"expected_status":"stubbed","expected_code":"E_AUTH_0013"}],
+        "precise": [{"input":["+15551234567","Murphy: Q#10 F1-12 [high] by 2026-06-05"],"expected_status":"stubbed","expected_code":"E_AUTH_0013"}],
+        "really_good": [{"input":["+15555555555","160 char max length test message with full context about a pending F1-12 separation packet for employee on departure with urgent action items"],"expected_status":"stubbed","expected_code":"E_AUTH_0013"}]
+      }
+    }
+  },
+  "pipelines": {
+    "retroactive": {
+      "intent_plain": "Notify all pending_approval HITLs ≤7d old via email+SMS; aggregate per-HITL outcomes.",
+      "anchors": ["send_email","send_sms_stub","log_notification"],
+      "pipeline_check": {
+        "consistency": "len(results) == retroactive_scanned",
+        "each_result_has": ["queue_id","email","sms"],
+        "no_real_external_calls": true
+      }
+    }
+  }
+}

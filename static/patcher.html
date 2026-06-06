@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Murphy Patcher — Self-Patch Review</title>
+<style>
+  :root {
+    --bg: #080c0a;
+    --panel: #0e1612;
+    --panel-2: #131d18;
+    --line: #1c2a23;
+    --teal: #00d4aa;
+    --teal-dim: #00876d;
+    --text: #d7e6df;
+    --muted: #6b8278;
+    --warn: #f4a040;
+    --bad: #ff5e6c;
+    --good: #6ddc8c;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text);
+    font: 14px/1.5 ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+  header { padding: 14px 22px; background: linear-gradient(180deg, #0d1612 0%, #080c0a 100%);
+    border-bottom: 1px solid var(--line); display:flex; align-items:center; gap:18px;}
+  header h1 { margin: 0; font-size: 18px; color: var(--teal); letter-spacing: 0.5px;
+    font-weight: 600; }
+  header .sub { color: var(--muted); font-size: 12px; }
+  header .stats { margin-left: auto; display: flex; gap: 18px; font-size: 12px; }
+  header .stats b { color: var(--teal); font-weight: 600; }
+  .layout { display: grid; grid-template-columns: 360px 1fr; height: calc(100vh - 56px); }
+  aside { background: var(--panel); border-right: 1px solid var(--line); overflow-y: auto; }
+  aside .filters { padding: 12px 14px; border-bottom: 1px solid var(--line);
+    background: var(--panel-2); position: sticky; top:0; z-index:2; }
+  aside .filters select, aside .filters input {
+    background: var(--bg); color: var(--text); border: 1px solid var(--line);
+    padding: 5px 8px; border-radius: 4px; font: inherit; width: 100%; margin-bottom: 6px; }
+  aside .filters button {
+    background: var(--teal); color: #06120e; border: none; padding: 6px 12px;
+    border-radius: 4px; font: inherit; font-weight: 600; cursor: pointer; }
+  aside .filters button:hover { background: #00ffcd; }
+  aside .filters .bulk { background: var(--bad); color:#fff; margin-left:4px; }
+  .prop {
+    padding: 11px 14px; border-bottom: 1px solid var(--line); cursor: pointer;
+    transition: background .12s; }
+  .prop:hover { background: var(--panel-2); }
+  .prop.selected { background: #0c1a16; border-left: 3px solid var(--teal); padding-left: 11px; }
+  .prop .row1 { display: flex; gap: 8px; align-items: center; margin-bottom: 4px; }
+  .prop .pid { color: var(--teal); font-weight: 600; font-size: 12px; }
+  .prop .risk { font-size: 10px; padding: 1px 6px; border-radius: 3px;
+    font-weight: 600; letter-spacing: 0.3px; }
+  .risk.LOW       { background: #103a2d; color: var(--good); }
+  .risk.MEDIUM    { background: #3a2a10; color: var(--warn); }
+  .risk.HIGH      { background: #3a1a1a; color: var(--bad); }
+  .risk.CRITICAL  { background: #470000; color: #ff8a98; }
+  .prop .status { font-size: 10px; padding: 1px 6px; border-radius: 3px;
+    background: var(--panel-2); color: var(--muted); margin-left: auto; }
+  .status.applied   { color: var(--good); background: #0a2218; }
+  .status.qc_blocked, .status.rejected { color: var(--bad); background: #220a0c; }
+  .status.approved_not_applied { color: var(--warn); background: #221708; }
+  .prop .target { color: var(--text); font-size: 12px; margin-bottom: 2px; word-break: break-all; }
+  .prop .meta   { color: var(--muted); font-size: 11px; }
+  main { overflow-y: auto; padding: 24px; }
+  main .empty { color: var(--muted); text-align: center; padding-top: 80px; font-size: 14px; }
+  .detail h2 { margin: 0 0 4px; font-size: 18px; color: var(--teal); }
+  .detail .target-line { color: var(--muted); margin-bottom: 18px; word-break: break-all; }
+  .detail .actions { margin-bottom: 22px; display: flex; gap: 8px; align-items: center; }
+  .detail .actions button {
+    background: var(--teal); color: #06120e; border: none; padding: 8px 16px;
+    border-radius: 4px; font: inherit; font-weight: 600; cursor: pointer; }
+  .detail .actions button.reject { background: var(--bad); color: #fff; }
+  .detail .actions button:disabled { opacity: 0.4; cursor: not-allowed; }
+  .detail .actions input { background: var(--bg); color: var(--text);
+    border: 1px solid var(--line); padding: 6px 10px; border-radius: 4px;
+    font: inherit; }
+  .detail .actions .confirm-warn { color: var(--bad); font-size: 12px; }
+  .detail .grid { display: grid; grid-template-columns: 140px 1fr; gap: 6px 16px;
+    margin-bottom: 22px; font-size: 13px; }
+  .detail .grid b { color: var(--muted); font-weight: 400; }
+  .diff {
+    background: #050807; border: 1px solid var(--line); border-radius: 6px;
+    padding: 14px 16px; overflow-x: auto; font-size: 12.5px; line-height: 1.55; }
+  .diff .add { color: var(--good); }
+  .diff .del { color: var(--bad); }
+  .diff .hunk { color: var(--teal); }
+  .diff .meta { color: var(--muted); }
+  .toast { position: fixed; bottom: 22px; right: 22px; background: var(--panel-2);
+    border: 1px solid var(--line); border-left: 3px solid var(--teal);
+    padding: 12px 18px; border-radius: 4px; z-index: 100;
+    max-width: 420px; font-size: 13px; opacity: 0; transition: opacity .2s; }
+  .toast.show { opacity: 1; }
+  .toast.error { border-left-color: var(--bad); }
+  .qc-detail { background: var(--panel-2); padding: 8px 12px; border-radius: 4px;
+    color: var(--muted); font-size: 12px; margin-bottom: 18px; word-break: break-word; }
+  .qc-pass { color: var(--good); } .qc-fail { color: var(--bad); }
+  .refresh-pill { font-size: 11px; color: var(--muted); cursor: pointer; }
+  .refresh-pill:hover { color: var(--teal); }
+</style>
+</head>
+<body>
+<header>
+  <h1>⚙ MURPHY PATCHER</h1>
+  <span class="sub">self-patch review console</span>
+  <div class="stats" id="stats">
+    <span>total: <b id="s-total">—</b></span>
+    <span>applied: <b id="s-applied">—</b></span>
+    <span>pending: <b id="s-pending">—</b></span>
+    <span class="refresh-pill" id="refresh">↻ refresh</span>
+  </div>
+</header>
+
+<div class="layout">
+  <aside>
+    <div class="filters">
+      <select id="f-status">
+        <option value="">all status</option>
+        <option value="pending" selected>pending</option>
+        <option value="applied">applied</option>
+        <option value="qc_blocked">qc_blocked</option>
+        <option value="approved_not_applied">approved_not_applied</option>
+        <option value="rejected">rejected</option>
+      </select>
+      <select id="f-risk">
+        <option value="">all risk</option>
+        <option value="LOW">LOW</option>
+        <option value="MEDIUM">MEDIUM</option>
+        <option value="HIGH">HIGH</option>
+        <option value="CRITICAL">CRITICAL</option>
+      </select>
+      <div style="display:flex; gap:6px; margin-top:4px;">
+        <button id="apply-filters">Apply</button>
+        <button class="bulk" id="bulk-reject-legacy" title="Bulk-reject all pending legacy proposals">Bulk reject legacy</button>
+      </div>
+    </div>
+    <div id="prop-list"></div>
+  </aside>
+
+  <main>
+    <div id="detail" class="empty">Select a proposal from the left.</div>
+  </main>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+const API_KEY = localStorage.getItem('murphy_api_key') || prompt('Murphy API key:');
+if (API_KEY) localStorage.setItem('murphy_api_key', API_KEY);
+const H = { 'X-API-Key': API_KEY, 'Content-Type': 'application/json' };
+
+let proposals = [];
+let selectedId = null;
+
+function toast(msg, isError = false) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show' + (isError ? ' error' : '');
+  setTimeout(() => el.classList.remove('show'), 3500);
+}
+
+async function api(path, opts = {}) {
+  const url = `https://murphy.systems${path}`;
+  const r = await fetch(url, { headers: H, ...opts });
+  if (!r.ok && r.status !== 400 && r.status !== 404) {
+    throw new Error(`HTTP ${r.status}`);
+  }
+  return r.json();
+}
+
+async function loadStats() {
+  try {
+    const d = await api('/api/patcher/proposals/stats');
+    document.getElementById('s-total').textContent   = d.total ?? '?';
+    document.getElementById('s-applied').textContent = (d.by_status?.applied ?? 0);
+    document.getElementById('s-pending').textContent = (d.by_status?.pending ?? 0);
+  } catch (e) { console.error(e); }
+}
+
+async function loadProposals() {
+  const status = document.getElementById('f-status').value;
+  const risk   = document.getElementById('f-risk').value;
+  const params = new URLSearchParams();
+  if (status) params.set('status', status);
+  if (risk)   params.set('risk_level', risk);
+  params.set('limit', '100');
+  try {
+    const d = await api(`/api/patcher/proposals?${params}`);
+    proposals = d.proposals || [];
+    renderList();
+  } catch (e) {
+    toast('Load failed: ' + e.message, true);
+  }
+}
+
+function renderList() {
+  const html = proposals.map(p => `
+    <div class="prop ${p.proposal_id === selectedId ? 'selected' : ''}"
+         data-id="${p.proposal_id}">
+      <div class="row1">
+        <span class="pid">${p.proposal_id?.slice(0, 14)}</span>
+        <span class="risk ${p.risk_level || ''}">${p.risk_level || '—'}</span>
+        <span class="status ${p.status || ''}">${p.status || '—'}</span>
+      </div>
+      <div class="target">${p.affected_file || '(no target)'}</div>
+      <div class="meta">
+        ${p.diff_lines ?? '?'}L · ${(p.created_at || '').slice(0, 16).replace('T', ' ')}
+        · ${p.source || 'unknown'}
+      </div>
+    </div>
+  `).join('');
+  document.getElementById('prop-list').innerHTML = html ||
+    `<div style="padding: 18px; color: var(--muted);">No proposals match.</div>`;
+  document.querySelectorAll('.prop').forEach(el => {
+    el.onclick = () => selectProposal(el.dataset.id);
+  });
+}
+
+function escapeHTML(s) {
+  return (s || '').replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[c]);
+}
+
+function colorizeDiff(diffText) {
+  return escapeHTML(diffText).split('\n').map(line => {
+    if (line.startsWith('+++') || line.startsWith('---')) return `<span class="meta">${line}</span>`;
+    if (line.startsWith('@@'))                          return `<span class="hunk">${line}</span>`;
+    if (line.startsWith('+'))                            return `<span class="add">${line}</span>`;
+    if (line.startsWith('-'))                            return `<span class="del">${line}</span>`;
+    return line;
+  }).join('\n');
+}
+
+async function selectProposal(id) {
+  selectedId = id;
+  renderList();
+  document.getElementById('detail').innerHTML = '<div class="empty">Loading...</div>';
+  try {
+    const d = await api(`/api/patcher/proposals/${id}`);
+    const p = d.proposal;
+    if (!p) { document.getElementById('detail').innerHTML = '<div class="empty">Not found.</div>'; return; }
+    const qcv = p.qc_verdict || {};
+    const qcDetail = qcv.causality_detail || qcv.rubix_detail || '(no QC run yet)';
+    const isApplied = p.status === 'applied';
+    const isPending = p.status === 'pending';
+    const isHigh    = p.risk_level === 'HIGH' || p.risk_level === 'CRITICAL';
+    const html = `
+      <div class="detail">
+        <h2>${p.proposal_id}</h2>
+        <div class="target-line">${p.affected_file || '(no target)'}
+          · <span class="risk ${p.risk_level || ''}">${p.risk_level || '—'}</span>
+          · <span class="status ${p.status || ''}">${p.status || '—'}</span></div>
+
+        <div class="actions">
+          <input id="op-id" placeholder="operator_id (e.g. corey_post)"
+                 value="${localStorage.getItem('operator_id') || 'corey_post'}"/>
+          <button id="approve-btn" ${!isPending ? 'disabled' : ''}>
+            Approve & Apply${isHigh ? ' ⚠' : ''}
+          </button>
+          <button class="reject" id="reject-btn" ${!isPending ? 'disabled' : ''}>Reject</button>
+          ${isHigh && isPending ? '<span class="confirm-warn">HIGH risk — will auto-confirm</span>' : ''}
+        </div>
+
+        <div class="grid">
+          <b>created</b>      <span>${p.created_at || '—'}</span>
+          <b>source</b>       <span>${p.source || '—'}</span>
+          <b>diff hash</b>    <span style="font-size:11px;">${p.diff_hash || '—'}</span>
+          <b>diff lines</b>   <span>${p.diff_lines ?? '—'}</span>
+          <b>brief</b>        <span>${(p.brief || '').slice(0, 240)}</span>
+          ${p.applied_at ? `<b>applied at</b><span>${p.applied_at}</span>` : ''}
+          ${p.approved_by ? `<b>approved by</b><span>${p.approved_by}</span>` : ''}
+          ${p.apply_error ? `<b>apply error</b><span class="qc-fail">${p.apply_error}</span>` : ''}
+        </div>
+
+        ${p.qc_verdict ? `<div class="qc-detail">
+          <b class="${qcv.rubix_passed ? 'qc-pass' : 'qc-fail'}">QC ${qcv.rubix_passed ? 'PASS' : 'FAIL'}</b>
+          — ${escapeHTML(qcDetail)}
+        </div>` : ''}
+
+        <pre class="diff">${colorizeDiff(p.unified_diff || '(no diff)')}</pre>
+      </div>`;
+    document.getElementById('detail').innerHTML = html;
+
+    document.getElementById('approve-btn').onclick = () => approve(id, isHigh);
+    document.getElementById('reject-btn').onclick  = () => reject(id);
+  } catch (e) {
+    document.getElementById('detail').innerHTML = `<div class="empty">Error: ${e.message}</div>`;
+  }
+}
+
+async function approve(id, isHigh) {
+  const opId = document.getElementById('op-id').value.trim();
+  if (!opId) { toast('operator_id required', true); return; }
+  localStorage.setItem('operator_id', opId);
+  document.getElementById('approve-btn').disabled = true;
+  document.getElementById('approve-btn').textContent = 'Applying...';
+  try {
+    const body = { operator_id: opId };
+    if (isHigh) body.confirm = true;
+    const r = await fetch(`https://murphy.systems/api/patcher/proposals/${id}/approve`, {
+      method: 'POST', headers: H, body: JSON.stringify(body)
+    });
+    const d = await r.json();
+    if (d.applied)       toast('✓ Applied to disk');
+    else if (d.qc_pass === false) toast('QC blocked: ' + (d.qc_verdict?.causality_detail || ''), true);
+    else                 toast('Result: ' + (d.status || 'unknown'), !d.ok);
+    await loadStats();
+    await loadProposals();
+    await selectProposal(id);
+  } catch (e) { toast('Approve failed: ' + e.message, true); }
+}
+
+async function reject(id) {
+  const opId = document.getElementById('op-id').value.trim();
+  if (!opId) { toast('operator_id required', true); return; }
+  const reason = prompt('Reject reason:', 'manual review');
+  if (!reason) return;
+  try {
+    const r = await fetch(`https://murphy.systems/api/patcher/proposals/${id}/reject`, {
+      method: 'POST', headers: H,
+      body: JSON.stringify({ operator_id: opId, reason })
+    });
+    const d = await r.json();
+    toast(d.ok ? '✓ Rejected' : ('Failed: ' + (d.error || '')), !d.ok);
+    await loadStats();
+    await loadProposals();
+    await selectProposal(id);
+  } catch (e) { toast('Reject failed: ' + e.message, true); }
+}
+
+document.getElementById('apply-filters').onclick = loadProposals;
+document.getElementById('refresh').onclick       = async () => { await loadStats(); await loadProposals(); };
+document.getElementById('bulk-reject-legacy').onclick = async () => {
+  if (!confirm('Bulk-reject ALL pending legacy proposals? This cannot be undone.')) return;
+  const opId = localStorage.getItem('operator_id') || 'corey_post';
+  try {
+    const r = await fetch(`https://murphy.systems/api/patcher/proposals/bulk_reject?source=legacy&status=pending`, {
+      method: 'POST', headers: H,
+      body: JSON.stringify({ operator_id: opId })
+    });
+    const d = await r.json();
+    toast(d.ok ? `✓ Rejected ${d.rejected} legacy proposals` : ('Failed: ' + (d.error || '')), !d.ok);
+    await loadStats(); await loadProposals();
+  } catch (e) { toast('Bulk reject failed: ' + e.message, true); }
+};
+
+(async () => { await loadStats(); await loadProposals(); })();
+setInterval(loadStats, 15000);
+</script>
+</body>
+</html>

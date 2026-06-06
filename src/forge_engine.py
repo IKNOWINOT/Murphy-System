@@ -211,7 +211,33 @@ def _safe_name(s: str) -> str:
 # ── LLM codegen ───────────────────────────────────────────────────────────────
 def _llm_generate(prompt: str, max_tokens: int = 2048) -> str:
     """Generate code via the Murphy LLM provider (unified, with fallback).
-    Uses a fresh provider instance to pick up current env keys."""
+    Uses a fresh provider instance to pick up current env keys.
+
+    R52 (2026-06-05): Wrapped in 3-attempt retry with exponential backoff
+    because DeepInfra has intermittent 60s read timeouts on long codegen
+    prompts. Without retry, a single LLM blip kills the whole Forge job
+    and Murphy can't autonomously build modules. With retry, Forge becomes
+    reliable enough for autonomous self-build (the inversion Corey
+    directive 2026-06-05 R52)."""
+    import time as _t
+    last_err = None
+    for attempt in range(3):
+        try:
+            return _llm_generate_once(prompt, max_tokens)
+        except RuntimeError as e:
+            last_err = e
+            if attempt < 2:
+                wait = 2 ** attempt  # 1s, 2s, 4s
+                logger.warning(
+                    "FORGE-RETRY-001: LLM attempt %d/3 failed (%s), waiting %ds",
+                    attempt + 1, str(e)[:80], wait
+                )
+                _t.sleep(wait)
+    raise RuntimeError(f"LLM unavailable after 3 attempts: {last_err}")
+
+
+def _llm_generate_once(prompt: str, max_tokens: int = 2048) -> str:
+    """One LLM attempt. R52: extracted from _llm_generate for retry wrapping."""
     try:
         from src.llm_provider import MurphyLLMProvider
         llm = MurphyLLMProvider()  # fresh instance — not singleton, so env keys are current

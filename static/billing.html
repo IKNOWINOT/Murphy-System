@@ -1,0 +1,31 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Billing & Plan · Murphy</title>
+<link rel="stylesheet" href="/static/_tenant_shared.css"></head><body>
+<header><h1>Billing & Plan</h1></header>
+<nav><a href="/tenant" id="n_dash">Dashboard</a><a href="/ui/billing" id="n_bill">Billing</a><a href="/ui/settings" id="n_set">Settings</a><a href="/ui/account" id="n_acc">Account</a></nav>
+<div class="card"><h2>Current Subscription</h2><div id="sub">Loading…</div></div>
+<div class="card"><h2>Billing History</h2><div id="hist">Loading…</div></div>
+<div class="card"><h2>Payment Method</h2>
+  <div class="row"><span class="k">Provider</span><span class="v">NOWPayments (crypto) · Mercuryo (fiat on-ramp)</span></div>
+  <div class="row"><span class="k">Update</span><span class="v"><a href="/pricing" style="color:var(--teal)">Manage at /pricing</a></span></div>
+</div>
+<script>
+async function get(p){try{const r=await fetch(p);if(r.status===401)return{_auth:true};return await r.json()}catch(e){return{_err:e.message}}}
+async function load(){
+  document.getElementById('n_bill').classList.add('active');
+  const s = await get('/api/account/subscription');
+  if(s._auth){document.getElementById('sub').innerHTML='<div class="empty">Sign in to view your subscription</div>';}
+  else{
+    document.getElementById('sub').innerHTML=
+      `<div class="row"><span class="k">Plan</span><span class="v">${s.plan||'—'}</span></div>`+
+      `<div class="row"><span class="k">Status</span><span class="v">${s.status||'—'}</span></div>`+
+      `<div class="row"><span class="k">Renews</span><span class="v">${s.renews_at||s.next_billing_date||'—'}</span></div>`+
+      `<div class="row"><span class="k">Amount</span><span class="v">${s.amount?'$'+s.amount:'—'}</span></div>`;
+  }
+  const h = await get('/api/account/billing-history');
+  if(h._auth){document.getElementById('hist').innerHTML='<div class="empty">Sign in to view billing history</div>';}
+  else if(!h.events || !h.events.length){document.getElementById('hist').innerHTML='<div class="empty">No billing events yet</div>';}
+  else{document.getElementById('hist').innerHTML=h.events.map(e=>
+    `<div class="row"><span class="k">${e.date||e.created_at}</span><span class="v">${e.event||e.type} · ${e.amount?'$'+e.amount:''}</span></div>`).join('');}
+}
+load();
+</script></body></html>

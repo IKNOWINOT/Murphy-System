@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy Mission Control — Live Cascade Demo</title>
+<meta name="description" content="Watch Murphy run a real cascade through 10 agents, the deliverables queue, and the HITL approval gate — live.">
+<style>
+:root {
+  --bg: #060908;
+  --panel: #0d1210;
+  --elevated: #162019;
+  --teal: #00d4aa;
+  --teal-dim: rgba(0,212,170,0.13);
+  --teal-glow: rgba(0,212,170,0.4);
+  --text: #d8e4e0;
+  --text-dim: #7d8e88;
+  --red: #ff5f57;
+  --yellow: #febc2e;
+  --green: #28c840;
+  --font: 'Inter', system-ui, -apple-system, sans-serif;
+  --mono: 'Fira Code', 'Cascadia Code', 'Menlo', monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 14px;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+.mc-header {
+  padding: 20px 32px;
+  border-bottom: 1px solid var(--teal-dim);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(13,18,16,0.6);
+  backdrop-filter: blur(8px);
+}
+.mc-brand {
+  display: flex; align-items: center; gap: 12px;
+}
+.mc-brand a {
+  color: var(--teal);
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: -0.3px;
+}
+.mc-brand .sep { color: var(--text-dim); }
+.mc-brand .title { color: var(--text); font-weight: 500; }
+
+.mc-header-status {
+  display: flex; align-items: center; gap: 16px;
+  font-family: var(--mono); font-size: 12px;
+}
+.status-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 12px;
+  border: 1px solid var(--teal-dim);
+  border-radius: 20px;
+  color: var(--text-dim);
+}
+.status-pill .pulse {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--teal);
+  box-shadow: 0 0 8px var(--teal-glow);
+  animation: blink 1.4s ease-in-out infinite;
+}
+@keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+.mc-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr 1fr;
+  gap: 20px;
+  padding: 24px 32px;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+@media (max-width: 1100px) {
+  .mc-grid { grid-template-columns: 1fr; }
+}
+
+.mc-col {
+  background: var(--panel);
+  border: 1px solid var(--teal-dim);
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 600px;
+}
+.mc-col-header {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--teal-dim);
+  display: flex; justify-content: space-between; align-items: center;
+}
+.mc-col-title {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--text);
+}
+.mc-col-meta {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.mc-col-body {
+  padding: 16px 18px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* Org chart column */
+.org-agents {
+  display: flex; flex-direction: column;
+  gap: 8px;
+}
+.org-agent {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px;
+  background: var(--elevated);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  transition: all 0.25s;
+  position: relative;
+}
+.org-agent.active {
+  border-color: var(--teal);
+  box-shadow: 0 0 24px rgba(0,212,170,0.25), inset 0 0 12px rgba(0,212,170,0.08);
+  transform: translateX(4px);
+}
+.org-agent.active::before {
+  content: ""; position: absolute; left: -2px; top: 8px; bottom: 8px;
+  width: 3px; background: var(--teal); border-radius: 2px;
+  box-shadow: 0 0 8px var(--teal-glow);
+}
+.org-agent.done {
+  border-color: var(--teal-dim);
+}
+.org-agent.fail {
+  border-color: var(--red); background: rgba(255,95,87,0.04);
+}
+.org-agent-emoji {
+  font-size: 22px;
+  width: 32px; text-align: center;
+  filter: grayscale(0.4);
+  transition: filter 0.25s;
+}
+.org-agent.active .org-agent-emoji,
+.org-agent.done .org-agent-emoji { filter: grayscale(0); }
+.org-agent-body { flex: 1; }
+.org-agent-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+.org-agent-role {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+.org-agent-verdict {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 7px;
+  border-radius: 4px;
+  background: transparent;
+  border: 1px solid transparent;
+}
+.org-agent.active .org-agent-verdict {
+  background: rgba(0,212,170,0.15); border-color: var(--teal); color: var(--teal);
+}
+.org-agent.done .org-agent-verdict {
+  background: rgba(40,200,64,0.12); border-color: var(--green); color: var(--green);
+}
+.org-agent.fail .org-agent-verdict {
+  background: rgba(255,95,87,0.15); border-color: var(--red); color: var(--red);
+}
+
+/* Cascade center column */
+.cascade-controls {
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  background: var(--elevated);
+  border-radius: 8px;
+  border: 1px solid var(--teal-dim);
+}
+.cascade-target {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-bottom: 10px;
+}
+.cascade-target b { color: var(--text); }
+.cascade-target select {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--teal-dim);
+  border-radius: 5px;
+  padding: 5px 8px;
+  font-family: var(--mono);
+  font-size: 11px;
+  margin-top: 4px;
+  width: 100%;
+  cursor: pointer;
+}
+.cascade-target select:focus { outline: none; border-color: var(--teal); }
+
+.cascade-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--teal);
+  color: var(--bg);
+  border: none;
+  padding: 10px 18px;
+  border-radius: 6px;
+  font-family: var(--font);
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.cascade-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,212,170,0.4); }
+.cascade-btn:active { transform: translateY(0); }
+.cascade-btn[disabled] {
+  opacity: 0.5; cursor: not-allowed; transform: none;
+}
+.cascade-mode {
+  font-family: var(--mono); font-size: 10px;
+  color: var(--text-dim);
+  margin-top: 8px;
+}
+
+.trace-list {
+  list-style: none;
+  display: flex; flex-direction: column;
+  gap: 6px;
+  font-family: var(--mono);
+  font-size: 11.5px;
+}
+.trace-step {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--bg);
+  border-left: 2px solid var(--teal-dim);
+  border-radius: 0 5px 5px 0;
+  opacity: 0;
+  transform: translateX(-8px);
+  transition: opacity 0.3s, transform 0.3s, border-color 0.3s, background 0.3s;
+}
+.trace-step.shown { opacity: 1; transform: translateX(0); }
+.trace-step.ok { border-left-color: var(--green); }
+.trace-step.fail { border-left-color: var(--red); background: rgba(255,95,87,0.05); }
+.trace-step.preview { border-left-color: var(--yellow); }
+.trace-step-num {
+  font-weight: 700; color: var(--teal); font-size: 11px;
+}
+.trace-step-text { color: var(--text); }
+.trace-step-text .agent {
+  display: inline-block;
+  color: var(--teal); font-weight: 600;
+  text-transform: uppercase; font-size: 9.5px;
+  letter-spacing: 0.5px;
+  margin-right: 7px;
+}
+.trace-step-ms {
+  font-size: 10px; color: var(--text-dim);
+}
+
+.cascade-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-dim);
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.cascade-summary {
+  margin-top: 14px;
+  padding: 12px 14px;
+  background: var(--elevated);
+  border-radius: 6px;
+  font-family: var(--mono);
+  font-size: 11px;
+  display: none;
+}
+.cascade-summary.shown { display: block; }
+.cascade-summary .key { color: var(--text-dim); }
+.cascade-summary .val { color: var(--text); }
+.cascade-summary .val.ok { color: var(--green); font-weight: 700; }
+.cascade-summary .val.fail { color: var(--red); font-weight: 700; }
+
+/* HITL + deliverables column */
+.queue-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.queue-stat {
+  background: var(--elevated);
+  border: 1px solid var(--teal-dim);
+  border-radius: 6px;
+  padding: 12px;
+  text-align: center;
+}
+.queue-stat-value {
+  font-family: var(--mono);
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--teal);
+}
+.queue-stat-label {
+  font-size: 10px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-top: 4px;
+}
+
+.hitl-list {
+  list-style: none;
+  display: flex; flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+.hitl-item {
+  padding: 10px 12px;
+  background: var(--elevated);
+  border: 1px solid var(--teal-dim);
+  border-radius: 6px;
+  font-family: var(--mono);
+  font-size: 11px;
+  transition: all 0.2s;
+}
+.hitl-item.preview-target {
+  border-color: var(--teal);
+  box-shadow: 0 0 12px var(--teal-glow);
+}
+.hitl-item-recipient { color: var(--text); font-weight: 600; }
+.hitl-item-meta {
+  color: var(--text-dim);
+  font-size: 10px;
+  margin-top: 4px;
+  display: flex; justify-content: space-between;
+}
+.hitl-item-meta .critic {
+  color: var(--teal);
+  font-weight: 700;
+}
+
+.section-divider {
+  height: 1px;
+  background: var(--teal-dim);
+  margin: 14px 0;
+}
+.section-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--text-dim);
+  margin-bottom: 10px;
+}
+
+.foot-note {
+  margin-top: 20px;
+  padding: 14px;
+  background: var(--elevated);
+  border: 1px dashed var(--teal-dim);
+  border-radius: 8px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-dim);
+  font-family: var(--mono);
+}
+.foot-note a { color: var(--teal); text-decoration: none; border-bottom: 1px dashed; }
+</style>
+</head>
+<body>
+
+<div class="mc-header">
+  <div class="mc-brand">
+    <a href="/">Murphy</a>
+    <span class="sep">/</span>
+    <span class="title">Mission Control</span>
+  </div>
+  <div class="mc-header-status">
+    <span class="status-pill" id="conn-pill">
+      <span class="pulse"></span>
+      <span id="conn-text">connecting…</span>
+    </span>
+    <a href="/api/public/pulse" style="color: var(--text-dim); text-decoration: none; font-size: 11px;" target="_blank">view raw pulse →</a>
+  </div>
+</div>
+
+<div class="mc-grid">
+
+  <!-- LEFT: org chart -->
+  <div class="mc-col">
+    <div class="mc-col-header">
+      <span class="mc-col-title">Org chart</span>
+      <span class="mc-col-meta" id="org-meta">—</span>
+    </div>
+    <div class="mc-col-body">
+      <div class="org-agents" id="org-agents">
+        <div class="cascade-empty">loading agents…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CENTER: cascade -->
+  <div class="mc-col">
+    <div class="mc-col-header">
+      <span class="mc-col-title">Cascade trace</span>
+      <span class="mc-col-meta" id="cascade-meta">awaiting trigger</span>
+    </div>
+    <div class="mc-col-body">
+      <div class="cascade-controls">
+        <div class="cascade-target">
+          <b>Cascade target</b> — pick one of the real pending mails to preview:
+          <select id="cascade-pick"></select>
+        </div>
+        <button class="cascade-btn" id="cascade-fire">▶ Watch cascade</button>
+        <div class="cascade-mode">Preview mode — evaluates real gates, does not send</div>
+      </div>
+      <ul class="trace-list" id="trace-list">
+        <div class="cascade-empty">Pick a target and click Watch cascade.<br>The trace below will show 10 agents evaluating real gates in sequence.</div>
+      </ul>
+      <div class="cascade-summary" id="cascade-summary"></div>
+    </div>
+  </div>
+
+  <!-- RIGHT: HITL + deliverables -->
+  <div class="mc-col">
+    <div class="mc-col-header">
+      <span class="mc-col-title">HITL queue</span>
+      <span class="mc-col-meta" id="queue-meta">—</span>
+    </div>
+    <div class="mc-col-body">
+      <div class="queue-stats">
+        <div class="queue-stat">
+          <div class="queue-stat-value" id="qs-pending">—</div>
+          <div class="queue-stat-label">pending</div>
+        </div>
+        <div class="queue-stat">
+          <div class="queue-stat-value" id="qs-sent">—</div>
+          <div class="queue-stat-label">sent</div>
+        </div>
+      </div>
+
+      <div class="section-label">awaiting approval</div>
+      <ul class="hitl-list" id="hitl-list">
+        <div class="cascade-empty">loading queue…</div>
+      </ul>
+
+      <div class="section-divider"></div>
+
+      <div class="section-label">system pulse</div>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+        <div class="queue-stat">
+          <div class="queue-stat-value" id="qs-patches">—</div>
+          <div class="queue-stat-label">patches</div>
+        </div>
+        <div class="queue-stat">
+          <div class="queue-stat-value" id="qs-codes">—</div>
+          <div class="queue-stat-label">errors classified</div>
+        </div>
+      </div>
+
+      <div class="foot-note">
+        Every panel here reads live from the running system.<br>
+        <a href="/api/public/org" target="_blank">org</a> ·
+        <a href="/api/public/queue" target="_blank">queue</a> ·
+        <a href="/api/public/pulse" target="_blank">pulse</a>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function() {
+  // ── helpers ──────────────────────────────────────────────────────
+  function $(id) { return document.getElementById(id); }
+  function el(tag, cls, html) { var e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; }
+  function delay(ms) { return new Promise(function(r) { setTimeout(r, ms); }); }
+  
+  // ── state ────────────────────────────────────────────────────────
+  var ORG_AGENTS = [];   // current org list
+  var QUEUE_ITEMS = [];  // current HITL items
+  var CASCADE_RUNNING = false;
+  
+  // ── fetch ────────────────────────────────────────────────────────
+  function fetchJson(url) {
+    return fetch(url, { cache: 'no-store' }).then(function(r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    });
+  }
+  
+  // ── render org ───────────────────────────────────────────────────
+  function renderOrg(agents) {
+    ORG_AGENTS = agents;
+    var c = $('org-agents');
+    c.innerHTML = '';
+    agents.forEach(function(a) {
+      var box = el('div', 'org-agent');
+      box.id = 'agent-' + a.id;
+      box.innerHTML = 
+        '<div class="org-agent-emoji">' + (a.emoji || '🤖') + '</div>' +
+        '<div class="org-agent-body">' +
+          '<div class="org-agent-name">' + (a.name || a.id) + '</div>' +
+          '<div class="org-agent-role">' + (a.role || '—') + '</div>' +
+        '</div>' +
+        '<div class="org-agent-verdict" id="verdict-' + a.id + '">idle</div>';
+      c.appendChild(box);
+    });
+    $('org-meta').textContent = agents.length + ' agents loaded';
+  }
+  
+  // ── render queue ─────────────────────────────────────────────────
+  function renderQueue(q) {
+    QUEUE_ITEMS = q.items || [];
+    $('qs-pending').textContent = q.pending != null ? q.pending : '—';
+    $('qs-sent').textContent = (q.by_status && q.by_status.sent) || 0;
+    $('queue-meta').textContent = q.pending + ' real-domain pending';
+    
+    var list = $('hitl-list');
+    list.innerHTML = '';
+    if (QUEUE_ITEMS.length === 0) {
+      list.innerHTML = '<div class="cascade-empty">queue empty — system idle</div>';
+    } else {
+      QUEUE_ITEMS.forEach(function(it) {
+        var li = el('li', 'hitl-item');
+        li.id = 'hitl-' + it.qid_full;
+        li.innerHTML = 
+          '<div class="hitl-item-recipient">' + it.recipient_masked + '</div>' +
+          '<div class="hitl-item-meta">' +
+            '<span>' + (it.subject_short || '—') + '</span>' +
+            '<span class="critic">' + (it.critic != null ? it.critic + '/100' : '—') + '</span>' +
+          '</div>';
+        list.appendChild(li);
+      });
+    }
+    
+    // populate cascade target selector
+    var sel = $('cascade-pick');
+    var current = sel.value;
+    sel.innerHTML = '';
+    QUEUE_ITEMS.forEach(function(it) {
+      var o = el('option');
+      o.value = it.qid_full;
+      o.textContent = it.recipient_masked + ' (' + it.recipient_domain + ')';
+      sel.appendChild(o);
+    });
+    if (current) sel.value = current;
+  }
+  
+  // ── render pulse stats ───────────────────────────────────────────
+  function renderPulse(p) {
+    $('qs-patches').textContent = p.patches_shipped_total != null ? p.patches_shipped_total : '—';
+    $('qs-codes').textContent = p.error_codes_registered != null ? p.error_codes_registered : '—';
+    $('conn-text').textContent = 'live · ' + (p.services_active || '?') + '/' + (p.services_total || '?') + ' services';
+  }
+  
+  // ── refresh loop ─────────────────────────────────────────────────
+  function refreshAll() {
+    fetchJson('/api/public/org').then(function(d) { renderOrg(d.agents || []); }).catch(function() {});
+    fetchJson('/api/public/queue').then(function(d) { renderQueue(d); }).catch(function() {});
+    fetchJson('/api/public/pulse').then(function(d) { renderPulse(d); }).catch(function() {});
+  }
+  
+  // ── cascade animation ────────────────────────────────────────────
+  function resetAgentStates() {
+    document.querySelectorAll('.org-agent').forEach(function(a) {
+      a.classList.remove('active', 'done', 'fail');
+      var v = a.querySelector('.org-agent-verdict');
+      if (v) v.textContent = 'idle';
+    });
+  }
+  
+  function setAgentState(agentId, state, label) {
+    var box = $('agent-' + agentId);
+    if (!box) return;
+    box.classList.remove('active', 'done', 'fail');
+    if (state) box.classList.add(state);
+    var v = box.querySelector('.org-agent-verdict');
+    if (v && label) v.textContent = label;
+  }
+  
+  function runCascade(qid) {
+    if (CASCADE_RUNNING) return;
+    CASCADE_RUNNING = true;
+    var btn = $('cascade-fire');
+    btn.disabled = true;
+    btn.innerHTML = '⏵ Running…';
+    
+    resetAgentStates();
+    $('trace-list').innerHTML = '';
+    $('cascade-summary').classList.remove('shown');
+    $('cascade-meta').textContent = 'fetching trace…';
+    
+    // Highlight the queue item being previewed
+    document.querySelectorAll('.hitl-item').forEach(function(li) {
+      li.classList.remove('preview-target');
+    });
+    var target = $('hitl-' + qid);
+    if (target) target.classList.add('preview-target');
+    
+    fetchJson('/api/public/cascade/preview/' + qid).then(function(d) {
+      $('cascade-meta').textContent = 'tracing ' + d.recipient_domain + '…';
+      var steps = d.trace_steps || [];
+      var list = $('trace-list');
+      list.innerHTML = '';
+      
+      // Stream the steps with animation
+      var i = 0;
+      function nextStep() {
+        if (i >= steps.length) {
+          // Final summary
+          var sum = $('cascade-summary');
+          sum.innerHTML = 
+            '<div><span class="key">verdict:</span> <span class="val ' + (d.would_fire ? 'ok' : 'fail') + '">' + (d.would_fire ? 'WOULD FIRE ✓' : 'BLOCKED ✗') + '</span></div>' +
+            '<div><span class="key">gates passed:</span> <span class="val">' + d.gates_passed_count + '</span> · <span class="key">failed:</span> <span class="val">' + d.gates_failed_count + '</span></div>' +
+            '<div><span class="key">total estimated:</span> <span class="val">' + d.total_ms_estimate + 'ms</span></div>' +
+            '<div><span class="key">mode:</span> <span class="val">' + d.mode + '</span></div>';
+          sum.classList.add('shown');
+          $('cascade-meta').textContent = 'complete (' + d.total_ms_estimate + 'ms)';
+          CASCADE_RUNNING = false;
+          btn.disabled = false;
+          btn.innerHTML = '▶ Run again';
+          // Mark all completed agents as done
+          steps.forEach(function(s) {
+            if (s.verdict === 'ok' || s.verdict === 'preview') {
+              setAgentState(s.agent, 'done', s.verdict === 'preview' ? 'preview' : '✓');
+            }
+          });
+          return;
+        }
+        var s = steps[i++];
+        
+        // Light up the agent
+        setAgentState(s.agent, 'active', s.verdict === 'preview' ? '⊙' : (s.verdict === 'ok' ? '…' : '✗'));
+        
+        // Append trace line
+        var li = el('li', 'trace-step ' + s.verdict);
+        li.innerHTML = 
+          '<div class="trace-step-num">' + s.step + '</div>' +
+          '<div class="trace-step-text"><span class="agent">' + s.agent + '</span>' + s.action + '</div>' +
+          '<div class="trace-step-ms">' + s.ms + 'ms</div>';
+        list.appendChild(li);
+        requestAnimationFrame(function() { li.classList.add('shown'); });
+        
+        // After step's "ms" elapses (compressed for watchability), mark as done and move on
+        var displayMs = Math.max(120, Math.min(500, s.ms * 1.5));
+        setTimeout(function() {
+          // Mark prior agent as done
+          setAgentState(s.agent, s.verdict === 'fail' ? 'fail' : 'done', 
+                        s.verdict === 'fail' ? 'fail' : (s.verdict === 'preview' ? 'preview' : '✓'));
+          nextStep();
+        }, displayMs);
+      }
+      nextStep();
+    }).catch(function(e) {
+      $('cascade-meta').textContent = 'error: ' + e.message;
+      CASCADE_RUNNING = false;
+      btn.disabled = false;
+      btn.innerHTML = '▶ Watch cascade';
+    });
+  }
+  
+  $('cascade-fire').addEventListener('click', function() {
+    var qid = $('cascade-pick').value;
+    if (!qid) return;
+    runCascade(qid);
+  });
+  
+  // initial + interval
+  refreshAll();
+  setInterval(function() {
+    if (!CASCADE_RUNNING && document.visibilityState === 'visible') refreshAll();
+  }, 30000);
+  document.addEventListener('visibilitychange', function() {
+    if (document.visibilityState === 'visible' && !CASCADE_RUNNING) refreshAll();
+  });
+})();
+</script>
+
+</body>
+</html>

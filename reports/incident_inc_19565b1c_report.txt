@@ -1,0 +1,11 @@
+Incident #inc_19565b1c: No inbound replies in 999 days.
+
+Outreach log check: 
+- GET /api/crm/activities: {result_placeholder}
+
+CRM DB check:
+- Read src/db/crm.db: {result_placeholder}
+
+Next steps:
+- If no replies confirmed, refresh APC campaign copy
+- Trigger retest via outreach_scheduler.py

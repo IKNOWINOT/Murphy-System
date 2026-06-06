@@ -1,0 +1,1 @@
+Incident #inc_de58e2b4: No inbound replies in 999 days. APC outreach may need copy refresh. Query of crm.db for stale outreach records yielded no results. Verification of APC outreach copy effectiveness was not possible due to missing files. Refresh of APC outreach copy was attempted but existing files prevented overwrite. Further investigation is needed to resolve the issue.

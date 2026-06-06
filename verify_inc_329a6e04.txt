@@ -1,0 +1,8 @@
+Incident verification: No inbound replies in 999 days.
+
+Root cause: The capacity_watchdog.py module sets 'days_since_reply' to 999 when no inbound activities are found in the CRM database.
+
+Verification query result:
+[RESULT FROM PREVIOUS SHELL EXEC]
+
+Recommendation: Initiate outreach copy refresh campaign via APC system.

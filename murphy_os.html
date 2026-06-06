@@ -365,6 +365,12 @@ body { background: var(--bg); color: var(--text); font-family: var(--font); font
     <div class="kpi-row"><span class="kpi-label">MRR</span><span class="kpi-val" id="sb-mrr">—</span></div>
     <div class="kpi-row"><span class="kpi-label">Pipeline</span><span class="kpi-val" style="font-size:13px;color:var(--blue)" id="sb-pipe">—</span></div>
     <div class="kpi-row"><span class="kpi-label">Agents Live</span><span class="kpi-val" style="font-size:13px;color:var(--green)" id="sb-agents">—</span></div>
+    <div class="kpi-row" style="margin-top:8px;border-top:1px solid var(--border);padding-top:8px;"><span class="kpi-label">🔧 Self-Mod</span><span class="kpi-val" style="font-size:11px;color:var(--green)"><a href="/static/patcher.html" target="_blank" style="color:var(--green);text-decoration:none;">open →</a></span></div>
+    <div class="kpi-row"><span class="kpi-label">Applied today</span><span class="kpi-val" style="font-size:13px;color:var(--green)" id="sb-applied">—</span></div>
+    <div class="kpi-row"><span class="kpi-label">Pending</span><span class="kpi-val" style="font-size:13px;color:var(--yellow)" id="sb-pending">—</span></div>
+    <div class="kpi-row"><span class="kpi-label">QC blocked</span><span class="kpi-val" style="font-size:13px;" id="sb-blocked">—</span></div>
+    <div class="kpi-row"><span class="kpi-label">Audit (1h)</span><span class="kpi-val" style="font-size:11px;color:var(--text2);" id="sb-audit">—</span></div>
+    <div class="kpi-row"><span class="kpi-label">Pulse</span><span class="kpi-val" style="font-size:11px;color:var(--text2);" id="sb-pulse">—</span></div>
   </div>
 </aside>
 
@@ -744,6 +750,30 @@ async function loadROI() {
     document.getElementById('kpi-mrr').textContent = mrr > 0 ? `$${mrr.toLocaleString()}` : '—';
     document.getElementById('kpi-mrr-delta').textContent = `ROI ${d.roi_percentage || '—'}%`;
     document.getElementById('sb-mrr').textContent = mrr > 0 ? `$${(mrr/1000).toFixed(1)}K` : '—';
+
+  // BLOCK-OS-SELFMOD (2026-05-26) — feed the Self-Modification panel
+  try {
+    const stats = await fetch('/api/patcher/proposals/stats').then(r => r.json());
+    const bs = stats.by_status || {};
+    document.getElementById('sb-applied').textContent = String(bs.applied   ?? 0);
+    document.getElementById('sb-pending').textContent = String(bs.pending   ?? 0);
+    document.getElementById('sb-blocked').textContent = String(bs.qc_blocked ?? 0);
+  } catch(e) { console.warn('selfmod stats fail', e); }
+
+  try {
+    const aud = await fetch('/api/auditlog/summary?window_minutes=60').then(r => r.json());
+    const ad = aud.data || aud;
+    const reqs   = ad.total_requests ?? ad.total_events ?? '?';
+    const denied = ad.denied_count ?? 0;
+    document.getElementById('sb-audit').textContent = reqs + ' / ' + denied + ' deny';
+  } catch(e) { console.warn('selfmod audit fail', e); }
+
+  try {
+    const pulse = await fetch('/api/pulse/current').then(r => r.json());
+    const sources = pulse.sources || pulse.cadence_sources || [];
+    const n = Array.isArray(sources) ? sources.length : Object.keys(sources).length;
+    document.getElementById('sb-pulse').textContent = n + ' sources';
+  } catch(e) { console.warn('selfmod pulse fail', e); }
   } catch(e) {}
 }
 

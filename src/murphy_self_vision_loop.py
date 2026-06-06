@@ -193,6 +193,23 @@ def _save_run(run: VisionRun):
 
 
 def _save_proposal(p: VisionProposal):
+    # R480 stub guard — never persist stub diffs that the LLM emitted
+    # as patch content ("HEALTHY", "OK", or stub markers). Only blocks
+    # NEW proposals (status pending) — applied/rejected records pass through.
+    if p.status in ("pending", "proposed", "") and getattr(p, "patch_content", None):
+        try:
+            from src.patcher_agent import _r475_is_stub_diff as _r480_is_stub
+            if _r480_is_stub(p.patch_content):
+                logger.warning(
+                    "R480: dropping stub proposal id=%s target=%s diff_len=%d",
+                    p.id, p.target_file, len(p.patch_content)
+                )
+                # Mark as blocked so it shows in audit but never gets applied
+                p.status = "blocked"
+                p.gate_verdict = "blocked"
+                p.gate_notes = (p.gate_notes or "") + " | R480: stub-guard dropped"
+        except Exception as _r480_exc:
+            logger.debug("R480 stub-guard import failed (non-fatal): %s", _r480_exc)
     db = _get_db()
     db.execute("""
         INSERT OR REPLACE INTO proposals
@@ -852,10 +869,27 @@ Output ONLY the JSON, no other text.
                         continue
 
                     if gate_verdict == GateVerdict.HOLD:
+                        # R483: HELD items now also get a patch generated so the
+                        # founder can review the actual proposed change, not just
+                        # the diagnosis. Without this, HOLD items pile up with
+                        # diff_len=0 and humans have no concrete fix to evaluate.
+                        # Gate's lower confidence is preserved + critic still WARN.
+                        _r483_src_content = ""
+                        _r483_patch = ""
+                        try:
+                            _r483_src_content = self._read_source_file(target_file)
+                            _r483_patch = self._generate_patch(raw, _r483_src_content)
+                        except Exception as _r483_exc:
+                            logger.warning("R483: patch-gen failed for HELD %s: %s",
+                                           target_file, _r483_exc)
+                            _r483_patch = ""
+
                         proposal = VisionProposal(
                             run_id=run.id, page_url=url, target_file=target_file,
                             issue_summary=raw.get("issue_summary", ""),
                             rationale=raw.get("rationale", ""),
+                            patch_content=_r483_patch,
+                            patch_mode=raw.get("patch_mode", "replace"),
                             confidence=adj_conf,
                             gate_verdict=gate_verdict.value,
                             gate_notes=gate_notes,
@@ -866,7 +900,8 @@ Output ONLY the JSON, no other text.
                         run.proposals_queued += 1
                         all_proposals.append(proposal)
                         _save_proposal(proposal)
-                        logger.info("PATCH-166: Gate HELD %s — queued for human review", target_file)
+                        logger.info("PATCH-166+R483: Gate HELD %s — queued WITH patch (len=%d)",
+                                    target_file, len(_r483_patch))
                         continue
 
                     # ── GATE APPROVED — generate patch ───────────────────────

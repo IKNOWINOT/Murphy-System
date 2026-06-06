@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Murphy · Operator Canvas</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  :root {
+    --bg:#0a0e14; --panel:#11161f; --line:#1f2733; --ink:#c9d3e3;
+    --dim:#6b7787; --hi:#62d4a8; --warn:#f0b86e; --bad:#e06c75;
+    --accent:#7aa2f7; --soft:#3a4a64;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin:0; background:var(--bg); color:var(--ink);
+    font:13px/1.5 -apple-system,BlinkMacSystemFont,"SF Mono",Menlo,monospace;
+  }
+  header {
+    padding:10px 18px; border-bottom:1px solid var(--line);
+    display:flex; align-items:center; gap:18px;
+  }
+  header h1 { font-size:14px; margin:0; font-weight:600; letter-spacing:.5px; }
+  header .sub { color:var(--dim); font-size:11px; }
+  header .role-pill {
+    margin-left:auto; padding:4px 10px; border:1px solid var(--line);
+    border-radius:4px; font-size:11px; background:var(--panel);
+  }
+  .layout {
+    display:grid; grid-template-columns:340px 1fr 340px;
+    gap:1px; background:var(--line); min-height:calc(100vh - 47px);
+  }
+  .col { background:var(--bg); padding:16px; overflow-y:auto; max-height:calc(100vh - 47px); }
+  .col h2 {
+    font-size:11px; color:var(--dim); margin:0 0 12px 0;
+    text-transform:uppercase; letter-spacing:1.2px; font-weight:600;
+  }
+  .card {
+    background:var(--panel); border:1px solid var(--line); border-radius:6px;
+    padding:12px; margin-bottom:12px;
+  }
+  .card .label { color:var(--dim); font-size:10px; text-transform:uppercase;
+    letter-spacing:.8px; margin-bottom:4px; }
+  .card .val { color:var(--ink); }
+  .card pre { margin:0; font-size:11px; white-space:pre-wrap; word-break:break-all;
+    color:var(--ink); }
+  .chip {
+    display:inline-block; padding:2px 8px; margin:2px 4px 2px 0;
+    background:#1a2330; border:1px solid var(--soft); border-radius:3px;
+    font-size:11px; color:var(--ink);
+  }
+  .chip.allowed { border-color:var(--hi); color:var(--hi); }
+  .chip.denied  { border-color:var(--bad); color:var(--bad); opacity:.6;
+    text-decoration:line-through; }
+  .input-row { display:flex; gap:8px; margin-bottom:12px; }
+  .input-row input, .input-row select {
+    background:var(--panel); border:1px solid var(--line); color:var(--ink);
+    padding:8px 10px; border-radius:4px; font:inherit;
+  }
+  .input-row input { flex:1; }
+  .input-row button {
+    background:var(--accent); color:#0a0e14; border:0; padding:8px 16px;
+    border-radius:4px; font:inherit; font-weight:600; cursor:pointer;
+  }
+  .input-row button:hover { background:#9bb8f9; }
+  .plan-node {
+    border-left:2px solid var(--soft); padding:6px 0 6px 12px; margin:6px 0;
+    font-size:11px;
+  }
+  .plan-node.completed { border-left-color:var(--hi); }
+  .plan-node.failed    { border-left-color:var(--bad); }
+  .plan-node .nt { color:var(--dim); font-size:10px; }
+  .audit-line {
+    font-size:10px; padding:3px 0; border-bottom:1px solid var(--line);
+    color:var(--dim);
+  }
+  .audit-line .ev { color:var(--accent); }
+  .audit-line .ev.failed, .audit-line .ev.error { color:var(--bad); }
+  .audit-line .ev.passed, .audit-line .ev.completed { color:var(--hi); }
+  .status-dot {
+    display:inline-block; width:8px; height:8px; border-radius:50%;
+    margin-right:6px; vertical-align:middle;
+  }
+  .status-dot.completed { background:var(--hi); }
+  .status-dot.failed { background:var(--bad); }
+  .status-dot.pending_approval { background:var(--warn); }
+  .status-dot.no_candidates { background:var(--dim); }
+  .empty { color:var(--dim); font-style:italic; padding:8px 0; font-size:11px; }
+  .gov-rule { padding:4px 0; font-size:11px; }
+  .gov-rule .k { color:var(--warn); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>MURPHY · OPERATOR CANVAS</h1>
+  <span class="sub">R427 · unified TaskBundle surface</span>
+  <span class="role-pill" id="rolePill">ceo · platform</span>
+</header>
+
+<div class="layout">
+
+  <!-- LEFT: Rosetta identity injection -->
+  <div class="col">
+    <h2>Rosetta Identity (R425/R426)</h2>
+
+    <div class="card">
+      <div class="label">Role · Scope</div>
+      <div class="val" id="identity">—</div>
+    </div>
+
+    <div class="card">
+      <div class="label">Capability Allowlist</div>
+      <div id="allowlist" class="val empty">submit a request</div>
+    </div>
+
+    <div class="card">
+      <div class="label">Approved Data Streams</div>
+      <div id="streams" class="val empty">—</div>
+    </div>
+
+    <div class="card">
+      <div class="label">Governance Constraints</div>
+      <div id="governance" class="val empty">—</div>
+    </div>
+
+    <div class="card">
+      <div class="label">Notify Chain</div>
+      <div id="notify" class="val empty">—</div>
+    </div>
+
+    <div class="card">
+      <div class="label">Repeat Policy</div>
+      <div id="repeat" class="val empty">—</div>
+    </div>
+  </div>
+
+  <!-- CENTER: input + plan + audit -->
+  <div class="col">
+    <h2>Task</h2>
+
+    <div class="input-row">
+      <select id="roleSel">
+        <option value="ceo">ceo</option>
+        <option value="cto">cto</option>
+        <option value="cfo">cfo</option>
+        <option value="vp-sales">vp-sales</option>
+        <option value="vp-marketing">vp-marketing</option>
+        <option value="vp-product">vp-product</option>
+        <option value="vp-engineering">vp-engineering</option>
+        <option value="vp-ops">vp-ops</option>
+        <option value="cso">cso</option>
+        <option value="general-counsel">general-counsel</option>
+        <option value="chief-of-staff">chief-of-staff</option>
+      </select>
+      <select id="scopeSel">
+        <option value="platform">platform</option>
+        <option value="tenant">tenant</option>
+      </select>
+    </div>
+    <div class="input-row">
+      <input id="msg" placeholder='Ask Murphy something — "check public pulse", "list crm leads"…'>
+      <button onclick="submitTask()">PLAN</button>
+    </div>
+
+    <h2>Plan</h2>
+    <div class="card">
+      <div class="label">Status · Graph · Execution</div>
+      <div class="val" id="planStatus">—</div>
+    </div>
+
+    <div class="card">
+      <div class="label">DAG Nodes</div>
+      <div id="planNodes" class="empty">no plan yet</div>
+    </div>
+
+    <h2>Audit Trail (timeline)</h2>
+    <div class="card" id="auditCard">
+      <div class="empty">no events yet</div>
+    </div>
+  </div>
+
+  <!-- RIGHT: parallel timelines -->
+  <div class="col">
+    <h2>Timelines (parallel)</h2>
+
+    <div class="card">
+      <div class="label">Chronological</div>
+      <div id="tlChron" class="empty">—</div>
+    </div>
+
+    <div class="card">
+      <div class="label">Causal (DAG depth)</div>
+      <div id="tlCausal" class="empty">—</div>
+    </div>
+
+    <div class="card">
+      <div class="label">Reasoning candidates</div>
+      <div id="tlReason" class="empty">—</div>
+    </div>
+
+    <div class="card">
+      <div class="label">Reflection cadence</div>
+      <div id="tlReflect" class="empty">per role repeat_policy</div>
+    </div>
+
+    <h2>Reply</h2>
+    <div class="card">
+      <pre id="reply">—</pre>
+    </div>
+  </div>
+</div>
+
+<script>
+const FOUNDER_KEY = "founder_ad6b1fade355dc1c6dfa89db96d77608886bf63b01b4fb70";
+
+async function submitTask() {
+  const message = document.getElementById('msg').value.trim();
+  const role = document.getElementById('roleSel').value;
+  const scope = document.getElementById('scopeSel').value;
+  if (!message) return;
+
+  document.getElementById('rolePill').textContent = `${role} · ${scope}`;
+  document.getElementById('planStatus').textContent = 'planning…';
+
+  try {
+    const res = await fetch('/api/chat', {
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'X-API-Key': FOUNDER_KEY,
+        'X-User-ID':'founder',
+      },
+      body: JSON.stringify({ message, plan: true, role, scope })
+    });
+    const d = await res.json();
+    renderResponse(d);
+  } catch (e) {
+    document.getElementById('reply').textContent = 'request failed: '+e.message;
+  }
+}
+
+function renderResponse(d) {
+  // Reply
+  document.getElementById('reply').textContent = d.reply || '—';
+
+  // Rosetta panel
+  const r = d._rosetta || {};
+  const tc = r.task_config || {};
+  document.getElementById('identity').textContent = `${r.role || '?'} · ${r.scope || '?'}`;
+
+  // Allowlist as chips
+  const al = tc.capability_allowlist || [];
+  document.getElementById('allowlist').innerHTML = al.length
+    ? al.map(g => `<span class="chip allowed">${g}</span>`).join('')
+    : '<span class="empty">(empty — no capabilities reachable)</span>';
+
+  // Streams
+  const ds = tc.approved_data_streams || [];
+  document.getElementById('streams').innerHTML = ds.length
+    ? ds.map(s => `<span class="chip">${s}</span>`).join('')
+    : '<span class="empty">none configured</span>';
+
+  // Governance
+  const gov = tc.governance_constraints || {};
+  const gks = Object.keys(gov);
+  document.getElementById('governance').innerHTML = gks.length
+    ? gks.map(k => `<div class="gov-rule"><span class="k">${k}</span>: ${JSON.stringify(gov[k])}</div>`).join('')
+    : '<span class="empty">none</span>';
+
+  // Notify chain
+  const nc = tc.notify_chain || [];
+  document.getElementById('notify').innerHTML = nc.length
+    ? nc.map(n => `<div class="gov-rule">${n.channel} → ${n.to} (on ${(n.on||[]).join(', ')})</div>`).join('')
+    : '<span class="empty">none</span>';
+
+  // Repeat policy
+  const rp = tc.repeat_policy || {};
+  const rpk = Object.keys(rp);
+  document.getElementById('repeat').innerHTML = rpk.length
+    ? rpk.map(k => `<div class="gov-rule"><span class="k">${k}</span>: ${rp[k]}</div>`).join('')
+    : '<span class="empty">none</span>';
+
+  // Plan panel
+  const p = d._plan || {};
+  const dot = `<span class="status-dot ${d._status}"></span>`;
+  document.getElementById('planStatus').innerHTML =
+    `${dot}<b>${d._status || '?'}</b><br>` +
+    `<span class="nt">graph: ${(p.graph_id || '?').substring(0,12)}…</span><br>` +
+    `<span class="nt">exec:  ${(p.execution_id || '?').substring(0,12)}…</span><br>` +
+    `<span class="nt">auto_approved: ${p.auto_approved}</span>`;
+
+  const nodes = p.nodes || [];
+  document.getElementById('planNodes').innerHTML = nodes.length
+    ? nodes.map(n => `
+        <div class="plan-node ${n.status||''}">
+          <div><b>${n.label || n.node_id}</b></div>
+          <div class="nt">type: ${n.type} · cap: ${n.capability || '—'} · status: ${n.status || '?'}</div>
+        </div>`).join('')
+    : '<span class="empty">no DAG nodes (filter removed all candidates, or none matched)</span>';
+
+  // Audit trail
+  const aud = p.audit_trail || [];
+  document.getElementById('auditCard').innerHTML = aud.length
+    ? aud.map(a => {
+        const ev = a.event || '';
+        const cls = ev.includes('fail')||ev.includes('error') ? 'failed'
+                  : ev.includes('pass')||ev.includes('complete') ? 'passed' : '';
+        return `<div class="audit-line">
+          <span class="ev ${cls}">${ev}</span>
+          · ${(a.node_id||'').substring(0,12)}
+          · <span class="nt">${JSON.stringify(a.details||{}).substring(0,80)}</span>
+        </div>`;
+      }).join('')
+    : '<div class="empty">no audit events</div>';
+
+  // Timeline panels
+  renderTimelines(aud, nodes);
+}
+
+function renderTimelines(audit, nodes) {
+  // Chronological — order of audit events
+  document.getElementById('tlChron').innerHTML = audit.length
+    ? audit.map((a,i) => `<div class="audit-line">${String(i+1).padStart(2,'0')}. ${a.event} <span class="nt">${(a.node_id||'').substring(0,10)}</span></div>`).join('')
+    : '<span class="empty">—</span>';
+
+  // Causal — depth-grouped (nodes by depends_on chain)
+  if (nodes.length) {
+    const byDepth = {};
+    nodes.forEach(n => {
+      const d = (n.depends_on || []).length;
+      (byDepth[d] = byDepth[d] || []).push(n);
+    });
+    document.getElementById('tlCausal').innerHTML = Object.keys(byDepth).sort().map(d => `
+      <div class="audit-line">depth ${d}: ${byDepth[d].length} node(s)
+        <span class="nt">${byDepth[d].map(n=>n.type).join(', ')}</span>
+      </div>`).join('');
+  } else {
+    document.getElementById('tlCausal').innerHTML = '<span class="empty">—</span>';
+  }
+
+  // Reasoning candidates — currently kernel returns the selected one;
+  // when R428 lands we'll show all 3 candidates with scores
+  document.getElementById('tlReason').innerHTML =
+    '<div class="audit-line">selected: 1 DAG <span class="nt">(R428 todo: surface all 3 candidates with scores)</span></div>';
+
+  // Reflection cadence — pulled from repeat_policy
+  const role = document.getElementById('roleSel').value;
+  const fibSchedule = {
+    'fibonacci': '1, 1, 2, 3, 5, 8, 13… runs between reflections',
+    'exponential': 'doubling delay on each failure',
+    'hourly': 'every hour',
+    'daily': 'once per day',
+    'every_4h': 'every 4 hours',
+  };
+  document.getElementById('tlReflect').innerHTML =
+    `<div class="audit-line">role: ${role} <span class="nt">cadence rules from R425 repeat_policy</span></div>`;
+}
+
+// Enter to submit
+document.getElementById('msg').addEventListener('keydown', e => {
+  if (e.key === 'Enter') submitTask();
+});
+
+// Auto-load CEO/platform on page open
+window.addEventListener('load', () => {
+  document.getElementById('msg').value = 'check public pulse';
+  submitTask();
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,41 @@
+Incident #inc_080e9d40 - APC Outreach Copy Refresh Verification
+
+1. Outreach Log Check:
+   - Target path: /api/crm/activities
+   - Result: Access denied - path escapes MURPHY_SRC
+
+2. CRM Database Check:
+   - CRM_DB path identified in src/prospect_enricher.py: /var/lib/murphy-production/crm.db
+   - Database access attempt failed due to path escaping MURPHY_SRC
+
+3. Codebase Analysis:
+   - grep 'crm.*db' in src/ revealed CRM_DB path in multiple files
+   - value_resolver.py confirms crm.db as source for deals and contacts
+   - deals table query pattern found: 'deals WHERE archived=0'
+   - contacts table query pattern found: 'contacts WHERE contact_type=\'lead\''
+
+4. Table Structure Investigation:
+   - prospect_enricher.py and value_resolver.py contain CRM queries
+   - No direct table schema found in codebase
+   - Pattern suggests 'deals' table has 'archived' field (boolean/integer)
+   - Pattern suggests 'contacts' table has 'contact_type' field
+
+5. APC Campaign Status:
+   - Unable to directly query crm.db due to path restrictions
+   - No specific 'apc' table or field patterns found in codebase
+   - Outreach status cannot be confirmed without database access
+
+6. Copy Refresh Assessment:
+   - 999 days without inbound replies indicates stale outreach
+   - Current copy likely ineffective
+   - Marketing team should refresh APC outreach copy
+   - Recommended: A/B test new messaging variants
+
+7. Access Limitations:
+   - All database and API paths escape MURPHY_SRC
+   - Cannot verify actual campaign status or reply timestamps
+   - Security boundary prevents direct system interrogation
+
+Conclusion: While unable to directly verify CRM data due to security boundaries, the complete lack of inbound replies for 999 days strongly suggests the current APC outreach copy is ineffective and requires refresh. Recommend creating apc-copy-refresh ticket in CRM to initiate marketing intervention.
+
+Verification Date: 2026-05-29

@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Murphy Thinking Canvas</title>
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#0a0a0a; --bg2:#111; --surface:#111; --elevated:#1a1a1a;
+    --border:rgba(0,212,170,.12); --border-mid:rgba(0,212,170,.25);
+    --border-hi:rgba(0,212,170,.4);
+    --text:#e0e6ea; --text-dim:#6b8090; --text-muted:#3a4a56;
+    --teal:#00D4AA; --teal-glow:rgba(0,212,170,.18);
+    --green:#00ff41; --cyan:#00ffff;
+    --font:Inter,system-ui,-apple-system,sans-serif;
+    --font-mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+  }
+  body{background:var(--bg);color:var(--text);font-family:var(--font);
+       min-height:100vh;overflow:hidden;display:flex;flex-direction:column}
+  /* Top bar */
+  .topbar{display:flex;align-items:center;justify-content:space-between;
+          padding:10px 18px;background:var(--surface);
+          border-bottom:1px solid var(--border);flex-shrink:0}
+  .brand{font-family:var(--font-mono);font-size:13px;font-weight:800;
+         color:var(--teal);letter-spacing:.06em;display:flex;align-items:center;gap:8px}
+  .brand .dot{width:7px;height:7px;border-radius:50%;background:var(--green);
+              animation:pulse 1.5s infinite}
+  @keyframes pulse{0%,100%{opacity:.55;transform:scale(.96)}50%{opacity:1;transform:scale(1.06)}}
+  .stage-pill{font-family:var(--font-mono);font-size:11px;color:var(--teal);
+              background:var(--teal-glow);border:1px solid var(--border-hi);
+              padding:4px 12px;border-radius:14px;letter-spacing:.08em;text-transform:uppercase}
+  .controls{display:flex;gap:8px;font-size:11px;color:var(--text-dim);align-items:center}
+  .btn{padding:5px 11px;border:1px solid var(--border);background:var(--surface);
+       color:var(--text);border-radius:5px;cursor:pointer;font-size:11px;
+       font-family:var(--font-mono)}
+  .btn:hover{border-color:var(--teal);color:var(--teal)}
+  .btn.active{background:var(--teal-glow);color:var(--teal);border-color:var(--border-hi)}
+  .toggle{display:flex;align-items:center;gap:6px;font-family:var(--font-mono);
+          font-size:11px;color:var(--text-dim)}
+  /* Main canvas */
+  .canvas-wrap{flex:1;position:relative;background:
+    radial-gradient(ellipse 70% 60% at 50% 50%, rgba(0,212,170,.05) 0%, transparent 70%)}
+  svg.canvas{width:100%;height:100%;display:block}
+  /* Narration overlay */
+  .narration{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);
+             max-width:760px;width:90%;padding:14px 22px;
+             background:rgba(17,17,17,.92);backdrop-filter:blur(8px);
+             border:1px solid var(--border-mid);border-left:3px solid var(--teal);
+             border-radius:8px;font-size:14px;line-height:1.55;color:var(--text);
+             box-shadow:0 8px 28px rgba(0,0,0,.6);transition:opacity .3s;
+             pointer-events:none;opacity:0}
+  .narration.show{opacity:1}
+  .narration::before{content:"murmur";display:block;font-family:var(--font-mono);
+                     font-size:10px;color:var(--teal);text-transform:uppercase;
+                     letter-spacing:.1em;margin-bottom:4px;font-weight:600}
+  /* Status strip */
+  .status-strip{position:absolute;top:12px;right:18px;display:flex;gap:14px;
+                font-family:var(--font-mono);font-size:10px;color:var(--text-dim);
+                background:rgba(17,17,17,.7);padding:6px 12px;border-radius:14px;
+                border:1px solid var(--border)}
+  .status-strip .val{color:var(--teal)}
+  /* Node + edge styling */
+  .node-bg{fill:var(--surface);stroke:var(--teal);stroke-width:1.5;
+           transition:all .3s ease}
+  .node-bg.kind-goal{fill:rgba(0,212,170,.15);stroke:var(--teal);stroke-width:2}
+  .node-bg.kind-artifact{fill:rgba(0,255,65,.12);stroke:var(--green);stroke-width:2}
+  .node-bg.kind-plan{fill:var(--elevated);stroke:var(--border-mid)}
+  .node-bg.kind-concept{fill:var(--surface);stroke:var(--border-mid)}
+  .node-bg.new{stroke-width:2.5;filter:drop-shadow(0 0 10px var(--teal))}
+  .node-label{fill:var(--text);font-family:var(--font);font-size:12px;
+              text-anchor:middle;dominant-baseline:central;pointer-events:none}
+  .node-label.kind-goal{fill:var(--teal);font-weight:600}
+  .node-label.kind-artifact{fill:var(--green);font-weight:600}
+  .edge{stroke:var(--border-mid);stroke-width:1.5;fill:none;opacity:.7;
+        transition:opacity .3s,stroke .3s}
+  .edge.new{stroke:var(--teal);opacity:1}
+  /* Stage advance flash */
+  .stage-flash{position:absolute;inset:0;background:radial-gradient(
+    ellipse 60% 50% at 50% 50%, var(--teal-glow) 0%, transparent 70%);
+    opacity:0;pointer-events:none;transition:opacity .4s}
+  .stage-flash.flash{opacity:1}
+  /* Empty state */
+  .empty{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+         color:var(--text-dim);font-size:13px;text-align:center}
+  .empty .brand-big{font-family:var(--font-mono);color:var(--teal);font-size:18px;
+                    font-weight:800;letter-spacing:.05em;margin-bottom:10px}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="brand"><span class="dot"></span>MURPHY · THINKING</div>
+  <div class="controls">
+    <span class="stage-pill" id="stage-pill">idle</span>
+    <label class="toggle">
+      <input type="checkbox" id="voice-toggle" checked>
+      <span>voice</span>
+    </label>
+    <button class="btn" id="btn-clear">Clear</button>
+    <button class="btn" id="btn-demo">Demo</button>
+  </div>
+</div>
+
+<div class="canvas-wrap" id="wrap">
+  <svg class="canvas" id="svg"
+       xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+    <defs>
+      <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6"
+              markerHeight="6" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="rgba(0,212,170,.45)"/>
+      </marker>
+    </defs>
+    <g id="edges-g"></g>
+    <g id="nodes-g"></g>
+  </svg>
+
+  <div class="empty" id="empty">
+    <div class="brand-big">MURPHY · THINKING</div>
+    <div>Waiting for thoughts from the swarm bus…</div>
+    <div style="margin-top:8px;font-size:11px">
+      Click <strong>Demo</strong> to see how it animates,
+      or send a BUILD/ANSWER email to <code>murphy@murphy.systems</code>.
+    </div>
+  </div>
+
+  <div class="stage-flash" id="flash"></div>
+  <div class="narration" id="narration"></div>
+
+  <div class="status-strip" id="status">
+    <span>nodes <span class="val" id="s-nodes">0</span></span>
+    <span>edges <span class="val" id="s-edges">0</span></span>
+    <span>stage <span class="val" id="s-stage">idle</span></span>
+    <span>events <span class="val" id="s-events">0</span></span>
+    <span id="s-conn" style="color:var(--green)">●</span>
+  </div>
+</div>
+
+<script>
+const svg = document.getElementById('svg');
+const nodesG = document.getElementById('nodes-g');
+const edgesG = document.getElementById('edges-g');
+const narrationEl = document.getElementById('narration');
+const emptyEl = document.getElementById('empty');
+const flashEl = document.getElementById('flash');
+const stagePill = document.getElementById('stage-pill');
+const voiceToggle = document.getElementById('voice-toggle');
+
+const nodes = new Map();   // id -> {label, parent, kind, x, y, vx, vy}
+const edges = new Set();   // "fromId|toId"
+let eventCount = 0;
+let currentStage = 'idle';
+let narrationTimer = null;
+let voicesReady = false;
+
+// Voice setup
+function loadVoices(){
+  if (!window.speechSynthesis) return;
+  const v = window.speechSynthesis.getVoices();
+  voicesReady = v.length > 0;
+}
+if (window.speechSynthesis){
+  window.speechSynthesis.onvoiceschanged = loadVoices;
+  loadVoices();
+}
+
+function pickVoice(){
+  if (!window.speechSynthesis) return null;
+  const v = window.speechSynthesis.getVoices();
+  // Prefer en-US natural-sounding voices
+  const preferred = v.find(x => /en[-_]?us/i.test(x.lang) && /Samantha|Google US|Daniel|Karen|Microsoft/i.test(x.name));
+  return preferred || v.find(x => /en/i.test(x.lang)) || v[0];
+}
+
+async function speak(text){
+  if (!voiceToggle.checked) return;
+  // Try Piper via /api/voice/script first
+  try{
+    const r = await fetch('/api/voice/script', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({text:text, voice:'piper'})
+    });
+    if (r.ok){
+      const j = await r.json();
+      if (j && j.audio_url){
+        const audio = new Audio(j.audio_url);
+        audio.play().catch(()=>fallbackSpeak(text));
+        return;
+      }
+    }
+  }catch(e){}
+  fallbackSpeak(text);
+}
+
+function fallbackSpeak(text){
+  if (!window.speechSynthesis || !voiceToggle.checked) return;
+  try{
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = 1.02;
+    u.pitch = 1.0;
+    u.volume = 0.85;
+    const v = pickVoice();
+    if (v) u.voice = v;
+    window.speechSynthesis.speak(u);
+  }catch(e){}
+}
+
+function dims(){
+  const r = svg.getBoundingClientRect();
+  return {w:r.width, h:r.height};
+}
+
+function placeNode(parentId){
+  const d = dims();
+  if (!parentId || !nodes.has(parentId)){
+    // Root → center
+    return {x: d.w/2, y: d.h/2};
+  }
+  const p = nodes.get(parentId);
+  const siblings = [...nodes.values()].filter(n => n.parent === parentId);
+  const idx = siblings.length;
+  const ringR = 120 + Math.min(siblings.length*8, 80);
+  const angle = (idx * (Math.PI * 2 / 6)) + (parentId.length * 0.3);
+  return {x: p.x + Math.cos(angle)*ringR, y: p.y + Math.sin(angle)*ringR};
+}
+
+function addNode(id, label, parent, kind){
+  if (nodes.has(id)) return;
+  const pos = placeNode(parent);
+  nodes.set(id, {label, parent, kind, x:pos.x, y:pos.y});
+  drawNode(id);
+  if (parent && nodes.has(parent)){
+    const key = parent + '|' + id;
+    if (!edges.has(key)){
+      edges.add(key);
+      drawEdge(parent, id);
+    }
+  }
+  hideEmpty();
+  updateStatus();
+}
+
+function drawNode(id){
+  const n = nodes.get(id);
+  if (!n) return;
+  const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+  g.setAttribute('id', 'n-'+id);
+  g.setAttribute('transform', `translate(${n.x},${n.y})`);
+
+  const w = Math.min(180, 30 + (n.label.length * 6.5));
+  const h = 32;
+  const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+  rect.setAttribute('x', -w/2);
+  rect.setAttribute('y', -h/2);
+  rect.setAttribute('width', w);
+  rect.setAttribute('height', h);
+  rect.setAttribute('rx', 6);
+  rect.setAttribute('class', 'node-bg kind-' + (n.kind||'concept') + ' new');
+  g.appendChild(rect);
+
+  const text = document.createElementNS('http://www.w3.org/2000/svg','text');
+  text.setAttribute('class', 'node-label kind-' + (n.kind||'concept'));
+  text.textContent = n.label.slice(0, 28);
+  g.appendChild(text);
+
+  // Entry animation: fade-in + scale
+  g.style.opacity = '0';
+  g.style.transformOrigin = `${n.x}px ${n.y}px`;
+  nodesG.appendChild(g);
+  requestAnimationFrame(() => {
+    g.style.transition = 'opacity .35s ease';
+    g.style.opacity = '1';
+  });
+  // Remove the 'new' glow after 1.2s
+  setTimeout(() => rect.classList.remove('new'), 1200);
+}
+
+function drawEdge(fromId, toId){
+  const a = nodes.get(fromId), b = nodes.get(toId);
+  if (!a || !b) return;
+  const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+  // Curved path
+  const dx = b.x - a.x, dy = b.y - a.y;
+  const cx = a.x + dx*0.5, cy = a.y + dy*0.5 - 12;
+  path.setAttribute('d', `M${a.x},${a.y} Q${cx},${cy} ${b.x},${b.y}`);
+  path.setAttribute('class', 'edge new');
+  path.setAttribute('marker-end', 'url(#arrow)');
+  path.style.opacity = '0';
+  edgesG.appendChild(path);
+  requestAnimationFrame(() => {
+    path.style.transition = 'opacity .4s ease';
+    path.style.opacity = '1';
+  });
+  setTimeout(() => path.classList.remove('new'), 1500);
+}
+
+function setNarration(text){
+  if (!text) return;
+  narrationEl.textContent = text;
+  narrationEl.classList.add('show');
+  if (narrationTimer) clearTimeout(narrationTimer);
+  narrationTimer = setTimeout(() => narrationEl.classList.remove('show'), 6500);
+  speak(text);
+}
+
+function setStage(stage){
+  currentStage = stage;
+  stagePill.textContent = stage;
+  document.getElementById('s-stage').textContent = stage;
+  flashEl.classList.add('flash');
+  setTimeout(() => flashEl.classList.remove('flash'), 600);
+}
+
+function clearAll(){
+  nodesG.innerHTML = '';
+  edgesG.innerHTML = '';
+  nodes.clear();
+  edges.clear();
+  eventCount = 0;
+  setStage('idle');
+  showEmpty();
+  updateStatus();
+}
+
+function hideEmpty(){ emptyEl.style.display = 'none'; }
+function showEmpty(){ emptyEl.style.display = ''; }
+
+function updateStatus(){
+  document.getElementById('s-nodes').textContent = nodes.size;
+  document.getElementById('s-edges').textContent = edges.size;
+  document.getElementById('s-events').textContent = eventCount;
+}
+
+// SSE subscription
+let es = null;
+function connect(){
+  try{
+    es = new EventSource('/api/swarm/bus/feed');
+    es.onopen = () => { document.getElementById('s-conn').style.color = 'var(--green)'; };
+    es.onerror = () => { document.getElementById('s-conn').style.color = '#FF6B6B'; };
+    es.onmessage = handleSse;
+  }catch(e){
+    setTimeout(connect, 4000);
+  }
+}
+
+function handleSse(e){
+  eventCount++;
+  let payload = null;
+  try{ payload = JSON.parse(e.data); }catch(err){ return; }
+  // Bus events shape may be {event_type, data} OR raw — try both
+  const evt = payload.event_type || payload.type;
+  const data = payload.data || payload;
+  if (!evt) return;
+  switch(evt){
+    case 'thought_session_open':
+      setStage(data.stage || 'brainstorm');
+      break;
+    case 'thought_node_add':
+      addNode(data.node_id, data.label || '?', data.parent || null,
+              data.kind || 'concept');
+      break;
+    case 'thought_edge_add':
+      if (data.from && data.to){
+        const key = data.from + '|' + data.to;
+        if (!edges.has(key)){
+          edges.add(key);
+          drawEdge(data.from, data.to);
+          updateStatus();
+        }
+      }
+      break;
+    case 'thought_narrate':
+      setNarration(data.text || '');
+      break;
+    case 'thought_stage_advance':
+      setStage(data.new_stage || 'next');
+      if (data.summary) setNarration(data.summary);
+      break;
+    case 'thought_session_close':
+      if (data.summary) setNarration(data.summary);
+      setStage('complete');
+      break;
+  }
+  updateStatus();
+}
+
+document.getElementById('btn-clear').addEventListener('click', clearAll);
+document.getElementById('btn-demo').addEventListener('click', () => {
+  fetch('/api/thinking/demo', {method:'POST'}).catch(() => {
+    // No endpoint yet — run inline demo
+    runInlineDemo();
+  });
+});
+
+function runInlineDemo(){
+  clearAll();
+  setStage('brainstorm');
+  const steps = [
+    {d:0,    fn:() => setNarration("Let me think about this.")},
+    {d:400,  fn:() => addNode('root','User asks: build an audit script',null,'goal')},
+    {d:1200, fn:() => setNarration("First, what data sources exist?")},
+    {d:1600, fn:() => addNode('data','data sources','root','concept')},
+    {d:2100, fn:() => addNode('d1','email_log table','data','concept')},
+    {d:2500, fn:() => addNode('d2','inbound_replies','data','concept')},
+    {d:3200, fn:() => { setStage('planning'); setNarration("Plan locked. Designing the script."); }},
+    {d:3800, fn:() => addNode('plan','script design','root','plan')},
+    {d:4200, fn:() => addNode('p1','open sqlite','plan')},
+    {d:4600, fn:() => addNode('p2','COUNT queries','plan')},
+    {d:5000, fn:() => addNode('p3','format output','plan')},
+    {d:5800, fn:() => { setStage('writing'); setNarration("Writing the code now."); }},
+    {d:6500, fn:() => addNode('artifact','audit_script.py','plan','artifact')},
+    {d:7500, fn:() => { setStage('complete'); setNarration("Done. Audit script saved to artifacts folder."); }},
+  ];
+  steps.forEach(s => setTimeout(s.fn, s.d));
+}
+
+window.addEventListener('resize', () => {
+  // re-layout: simple — keep existing positions, just refresh markers
+});
+
+connect();
+</script>
+</body>
+</html>

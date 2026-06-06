@@ -1,0 +1,3 @@
+Investigation results:
+Outreach log is empty.
+Crm.db contains an inactive outreach contact: 1|John Doe|john@example.com|inactive

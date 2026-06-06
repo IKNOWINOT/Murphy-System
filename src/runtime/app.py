@@ -27451,6 +27451,37 @@ def create_app() -> FastAPI:
         return JSONResponse({"ok": ok, "event_id": event_id})
     # ═══════════════════════════════════════════════════════════════════
     # END R64a
+
+
+    # ═══════════════════════════════════════════════════════════════════
+    # R65a4 — Desktop agent download page + file serving (2026-06-06)
+    # ═══════════════════════════════════════════════════════════════════
+    from fastapi.responses import FileResponse as _R65a4_FR
+
+    @app.get("/desktop", include_in_schema=False)
+    async def r65a4_desktop_page():
+        return _R65a4_FR("/opt/Murphy-System/desktop/index.html", media_type="text/html")
+
+    @app.get("/desktop/install_murphy_desktop.bat", include_in_schema=False)
+    async def r65a4_desktop_installer():
+        return _R65a4_FR("/opt/Murphy-System/desktop/install_murphy_desktop.bat", media_type="application/octet-stream")
+
+
+    @app.get("/desktop/{filename}", include_in_schema=False)
+    async def r65a4_desktop_file(filename: str):
+        import os.path
+        # Whitelist: only serve the 4 known files
+        allowed = {"murphy_edge.py", "murphy_robotics.py", "murphy_growth_suite.py", "index.html", "install_murphy_desktop.bat", "MurphyDesktop_v0.0.1_Windows.zip", "murphydesktop_v0.0.1_windows.zip", "murphydesktop_v0.0.1_windows.dat"}
+        if filename not in allowed:
+            return JSONResponse({"error": "not found"}, status_code=404)
+        fp = f"/opt/Murphy-System/desktop/{filename}"
+        if not os.path.isfile(fp):
+            return JSONResponse({"error": "not found"}, status_code=404)
+        media = "text/x-python" if filename.endswith(".py") else ("application/octet-stream" if filename.endswith(".bat") else "text/html")
+        return _R65a4_FR(fp, media_type=media)
+    # R65a4_DESKTOP_DONE
+    # ═══════════════════════════════════════════════════════════════════
+
     # ═══════════════════════════════════════════════════════════════════
 
 

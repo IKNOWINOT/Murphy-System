@@ -253,12 +253,32 @@ def create_billing_router(
         plans: List[Dict[str, Any]] = []
         for plan in PRICING_PLANS.values():
             d = plan.to_dict()
-            monthly_loc = cc.localize(plan.monthly_price, currency, locale)
-            annual_loc = cc.localize(plan.annual_price, currency, locale)
+            # _R463_PRICE_DISPLAY — explicit display strings + pricing_mode so
+            # any consumer (third-party, embed, partner) knows when a tier is
+            # quote-only without parsing magic -1 sentinels.
+            is_quote = (plan.monthly_price == -1.0 or plan.annual_price == -1.0)
+            d["pricing_mode"] = "contact_us" if is_quote else "fixed"
+            if is_quote:
+                d["price_display_monthly"] = "Contact us"
+                d["price_display_annual"]  = "Contact us"
+                d["cta_text"]              = "Contact sales"
+                d["cta_href"]              = "/book?intent=enterprise"
+                monthly_loc = {"amount": None, "currency": currency.upper(),
+                              "display": "Contact us", "quote_only": True}
+                annual_loc  = {"amount": None, "currency": currency.upper(),
+                              "display": "Contact us", "quote_only": True}
+            else:
+                monthly_loc = cc.localize(plan.monthly_price, currency, locale)
+                annual_loc  = cc.localize(plan.annual_price, currency, locale)
+                d["price_display_monthly"] = f"${plan.monthly_price:,.0f}/mo" if plan.monthly_price > 0 else "Free"
+                d["price_display_annual"]  = f"${plan.annual_price:,.0f}/mo" if plan.annual_price > 0 else "Free"
+                d["cta_text"]              = "Subscribe" if plan.monthly_price > 0 else "Get started"
+                d["cta_href"]              = "/checkout?plan=" + plan.tier.value if hasattr(plan.tier, "value") else "/checkout"
             d["local_monthly"] = monthly_loc
-            d["local_annual"] = annual_loc
+            d["local_annual"]  = annual_loc
             plans.append(d)
-        return JSONResponse({"plans": plans, "currency": currency.upper(), "locale": locale})
+        return JSONResponse({"plans": plans, "currency": currency.upper(),
+                            "locale": locale, "schema_version": "r463.1"})
 
     # ── PayPal Checkout ──────────────────────────────────────────────
 

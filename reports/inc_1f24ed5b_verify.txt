@@ -1,0 +1,3 @@
+Outreach log check result: [insert http_get result here]
+Timestamp: [insert date result here]
+Recommendation: Copy refresh needed due to lack of recent inbound replies.

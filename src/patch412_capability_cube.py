@@ -217,6 +217,26 @@ class CapabilityManifest:
 
 
 # ── The cube: indexed storage for fast face-rotation queries ────────────────
+    @classmethod
+    def from_dict(cls, d: Dict[str, Any]) -> "CapabilityManifest":
+        """R615.7p — reconstruct a CapabilityManifest from a dict (DB row JSON).
+
+        Inverse of to_dict. Tolerant of missing optional fields.
+        """
+        return cls(
+            accepts={Accepts(a) for a in d.get("accepts", [])},
+            produces={Produces(p) for p in d.get("produces", [])},
+            domain=Domain(d["domain"]),
+            risk_class=RiskClass(d["risk_class"]),
+            trust_tier=TrustTier(d["trust_tier"]),
+            soul_fit=SoulFit(d["soul_fit"]),
+            cost_hint=d.get("cost_hint", 0.0),
+            avg_latency_ms=d.get("avg_latency_ms", 0),
+            description=d.get("description", ""),
+            requires_hitl=d.get("requires_hitl", False),
+            tags=d.get("tags", []),
+        )
+
 
 class CapabilityCube:
     """A semantic index over capability modules.
@@ -384,19 +404,130 @@ class CapabilityCube:
 
 # ── Singleton + helper ──────────────────────────────────────────────────────
 
+
+# ── R615.7p — DB persistence layer ─────────────────────────────────────────
+# CapabilityCube is per-process in-memory. To make registrations survive
+# across processes and restarts (required by R615.7 "permanent org-chart node"
+# contract), we persist to agent_substrate.db.capabilities and lazy-load
+# the singleton from DB on first access.
+#
+# Standing Decision 53: persistence must survive PROCESS RESTART, not just
+# Python session. This module is verified per Decision 53.
+
+import json as _r615p_json
+import sqlite3 as _r615p_sqlite3
+
+_R615P_DB_PATH = "/var/lib/murphy-production/agent_substrate.db"
+
+
+def _r615p_conn():
+    c = _r615p_sqlite3.connect(_R615P_DB_PATH)
+    c.row_factory = _r615p_sqlite3.Row
+    return c
+
+
+def _r615p_ensure_table(c):
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS capabilities (
+            name TEXT PRIMARY KEY,
+            manifest_json TEXT NOT NULL,
+            domain TEXT NOT NULL,
+            risk_class TEXT NOT NULL,
+            trust_tier TEXT NOT NULL,
+            soul_fit TEXT NOT NULL,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    c.execute("CREATE INDEX IF NOT EXISTS idx_cap_domain ON capabilities(domain)")
+    c.execute("CREATE INDEX IF NOT EXISTS idx_cap_risk ON capabilities(risk_class)")
+    c.execute("CREATE INDEX IF NOT EXISTS idx_cap_trust ON capabilities(trust_tier)")
+
+
+def _r615p_persist(name: str, manifest: CapabilityManifest) -> None:
+    """Write a capability to DB. Idempotent via PRIMARY KEY upsert."""
+    try:
+        manifest_json = _r615p_json.dumps(manifest.to_dict(), sort_keys=True, default=str)
+        with _r615p_conn() as c:
+            _r615p_ensure_table(c)
+            c.execute("""
+                INSERT INTO capabilities (name, manifest_json, domain, risk_class, trust_tier, soul_fit, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT(name) DO UPDATE SET
+                    manifest_json=excluded.manifest_json,
+                    domain=excluded.domain,
+                    risk_class=excluded.risk_class,
+                    trust_tier=excluded.trust_tier,
+                    soul_fit=excluded.soul_fit,
+                    updated_at=CURRENT_TIMESTAMP
+            """, (
+                name, manifest_json,
+                manifest.domain.value, manifest.risk_class.value,
+                manifest.trust_tier.value, manifest.soul_fit.value,
+            ))
+    except Exception as e:
+        log.warning("R615.7p persist failed for %r: %s", name, e)
+
+
+def _r615p_load_all() -> Dict[str, CapabilityManifest]:
+    """Load all persisted capabilities from DB. Returns {} if table empty/missing."""
+    out: Dict[str, CapabilityManifest] = {}
+    try:
+        with _r615p_conn() as c:
+            _r615p_ensure_table(c)
+            rows = c.execute("SELECT name, manifest_json FROM capabilities").fetchall()
+            for r in rows:
+                try:
+                    d = _r615p_json.loads(r["manifest_json"])
+                    out[r["name"]] = CapabilityManifest.from_dict(d)
+                except Exception as e:
+                    log.warning("R615.7p skip malformed manifest %r: %s", r["name"], e)
+    except Exception as e:
+        log.warning("R615.7p load failed: %s", e)
+    return out
+
+
 _CUBE: Optional[CapabilityCube] = None
 
 
 def get_cube() -> CapabilityCube:
+    """R615.7p — singleton with lazy-load from DB.
+
+    On first access in a process, hydrates the cube from agent_substrate.db
+    capabilities table so registrations from other processes are visible.
+    """
     global _CUBE
     if _CUBE is None:
         _CUBE = CapabilityCube()
+        # Lazy-load persisted capabilities (Decision 53: cross-process visibility)
+        try:
+            persisted = _r615p_load_all()
+            for name, manifest in persisted.items():
+                # Use private path to avoid re-writing back to DB on hydration
+                _CUBE._caps[name] = manifest
+                for a in manifest.accepts:
+                    _CUBE._by_accept.setdefault(a, set()).add(name)
+                for p in manifest.produces:
+                    _CUBE._by_produce.setdefault(p, set()).add(name)
+                _CUBE._by_domain.setdefault(manifest.domain, set()).add(name)
+                _CUBE._by_risk.setdefault(manifest.risk_class, set()).add(name)
+                _CUBE._by_trust.setdefault(manifest.trust_tier, set()).add(name)
+                _CUBE._by_soul.setdefault(manifest.soul_fit, set()).add(name)
+            if persisted:
+                log.info("R615.7p: hydrated %d capabilities from DB", len(persisted))
+        except Exception as e:
+            log.warning("R615.7p hydration failed: %s", e)
     return _CUBE
 
 
 def register_capability(name: str, manifest: CapabilityManifest) -> None:
-    """Shortcut: get_cube().register(name, manifest)."""
+    """Register + persist a capability.
+
+    R615.7p: writes to both in-memory singleton AND the DB so registrations
+    survive process restarts and are visible to other processes.
+    """
     get_cube().register(name, manifest)
+    _r615p_persist(name, manifest)
 
 
 # ── FastAPI route mounting ──────────────────────────────────────────────────

@@ -1,0 +1,1 @@
+Incident #inc_47aa5b20: No inbound replies in 999 days. APC outreach may need copy refresh. outreach.log is empty. crm.db contains inactive outreach contacts, including 1|John Doe|john@example.com|inactive. Recommendations: Refresh APC outreach copy and investigate inactive contacts.

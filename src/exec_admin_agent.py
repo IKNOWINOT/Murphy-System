@@ -68,9 +68,72 @@ class ExecAdminAgent(AgentBase):
                 topic=intent[:60],
                 account=signal.get("source", "unknown"),
             )
+        elif "strategy" in intent or "phase e" in intent or "gate check" in intent:
+            # PATCH-PHASE-E-WIRE-R202 (2026-05-29): route to Phase E business gate check
+            return self.run_phase_e_check(signal)
         else:
             # Default: run revenue driver cycle
             return self.drive_revenue_cycle()
+
+    # ── PATCH-PHASE-E-WIRE-R202: Phase E business gate composition ────────────
+    def run_phase_e_check(self, signal: dict) -> dict:
+        """Run Phase E business gate composition for an objective category.
+
+        Uses existing BusinessGateGenerator to emit gates for the named category.
+        Signal payload:
+            category: str — ObjectiveCategory value (default 'operations')
+            budget_threshold: float — Cash gate threshold (default 10000)
+            roi_threshold: float — ROI gate threshold (optional)
+            risk_tolerance: float — Risk gate threshold (optional)
+
+        Returns:
+            dict with generated gates + objective_id placeholder + meta.
+        """
+        try:
+            from src.executive_planning_engine import (
+                BusinessGateGenerator,
+                ExecutiveStrategyPlanner,
+                ObjectiveCategory,
+            )
+        except Exception as exc:
+            return {"ok": False, "error": f"Phase E import failed: {exc}"}
+
+        payload = signal.get("raw_payload", {}) or {}
+        category = (payload.get("category") or "operations").lower()
+        budget_threshold = float(payload.get("budget_threshold", 10000.0))
+        roi_threshold = payload.get("roi_threshold")
+        risk_tolerance = payload.get("risk_tolerance")
+
+        # Verify category is valid before calling
+        try:
+            ObjectiveCategory(category)
+        except ValueError:
+            valid = [c.value for c in ObjectiveCategory]
+            return {"ok": False, "error": f"invalid category '{category}'",
+                    "valid_categories": valid}
+
+        try:
+            gen = BusinessGateGenerator()
+            obj_id = f"phase-e-{signal.get('source', 'unknown')}"
+            gates = gen.generate_gates_for_objective(
+                objective_id=obj_id,
+                category=category,
+                budget_threshold=budget_threshold,
+                roi_threshold=float(roi_threshold) if roi_threshold else None,
+                risk_tolerance=float(risk_tolerance) if risk_tolerance else None,
+            )
+            return {
+                "ok": True,
+                "phase": "E",
+                "category": category,
+                "objective_id": obj_id,
+                "gates_generated": len(gates),
+                "gates": gates,
+                "wired_via": "exec_admin_agent.run_phase_e_check (R202)",
+            }
+        except Exception as exc:
+            import traceback as _tb
+            return {"ok": False, "error": str(exc), "trace": _tb.format_exc()[-400:]}
 
     # ── CORE: Revenue Driver Cycle ─────────────────────────────────────────────
     def drive_revenue_cycle(self) -> Dict:
@@ -82,31 +145,154 @@ class ExecAdminAgent(AgentBase):
         directives = self._issue_directives(blockers)
         report = self._compile_driver_report(blockers, directives)
         self._email_driver_report(report)
+
+        # PATCH-INC-001 (2026-05-27): route high-weight blockers to incident router
+        # so the founder gets unified visibility across all signals.
+        try:
+            self._route_blockers_to_incident_router(blockers)
+        except Exception as exc:
+            logger.warning("blocker -> incident router failed: %s", exc)
+
         return {
             "blockers_found": len(blockers),
             "directives_issued": len(directives),
             "report": report,
         }
 
+    def _route_blockers_to_incident_router(self, blockers: List[Dict]) -> None:
+        """Fire one incident per high-weight blocker (weight >= 70).
+        Lower-weight blockers stay in the daily email report only.
+
+        ROUND-6 (2026-06-05): Added dedup gate. Without it this method
+        re-fired the same blocker every cycle, flooding cpost@ with
+        1,198+ identical emails per hour. Now we record (blocker_type,
+        blocker_key) → last_fired_at in a SQLite dedup table and skip
+        if fired within DEDUP_WINDOW_SEC (default 4 hours)."""
+        import urllib.request, json as _json, sqlite3 as _r6_sqlite3, time as _r6_time
+        # R6 dedup constants
+        _R6_DEDUP_DB = "/var/lib/murphy-production/exec_admin_dedup.db"
+        _R6_DEDUP_WINDOW_SEC = 4 * 60 * 60  # 4 hours — re-alert at most every 4h per blocker
+
+        def _r6_dedup_check_and_record(btype, bkey, weight):
+            """Return True if this blocker should fire NOW; False if recently fired."""
+            try:
+                c = _r6_sqlite3.connect(_R6_DEDUP_DB, timeout=5)
+                c.execute("""CREATE TABLE IF NOT EXISTS blocker_fires (
+                    btype TEXT NOT NULL,
+                    bkey TEXT NOT NULL,
+                    last_fired_at REAL NOT NULL,
+                    fire_count INTEGER DEFAULT 1,
+                    last_weight INTEGER DEFAULT 0,
+                    PRIMARY KEY (btype, bkey)
+                )""")
+                now = _r6_time.time()
+                row = c.execute(
+                    "SELECT last_fired_at, fire_count FROM blocker_fires WHERE btype=? AND bkey=?",
+                    (btype, bkey)
+                ).fetchone()
+                if row and (now - row[0]) < _R6_DEDUP_WINDOW_SEC:
+                    # Touch fire_count (record suppression) but don't fire
+                    c.execute(
+                        "UPDATE blocker_fires SET fire_count = fire_count + 1 WHERE btype=? AND bkey=?",
+                        (btype, bkey)
+                    )
+                    c.commit(); c.close()
+                    return False
+                # New or expired — record and fire
+                c.execute("""INSERT INTO blocker_fires (btype, bkey, last_fired_at, fire_count, last_weight)
+                            VALUES (?, ?, ?, 1, ?)
+                            ON CONFLICT(btype, bkey) DO UPDATE SET
+                                last_fired_at = excluded.last_fired_at,
+                                fire_count = 1,
+                                last_weight = excluded.last_weight""",
+                          (btype, bkey, now, weight))
+                c.commit(); c.close()
+                return True
+            except Exception as _e:
+                logger.warning("R6 dedup check failed (firing as fallback): %s", _e)
+                return True  # fail-open — better to send than to silently drop
+
+        for b in blockers:
+            weight = b.get("weight", 0)
+            if weight < 70:
+                continue
+            # R6 — dedup gate: skip if this exact blocker fired in the last 4h
+            _r6_btype = b.get("type", "unknown")
+            _r6_bkey = str(b.get("deal_id") or b.get("contact_id") or b.get("detail", ""))[:200]
+            if not _r6_dedup_check_and_record(_r6_btype, _r6_bkey, weight):
+                logger.info("R6 dedup: suppressed %s/%s (already fired within %dh)",
+                            _r6_btype, _r6_bkey[:40], _R6_DEDUP_WINDOW_SEC // 3600)
+                continue
+            severity = "urgent" if weight >= 100 else "high"
+            payload = _json.dumps({
+                "source": "exec_admin_blocker",
+                "severity": severity,
+                "title": f"Revenue blocker (P:{weight}): {b.get('type','?')}",
+                "body": b.get("detail", "(no detail)") + "\n\nRaw blocker:\n" + _json.dumps(b, indent=2),
+                "metadata": {"weight": weight, "blocker_type": b.get("type")}
+            }).encode()
+            # PATCH-R279 (2026-05-30): was blocking the FastAPI event loop because
+            # urlopen targets THIS process (self-deadlock). Spawn daemon thread
+            # so the request thread returns immediately. Fire-and-forget matches
+            # original semantics (return value was unused; only logged).
+            def _fire_and_forget_route(_b=b, _weight=weight, _payload=payload):
+                try:
+                    import urllib.request as _u
+                    _req = _u.Request(
+                        "http://127.0.0.1:8000/api/incidents/route",
+                        data=_payload,
+                        headers={"Content-Type": "application/json",
+                                 "X-Internal": "exec_admin_agent"},
+                        method="POST"
+                    )
+                    _u.urlopen(_req, timeout=8)
+                    logger.info("blocker %s (P:%s) routed to incident router",
+                                _b.get("type"), _weight)
+                except Exception as _e:
+                    logger.warning("blocker %s router failed: %s", _b.get("type"), _e)
+            import threading as _threading
+            _threading.Thread(target=_fire_and_forget_route, daemon=True,
+                              name=f"exec-admin-route-{b.get('type','?')}").start()
+
     def _scan_blockers(self) -> List[Dict]:
         """Scan all revenue-relevant state and return prioritized blockers."""
+        # PATCH-EXEC-CTX-001 (2026-05-28 R37): pull executive context once
+        # at the top so blocker scanning can be informed by business plan +
+        # live KPIs. Failure to load context never breaks scanning — falls
+        # back to platform tenant and empty plan.
+        try:
+            from src.exec_context import build_exec_context
+            self._exec_ctx = build_exec_context(tenant_id="platform", agent_id="exec_admin")
+        except Exception as _ctx_exc:
+            self._exec_ctx = {"business_plan": {}, "live_kpis": {}, "wire_version": "EXEC-CTX-UNAVAIL"}
+            try:
+                logger.debug("exec_context unavailable in _scan_blockers: %s", _ctx_exc)
+            except Exception:
+                pass
+
         blockers = []
 
-        # 1. Stripe not configured
+        # 1. Billing rail check — Murphy uses NOWPayments (crypto) until 500+ users.
+        # Stripe is intentionally NOT enabled per founder policy 2026-05-26.
+        # Only flag a blocker if NOWPayments itself is unconfigured.
         try:
             import os
-            sk = os.environ.get("STRIPE_SECRET_KEY", "").strip()
-            if not sk or sk.startswith("sk_test_PLACEHOLDER") or sk == "":
+            npk = os.environ.get("NOWPAYMENTS_API_KEY", "").strip()
+            ipn = os.environ.get("NOWPAYMENTS_IPN_SECRET", "").strip()
+            if not npk or not ipn:
+                missing = []
+                if not npk: missing.append("NOWPAYMENTS_API_KEY")
+                if not ipn: missing.append("NOWPAYMENTS_IPN_SECRET")
                 blockers.append({
-                    "type": "stripe_unconfigured",
-                    "weight": BLOCKER_WEIGHTS["stripe_unconfigured"],
-                    "detail": "Stripe secret key is empty — billing is non-functional.",
-                    "directive": "Prompt founder to add STRIPE_SECRET_KEY to /etc/murphy-production/environment",
+                    "type": "nowpayments_unconfigured",
+                    "weight": BLOCKER_WEIGHTS.get("stripe_unconfigured", 100),
+                    "detail": f"NOWPayments not fully configured — missing: {', '.join(missing)}",
+                    "directive": f"Add {' and '.join(missing)} to /etc/murphy-production/environment",
                     "owner": "exec_admin",
                     "action": "escalate_to_founder",
                 })
         except Exception as e:
-            logger.debug("Stripe check error: %s", e)
+            logger.debug("NOWPayments check error: %s", e)
 
         # 2. CRM — stuck deals (PATCH-187: enriched with contact info for real actions)
         try:
@@ -115,7 +301,7 @@ class ExecAdminAgent(AgentBase):
                 "SELECT d.id, d.title, d.stage, d.value, d.created_at, d.contact_id, "
                 "       c.name, c.email, c.company "
                 "FROM deals d LEFT JOIN contacts c ON d.contact_id = c.id "
-                "WHERE d.stage NOT IN ('closed_won', 'closed_lost') "
+                "WHERE d.stage NOT IN ('closed_won','closed_lost','archived_phantom','archived_dead_domain','archived_test') "
                 "ORDER BY d.value DESC LIMIT 10"
             ).fetchall()
             db.close()
@@ -328,15 +514,25 @@ class ExecAdminAgent(AgentBase):
                             import threading as _thr
                             t = _thr.Thread(target=_send_fu, daemon=True); t.start(); t.join(timeout=10)
 
-                            # Log activity to CRM
+                            # BLOCK-X.2 truth fix: branch activity_type on send-result.
+                            # result_holder[0] is the SendResult from svc.send(); None means
+                            # the thread timed out or crashed before completing.
+                            send_result = result_holder[0]
+                            send_ok = bool(send_result and getattr(send_result, "success", False))
+
+                            # Log activity to CRM with truth-tagged activity_type
                             try:
-                                act_id = str(_uuid.uuid4())[:13]
+                                act_id   = str(_uuid.uuid4())[:13]
+                                act_type = "email_followup" if send_ok else "email_followup_failed"
+                                summary  = (f"Follow-up email sent to {contact_email}"
+                                            if send_ok
+                                            else f"FAILED follow-up to {contact_email}")
                                 crm_db = _sq3.connect("/var/lib/murphy-production/crm.db", timeout=3)
                                 crm_db.execute(
                                     "INSERT INTO activities VALUES (?,?,?,?,?,?,?,?)",
-                                    (act_id, "email_followup", blocker.get("contact_id",""),
+                                    (act_id, act_type, blocker.get("contact_id",""),
                                      deal_id, "exec_admin",
-                                     f"Follow-up email sent to {contact_email}",
+                                     summary,
                                      body[:500], datetime.now(timezone.utc).isoformat())
                                 )
                                 crm_db.commit(); crm_db.close()
@@ -490,15 +686,31 @@ class ExecAdminAgent(AgentBase):
         # LLM executive summary
         if self._llm and blockers:
             try:
+                # PATCH-EXEC-CTX-002 (R38): include business plan + KPIs
+                # so executive guidance is grounded in real strategy not generic.
+                _ctx_obj = getattr(self, "_exec_ctx", {}) or {}
+                _bp = _ctx_obj.get("business_plan", {}) or {}
+                _kpis = _ctx_obj.get("live_kpis", {}) or {}
+                _ts = _bp.get("tenant_strategy") or {}
                 ctx = {
                     "blockers": [{"type": b["type"], "detail": b["detail"]} for b in blockers[:5]],
                     "directives_issued": len(directives),
+                    "primary_goal": _ts.get("primary_goal"),
+                    "business_stage": _ts.get("business_stage"),
+                    "budget_tier": _ts.get("budget_tier"),
+                    "active_deals": _kpis.get("active_deals"),
+                    "open_chains": _kpis.get("open_chains"),
+                    "north_star": (_bp.get("north_star") or "")[:160],
                 }
                 prompt = (
                     "You are Murphy's executive intelligence. "
-                    f"Revenue blockers found: {json.dumps(ctx)}. "
+                    f"North star: {ctx.get('north_star') or 'shield humanity from AI failure'}. "
+                    f"Current goal: {ctx.get('primary_goal') or 'unspecified'} "
+                    f"({ctx.get('business_stage') or 'unknown stage'}, {ctx.get('budget_tier') or 'unknown budget'}). "
+                    f"Live state: {ctx.get('active_deals')} active deals, {ctx.get('open_chains')} open chains. "
+                    f"Revenue blockers: {json.dumps(ctx['blockers'])}. "
                     "Write 2-3 sentences of decisive executive guidance. "
-                    "Focus on what moves revenue forward fastest. "
+                    "Tie advice to the current goal and budget reality. "
                     "Be direct — this is for the founder. No fluff."
                 )
                 resp = self._llm.complete(prompt=prompt, max_tokens=120)

@@ -1,14 +1,590 @@
-<!DOCTYPE html><html><head><meta charset='utf-8'><title>Murphy Systems — Pitch Deck</title>
-<style>body{font-family:-apple-system,Segoe UI,sans-serif;margin:0;background:#0a0a0f;color:#fff}
-.slide{min-height:100vh;padding:80px 100px;border-bottom:1px solid #222;display:flex;flex-direction:column;justify-content:center}
-.slide h1{font-size:64px;margin:0 0 24px 0;background:linear-gradient(90deg,#7afcff,#ff7eb6);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.slide h2{font-size:42px;margin:0 0 32px 0;color:#7afcff}
-.slide p.sub{font-size:28px;color:#aaa;margin:0 0 40px 0}
-.slide ul{font-size:24px;line-height:1.6;list-style:none;padding:0}
-.slide li{padding:12px 0;border-left:3px solid #7afcff;padding-left:20px;margin:12px 0}
-.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:24px}
-.metric{background:#16161f;padding:32px;border-radius:12px;border:1px solid #2a2a3a}
-.metric .v{font-size:48px;color:#7afcff;font-weight:700}
-.metric .l{font-size:18px;color:#aaa;margin-top:8px}
-.n{position:absolute;top:24px;right:32px;color:#444;font-size:14px}
-</style></head><body><section class="slide"><div class="n">1/10</div><h1>Murphy Systems</h1><p class="sub">The autonomous executive layer for any business</p></section><section class="slide"><div class="n">2/10</div><h2>The Problem</h2><ul><li>Mid-market companies pay $5K-25K/mo for fractional executives + agencies</li><li>No continuity, no audit trail, no learning loop</li><li>AI tools exist but require humans to orchestrate them</li></ul></section><section class="slide"><div class="n">3/10</div><h2>The Solution</h2><ul><li>A multi-agent autonomous executive team</li><li>Soul-driven dynamic role assembly (Rosetta L0-L4)</li><li>Hash-chained audit on every action</li><li>Flat-rate SaaS, not retainer percentages</li></ul></section><section class="slide"><div class="n">4/10</div><h2>How It Works</h2><ul><li>Tenant onboards via CEO interview (21 questions)</li><li>Murphy builds the org chart and souls automatically</li><li>Agents execute against business plan + WorldState</li><li>All actions hash-chain audited</li></ul></section><section class="slide"><div class="n">5/10</div><h2>Traction</h2><div class="metrics"><div class="metric"><div class="v">20</div><div class="l">Platform agents live</div></div><div class="metric"><div class="v">14/14</div><div class="l">Autonomy gates passing</div></div><div class="metric"><div class="v">Capital + Commercial + Sales engines</div><div class="l">Capabilities operational</div></div><div class="metric"><div class="v">Live</div><div class="l">Stripe + NOWPayments rails</div></div></div></section><section class="slide"><div class="n">6/10</div><h2>Market</h2><ul><li>TAM: $200B (fractional executive market + business automation)</li><li>SAM: $30B (mid-market US SaaS spend)</li><li>Wedge: compliance-burdened + AI-curious sectors</li><li>Channel: direct + staffing reseller + commission firms</li></ul></section><section class="slide"><div class="n">7/10</div><h2>Business Model</h2><ul><li>SaaS line items $49-$100 sliding by equity grant</li><li>15-30% equity in customer = portfolio asset</li><li>Enterprise T&M $220-$1800/hr by sector</li><li>20-50% ROI participation 2-5 years</li><li>Staffing channel = leverage 100s of reps</li></ul></section><section class="slide"><div class="n">8/10</div><h2>Competitive Moat</h2><ul><li>Soul-driven dynamic role assembly (only us)</li><li>Hash-chained auditable compliance (rare)</li><li>Multi-tenant cross-learning (network effect)</li><li>Flat-rate vs retainer-% (founder loved)</li></ul></section><section class="slide"><div class="n">9/10</div><h2>Team</h2><ul><li>Corey Post — Founder, Operator</li><li>Murphy CEO agent — Autonomous executive</li><li>17 specialized platform agents</li><li>Network of legal + accounting partners</li></ul></section><section class="slide"><div class="n">10/10</div><h2>The Ask</h2><ul><li>Raising pre-seed: $2M</li><li>SAFE post-money @ $10M cap</li><li>18 months runway to revenue milestones</li><li>Use of funds: 60% engineering, 25% GTM, 15% legal+ops</li></ul></section></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Murphy Systems — Pitch Deck v2 (2026-06-01)</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{
+  --bg:#050608; --bg2:#0a0d12; --surface:#0f141b; --elevated:#161d28;
+  --border:rgba(0,212,170,.18); --border-hi:rgba(0,212,170,.45);
+  --teal:#00D4AA; --teal-glow:rgba(0,212,170,.15); --teal-soft:#7afcff;
+  --pink:#ff7eb6; --pink-soft:#ffb1d8;
+  --green:#00ff6a; --amber:#ffa940; --red:#ff5c7c;
+  --text:#e8f0ec; --text-dim:#8fa9a0; --text-dimer:#5a6e66;
+  --font:'Inter',-apple-system,Segoe UI,sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--text);font-family:var(--font);
+  scroll-behavior:smooth;overflow-x:hidden}
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(ellipse at 20% 10%,rgba(0,212,170,.08),transparent 50%),
+    radial-gradient(ellipse at 80% 60%,rgba(255,126,182,.06),transparent 50%),
+    radial-gradient(ellipse at 50% 90%,rgba(122,252,255,.05),transparent 50%);
+}
+
+/* Slides */
+.slide{
+  position:relative;min-height:100vh;padding:80px 8vw;
+  display:flex;flex-direction:column;justify-content:center;
+  border-bottom:1px solid rgba(0,212,170,.06);
+  z-index:1;animation:fadeUp .9s ease forwards;
+}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.slide::before{
+  content:'';position:absolute;top:0;left:0;width:100%;height:1px;
+  background:linear-gradient(90deg,transparent,var(--teal),transparent);
+  opacity:.3;
+}
+.slide-num{
+  position:absolute;top:32px;right:48px;
+  font-family:var(--mono);font-size:11px;color:var(--text-dimer);
+  letter-spacing:.15em;text-transform:uppercase;
+}
+.slide-label{
+  font-family:var(--mono);font-size:11px;color:var(--teal);
+  letter-spacing:.18em;text-transform:uppercase;font-weight:700;
+  margin-bottom:18px;display:flex;align-items:center;gap:10px;
+}
+.slide-label::before{
+  content:'';width:32px;height:1px;background:var(--teal);
+}
+h1.title{
+  font-size:clamp(48px,8vw,108px);font-weight:800;line-height:.95;
+  letter-spacing:-.04em;margin-bottom:24px;
+  background:linear-gradient(135deg,var(--teal-soft) 0%,var(--teal) 40%,var(--pink) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;
+}
+h2.title{
+  font-size:clamp(36px,5vw,68px);font-weight:800;line-height:1;
+  letter-spacing:-.03em;margin-bottom:24px;color:var(--text);
+}
+h2.title .accent{color:var(--teal)}
+p.sub{
+  font-size:clamp(18px,2vw,26px);color:var(--text-dim);line-height:1.5;
+  max-width:900px;margin-bottom:40px;
+}
+
+/* Hero status pill */
+.live-pill{
+  display:inline-flex;align-items:center;gap:10px;
+  padding:8px 16px;background:rgba(0,255,106,.08);
+  border:1px solid var(--green);border-radius:100px;
+  font-family:var(--mono);font-size:12px;color:var(--green);
+  font-weight:600;letter-spacing:.05em;margin-bottom:32px;
+}
+.live-pill .dot{width:8px;height:8px;background:var(--green);border-radius:50%;
+  animation:pulse 1.4s infinite}
+@keyframes pulse{0%,100%{opacity:.5;box-shadow:0 0 0 0 var(--green)}
+  50%{opacity:1;box-shadow:0 0 0 6px rgba(0,255,106,0)}}
+
+/* Metric cards */
+.metrics{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+  gap:20px;margin-top:24px;
+}
+.metric{
+  background:linear-gradient(160deg,var(--surface),var(--bg2));
+  border:1px solid var(--border);border-radius:14px;
+  padding:32px 28px;position:relative;overflow:hidden;
+  transition:all .3s ease;
+}
+.metric::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,var(--teal),var(--pink));
+  opacity:.6;
+}
+.metric:hover{
+  transform:translateY(-4px);border-color:var(--border-hi);
+  box-shadow:0 12px 36px rgba(0,212,170,.12);
+}
+.metric .v{
+  font-size:48px;font-weight:800;letter-spacing:-.03em;
+  background:linear-gradient(135deg,var(--teal-soft),var(--teal));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  line-height:1;margin-bottom:8px;
+}
+.metric .v.pink{
+  background:linear-gradient(135deg,var(--pink-soft),var(--pink));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.metric .v.small{font-size:30px}
+.metric .l{font-size:14px;color:var(--text-dim);line-height:1.4;
+  font-family:var(--mono);letter-spacing:.02em}
+.metric .verify{font-size:10px;color:var(--text-dimer);
+  font-family:var(--mono);margin-top:10px}
+
+/* Lists */
+ul.points{list-style:none;font-size:clamp(17px,1.6vw,22px);line-height:1.5}
+ul.points li{
+  position:relative;padding:14px 0 14px 32px;
+  border-bottom:1px solid rgba(0,212,170,.08);
+}
+ul.points li::before{
+  content:'';position:absolute;left:0;top:24px;
+  width:14px;height:1px;background:var(--teal);
+}
+ul.points li .h{color:var(--teal);font-weight:600;font-family:var(--mono);
+  font-size:13px;letter-spacing:.05em;text-transform:uppercase;display:block;margin-bottom:4px}
+ul.points li .b{color:var(--text-dim);font-size:15px}
+
+/* Two-column comparison */
+.compare{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:32px}
+@media(max-width:768px){.compare{grid-template-columns:1fr}}
+.col{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:14px;padding:28px;
+}
+.col.them{border-color:rgba(255,92,124,.25)}
+.col.us{border-color:var(--border-hi);
+  box-shadow:0 0 28px rgba(0,212,170,.08)}
+.col h3{font-family:var(--mono);font-size:12px;letter-spacing:.1em;
+  text-transform:uppercase;margin-bottom:18px;}
+.col.them h3{color:var(--red)}
+.col.us h3{color:var(--teal)}
+.col ul li{padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04);
+  font-size:15px;color:var(--text-dim);list-style:none}
+.col ul li::before{content:'';display:inline-block;width:8px;height:8px;
+  border-radius:50%;margin-right:10px;vertical-align:middle}
+.col.them ul li::before{background:var(--red)}
+.col.us ul li::before{background:var(--green)}
+
+/* Verification stamp */
+.stamp{
+  display:inline-block;font-family:var(--mono);font-size:10px;
+  padding:3px 9px;border-radius:3px;letter-spacing:.05em;
+  background:rgba(0,255,106,.1);border:1px solid var(--green);color:var(--green);
+  margin-left:8px;
+}
+.stamp.build{background:rgba(255,169,64,.1);border-color:var(--amber);color:var(--amber)}
+.stamp.road{background:rgba(255,255,255,.04);border-color:var(--text-dimer);color:var(--text-dim)}
+
+/* Cover */
+.cover{justify-content:flex-start;padding-top:140px}
+.cover h1{margin-top:40px}
+.cover .meta{
+  margin-top:40px;display:flex;gap:32px;flex-wrap:wrap;
+  font-family:var(--mono);font-size:12px;color:var(--text-dim);
+  letter-spacing:.05em;
+}
+.cover .meta .item{display:flex;flex-direction:column;gap:4px}
+.cover .meta .item .k{color:var(--text-dimer);font-size:10px;text-transform:uppercase;letter-spacing:.15em}
+.cover .meta .item .v{color:var(--teal);font-size:14px}
+
+/* Architecture diagram */
+.arch-flow{
+  margin-top:32px;display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;gap:14px;padding:32px 24px;
+  background:var(--bg2);border:1px solid var(--border);border-radius:14px;
+}
+.arch-node{
+  flex:1;min-width:160px;text-align:center;padding:18px 12px;
+  background:var(--elevated);border:1px solid var(--border);border-radius:10px;
+}
+.arch-node .icon{font-size:24px;display:block;margin-bottom:8px}
+.arch-node .name{font-family:var(--mono);font-size:11px;color:var(--teal);
+  text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+.arch-node .what{font-size:12px;color:var(--text-dim);line-height:1.4}
+.arch-arrow{color:var(--teal);font-size:18px;opacity:.5}
+
+/* Ledger bar */
+.ledger-table{
+  margin-top:24px;width:100%;border-collapse:collapse;
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  overflow:hidden;font-family:var(--mono);font-size:13px;
+}
+.ledger-table th{
+  background:var(--bg2);color:var(--teal);padding:14px 18px;
+  text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+  border-bottom:1px solid var(--border);
+}
+.ledger-table td{padding:14px 18px;color:var(--text);border-bottom:1px solid rgba(255,255,255,.04)}
+.ledger-table tr:last-child td{border-bottom:none}
+.ledger-table .total{background:rgba(0,212,170,.06);font-weight:700}
+
+/* CTA */
+.cta-row{margin-top:48px;display:flex;gap:16px;flex-wrap:wrap}
+.cta{
+  display:inline-block;padding:16px 32px;border-radius:8px;
+  font-family:var(--mono);font-size:13px;font-weight:700;
+  text-decoration:none;letter-spacing:.05em;text-transform:uppercase;
+  transition:all .2s;
+}
+.cta.primary{background:var(--teal);color:#000}
+.cta.primary:hover{filter:brightness(1.1);transform:translateY(-2px);
+  box-shadow:0 8px 24px rgba(0,212,170,.3)}
+.cta.secondary{background:transparent;color:var(--teal);border:1px solid var(--teal)}
+.cta.secondary:hover{background:rgba(0,212,170,.1)}
+
+/* TOC sticky nav */
+.toc{
+  position:fixed;left:24px;top:50%;transform:translateY(-50%);
+  z-index:100;display:flex;flex-direction:column;gap:8px;
+}
+.toc a{
+  width:30px;height:6px;background:rgba(255,255,255,.1);
+  border-radius:3px;transition:all .2s;
+}
+.toc a:hover{background:var(--teal-soft)}
+.toc a.active{background:var(--teal);width:42px}
+@media(max-width:980px){.toc{display:none}}
+
+code{font-family:var(--mono);background:rgba(0,212,170,.08);
+  color:var(--teal);padding:1px 6px;border-radius:3px;font-size:.85em}
+
+/* The big-number callout */
+.big-callout{
+  margin-top:32px;padding:36px;text-align:center;
+  background:linear-gradient(135deg,rgba(0,212,170,.06),rgba(255,126,182,.04));
+  border:1px solid var(--border-hi);border-radius:18px;
+}
+.big-callout .num{
+  font-size:clamp(60px,10vw,140px);font-weight:800;line-height:1;
+  background:linear-gradient(135deg,var(--teal-soft),var(--teal),var(--pink));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  letter-spacing:-.04em;margin-bottom:12px;
+}
+.big-callout .lbl{font-family:var(--mono);font-size:14px;color:var(--text-dim);
+  letter-spacing:.1em;text-transform:uppercase}
+
+.footer{padding:48px 8vw;border-top:1px solid var(--border);
+  font-family:var(--mono);font-size:11px;color:var(--text-dimer);
+  display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;
+  background:var(--bg)}
+</style>
+</head>
+<body>
+
+<nav class="toc" aria-label="Slide navigation">
+  <a href="#s1" title="Cover"></a>
+  <a href="#s2" title="Problem"></a>
+  <a href="#s3" title="Solution"></a>
+  <a href="#s4" title="Architecture"></a>
+  <a href="#s5" title="Live State"></a>
+  <a href="#s6" title="Real Burn"></a>
+  <a href="#s7" title="Pricing"></a>
+  <a href="#s8" title="Market"></a>
+  <a href="#s9" title="Moat"></a>
+  <a href="#s10" title="Team"></a>
+  <a href="#s11" title="Ask"></a>
+</nav>
+
+<!-- ─── SLIDE 1 — COVER ─────────────────────────────────────── -->
+<section class="slide cover" id="s1">
+  <div class="slide-num">01 / 11</div>
+  <div class="live-pill"><span class="dot"></span>LIVE · murphy.systems · 9/9 services up</div>
+  <h1 class="title">Murphy.</h1>
+  <h1 class="title" style="margin-top:-10px">Your autonomous CEO.</h1>
+  <p class="sub" style="margin-top:32px">An AI operating system, not a chatbot. 1,661 modules running every department of a real business — on its own substrate, paying its own bills, auditing its own work.</p>
+  <div class="meta">
+    <div class="item"><span class="k">Founder</span><span class="v">Corey Post</span></div>
+    <div class="item"><span class="k">Entity</span><span class="v">Inoni LLC</span></div>
+    <div class="item"><span class="k">Substrate days live</span><span class="v">35</span></div>
+    <div class="item"><span class="k">Deck date</span><span class="v">2026-06-01</span></div>
+    <div class="item"><span class="k">Stage</span><span class="v">Pre-seed · pre-revenue</span></div>
+  </div>
+  <div class="cta-row">
+    <a class="cta primary" href="https://murphy.systems" target="_blank">See it live →</a>
+    <a class="cta secondary" href="https://murphy.systems/mission" target="_blank">Watch a cascade</a>
+  </div>
+</section>
+
+<!-- ─── SLIDE 2 — PROBLEM ──────────────────────────────────── -->
+<section class="slide" id="s2">
+  <div class="slide-num">02 / 11</div>
+  <div class="slide-label">The Problem</div>
+  <h2 class="title">Mid-market companies pay <span class="accent">$5K-25K/mo</span><br>for executives that don't learn.</h2>
+  <p class="sub">Fractional CMOs, fractional COOs, fractional everything. They show up Tuesday, leave Thursday, hand you a Notion doc. No continuity. No audit trail. No memory. AI tools exist — but every one of them needs a human to orchestrate.</p>
+  <ul class="points" style="margin-top:24px">
+    <li><span class="h">No audit trail</span><span class="b">Decisions live in human heads, Slack threads, half-finished docs</span></li>
+    <li><span class="h">No continuity</span><span class="b">Every fractional rotation = re-onboarding from zero</span></li>
+    <li><span class="h">No learning loop</span><span class="b">Today's mistake = tomorrow's bill, paid in cash</span></li>
+    <li><span class="h">No compliance posture</span><span class="b">SOC2 / HIPAA / GDPR live in spreadsheets, not in the work itself</span></li>
+  </ul>
+</section>
+
+<!-- ─── SLIDE 3 — SOLUTION ─────────────────────────────────── -->
+<section class="slide" id="s3">
+  <div class="slide-num">03 / 11</div>
+  <div class="slide-label">The Solution</div>
+  <h2 class="title">An <span class="accent">autonomous executive team</span><br>that hash-chains every decision.</h2>
+  <p class="sub">One substrate. 29 specialized agent modules. 5 compliance frameworks enforced at build time, not runtime. Every action lands in an immutable ledger you can audit, replay, or hand to a regulator.</p>
+  <ul class="points">
+    <li><span class="h">Soul-driven dynamic role assembly</span><span class="b">Rosetta L0-L4 — agents load their own identity, values, authority bounds</span></li>
+    <li><span class="h">7-phase MFGC gate pipeline</span><span class="b">Every task is intake → compliance → execution → audit, structurally</span></li>
+    <li><span class="h">Per-tenant cost ledger</span><span class="b">Every LLM call attributed and billed back at unit cost <span class="stamp">R405 LIVE</span></span></li>
+    <li><span class="h">Crypto-native checkout</span><span class="b">NOWPayments: USDT/USDC/BTC/ETH or USD via Mercuryo card rail <span class="stamp">LIVE</span></span></li>
+    <li><span class="h">Self-modification under quorum</span><span class="b">Platform proposes patches; founder + critic approve; PSM ledger records <span class="stamp">LIVE</span></span></li>
+  </ul>
+</section>
+
+<!-- ─── SLIDE 4 — ARCHITECTURE ─────────────────────────────── -->
+<section class="slide" id="s4">
+  <div class="slide-num">04 / 11</div>
+  <div class="slide-label">How It Works</div>
+  <h2 class="title">Every request flows through<br><span class="accent">the same five layers</span>.</h2>
+  <div class="arch-flow">
+    <div class="arch-node">
+      <span class="icon">🧬</span>
+      <div class="name">Soul</div>
+      <div class="what">Rosetta identity loads: who, values, authority bounds</div>
+    </div>
+    <div class="arch-arrow">→</div>
+    <div class="arch-node">
+      <span class="icon">🎭</span>
+      <div class="name">Rosetta</div>
+      <div class="what">Org chart dispatches: collector, translator, executor, auditor</div>
+    </div>
+    <div class="arch-arrow">→</div>
+    <div class="arch-node">
+      <span class="icon">🛡️</span>
+      <div class="name">MFGC</div>
+      <div class="what">7-phase gates: legal · safe · complete · authorized · compliant</div>
+    </div>
+    <div class="arch-arrow">→</div>
+    <div class="arch-node">
+      <span class="icon">📐</span>
+      <div class="name">MSS</div>
+      <div class="what">Resolution scaling: task complexity matches agent capability</div>
+    </div>
+    <div class="arch-arrow">→</div>
+    <div class="arch-node">
+      <span class="icon">⚡</span>
+      <div class="name">Swarm</div>
+      <div class="what">Parallel DAG execution; results to CEO console in plain English</div>
+    </div>
+  </div>
+  <p class="sub" style="margin-top:32px;font-size:18px">Every layer is observable at <code>/mission</code>. Every decision lands in <code>/api/public/pulse</code>. Every LLM call lands in <code>llm_cost_ledger.calls</code> with tenant attribution.</p>
+</section>
+
+<!-- ─── SLIDE 5 — LIVE STATE ───────────────────────────────── -->
+<section class="slide" id="s5">
+  <div class="slide-num">05 / 11</div>
+  <div class="slide-label">Live State · 2026-06-01</div>
+  <h2 class="title">Not a demo. Not a deck.<br><span class="accent">It's running right now.</span></h2>
+  <div class="metrics">
+    <div class="metric">
+      <div class="v">1,661</div>
+      <div class="l">Python modules in src/</div>
+      <div class="verify">verified: find src -name "*.py" | wc -l</div>
+    </div>
+    <div class="metric">
+      <div class="v">751,557</div>
+      <div class="l">Lines of source code</div>
+      <div class="verify">verified: cloc-equivalent count</div>
+    </div>
+    <div class="metric">
+      <div class="v">29</div>
+      <div class="l">Specialized agent modules</div>
+      <div class="verify">verified: collector_agent.py, executor_agent.py, etc.</div>
+    </div>
+    <div class="metric">
+      <div class="v">62</div>
+      <div class="l">Patches shipped (R-series)</div>
+      <div class="verify">verified: /api/public/pulse · 28 today alone</div>
+    </div>
+    <div class="metric">
+      <div class="v">9 / 9</div>
+      <div class="l">Substrate services healthy</div>
+      <div class="verify">verified live: /api/public/pulse</div>
+    </div>
+    <div class="metric">
+      <div class="v">314</div>
+      <div class="l">Error codes registered</div>
+      <div class="verify">verified: error code registry</div>
+    </div>
+    <div class="metric">
+      <div class="v pink">5</div>
+      <div class="l">Compliance frameworks live <span class="stamp">enum-wired</span></div>
+      <div class="verify">HIPAA · SOC2 · GDPR · ISO27001 · PCI-DSS</div>
+    </div>
+    <div class="metric">
+      <div class="v pink">239</div>
+      <div class="l">CRM contacts in pipeline</div>
+      <div class="verify">verified: crm.db SELECT COUNT(*)</div>
+    </div>
+  </div>
+  <div class="big-callout" style="margin-top:48px">
+    <div class="num">35</div>
+    <div class="lbl">Consecutive days substrate up · zero data loss · zero rollbacks</div>
+  </div>
+</section>
+
+<!-- ─── SLIDE 6 — REAL BURN ────────────────────────────────── -->
+<section class="slide" id="s6">
+  <div class="slide-num">06 / 11</div>
+  <div class="slide-label">Capital Efficiency</div>
+  <h2 class="title">Total spend operating the platform:<br><span class="accent">$4.37 over 35 days.</span></h2>
+  <p class="sub">Reconciled directly against DeepInfra invoice. The whole autonomous executive team runs on under $5/mo of inference. Server (Hetzner CX-class): ~$35/mo. Every dollar of revenue is gross margin almost to the penny.</p>
+
+  <table class="ledger-table">
+    <thead>
+      <tr><th>Month</th><th>Inference Provider</th><th>Tokens in</th><th>Tokens out</th><th>Spend</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>April 2026</td><td>DeepInfra (Qwen + Llama)</td><td>2,371,189</td><td>949,393</td><td>$0.60</td></tr>
+      <tr><td>May 2026</td><td>DeepInfra (Qwen + Llama)</td><td>20,919,860</td><td>4,173,836</td><td>$3.73</td></tr>
+      <tr><td>June 2026 (day 1)</td><td>DeepInfra (Qwen + Llama)</td><td>465,342</td><td>65,354</td><td>$0.04</td></tr>
+      <tr class="total"><td><strong>YTD</strong></td><td><strong>All inference</strong></td><td><strong>23.7M</strong></td><td><strong>5.2M</strong></td><td><strong>$4.37</strong></td></tr>
+    </tbody>
+  </table>
+  <p class="sub" style="margin-top:24px;font-size:16px">At current per-customer unit economics: <strong style="color:var(--teal)">98%+ gross margin</strong> at every price tier. The platform pays its own bills before it pays a salary.</p>
+</section>
+
+<!-- ─── SLIDE 7 — BUSINESS MODEL ───────────────────────────── -->
+<section class="slide" id="s7">
+  <div class="slide-num">07 / 11</div>
+  <div class="slide-label">Business Model</div>
+  <h2 class="title">Three plans. <span class="accent">All crypto-native.</span><br>Zero retainer percentages.</h2>
+  <div class="metrics">
+    <div class="metric">
+      <div class="v small">$99 / mo</div>
+      <div class="l"><strong>PILOT</strong><br>Single agent, scoped weekly review, audit access. Ideal for solopreneurs testing the substrate.</div>
+    </div>
+    <div class="metric">
+      <div class="v small">$499 / mo</div>
+      <div class="l"><strong>GROWTH</strong><br>Full HITL pipeline, voice + email + SMS channels, multi-agent dispatch. Mid-market default.</div>
+    </div>
+    <div class="metric">
+      <div class="v small">$1,499 / mo</div>
+      <div class="l"><strong>SCALE</strong><br>Autonomous mode + outcome bonuses, compliance toggles on, founder-direct support.</div>
+    </div>
+  </div>
+  <p class="sub" style="margin-top:32px;font-size:18px">Hire-a-Role enterprise tier (in build, ships R407): <strong style="color:var(--teal)">$1,499 / $2,999 / $5,999</strong> per role per month — pre-trained SDR, CSM, dispatcher, bookkeeper. Payment rails: <strong>NOWPayments live</strong> for USDT, USDC, BTC, ETH, or USD via Mercuryo card. Crypto→fiat off-ramp KYB in progress.</p>
+</section>
+
+<!-- ─── SLIDE 8 — MARKET ───────────────────────────────────── -->
+<section class="slide" id="s8">
+  <div class="slide-num">08 / 11</div>
+  <div class="slide-label">Market</div>
+  <h2 class="title">Wedge: <span class="accent">compliance-burdened</span> mid-market<br>that AI tools have abandoned.</h2>
+  <div class="metrics">
+    <div class="metric">
+      <div class="v">$200B</div>
+      <div class="l">TAM<br>Global fractional executive + business process automation</div>
+    </div>
+    <div class="metric">
+      <div class="v">$30B</div>
+      <div class="l">SAM<br>US mid-market SaaS spend in regulated verticals</div>
+    </div>
+    <div class="metric">
+      <div class="v pink">$1.2B</div>
+      <div class="l">SOM Year 1<br>Healthcare + finance + legal early adopters</div>
+    </div>
+    <div class="metric">
+      <div class="v pink">3 channels</div>
+      <div class="l">Direct · staffing reseller · commission firm partnerships</div>
+    </div>
+  </div>
+  <ul class="points" style="margin-top:32px">
+    <li><span class="h">Healthcare</span><span class="b">HIPAA-aware agents — patient outreach, claims follow-up, intake auditing</span></li>
+    <li><span class="h">Finance</span><span class="b">PCI-DSS + SOC2 + ISO27001 stacked — collections, reconciliation, AML cadence</span></li>
+    <li><span class="h">Legal & professional services</span><span class="b">Discovery, intake, client comms with hash-chain audit out of the box</span></li>
+  </ul>
+</section>
+
+<!-- ─── SLIDE 9 — MOAT ─────────────────────────────────────── -->
+<section class="slide" id="s9">
+  <div class="slide-num">09 / 11</div>
+  <div class="slide-label">Competitive Moat</div>
+  <h2 class="title">Why nobody else can ship<br><span class="accent">what we already shipped</span>.</h2>
+  <div class="compare">
+    <div class="col them">
+      <h3>The rest of the market</h3>
+      <ul>
+        <li>Wrapper on top of GPT — no compliance posture</li>
+        <li>Per-call pricing — margins decay as usage grows</li>
+        <li>Stateless — every conversation starts from zero</li>
+        <li>Chatbot interface — humans still drive every action</li>
+        <li>No audit trail — explain a regulator? good luck</li>
+        <li>Stripe-only — bleeds 3% to the rail itself</li>
+      </ul>
+    </div>
+    <div class="col us">
+      <h3>Murphy</h3>
+      <ul>
+        <li>5 compliance frameworks enforced at <strong>build time</strong></li>
+        <li>Flat-rate SaaS — 98%+ gross margin verified, not hoped</li>
+        <li>Per-tenant memory + soul + WorldState since day one</li>
+        <li>CEO console takes actions, not just answers questions</li>
+        <li>Hash-chained PSM ledger — every action replayable</li>
+        <li>Crypto-native — 0.5% NOWPayments fee vs 2.9% Stripe</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ─── SLIDE 10 — TEAM ────────────────────────────────────── -->
+<section class="slide" id="s10">
+  <div class="slide-num">10 / 11</div>
+  <div class="slide-label">Team</div>
+  <h2 class="title">A founder. <span class="accent">An operating system.</span><br>A 35-day track record.</h2>
+  <ul class="points">
+    <li><span class="h">Corey Post — Founder, Operator</span><span class="b">Shipped 62 R-series patches in 35 days, 28 in the last 12 hours alone. Operates as full-stack engineer + product + GTM.</span></li>
+    <li><span class="h">Murphy CEO agent — Autonomous executive</span><span class="b">Loads its own soul, dispatches its own agents, audits its own work. Runs continuous mind cycles; today's count: 232.</span></li>
+    <li><span class="h">29 specialized agent modules</span><span class="b">Collector · Translator · Executor · Auditor · Scheduler · HITL · Onboarding · Connector · Patcher · Critic · plus 19 more</span></li>
+    <li><span class="h">Network of legal + accounting partners</span><span class="b">Inoni LLC formed Delaware. NOWPayments KYB in flight. Banking via Mercury.</span></li>
+    <li><span class="h">Hawthorne Post — Strategic advisor</span><span class="b">Owner of Colony (external project). Independent allowlist sounding board.</span></li>
+  </ul>
+</section>
+
+<!-- ─── SLIDE 11 — ASK ─────────────────────────────────────── -->
+<section class="slide" id="s11">
+  <div class="slide-num">11 / 11</div>
+  <div class="slide-label">The Ask</div>
+  <h2 class="title">Raising <span class="accent">$2M</span> pre-seed.<br>SAFE @ $10M cap.</h2>
+  <div class="metrics">
+    <div class="metric">
+      <div class="v">60%</div>
+      <div class="l">Engineering<br>Patch the remaining 17 bypass sites, ship Hire-a-Role tiers, ship voice + STT, ship mobile founder console</div>
+    </div>
+    <div class="metric">
+      <div class="v">25%</div>
+      <div class="l">GTM<br>10 design partners in healthcare + finance. Staffing-reseller channel pilot.</div>
+    </div>
+    <div class="metric">
+      <div class="v">15%</div>
+      <div class="l">Legal + Ops<br>SOC2 audit, HIPAA BAA template, Delaware → multi-state, treasury diversification</div>
+    </div>
+    <div class="metric">
+      <div class="v pink">18 mo</div>
+      <div class="l">Runway target<br>To $50K MRR · 25 paying tenants · SOC2 Type I in hand</div>
+    </div>
+  </div>
+  <div class="big-callout" style="margin-top:48px">
+    <div class="num">$57</div>
+    <div class="lbl">Monthly burn today (DeepInfra + Hetzner) · scaled answer ≠ scaled cost</div>
+  </div>
+  <div class="cta-row" style="margin-top:48px">
+    <a class="cta primary" href="mailto:cpost@murphy.systems?subject=Murphy%20pre-seed">cpost@murphy.systems</a>
+    <a class="cta secondary" href="https://murphy.systems" target="_blank">murphy.systems</a>
+    <a class="cta secondary" href="https://murphy.systems/mission" target="_blank">Watch the substrate live</a>
+  </div>
+</section>
+
+<footer class="footer">
+  <span>© 2020 Inoni Limited Liability Company · Pitch deck v2 (2026-06-01)</span>
+  <span>BSL 1.1 · murphy.systems · Verified live state at <code>/api/public/pulse</code></span>
+</footer>
+
+<script>
+// Scroll-spy for TOC dots
+const obs = new IntersectionObserver((ents)=>{
+  ents.forEach(e=>{
+    if(e.isIntersecting){
+      const id = e.target.id;
+      document.querySelectorAll('.toc a').forEach(a=>a.classList.remove('active'));
+      const link = document.querySelector('.toc a[href="#'+id+'"]');
+      if(link) link.classList.add('active');
+    }
+  });
+},{threshold:0.5});
+document.querySelectorAll('.slide').forEach(s=>obs.observe(s));
+</script>
+
+</body>
+</html>

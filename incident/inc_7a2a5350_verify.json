@@ -1,0 +1,1 @@
+{"incident_id": "inc_7a2a5350", "status": "triaged", "findings": "No inbound email replies in 999 days per CRM activity log. Recent outbound APC outreach emails detected. Copy refresh recommended.", "recommendation": "Update APC outreach email templates and subject lines to improve engagement. Schedule A/B testing.", "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"}

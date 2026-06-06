@@ -1,0 +1,10 @@
+{
+  "incident_id": "inc_fcb754d0",
+  "campaign": "apc_outreach",
+  "status": "no_replies",
+  "days_since_last_reply": 999,
+  "last_reply_timestamp": null,
+  "outreach_log_notes": "APC outreach requires copy refresh due to no inbound replies in 999 days. Recommend updating messaging and resending.",
+  "action_taken": "copy_refresh_initiated",
+  "timestamp": "2024-06-05T10:00:00Z"
+}

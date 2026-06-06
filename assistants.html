@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy Assistants — Pick Your Workspace</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#080c0a;color:#e8efe8;min-height:100vh;padding:40px 20px}
+.page{max-width:720px;margin:0 auto}
+.head{text-align:center;margin-bottom:32px}
+.head h1{font-size:24px;font-weight:700;margin-bottom:6px;color:#00d4aa}
+.head p{color:#7a8c84;font-size:14px}
+.founder-block{margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid #1a2620}
+.founder-block h2{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:#7a8c84;margin-bottom:10px;font-weight:600}
+.card{display:flex;align-items:center;gap:14px;background:#11241c;border:1px solid #1a2620;border-left:4px solid #00d4aa;padding:14px 18px;border-radius:8px;text-decoration:none;color:inherit;margin-bottom:10px;transition:all .15s}
+.card:hover{background:#162b22;transform:translateX(4px)}
+.card-letter{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#080c0a;font-weight:bold;font-size:15px;flex-shrink:0}
+.card-body{flex:1;min-width:0}
+.card-title{font-weight:600;font-size:15px;margin-bottom:2px}
+.card-sub{font-size:12px;color:#7a8c84}
+.card-slug{font-size:10px;color:#5a6a62;font-family:"SF Mono",Menlo,monospace;margin-top:2px}
+.card-arrow{color:#7a8c84;font-size:20px}
+.section h2{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:#7a8c84;margin-bottom:10px;font-weight:600}
+.note{margin-top:32px;text-align:center;color:#5a6a62;font-size:11px;line-height:1.6}
+</style>
+</head><body>
+<div class="page">
+  <div class="head">
+    <h1>Murphy Assistants</h1>
+    <p>Pick your workspace</p>
+  </div>
+  <div class="founder-block">
+    <h2>Founder</h2>
+    <a href="/ui/command" class="card" style="border-left-color:#00d4aa">
+      <div class="card-letter" style="background:#00d4aa">M</div>
+      <div class="card-body">
+        <div class="card-title">Talk to Murphy</div>
+        <div class="card-sub">Founder command — full platform access</div>
+        <div class="card-slug">/ui/command</div>
+      </div>
+      <div class="card-arrow">→</div>
+    </a>
+  </div>
+  <div class="section">
+    <h2>Tenant Assistants</h2>
+    
+    <a href="/ui/inoni_assistant" class="card" style="border-left-color:#00d4aa">
+      <div class="card-letter" style="background:#00d4aa">I</div>
+      <div class="card-body">
+        <div class="card-title">Inoni LLC</div>
+        <div class="card-sub">Software / AI Operations</div>
+        <div class="card-slug">inoni</div>
+      </div>
+      <div class="card-arrow">→</div>
+    </a>
+    <a href="/ui/acmecorp_assistant" class="card" style="border-left-color:#c97a3d">
+      <div class="card-letter" style="background:#c97a3d">A</div>
+      <div class="card-body">
+        <div class="card-title">ACME Corp LLC</div>
+        <div class="card-sub">Manufacturing</div>
+        <div class="card-slug">acmecorp</div>
+      </div>
+      <div class="card-arrow">→</div>
+    </a>
+    <a href="/ui/testorg320_assistant" class="card" style="border-left-color:#7c3aed">
+      <div class="card-letter" style="background:#7c3aed">T</div>
+      <div class="card-body">
+        <div class="card-title">R320 TestOrg Inc</div>
+        <div class="card-sub">Testing</div>
+        <div class="card-slug">testorg320</div>
+      </div>
+      <div class="card-arrow">→</div>
+    </a>
+    <a href="/ui/oregon_mep_demo_assistant" class="card" style="border-left-color:#1f4e3d">
+      <div class="card-letter" style="background:#1f4e3d">O</div>
+      <div class="card-body">
+        <div class="card-title">Cascadia MEP Contractors, LLC</div>
+        <div class="card-sub">mep_contractor</div>
+        <div class="card-slug">oregon_mep_demo</div>
+      </div>
+      <div class="card-arrow">→</div>
+    </a>
+    <a href="/ui/pdx_accounting_demo_assistant" class="card" style="border-left-color:#1a4480">
+      <div class="card-letter" style="background:#1a4480">P</div>
+      <div class="card-body">
+        <div class="card-title">Rosewood CPA Partners, PLLC</div>
+        <div class="card-sub">professional_services</div>
+        <div class="card-slug">pdx_accounting_demo</div>
+      </div>
+      <div class="card-arrow">→</div>
+    </a>
+    <a href="/ui/bedford_eats_demo_assistant" class="card" style="border-left-color:#dc2626">
+      <div class="card-letter" style="background:#dc2626">B</div>
+      <div class="card-body">
+        <div class="card-title">Bedford Stuyvesant Eats, LLC</div>
+        <div class="card-sub">retail_commerce</div>
+        <div class="card-slug">bedford_eats_demo</div>
+      </div>
+      <div class="card-arrow">→</div>
+    </a>
+    <a href="/ui/apex_wellness_assistant" class="card" style="border-left-color:#7c3aed">
+      <div class="card-letter" style="background:#7c3aed">A</div>
+      <div class="card-body">
+        <div class="card-title">Apex Wellness Clinic, P.C.</div>
+        <div class="card-sub">Healthcare - Outpatient Behavioral Health</div>
+        <div class="card-slug">apex_wellness</div>
+      </div>
+      <div class="card-arrow">→</div>
+    </a>
+  </div>
+  <div class="note">
+    Tenant assistants are scoped — they only see their own tenant's data<br>
+    and cannot access the platform or other tenants.
+  </div>
+</div></body></html>

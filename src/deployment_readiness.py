@@ -94,10 +94,17 @@ def _check_redis():
         return False, f"Redis check failed: {exc}"
 
 
+# _R467_DIR_ENV_FIX — pick env var based on directory purpose, not blindly MURPHY_DATA_DIR
+_R467_DIR_ENV_MAP = {
+    "/app/data": "MURPHY_DATA_DIR",
+    "/app/logs": "MURPHY_LOG_DIR",
+}
+
 def _check_disk_write(directory: str):
     """Return a checker that validates write access to a directory."""
     def _checker():
-        target = os.environ.get("MURPHY_DATA_DIR", directory)
+        env_name = _R467_DIR_ENV_MAP.get(directory, "MURPHY_DATA_DIR")
+        target = os.environ.get(env_name, directory)
         if not os.path.isdir(target):
             try:
                 os.makedirs(target, exist_ok=True)
@@ -211,13 +218,19 @@ class DeploymentReadinessChecker:
             ReadinessCheck("MURPHY_ENV", "env", _check_env_var("MURPHY_ENV")),
             ReadinessCheck("DATABASE_URL", "env", _check_env_var("DATABASE_URL")),
             ReadinessCheck("REDIS_URL", "env", _check_env_var("REDIS_URL", required=False)),
-            ReadinessCheck("PAYPAL_CLIENT_ID", "billing", _check_env_var("PAYPAL_CLIENT_ID")),
-            ReadinessCheck("PAYPAL_CLIENT_SECRET", "billing", _check_env_var("PAYPAL_CLIENT_SECRET")),
-            ReadinessCheck("COINBASE_COMMERCE_API_KEY", "billing", _check_env_var("COINBASE_COMMERCE_API_KEY", required=False)),
+            # _R466_NOWPAYMENTS_READINESS — actual live revenue rail is NOWPayments.
+            # PayPal/Coinbase remain in code but are legacy (R442/R447 moved billing
+            # to NOWPayments crypto + card). Don't fail readiness on missing PayPal.
+            ReadinessCheck("NOWPAYMENTS_API_KEY", "billing", _check_env_var("NOWPAYMENTS_API_KEY")),
+            ReadinessCheck("NOWPAYMENTS_IPN_SECRET", "billing_security", _check_env_var("NOWPAYMENTS_IPN_SECRET")),
+            # Legacy rails — only required when explicitly opted into
+            ReadinessCheck("PAYPAL_CLIENT_ID", "billing_legacy", _check_env_var("PAYPAL_CLIENT_ID", required=False)),
+            ReadinessCheck("PAYPAL_CLIENT_SECRET", "billing_legacy", _check_env_var("PAYPAL_CLIENT_SECRET", required=False)),
+            ReadinessCheck("COINBASE_COMMERCE_API_KEY", "billing_legacy", _check_env_var("COINBASE_COMMERCE_API_KEY", required=False)),
 
             # Webhook security — secrets should be set in production
-            ReadinessCheck("PAYPAL_WEBHOOK_SECRET", "billing_security", _check_env_var("PAYPAL_WEBHOOK_SECRET", required=False)),
-            ReadinessCheck("COINBASE_WEBHOOK_SECRET", "billing_security", _check_env_var("COINBASE_WEBHOOK_SECRET", required=False)),
+            ReadinessCheck("PAYPAL_WEBHOOK_SECRET", "billing_legacy_security", _check_env_var("PAYPAL_WEBHOOK_SECRET", required=False)),
+            ReadinessCheck("COINBASE_WEBHOOK_SECRET", "billing_legacy_security", _check_env_var("COINBASE_WEBHOOK_SECRET", required=False)),
 
             # Infrastructure
             ReadinessCheck("database", "infra", _check_database),

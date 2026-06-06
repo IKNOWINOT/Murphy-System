@@ -276,7 +276,7 @@ def run_discovery(max_new: int = 10) -> Dict:
         rows = corpus_conn.execute(
             "SELECT content, domain FROM corpus "
             "WHERE domain IN ('tech','finance','news') "
-            "ORDER BY collected_at DESC LIMIT 200"
+            "ORDER BY timestamp DESC LIMIT 200"
         ).fetchall()
         corpus_conn.close()
     except Exception as e:

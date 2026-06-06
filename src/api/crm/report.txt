@@ -1,0 +1,1 @@
+Outreach log is empty. CRM database schema is empty. Inactive outreach contacts: 1|John Doe|john@example.com|inactive

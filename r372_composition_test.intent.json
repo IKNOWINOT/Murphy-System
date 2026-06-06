@@ -1,0 +1,17 @@
+{
+  "module": "r372_composition_test",
+  "blocks": {},
+  "pipelines": {
+    "_self_check": {
+      "intent_plain": "Composition test module loads + main exists",
+      "anchors": [
+        "main",
+        "log_run",
+        "load_module"
+      ],
+      "pipeline_check": {
+        "module_loadable": true
+      }
+    }
+  }
+}

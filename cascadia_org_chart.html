@@ -1,0 +1,628 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<title>Cascadia MEP — Org Chart — R360</title>
+<style>
+:root{--bg:#fafaf7;--surface:#fff;--text:#1a1d1f;--muted:#6b7280;--border:#d8d5cc;--rule:#e8e5dc;
+      --primary:#1f4e3d;--secondary:#1a4480;--accent:#c97a3d;--paper:#fafaf7;
+      --exec:#1f4e3d;--director:#1a4480;--manager:#5b8a3a;--ic:#6b7280;
+      --mono:'SF Mono',Menlo,monospace;--display:'Inter',-apple-system,sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--display);font-size:14px;line-height:1.5}
+.page{max-width:1400px;margin:0 auto;padding:32px 40px;background:#fff;min-height:100vh;box-shadow:0 0 0 1px var(--border)}
+.masthead{border-bottom:3px solid var(--primary);padding-bottom:18px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:flex-end}
+.mark{width:42px;height:42px;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:700;font-size:14px;border-radius:2px;margin-right:14px}
+.brand-block{display:flex;align-items:center}
+.masthead h1{font-family:var(--display);font-size:18px;font-weight:700;color:var(--primary)}
+.masthead .legal{color:var(--muted);font-size:11px;margin-top:2px}
+.masthead .meta{text-align:right;font-family:var(--mono);font-size:10px;color:var(--muted);line-height:1.7}
+.doc-title{margin-bottom:24px;padding:18px 22px;background:var(--paper);border-left:4px solid var(--secondary)}
+.doc-title .kicker{font-family:var(--mono);font-size:10px;letter-spacing:1.5px;color:var(--secondary);text-transform:uppercase}
+.doc-title h2{font-family:var(--display);font-size:22px;margin-top:6px;font-weight:700}
+.doc-title .question{margin-top:10px;color:var(--muted);font-style:italic;font-size:13px}
+.audit-banner{background:#fef3e6;border:1px solid #fbbf24;padding:10px 16px;margin-bottom:20px;font-size:12px;border-radius:3px}
+.audit-banner strong{color:var(--accent)}
+section{margin-bottom:28px}
+section h3{font-family:var(--display);font-size:12px;color:var(--primary);font-weight:700;letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid var(--rule);padding-bottom:6px;margin-bottom:14px}
+.summary{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;margin-bottom:20px}
+.summary table{width:100%;border-collapse:collapse;font-size:12px;background:#fff;border:1px solid var(--border)}
+.summary th{background:var(--primary);color:#fff;padding:6px 10px;text-align:left;font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:0.5px}
+.summary td{padding:5px 10px;border-bottom:1px solid var(--rule)}
+.summary td:last-child{font-family:var(--mono);text-align:right;color:var(--secondary);font-weight:700}
+.tools{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}
+.tools a{font-family:var(--mono);font-size:11px;color:var(--secondary);text-decoration:none;padding:6px 12px;border:1px solid var(--secondary);border-radius:2px}
+.tools a:hover{background:var(--secondary);color:#fff}
+
+/* Org tree */
+.chart-wrap{overflow-x:auto;padding:20px 0}
+.tree{display:flex;flex-direction:column;align-items:center;min-width:fit-content}
+.node{position:relative;margin:6px 4px}
+.node .children{display:flex;flex-wrap:wrap;justify-content:center;margin-top:18px;padding-top:14px;position:relative}
+.node .children::before{content:"";position:absolute;top:0;left:50%;width:1.5px;height:14px;background:var(--border)}
+.card{background:#fff;border:1.5px solid var(--border);border-radius:4px;padding:9px 12px;min-width:200px;max-width:240px;font-size:12px;transition:transform 0.1s,border-color 0.15s}
+.card:hover{transform:translateY(-1px);border-color:var(--secondary)}
+.node[data-layer="executive"] .card{border-color:var(--exec);background:linear-gradient(to bottom,#e8f5ee 0%,#fff 60%)}
+.node[data-layer="director"] .card{border-color:var(--director);background:linear-gradient(to bottom,#eef2f8 0%,#fff 60%)}
+.node[data-layer="manager"] .card{border-color:var(--manager)}
+.node[data-layer="ic"] .card{border-color:var(--ic);border-style:solid;opacity:0.92}
+.card .card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;font-size:9px}
+.badge{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:0.6px;padding:2px 7px;border-radius:2px;color:#fff;font-weight:700}
+.badge-executive{background:var(--exec)}
+.badge-director{background:var(--director)}
+.badge-manager{background:var(--manager)}
+.badge-ic{background:var(--ic)}
+.dept{color:var(--muted);font-family:var(--mono);font-size:9px;text-transform:uppercase}
+.card .name{font-weight:700;font-size:13px;color:var(--text);margin-bottom:1px}
+.card .role{color:var(--muted);font-size:11px;margin-bottom:6px}
+.card .meta{font-family:var(--mono);font-size:9px;color:var(--muted);display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap}
+.card .email{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.jd-link{color:var(--secondary);text-decoration:none;font-weight:700;padding:1px 5px;border:1px solid var(--secondary);border-radius:2px;font-size:9px}
+
+/* Tree structure horizontal connectors */
+.node:not(:last-child)::after{}
+.children > .node{position:relative}
+.children > .node::before{content:"";position:absolute;top:-14px;left:50%;width:1.5px;height:14px;background:var(--border)}
+
+.footer{margin-top:32px;padding-top:18px;border-top:1px solid var(--rule);font-size:10px;color:var(--muted);font-family:var(--mono);display:flex;justify-content:space-between}
+.footer a{color:var(--secondary);text-decoration:none}
+
+/* R366 mobile responsive — inlined */
+/* R366 mobile responsive partial — applies across all Cascadia/Apex/wizard surfaces */
+@media (max-width: 768px) {
+  .page { padding: 16px 14px !important; max-width: 100% !important; box-shadow: none !important; }
+  .masthead { flex-direction: column; align-items: flex-start; gap: 10px; padding-bottom: 14px; }
+  .masthead .meta { text-align: left; font-size: 9px; }
+  .masthead h1 { font-size: 16px; }
+  .brand-block { width: 100%; }
+  .mark { width: 36px; height: 36px; font-size: 12px; }
+  .doc-title h2 { font-size: 18px; line-height: 1.3; }
+  section h3 { font-size: 11px; }
+  .audit-banner, .doc-title { padding: 12px 14px; font-size: 12px; }
+  .tools { gap: 6px; flex-wrap: wrap; }
+  .tools a { font-size: 10px; padding: 5px 9px; }
+  .summary, .field-grid, .compliance, .flow,
+  .q-grid[style*="grid-template-columns"] { 
+    grid-template-columns: 1fr !important; 
+  }
+  .step-tracker { flex-direction: column; }
+  .step-tile { border-right: 0 !important; border-bottom: 1px solid var(--border); }
+  .step-tile.current { border-bottom: 3px solid var(--current) !important; }
+  .step-tile::after, .fsm-step::after, .flow .step::after,
+  .binder-card .head .left::after { display: none !important; }
+  table { font-size: 10px; }
+  table.compact td, table.compact th { padding: 4px 6px; }
+  .engine-table th, .engine-table td { padding: 6px 8px; font-size: 10px; }
+  .chart-wrap { overflow-x: auto; padding: 12px 0; -webkit-overflow-scrolling: touch; }
+  .tree { transform-origin: top left; min-width: 600px; }
+  .binder-grid, .queue-list, .form-block, .lifecycle-row,
+  .binder-card, .intake-card, .hitl-card { padding: 12px 14px !important; }
+  .access-bar { gap: 4px; }
+  .access-bar .chip { font-size: 9px; padding: 3px 7px; }
+  .summary { gap: 8px; }
+  .stat { padding: 10px 12px; }
+  .stat .value, .summary .stat .value { font-size: 20px; }
+  .fsm-track { gap: 1px; flex-wrap: wrap; }
+  .fsm-step { font-size: 8px; padding: 5px 2px; min-width: 60px; }
+  .actions { flex-wrap: wrap; gap: 5px; }
+  .actions button { font-size: 10px; padding: 5px 9px; }
+  .diff-block { font-size: 10px; padding: 8px 10px; max-height: 240px; }
+  .chain { gap: 6px; }
+  .chip { min-width: 130px; font-size: 10px; padding: 6px 10px; }
+  .fix-card .proposed, .fix-card-mini .ftext { font-size: 11px; max-height: 200px; }
+  .compliance-row { grid-template-columns: 1fr 1fr; font-size: 10px; gap: 4px; padding: 6px 8px; }
+  .compliance-row.header { font-size: 9px; }
+  ol, ul { font-size: 12px !important; padding-left: 18px; }
+  .footer { flex-direction: column; gap: 6px; align-items: flex-start; }
+}
+@media (max-width: 480px) {
+  .page { padding: 10px 8px !important; }
+  .masthead h1 { font-size: 14px; }
+  .masthead .meta { font-size: 8px; }
+  .doc-title h2 { font-size: 16px; }
+  .stat .value, .summary .stat .value { font-size: 16px; }
+  .stat .label, .summary .stat .label { font-size: 8px; }
+  .summary { grid-template-columns: 1fr 1fr !important; gap: 6px; }
+  .compliance-row { grid-template-columns: 1fr; }
+  .compliance-row.header { display: none; }
+  .access-bar .chip { font-size: 8px; padding: 2px 6px; }
+  .audit-banner, .doc-title { font-size: 11px; padding: 10px 12px; }
+  .doc-title .kicker { font-size: 8px; }
+  .tools a { font-size: 9px; padding: 4px 8px; }
+  .binder-card .form-code, .form-block .fcode { font-size: 11px; }
+  .intake-card .payload, .diff-block { font-size: 9px; }
+  .fsm-step { font-size: 7px; min-width: 50px; padding: 4px 1px; }
+  .org-mini .emp-row { font-size: 10px; flex-direction: column; gap: 3px; align-items: flex-start; }
+  table { font-size: 9px; }
+  .spec-table td, .spec-table th { padding: 4px 6px; font-size: 9px; }
+  .card { min-width: 160px; max-width: 200px; padding: 7px 10px; font-size: 10px; }
+  .card .name { font-size: 11px; }
+  .card .role { font-size: 9px; }
+}
+
+</style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head><body>
+<div class="page">
+
+  <header class="masthead">
+    <div class="brand-block">
+      <div class="mark">CMC</div>
+      <div>
+        <h1>Cascadia MEP Contractors, LLC</h1>
+        <div class="legal">Oregon CCB #221450 · 25 employees in roster · live from tenant_employees table</div>
+      </div>
+    </div>
+    <div class="meta">
+      DOC: R360-ORG-V1<br>
+      ISSUED: 2026-05-30<br>
+      SOURCE: tenant_employees (live)<br>
+      TENANT: oregon_mep_demo
+    </div>
+  </header>
+
+  <div class="doc-title">
+    <div class="kicker">R360 — Org Spine</div>
+    <h2>Cascadia Org Chart — The Routing Fabric</h2>
+    <div class="question">"All forms route to the right person via the org chart." — this is the spine that makes that real.</div>
+  </div>
+
+  <div class="audit-banner">
+    <strong>R360 ships the spine.</strong> Schema migrated (reports_to, delegate_to, status, hire_date, JD/contract URLs).
+    25-employee Cascadia roster seeded from cascadia_roster.xlsx via /usr/local/bin/r360_org_import.py.
+    HITL routing wires onto this graph in R361. Form lifecycle in R362. Revision system in R363.
+    See R360_patch_plan.md for the full 9-round roadmap.
+  </div>
+
+  <div class="tools">
+    <a href="/ui/cascadia_roster.xlsx">↓ download roster.xlsx</a>
+    <a href="/ui/cascadia_mep">↩ CEO briefing</a>
+    <a href="/ui/cascadia_forms_universe">↗ form universe (155)</a>
+    <a href="/ui/cascadia_onboarding_sequence">↗ onboarding workflow</a>
+    <a href="/ui/universal_core_spec">↗ universal spec</a>
+  </div>
+
+  <section>
+    <h3>Summary</h3>
+    <div class="summary">
+      <table>
+        <tr><th>Department</th><th>Headcount</th></tr>
+        <tr><td>engineering</td><td>6</td></tr><tr><td>executive</td><td>1</td></tr><tr><td>finance</td><td>6</td></tr><tr><td>operations</td><td>10</td></tr><tr><td>people</td><td>2</td></tr>
+      </table>
+      <table>
+        <tr><th>Management Layer</th><th>Count</th></tr>
+        <tr><td>executive</td><td>4</td></tr><tr><td>director</td><td>3</td></tr><tr><td>manager</td><td>7</td></tr><tr><td>ic</td><td>11</td></tr>
+      </table>
+      <table>
+        <tr><th>Status</th><th>Count</th></tr>
+        <tr><td>active</td><td>25</td></tr>
+        <tr><td>on leave</td><td>0</td></tr>
+        <tr><td>separated</td><td>0</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h3>The Reports-To Graph</h3>
+    <div class="chart-wrap">
+      <div class="tree">
+    <div class="node depth-0" data-layer="executive">
+      <div class="card">
+        <div class="card-head">
+          <span class="badge badge-executive">executive</span>
+          <span class="dept">executive</span>
+        </div>
+        <div class="name">Maria Castellanos</div>
+        <div class="role">CEO + Managing Member</div>
+        <div class="meta">
+          <span class="email">maria.castellanos@cascadia-mep.example</span>
+          <a class="jd-link" href="/ui/cascadia_jd_ceo">JD</a> <a class="jd-link" href="maria.castellanos_contract@cascadia-mep.example">contract</a>
+        </div>
+      </div>
+      <div class="children">
+    <div class="node depth-1" data-layer="executive">
+      <div class="card">
+        <div class="card-head">
+          <span class="badge badge-executive">executive</span>
+          <span class="dept">finance</span>
+        </div>
+        <div class="name">Aisha Okonkwo</div>
+        <div class="role">Chief Financial Officer</div>
+        <div class="meta">
+          <span class="email">aisha.okonkwo@cascadia-mep.example</span>
+          <a class="jd-link" href="/ui/cascadia_jd_cfo">JD</a> <a class="jd-link" href="aisha.okonkwo_contract@cascadia-mep.example">contract</a>
+        </div>
+      </div>
+      <div class="children">
+    <div class="node depth-2" data-layer="director">
+      <div class="card">
+        <div class="card-head">
+          <span class="badge badge-director">director</span>
+          <span class="dept">people</span>
+        </div>
+        <div class="name">Evelyn Shapiro</div>
+        <div class="role">HR Director</div>
+        <div class="meta">
+          <span class="email">evelyn.shapiro@cascadia-mep.example</span>
+          <a class="jd-link" href="/ui/cascadia_jd_hr_dir">JD</a> <a class="jd-link" href="evelyn.shapiro_contract@cascadia-mep.example">contract</a>
+        </div>
+      </div>
+      <div class="children">
+    <div class="node depth-3" data-layer="ic">
+      <div class="card">
+        <div class="card-head">
+          <span class="badge badge-ic">ic</span>
+          <span class="dept">people</span>
+        </div>
+        <div class="name">Nina Fairweather</div>
+        <div class="role">Office Manager</div>
+        <div class="meta">
+          <span class="email">nina.fairweather@cascadia-mep.example</span>
+          <a class="jd-link" href="/ui/cascadia_jd_office_mgr">JD</a> <a class="jd-link" href="nina.fairweather_contract@cascadia-mep.example">contract</a>
+        </div>
+      </div>
+      
+    </div></div>
+    </div>
+    <div class="node depth-2" data-layer="manager">
+      <div class="card">
+        <div class="card-head">
+          <span class="badge badge-manager">manager</span>
+          <span class="dept">finance</span>
+        </div>
+        <div class="name">Rachel Beaumont</div>
+        <div class="role">Controller</div>
+        <div class="meta">
+          <span class="email">rachel.beaumont@cascadia-mep.example</span>
+          <a class="jd-link" href="/ui/cascadia_jd_controller">JD</a> <a class="jd-link" href="rachel.beaumont_contract@cascadia-mep.example">contract</a>
+        </div>
+      </div>
+      <div class="children">
+    <div class="node depth-3" data-layer="ic">
+      <div class="card">
+        <div class="card-head">
+          <span class="badge badge-ic">ic</span>
+          <span class="dept">finance</span>
+        </div>
+        <div class="name">Hannah Kowalski</div>
+        <div class="role">Senior Accountant</div>
+        <div class="meta">
+          <span class="email">hannah.kowalski@cascadia-mep.example</span>
+          <a class="jd-link" href="/ui/cascadia_jd_sr_accountant">JD</a> <a class="jd-link" href="hannah.kowalski_contract@cascadia-mep.example">contract</a>
+        </div>
+      </div>
+      
+    </div>
+    <div class="node depth-3" data-layer="ic">
+      <div class="card">
+        <div class="card-head">
+          <span class="badge badge-ic">ic</span>
+          <span class="dept">finance</span>
+        </div>
+        <div class="name">Oscar Nieves</div>
+        <div class="role">AP Specialist</div>
+        <div class="meta">
+          <span class="email">oscar.nieves@cascadia-mep.example</span>
+          <a class="jd-link" href="/ui/cascadia_jd_ap_spec">JD</a> <a class="jd-link" href="oscar.nieves_contract@cascadia-mep.example">contract</a>
+        </div>
+      </div>
+      
+    </div></div>
+    </div>
+    <div class="node depth-2" data-layer="manager">
+      <div class="card">
+        <div class="card-head">
+          <span class="badge badge-manager">manager</span>
+          <span class="dept">finance</span>
+        </div>
+        <div class="name">Tariq Hamid</div>
+        <div class="role">Payroll Manager</div>
+        <div class="meta">
+          <span class="email">tariq.hamid@cascadia-mep.example</span>
+          <a class="jd-link" href="/ui/cascadia_jd_payroll_mgr">JD</a> <a class="jd-link" href="tariq.hamid_contract@cascadia-mep.example">contract</a>
+        </div>
+      </div>
+      <div class="children">
+    <div class="node depth-3" data-layer="ic">
+      <div class="card">
+        <div class="card-head">
+          <span class="badge badge-ic">ic</span>
+          <span class="dept">finance</span>
+        </div>
+        <div class="name">Zara Ahmadi</div>
+        <div class="role">Payroll Specialist (NY focus)</div>
+        <div class="meta">
+          <span class="email">zara.ahmadi@cascadia-mep.example</span>
+          <a class="jd-link" href="/ui/cascadia_jd_payroll_spec">JD</a> <a class="jd-link" href="zara.ahmadi_contract@cascadia-mep.example">contract</a>
+        </div>
+      </div>
+      
+    </div></div>
+    </div></div>
+    </div>
+    <div class="node depth-1" data-layer="executive">
+      <div class="card">
+        <div class="card-head">
+          <span class="badge badge-executive">executive</span>
+          <span class="dept">engineering</span>
+        </div>
+        <div class="name">Connor McRae</div>
+        <div class="role">Chief Technology Officer + PE</div>
+        <div class="meta">
+          <span class="email">connor.mcrae@cascadia-mep.example</span>
+          <a class="jd-link" href="/ui/cascadia_jd_cto">JD</a> <a class="jd-link" href="connor.mcrae_contract@cascadia-mep.example">contract</a>
+        </div>
+      </div>
+      <div class="children">
+    <div class="node depth-2" data-layer="ic">
+      <div class="card">
+        <div class="card-head">
+          <span class="badge badge-ic">ic</span>
+          <span class="dept">engineering</span>
+        </div>
+        <div class="name">Paolo Bianchi</div>
+        <div class="role">Estimator</div>
+        <div class="meta">
+          <span class="email">paolo.bianchi@cascadia-mep.example</span>
+          <a class="jd-link" href="/ui/cascadia_jd_estimator">JD</a> <a class="jd-link" href="paolo.bianchi_contract@cascadia-mep.example">contract</a>
+        </div>
+      </div>
+      
+    </div>
+    <div class="node depth-2" data-layer="manager">
+      <div class="card">
+        <div class="card-head">
+          <span class="badge badge-manager">manager</span>
+          <span class="dept">engineering</span>
+        </div>
+        <div class="name">Kenji Aoyama</div>
+        <div class="role">Senior Mechanical PE</div>
+        <div class="meta">
+          <span class="email">kenji.aoyama@cascadia-mep.example</span>
+          <a class="jd-link" href="/ui/cascadia_jd_sr_pe">JD</a> <a class="jd-link" href="kenji.aoyama_contract@cascadia-mep.example">contract</a>
+        </div>
+      </div>
+      <div class="children">
+    <div class="node depth-3" data-layer="ic">
+      <div class="card">
+        <div class="card-head">
+          <span class="badge badge-ic">ic</span>
+          <span class="dept">engineering</span>
+        </div>
+        <div class="name">Trevor Lindholm</div>
+        <div class="role">Mechanical Engineer II</div>
+        <div class="meta">
+          <span class="email">trevor.lindholm@cascadia-mep.example</span>
+          <a class="jd-link" href="/ui/cascadia_jd_eng_ii">JD</a> <a class="jd-link" href="trevor.lindholm_contract@cascadia-mep.example">contract</a>
+        </div>
+      </div>
+      
+    </div></div>
+    </div>
+    <div class="node depth-2" data-layer="manager">
+      <div class="card">
+        <div class="card-head">
+          <span class="badge badge-manager">manager</span>
+          <span class="dept">engineering</span>
+        </div>
+        <div class="name">Simone Frasier</div>
+        <div class="role">Lead Drafter</div>
+        <div class="meta">
+          <span class="email">simone.frasier@cascadia-mep.example</span>
+          <a class="jd-link" href="/ui/cascadia_jd_lead_drafter">JD</a> <a class="jd-link" href="simone.frasier_contract@cascadia-mep.example">contract</a>
+        </div>
+      </div>
+      <div class="children">
+    <div class="node depth-3" data-layer="ic">
+      <div class="card">
+        <div class="card-head">
+          <span class="badge badge-ic">ic</span>
+          <span class="dept">engineering</span>
+        </div>
+        <div class="name">Imani Sutton</div>
+        <div class="role">Drafter</div>
+        <div class="meta">
+          <span class="email">imani.sutton@cascadia-mep.example</span>
+          <a class="jd-link" href="/ui/cascadia_jd_drafter">JD</a> <a class="jd-link" href="imani.sutton_contract@cascadia-mep.example">contract</a>
+        </div>
+      </div>
+      
+    </div></div>
+    </div></div>
+    </div>
+    <div class="node depth-1" data-layer="executive">
+      <div class="card">
+        <div class="card-head">
+          <span class="badge badge-executive">executive</span>
+          <span class="dept">operations</span>
+        </div>
+        <div class="name">Dan Tremaine</div>
+        <div class="role">Chief Operating Officer</div>
+        <div class="meta">
+          <span class="email">dan.tremaine@cascadia-mep.example</span>
+          <a class="jd-link" href="/ui/cascadia_jd_coo">JD</a> <a class="jd-link" href="dan.tremaine_contract@cascadia-mep.example">contract</a>
+        </div>
+      </div>
+      <div class="children">
+    <div class="node depth-2" data-layer="director">
+      <div class="card">
+        <div class="card-head">
+          <span class="badge badge-director">director</span>
+          <span class="dept">operations</span>
+        </div>
+        <div class="name">Marcus Dolan</div>
+        <div class="role">Director of Safety + Compliance</div>
+        <div class="meta">
+          <span class="email">marcus.dolan@cascadia-mep.example</span>
+          <a class="jd-link" href="/ui/cascadia_jd_dir_safety">JD</a> <a class="jd-link" href="marcus.dolan_contract@cascadia-mep.example">contract</a>
+        </div>
+      </div>
+      <div class="children">
+    <div class="node depth-3" data-layer="ic">
+      <div class="card">
+        <div class="card-head">
+          <span class="badge badge-ic">ic</span>
+          <span class="dept">operations</span>
+        </div>
+        <div class="name">Kwame Brewer</div>
+        <div class="role">Safety Officer</div>
+        <div class="meta">
+          <span class="email">kwame.brewer@cascadia-mep.example</span>
+          <a class="jd-link" href="/ui/cascadia_jd_safety_officer">JD</a> <a class="jd-link" href="kwame.brewer_contract@cascadia-mep.example">contract</a>
+        </div>
+      </div>
+      
+    </div></div>
+    </div>
+    <div class="node depth-2" data-layer="director">
+      <div class="card">
+        <div class="card-head">
+          <span class="badge badge-director">director</span>
+          <span class="dept">operations</span>
+        </div>
+        <div class="name">Priya Shenoy</div>
+        <div class="role">VP Field Operations</div>
+        <div class="meta">
+          <span class="email">priya.shenoy@cascadia-mep.example</span>
+          <a class="jd-link" href="/ui/cascadia_jd_vp_field">JD</a> <a class="jd-link" href="priya.shenoy_contract@cascadia-mep.example">contract</a>
+        </div>
+      </div>
+      <div class="children">
+    <div class="node depth-3" data-layer="manager">
+      <div class="card">
+        <div class="card-head">
+          <span class="badge badge-manager">manager</span>
+          <span class="dept">operations</span>
+        </div>
+        <div class="name">Ben Holloway</div>
+        <div class="role">Project Manager — NYC East</div>
+        <div class="meta">
+          <span class="email">ben.holloway@cascadia-mep.example</span>
+          <a class="jd-link" href="/ui/cascadia_jd_pm">JD</a> <a class="jd-link" href="ben.holloway_contract@cascadia-mep.example">contract</a>
+        </div>
+      </div>
+      <div class="children">
+    <div class="node depth-4" data-layer="ic">
+      <div class="card">
+        <div class="card-head">
+          <span class="badge badge-ic">ic</span>
+          <span class="dept">operations</span>
+        </div>
+        <div class="name">Liam O'Sullivan</div>
+        <div class="role">Senior Plumbing Foreman</div>
+        <div class="meta">
+          <span class="email">liam.osullivan@cascadia-mep.example</span>
+          <a class="jd-link" href="/ui/cascadia_jd_foreman_plumb">JD</a> <a class="jd-link" href="liam.osullivan_contract@cascadia-mep.example">contract</a>
+        </div>
+      </div>
+      
+    </div></div>
+    </div>
+    <div class="node depth-3" data-layer="manager">
+      <div class="card">
+        <div class="card-head">
+          <span class="badge badge-manager">manager</span>
+          <span class="dept">operations</span>
+        </div>
+        <div class="name">Jorge Alvarado</div>
+        <div class="role">Field Superintendent</div>
+        <div class="meta">
+          <span class="email">jorge.alvarado@cascadia-mep.example</span>
+          <a class="jd-link" href="/ui/cascadia_jd_super">JD</a> <a class="jd-link" href="jorge.alvarado_contract@cascadia-mep.example">contract</a>
+        </div>
+      </div>
+      <div class="children">
+    <div class="node depth-4" data-layer="ic">
+      <div class="card">
+        <div class="card-head">
+          <span class="badge badge-ic">ic</span>
+          <span class="dept">operations</span>
+        </div>
+        <div class="name">Derek Tan</div>
+        <div class="role">HVAC Foreman</div>
+        <div class="meta">
+          <span class="email">derek.tan@cascadia-mep.example</span>
+          <a class="jd-link" href="/ui/cascadia_jd_foreman_hvac">JD</a> <a class="jd-link" href="derek.tan_contract@cascadia-mep.example">contract</a>
+        </div>
+      </div>
+      
+    </div></div>
+    </div>
+    <div class="node depth-3" data-layer="manager">
+      <div class="card">
+        <div class="card-head">
+          <span class="badge badge-manager">manager</span>
+          <span class="dept">operations</span>
+        </div>
+        <div class="name">Nadia Kim</div>
+        <div class="role">Project Manager — NYC West</div>
+        <div class="meta">
+          <span class="email">nadia.kim@cascadia-mep.example</span>
+          <a class="jd-link" href="/ui/cascadia_jd_pm">JD</a> <a class="jd-link" href="nadia.kim_contract@cascadia-mep.example">contract</a>
+        </div>
+      </div>
+      <div class="children">
+    <div class="node depth-4" data-layer="ic">
+      <div class="card">
+        <div class="card-head">
+          <span class="badge badge-ic">ic</span>
+          <span class="dept">operations</span>
+        </div>
+        <div class="name">Samira Patel</div>
+        <div class="role">Senior Electrical Foreman</div>
+        <div class="meta">
+          <span class="email">samira.patel@cascadia-mep.example</span>
+          <a class="jd-link" href="/ui/cascadia_jd_foreman_elec">JD</a> <a class="jd-link" href="samira.patel_contract@cascadia-mep.example">contract</a>
+        </div>
+      </div>
+      
+    </div></div>
+    </div></div>
+    </div></div>
+    </div></div>
+    </div></div>
+    </div>
+  </section>
+
+  <section>
+    <h3>What This Enables (R361+)</h3>
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <tr style="background:var(--primary);color:#fff"><th style="padding:6px 10px;text-align:left;font-family:var(--mono);font-size:10px;text-transform:uppercase">Round</th><th style="padding:6px 10px;text-align:left;font-family:var(--mono);font-size:10px;text-transform:uppercase">Capability</th><th style="padding:6px 10px;text-align:left;font-family:var(--mono);font-size:10px;text-transform:uppercase">Built On</th></tr>
+      <tr><td style="padding:5px 10px;border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--secondary)">R361</td><td style="padding:5px 10px;border-bottom:1px solid var(--rule)">HITL routing engine reads org chart for assignment</td><td style="padding:5px 10px;border-bottom:1px solid var(--rule);color:var(--muted);font-size:11px">R360</td></tr>
+      <tr><td style="padding:5px 10px;border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--secondary)">R362</td><td style="padding:5px 10px;border-bottom:1px solid var(--rule)">Form lifecycle state machine + retention</td><td style="padding:5px 10px;border-bottom:1px solid var(--rule);color:var(--muted);font-size:11px">R361</td></tr>
+      <tr><td style="padding:5px 10px;border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--secondary)">R363</td><td style="padding:5px 10px;border-bottom:1px solid var(--rule)">Revision system for uploaded existing forms</td><td style="padding:5px 10px;border-bottom:1px solid var(--rule);color:var(--muted);font-size:11px">R362</td></tr>
+      <tr><td style="padding:5px 10px;border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--secondary)">R364</td><td style="padding:5px 10px;border-bottom:1px solid var(--rule)">Compliance gap detector → auto-opens follow-up HITL</td><td style="padding:5px 10px;border-bottom:1px solid var(--rule);color:var(--muted);font-size:11px">R363</td></tr>
+      <tr><td style="padding:5px 10px;border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--secondary)">R365</td><td style="padding:5px 10px;border-bottom:1px solid var(--rule)">Intake wizard — upload Excel + existing forms</td><td style="padding:5px 10px;border-bottom:1px solid var(--rule);color:var(--muted);font-size:11px">R360-R364</td></tr>
+      <tr><td style="padding:5px 10px;border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--secondary)">R366</td><td style="padding:5px 10px;border-bottom:1px solid var(--rule)">Escalation + delegation + SLA tracking</td><td style="padding:5px 10px;border-bottom:1px solid var(--rule);color:var(--muted);font-size:11px">R361</td></tr>
+      <tr><td style="padding:5px 10px;border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--secondary)">R367</td><td style="padding:5px 10px;border-bottom:1px solid var(--rule)">E-signature (DocuSign/HelloSign)</td><td style="padding:5px 10px;border-bottom:1px solid var(--rule);color:var(--muted);font-size:11px">R362</td></tr>
+      <tr><td style="padding:5px 10px;border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--secondary)">R368</td><td style="padding:5px 10px;border-bottom:1px solid var(--rule)">Offboarding cascade — reroute open forms</td><td style="padding:5px 10px;border-bottom:1px solid var(--rule);color:var(--muted);font-size:11px">R361</td></tr>
+      <tr><td style="padding:5px 10px;font-family:var(--mono);color:var(--secondary)">R369</td><td style="padding:5px 10px">Notifications + receipt routing to audit binder</td><td style="padding:5px 10px;color:var(--muted);font-size:11px">R361</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h3>The 13 "Anything Else You're Not Thinking Of" Items</h3>
+    <p style="font-size:12px;margin-bottom:12px;color:var(--muted);font-style:italic">Founder said: "Plus anything else I'm not thinking of that applies." Here is the enumeration:</p>
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <tr style="background:var(--primary);color:#fff"><th style="padding:6px 10px;text-align:left;font-family:var(--mono);font-size:10px">#</th><th style="padding:6px 10px;text-align:left;font-family:var(--mono);font-size:10px">Concept</th><th style="padding:6px 10px;text-align:left;font-family:var(--mono);font-size:10px">When Shipped</th></tr>
+      <tr><td style="padding:5px 10px;border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--secondary)">1</td><td style="padding:5px 10px;border-bottom:1px solid var(--rule)">Permissions / who-sees-what</td><td style="padding:5px 10px;border-bottom:1px solid var(--rule);font-family:var(--mono);font-size:10px">R361</td></tr>
+      <tr><td style="padding:5px 10px;border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--secondary)">2</td><td style="padding:5px 10px;border-bottom:1px solid var(--rule)">Delegation during PTO</td><td style="padding:5px 10px;border-bottom:1px solid var(--rule);font-family:var(--mono);font-size:10px">R366</td></tr>
+      <tr><td style="padding:5px 10px;border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--secondary)">3</td><td style="padding:5px 10px;border-bottom:1px solid var(--rule)">Escalation if HITL ignored</td><td style="padding:5px 10px;border-bottom:1px solid var(--rule);font-family:var(--mono);font-size:10px">R366</td></tr>
+      <tr><td style="padding:5px 10px;border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--secondary)">4</td><td style="padding:5px 10px;border-bottom:1px solid var(--rule)">Deadlines per statutory rule</td><td style="padding:5px 10px;border-bottom:1px solid var(--rule);font-family:var(--mono);font-size:10px">R362</td></tr>
+      <tr><td style="padding:5px 10px;border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--secondary)">5</td><td style="padding:5px 10px;border-bottom:1px solid var(--rule)">Audit trail (W/W/W/W/H/W)</td><td style="padding:5px 10px;border-bottom:1px solid var(--rule);font-family:var(--mono);font-size:10px">R355 (done) + R362</td></tr>
+      <tr><td style="padding:5px 10px;border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--secondary)">6</td><td style="padding:5px 10px;border-bottom:1px solid var(--rule)">SLA tracking + bottleneck reports</td><td style="padding:5px 10px;border-bottom:1px solid var(--rule);font-family:var(--mono);font-size:10px">R366</td></tr>
+      <tr><td style="padding:5px 10px;border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--secondary)">7</td><td style="padding:5px 10px;border-bottom:1px solid var(--rule)">Notifications (email/SMS)</td><td style="padding:5px 10px;border-bottom:1px solid var(--rule);font-family:var(--mono);font-size:10px">R369 (bridge exists)</td></tr>
+      <tr><td style="padding:5px 10px;border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--secondary)">8</td><td style="padding:5px 10px;border-bottom:1px solid var(--rule)">Receipt routing to audit binder</td><td style="padding:5px 10px;border-bottom:1px solid var(--rule);font-family:var(--mono);font-size:10px">R369</td></tr>
+      <tr><td style="padding:5px 10px;border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--secondary)">9</td><td style="padding:5px 10px;border-bottom:1px solid var(--rule)">Retention auto-archive</td><td style="padding:5px 10px;border-bottom:1px solid var(--rule);font-family:var(--mono);font-size:10px">R362</td></tr>
+      <tr><td style="padding:5px 10px;border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--secondary)">10</td><td style="padding:5px 10px;border-bottom:1px solid var(--rule)">Bulk import (CSV/Excel)</td><td style="padding:5px 10px;border-bottom:1px solid var(--rule);font-family:var(--mono);font-size:10px;color:var(--primary);font-weight:700">R360 (done)</td></tr>
+      <tr><td style="padding:5px 10px;border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--secondary)">11</td><td style="padding:5px 10px;border-bottom:1px solid var(--rule)">Offboarding cascade</td><td style="padding:5px 10px;border-bottom:1px solid var(--rule);font-family:var(--mono);font-size:10px">R368</td></tr>
+      <tr><td style="padding:5px 10px;border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--secondary)">12</td><td style="padding:5px 10px;border-bottom:1px solid var(--rule)">Form variant map (per-tenant)</td><td style="padding:5px 10px;border-bottom:1px solid var(--rule);font-family:var(--mono);font-size:10px">R363</td></tr>
+      <tr><td style="padding:5px 10px;font-family:var(--mono);color:var(--secondary)">13</td><td style="padding:5px 10px">E-sign vs wet-sign workflow</td><td style="padding:5px 10px;font-family:var(--mono);font-size:10px">R367</td></tr>
+    </table>
+  </section>
+
+  <div class="footer">
+    <span>R360-ORG-V1 · Cascadia org spine · 25 employees · live from tenant_employees</span>
+    <span><a href="/ui/cascadia_mep">↩ CEO briefing</a> · <a href="/ui/cascadia_roster.xlsx">↓ roster.xlsx</a></span>
+  </div>
+
+</div></body></html>

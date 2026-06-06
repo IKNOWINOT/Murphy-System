@@ -28,9 +28,16 @@
   })();
 
   // ── Pages that should NOT show nav (public/auth pages) ───────────────────
-  var NO_NAV_PATHS = ['/', '/ui/login', '/ui/signup', '/ui/landing',
-    '/ui/demo', '/book', '/how-we-work', '/resume', '/ui/reset-password',
-    '/ui/change-password', '/shadow-marketplace'];
+  // PATCH-449-no-nav: extended to include bare public paths from PATCH-447
+  var NO_NAV_PATHS = ['/',
+    '/ui/login', '/ui/signup', '/ui/landing', '/ui/demo',
+    '/ui/reset-password', '/ui/change-password', '/ui/onboarding',
+    '/login', '/signup', '/landing', '/demo', '/dashboard',
+    '/reset-password', '/change-password', '/forgot-password',
+    '/contact', '/pricing', '/docs', '/blog', '/careers',
+    '/legal', '/privacy',
+    '/book', '/how-we-work', '/resume', '/shadow-marketplace',
+    '/forge'];
   var currentPath = window.location.pathname;
   for (var ni = 0; ni < NO_NAV_PATHS.length; ni++) {
     if (currentPath === NO_NAV_PATHS[ni] || currentPath === NO_NAV_PATHS[ni] + '/') return;

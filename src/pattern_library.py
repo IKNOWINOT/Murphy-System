@@ -177,3 +177,117 @@ def get_pattern_library() -> PatternLibrary:
             if _pat_lib is None:
                 _pat_lib = PatternLibrary()
     return _pat_lib
+
+
+
+# ── PATCH-WIRE3-001 (R49): observe gate outcomes from chain_engine ────────────
+# When chain_engine.evaluate_gate result lands in chain_step_gates, also
+# crystallize the (domain, result) pair into pattern_library so we can
+# learn which domain × gate-result combos succeed. This is the data flow
+# Wire #4 (fitness_score → agent_contracts) will read.
+
+def observe_gate_outcome(
+    domain: str,
+    gate_result: str,
+    step_name: str = "",
+    cost_delta: float = 0.0,
+    chain_id: str = "",
+) -> bool:
+    """
+    Record one gate-outcome observation into pattern_library.
+
+    Args:
+        domain: domain matched by domain_pipeline (e.g. "engineering", "product")
+        gate_result: PASS | PARTIAL | BLOCKED
+        step_name: optional step identifier for traceability
+        cost_delta: compliance cost (positive = expensive, negative = credit)
+        chain_id: optional chain instance ID
+
+    Returns:
+        True if observation written, False on any error (never raises).
+    """
+    import sqlite3 as _sq3
+    import json as _json
+    import logging as _logging
+    import os as _os
+    from datetime import datetime as _dt, timezone as _tz
+
+    _log = _logging.getLogger("pattern_library")
+    _DB = "/var/lib/murphy-production/pattern_library.db"
+
+    if not domain or not gate_result:
+        return False
+
+    try:
+        if not _os.path.exists(_DB):
+            return False
+        conn = _sq3.connect(_DB, timeout=3)
+        try:
+            # Ensure observation table exists (separate from patterns table —
+            # additive so we don't conflict with existing crystallization code)
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS gate_observations (
+                    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                    domain          TEXT NOT NULL,
+                    gate_result     TEXT NOT NULL,
+                    step_name       TEXT,
+                    cost_delta      REAL DEFAULT 0,
+                    chain_id        TEXT,
+                    observed_at     TEXT DEFAULT CURRENT_TIMESTAMP,
+                    wire_version    TEXT DEFAULT 'WIRE3-001'
+                )
+            """)
+            conn.execute("""
+                CREATE INDEX IF NOT EXISTS idx_go_domain_result
+                ON gate_observations(domain, gate_result)
+            """)
+            conn.execute(
+                "INSERT INTO gate_observations "
+                "(domain, gate_result, step_name, cost_delta, chain_id) "
+                "VALUES (?, ?, ?, ?, ?)",
+                (domain, gate_result, step_name[:200] if step_name else "",
+                 float(cost_delta or 0), chain_id[:64] if chain_id else "")
+            )
+            conn.commit()
+            return True
+        finally:
+            conn.close()
+    except Exception as e:
+        _log.debug("observe_gate_outcome failed: %s", e)
+        return False
+
+
+def get_domain_fitness(domain: str) -> dict:
+    """
+    Return crystallized fitness for a domain — counts of each gate outcome.
+    Used by Wire #4 to score agent_contracts.
+
+    Returns: {"domain", "total", "pass", "partial", "blocked",
+              "pass_rate", "wire_version"}
+    """
+    import sqlite3 as _sq3
+    import os as _os
+    _DB = "/var/lib/murphy-production/pattern_library.db"
+    out = {"domain": domain, "total": 0, "pass": 0, "partial": 0,
+           "blocked": 0, "pass_rate": 0.0, "wire_version": "WIRE3-001"}
+    try:
+        if not _os.path.exists(_DB):
+            return out
+        conn = _sq3.connect(f"file:{_DB}?mode=ro", uri=True, timeout=2)
+        try:
+            cur = conn.execute(
+                "SELECT gate_result, COUNT(*) FROM gate_observations "
+                "WHERE domain = ? GROUP BY gate_result", (domain,)
+            )
+            for result, count in cur.fetchall():
+                key = (result or "").lower()
+                if key in ("pass", "partial", "blocked"):
+                    out[key] = count
+                    out["total"] += count
+            if out["total"] > 0:
+                out["pass_rate"] = round(out["pass"] / out["total"], 3)
+        finally:
+            conn.close()
+    except Exception:
+        pass
+    return out

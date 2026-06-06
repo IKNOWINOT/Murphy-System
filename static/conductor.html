@@ -1,0 +1,54 @@
+<!doctype html><html><head><title>Murphy Conductor Console</title>
+<style>
+body{font:14px system-ui;margin:20px;max-width:1100px;background:#0a0a0a;color:#eee}
+h1{font-weight:400;font-size:18px;color:#7af}
+textarea{width:100%;height:60px;background:#111;color:#eee;border:1px solid #333;padding:8px;font:14px monospace}
+button{background:#2a4;color:#fff;border:0;padding:8px 16px;cursor:pointer;font-weight:600}
+.box{background:#111;border:1px solid #333;padding:10px;margin:10px 0;border-radius:4px}
+.label{color:#7af;font-size:11px;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+.reply{color:#cfc;white-space:pre-wrap;font:13px monospace}
+.plan{color:#fc8;white-space:pre-wrap;font:12px monospace}
+.endpoint{color:#fc4;font:13px monospace}
+.result{color:#9cf;white-space:pre-wrap;font:12px monospace}
+.metric{display:inline-block;margin-right:18px;color:#aaa}
+.metric b{color:#fff}
+</style></head><body>
+<h1>Murphy Conductor Console — port 8091</h1>
+<div id="metrics" class="box"></div>
+<textarea id="ask" placeholder="ask Murphy anything..."></textarea>
+<button onclick="go()">Conduct →</button>
+<span id="status" style="margin-left:12px;color:#888"></span>
+<div id="out"></div>
+<script>
+async function loadMetrics(){
+  const r=await fetch('/api/conductor-proxy/metrics').catch(()=>null);
+  if(!r) return;
+  const m=await r.json();
+  document.getElementById('metrics').innerHTML=
+    `<span class="metric">jobs <b>${m.total_jobs}</b></span>`+
+    `<span class="metric">success <b>${(m.success_rate*100||0).toFixed(0)}%</b></span>`+
+    `<span class="metric">p50 <b>${m.latency_p50_sec||'-'}s</b></span>`+
+    `<span class="metric">p95 <b>${m.latency_p95_sec||'-'}s</b></span>`+
+    `<span class="metric">429 <b>${m.rate_limited}</b></span>`;
+}
+async function go(){
+  const msg=document.getElementById('ask').value.trim();
+  if(!msg)return;
+  document.getElementById('status').textContent='thinking...';
+  const r=await fetch('/api/conductor-proxy/conduct-and-reply',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({message:msg})
+  });
+  const d=await r.json();
+  const c=d.conductor||{};
+  document.getElementById('out').innerHTML=
+    `<div class="box"><div class="label">Reply</div><div class="reply">${escapeHtml(d.reply||'(none)')}</div></div>`+
+    `<div class="box"><div class="label">Plan (psm seq ${c.psm_seq||'-'})</div><div class="plan">${escapeHtml(c.plan||'(none)')}</div></div>`+
+    `<div class="box"><div class="label">Endpoint chosen</div><div class="endpoint">${c.endpoint?(c.endpoint.method+' '+c.endpoint.path):'(none)'}</div></div>`+
+    `<div class="box"><div class="label">Result</div><div class="result">${escapeHtml(JSON.stringify(c.executed_result||c.error||{},null,2))}</div></div>`;
+  document.getElementById('status').textContent='';
+  loadMetrics();
+}
+function escapeHtml(s){return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}
+loadMetrics();setInterval(loadMetrics,10000);
+</script></body></html>

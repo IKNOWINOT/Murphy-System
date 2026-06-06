@@ -430,6 +430,49 @@ class UnifiedIntegrationEngine:
         logger.info(f"✓ Available commands: {len(module['commands'])}")
         logger.info(f"✓ Capabilities: {', '.join(capabilities[:3])}...")
 
+        # R615.7 capability persistence hook (Round 4: domain inference fixed)
+        # Register approved integrations as discoverable CapabilityCube entries.
+        # Bug fix: original hook hard-coded Domain.ENGINEERING which doesn't
+        # exist in the enum. Now infers from module name/capabilities, defaults
+        # to Domain.PLATFORM (the catch-all for platform-level capabilities).
+        try:
+            from patch412_capability_cube import (
+                register_capability, CapabilityManifest,
+                Accepts, Produces, Domain, RiskClass, TrustTier, SoulFit,
+            )
+
+            def _r615_infer_domain(name: str, caps: list) -> "Domain":
+                """Infer Domain from module name + capability strings."""
+                blob = (name + " " + " ".join(str(c) for c in (caps or []))).lower()
+                # Heuristic matching against actual Domain enum values
+                for dom in Domain:
+                    if dom == Domain.UNKNOWN:
+                        continue
+                    if dom.value.lower() in blob:
+                        return dom
+                # Default: PLATFORM (catch-all for cross-cutting capabilities)
+                return Domain.PLATFORM
+
+            _r615_mod_name = module.get("name", request_id) if isinstance(module, dict) else str(request_id)
+            _r615_caps = capabilities if isinstance(capabilities, list) else []
+            _r615_domain = _r615_infer_domain(_r615_mod_name, _r615_caps)
+
+            _r615_manifest = CapabilityManifest(
+                accepts={Accepts.STRUCTURED_DATA},
+                produces={Produces.AUDIT_EVENT},
+                domain=_r615_domain,
+                risk_class=RiskClass.YELLOW,
+                trust_tier=TrustTier.SIGNED,
+                soul_fit=SoulFit.EXECUTOR,
+                description=f"Integration approved via UnifiedIntegrationEngine: {_r615_mod_name}",
+                tags=["integration_engine", "approved", "r615", f"domain:{_r615_domain.value}"],
+            )
+            register_capability(f"integration_{_r615_mod_name}", _r615_manifest)
+            logger.info(f"✓ R615.7: registered '{_r615_mod_name}' in CapabilityCube as domain={_r615_domain.value}")
+        except Exception as _r615_e:
+            # Hook is fire-and-forget — never block approval if CapabilityCube write fails
+            import logging
+            logging.getLogger(__name__).warning("R615.7 capability registration failed: %s", _r615_e)
         return IntegrationResult(
             success=True,
             integration_id=request_id,

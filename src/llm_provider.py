@@ -321,10 +321,41 @@ class MurphyLLMProvider:
     ) -> None:
         self.deepinfra_api_key = deepinfra_api_key or os.getenv("DEEPINFRA_API_KEY", "")
         self.together_api_key  = together_api_key  or os.getenv("TOGETHER_API_KEY",  "")
+        # BL-R28 fix (R40 2026-06-05): fall back to /etc/murphy-production/secrets.env
+        # when env vars are not exported into the calling Python process. Without
+        # this, MurphyLLMProvider() returns onboard_stub even though DeepInfra is
+        # healthy. Same pattern as superagent_transition/_llm_call.py:_api_key().
+        if not self.deepinfra_api_key or not self.together_api_key:
+            try:
+                with open("/etc/murphy-production/secrets.env") as _f:
+                    for _ln in _f:
+                        _ln = _ln.strip()
+                        if not _ln or _ln.startswith("#") or "=" not in _ln:
+                            continue
+                        _k, _v = _ln.split("=", 1)
+                        _k, _v = _k.strip(), _v.strip().strip('"').strip("'")
+                        if _k == "DEEPINFRA_API_KEY" and not self.deepinfra_api_key:
+                            self.deepinfra_api_key = _v
+                        elif _k == "TOGETHER_API_KEY" and not self.together_api_key:
+                            self.together_api_key = _v
+                        # BL-R58 fix (R60 2026-06-05): also load per-provider
+                        # timeouts from secrets.env. Without this DEEPINFRA_TIMEOUT
+                        # set in systemd/secrets.env was ignored — _complete_with_fallback
+                        # used the 10s default, killing long Forge codegen prompts.
+                        elif _k == "DEEPINFRA_TIMEOUT":
+                            os.environ.setdefault("DEEPINFRA_TIMEOUT", _v)
+                        elif _k == "TOGETHER_TIMEOUT":
+                            os.environ.setdefault("TOGETHER_TIMEOUT", _v)
+            except Exception:
+                pass
         self.timeout     = timeout
         self.max_retries = max_retries
         # PATCH-070c: per-provider timeouts — DeepInfra fast-fails, Together gets full window
-        self.deepinfra_timeout = float(os.getenv("DEEPINFRA_TIMEOUT", "10"))
+        # BL-R58 (R60 2026-06-05): default bumped 10s → 120s. Modern Forge prompts
+        # routinely take 30-90s for code generation. Together fallback is
+        # disabled (key expired), so a too-short DeepInfra timeout = "All
+        # providers unavailable" rather than a slower-but-correct response.
+        self.deepinfra_timeout = float(os.getenv("DEEPINFRA_TIMEOUT", "120"))
         self.together_timeout  = float(os.getenv("TOGETHER_TIMEOUT",  str(timeout)))
 
         self._di_circuit  = _CircuitBreaker()  # DeepInfra circuit
@@ -430,6 +461,49 @@ class MurphyLLMProvider:
         and a fixed seed, and caches responses so identical requests return
         identical outputs.  (label: DETERM-LLM-002)
         """
+        # PATCH-R281 (2026-05-30) — loop-aware bounce
+        # When complete() is called from a thread that's currently running an
+        # asyncio event loop (e.g. a sync FastAPI handler dispatched via
+        # rosetta_core from /api/rosetta/dispatch), the internal sync
+        # requests.post() blocks the loop and deadlocks the process (R278/R280).
+        # Bounce the actual work into a worker thread; the worker can safely block.
+        # When no loop is running on this thread (background workers, scripts,
+        # test code), fall through to the original fast path — zero overhead.
+        import asyncio as _r281_asyncio
+        try:
+            _r281_asyncio.get_running_loop()
+            _r281_loop_running = True
+        except RuntimeError:
+            _r281_loop_running = False
+        if _r281_loop_running:
+            import threading as _r281_threading
+            _r281_box = {"v": None, "e": None, "ok": False}
+            def _r281_worker(
+                _p=prompt, _s=system, _m=model_hint, _t=temperature,
+                _mx=max_tokens, _d=deterministic,
+            ):
+                try:
+                    _r281_box["v"] = self._complete_with_fallback(
+                        messages=[
+                            {"role": "system", "content": _s},
+                            {"role": "user",   "content": _p},
+                        ],
+                        model_hint=_m, temperature=_t,
+                        max_tokens=_mx, deterministic=_d,
+                    )
+                    _r281_box["ok"] = True
+                except BaseException as _ex:
+                    _r281_box["e"] = _ex
+            _r281_th = _r281_threading.Thread(
+                target=_r281_worker, daemon=True, name="llm-complete-bounce")
+            _r281_th.start()
+            _r281_th.join(timeout=200)  # 2026-06-02 — was 30, raised to 200 for swarm expansion (multi-agent reasoning needs time)
+            if _r281_box["ok"]:
+                return _r281_box["v"]
+            if _r281_box["e"] is not None:
+                raise _r281_box["e"]
+            raise TimeoutError("llm.complete bounce worker exceeded 200s — provider chain too slow")
+        # Fast path — no loop on this thread
         messages = [
             {"role": "system", "content": system},
             {"role": "user",   "content": prompt},
@@ -644,31 +718,50 @@ class MurphyLLMProvider:
         if budget_summary is not None:
             raw["budget_summary"] = budget_summary
 
-        # ── Try real local Ollama first ───────────────────────────────
-        try:
-            from local_llm_fallback import _query_ollama as _qo
-            ollama_response = _qo(
-                flat_prompt,
-                model="phi3",
-                max_tokens=500,
-            )
-            if ollama_response and isinstance(ollama_response, str) and ollama_response.strip():
-                logger.info(
-                    "PATCH-420 onboard Ollama OK | request %s | %d chars",
-                    request_id, len(ollama_response),
+        # ── R490c — Ollama swarm fallback DISABLED by default ─────────
+        # phi3 on CPU pegs all cores for 60-180s per call, starving the
+        # capacity-gate and blocking real dispatch. Set
+        # ALLOW_OLLAMA_SWARM_FALLBACK=1 in /etc/murphy-production/environment
+        # to re-enable (only do this on a GPU host).
+        _allow_ollama = os.environ.get(
+            "ALLOW_OLLAMA_SWARM_FALLBACK", "0"
+        ).strip().lower() in ("1", "true", "yes", "on")
+        if _allow_ollama:
+            try:
+                from src.local_llm_fallback import _query_ollama as _qo
+                ollama_response = _qo(
+                    flat_prompt,
+                    model="phi3:latest",
+                    max_tokens=500,
                 )
-                return LLMCompletion(
-                    content=ollama_response.strip(),
-                    model="phi3",
-                    provider="onboard_ollama",
-                    request_id=request_id,
-                    success=True,
-                    raw_response=raw,
+                if (
+                    ollama_response
+                    and isinstance(ollama_response, str)
+                    and ollama_response.strip()
+                ):
+                    logger.info(
+                        "R490c onboard Ollama OK | request %s | %d chars",
+                        request_id, len(ollama_response),
+                    )
+                    return LLMCompletion(
+                        content=ollama_response.strip(),
+                        model="phi3",
+                        provider="onboard_ollama",
+                        request_id=request_id,
+                        success=True,
+                        raw_response=raw,
+                    )
+            except Exception as ollama_exc:
+                logger.warning(
+                    "R490c onboard Ollama failed for %s: %s — falling through to stub",
+                    request_id, ollama_exc,
                 )
-        except Exception as ollama_exc:
+        else:
             logger.warning(
-                "PATCH-420 onboard Ollama failed for %s: %s — falling through to stub",
-                request_id, ollama_exc,
+                "R490c: Ollama swarm fallback disabled — "
+                "returning onboard_stub for request %s "
+                "(set ALLOW_OLLAMA_SWARM_FALLBACK=1 to re-enable)",
+                request_id,
             )
 
         # ── True last resort: Ollama also down → canned response ──────

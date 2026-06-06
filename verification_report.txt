@@ -1,0 +1,1 @@
+No inbound replies in 999 days. APC outreach may need copy refresh. Unable to verify the 999-day gap in inbound replies due to lack of access to crm.db and outreach.log. Unable to assess APC outreach copy effectiveness due to lack of access to /api/crm/activities.

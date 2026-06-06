@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<title>Bedford Stuyvesant Eats — Operations Briefing</title>
+<style>
+:root{--bg:#fdf8f0;--surface:#fff;--text:#1a1d1f;--muted:#6b7280;--border:#d8d5cc;--rule:#e8e5dc;--primary:#7a1426;--secondary:#a83245;--accent:#d9a441;--paper:#fdf8f0;--mono:'SF Mono',Menlo,monospace;--display:'Inter',-apple-system,sans-serif;--body:'Inter',-apple-system,sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:14px;line-height:1.55}
+.page{max-width:1080px;margin:0 auto;padding:42px 48px;background:#fff;min-height:100vh;box-shadow:0 0 0 1px var(--border)}
+.masthead{border-bottom:3px solid var(--primary);padding-bottom:18px;margin-bottom:28px;display:flex;justify-content:space-between;align-items:flex-end}
+.brand-block{display:flex;align-items:center;gap:14px}
+.mark{width:44px;height:44px;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:700;font-size:14px;border-radius:2px}
+.masthead h1{font-family:var(--display);font-size:18px;font-weight:700;color:var(--primary);letter-spacing:0.3px}
+.masthead .legal{color:var(--muted);font-size:11px;margin-top:2px}
+.masthead .meta{text-align:right;font-family:var(--mono);font-size:10px;color:var(--muted);line-height:1.7}
+.doc-title{margin-bottom:28px;padding:18px 22px;background:var(--paper);border-left:4px solid var(--secondary)}
+.doc-title .kicker{font-family:var(--mono);font-size:10px;letter-spacing:1.5px;color:var(--secondary);text-transform:uppercase}
+.doc-title h2{font-family:var(--display);font-size:24px;margin-top:6px;color:var(--text);font-weight:700}
+.doc-title .question{margin-top:10px;color:var(--muted);font-style:italic;font-size:13px}
+section{margin-bottom:28px}
+section h3{font-family:var(--display);font-size:14px;color:var(--primary);font-weight:700;letter-spacing:0.4px;text-transform:uppercase;border-bottom:1px solid var(--rule);padding-bottom:6px;margin-bottom:14px}
+.audit-banner{background:#fef3e6;border:1px solid #d9a441;color:var(--text);padding:10px 16px;margin-bottom:24px;font-size:12px;border-radius:3px}
+.audit-banner strong{color:var(--accent)}
+table{width:100%;border-collapse:collapse;margin:14px 0;font-size:13px}
+th{text-align:left;background:var(--primary);color:#fff;padding:8px 12px;font-family:var(--mono);font-size:11px;letter-spacing:0.5px;text-transform:uppercase;font-weight:600}
+td{padding:8px 12px;border-bottom:1px solid var(--rule)}
+tr:nth-child(even) td{background:var(--paper)}
+.universe-section{margin-bottom:24px}
+.universe-section .uhead{font-family:var(--display);font-size:13px;color:#fff;background:var(--primary);padding:8px 16px;letter-spacing:1px;text-transform:uppercase;font-weight:700;display:flex;justify-content:space-between;align-items:center}
+.universe-section .uhead .count{background:var(--accent);padding:1px 8px;border-radius:2px;font-family:var(--mono);font-size:10px;color:#fff}
+.form-roster{border:1px solid var(--border);border-top:0;background:#fff}
+.form-roster .row{display:grid;grid-template-columns:50px 1fr 160px;gap:14px;padding:7px 16px;border-bottom:1px solid var(--rule);font-size:12px;align-items:center}
+.form-roster .row:last-child{border-bottom:0}
+.form-roster .row:nth-child(even){background:var(--paper)}
+.form-roster .row .code{font-family:var(--mono);font-size:10px;color:var(--secondary);font-weight:700}
+.form-roster .row .freq{font-family:var(--mono);font-size:10px;color:var(--muted);text-align:right}
+.q-grid{display:grid;grid-template-columns:1fr;gap:8px;margin-top:12px}
+.q-card{border:1px solid var(--rule);padding:12px 16px;border-radius:3px;display:flex;justify-content:space-between;align-items:center;transition:border 0.15s}
+.q-card:hover{border-color:var(--secondary)}
+.q-card .q-code{font-family:var(--mono);font-size:11px;color:var(--secondary);font-weight:600;margin-right:12px;min-width:60px}
+.q-card .q-text{flex:1;font-size:13px}
+.q-card a{color:var(--secondary);font-family:var(--mono);font-size:10px;text-decoration:none;padding:4px 10px;border:1px solid var(--secondary);border-radius:2px}
+.footer{margin-top:42px;padding-top:18px;border-top:1px solid var(--rule);font-size:10px;color:var(--muted);font-family:var(--mono);display:flex;justify-content:space-between}
+.footer a{color:var(--secondary);text-decoration:none}
+.brand-proof{background:linear-gradient(135deg,var(--primary),var(--secondary));color:#fff;padding:14px 18px;border-radius:4px;margin-bottom:24px;font-size:12px}
+.brand-proof strong{color:#d9a441}
+</style>
+</head><body>
+<div class="page">
+
+  <header class="masthead">
+    <div class="brand-block">
+      <div class="mark">BSE</div>
+      <div>
+        <h1>Bedford Stuyvesant Eats, LLC</h1>
+        <div class="legal">NY domestic LLC · NYC restaurant · 35 employees · Founded 2022</div>
+      </div>
+    </div>
+    <div class="meta">
+      DOC: R359-BSE-V1<br>
+      ISSUED: 2026-05-30<br>
+      TENANT: bedford_eats_demo<br>
+      INDUSTRY: NAICS 722511
+    </div>
+  </header>
+
+  <div class="brand-proof">
+    <strong>R359 brand proof:</strong> Bedford gets a crimson + warm-gold + cream identity.
+    Completely different from Cascadia (forest green) and Rosewood (navy + gold).
+    Same Murphy template engine. Same 80-form universal core. Different brand,
+    different industry, identical scaffolding underneath.
+  </div>
+
+  <div class="doc-title">
+    <div class="kicker">Operations Briefing</div>
+    <h2>Running A NYC Restaurant — Universal Core + Restaurant Overlay</h2>
+    <div class="question">A 35-employee Bedford-Stuyvesant restaurant operates 80 universal-core forms + 20 hospitality-specific artifacts.</div>
+  </div>
+
+  <div class="audit-banner">
+    <strong>Third tenant, same pattern.</strong> Bedford Eats is neither a contractor
+    nor a professional services firm. Yet the same Murphy template renders its
+    compliance footprint with no modification. The pattern is industry-agnostic.
+  </div>
+
+  <section>
+    <h3>Why Bedford Eats Is A Different Universality Test</h3>
+    <table>
+      <tr><th>Dimension</th><th>Cascadia MEP</th><th>Rosewood CPA</th><th>Bedford Eats</th></tr>
+      <tr><td>Industry</td><td>Trade contractor</td><td>Professional services</td><td>Hospitality / restaurant</td></tr>
+      <tr><td>Workforce</td><td>Field + foremen</td><td>Salaried + admin</td><td>Hourly servers + kitchen + tip pool</td></tr>
+      <tr><td>Revenue model</td><td>Bid jobs + T&amp;M</td><td>Hourly + engagement</td><td>Daily transactions + alcohol</td></tr>
+      <tr><td>Regulatory regime</td><td>NYC DOB + OSHA + LL196</td><td>AICPA + State Board</td><td>NYC DOH + NY SLA + DOL tip</td></tr>
+      <tr><td>Customers</td><td>Owners, GCs</td><td>SMB + audit clients</td><td>Walk-in retail public</td></tr>
+      <tr><td>Universal core</td><td><strong>SAME 80</strong></td><td><strong>SAME 80</strong></td><td><strong>SAME 80</strong></td></tr>
+      <tr><td>Industry overlay</td><td>~75 vertical</td><td>~25 vertical</td><td>~20 vertical</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h3>Restaurant Industry Overlay — Bedford-Specific Artifacts</h3>
+    <p>On top of the 80-form universal core, Bedford adds these hospitality-specific
+    artifacts driven by NYC DOH, NY State Liquor Authority, and federal tip
+    reporting rules.</p>
+    <div class="q-grid"><div class="q-card"><span class="q-code">REST-01</span><span class="q-text">NYC DOH letter grade</span><a>spec</a></div><div class="q-card"><span class="q-code">REST-02</span><span class="q-text">NYC Food Protection Cert</span><a>spec</a></div><div class="q-card"><span class="q-code">REST-03</span><span class="q-text">NY SLA liquor license</span><a>spec</a></div><div class="q-card"><span class="q-code">REST-04</span><span class="q-text">DOH self-inspection</span><a>spec</a></div><div class="q-card"><span class="q-code">REST-05</span><span class="q-text">Allergen disclosure</span><a>spec</a></div><div class="q-card"><span class="q-code">REST-06</span><span class="q-text">Kitchen temp log</span><a>spec</a></div><div class="q-card"><span class="q-code">REST-07</span><span class="q-text">Supplier food safety audit</span><a>spec</a></div><div class="q-card"><span class="q-code">REST-08</span><span class="q-text">TIPS alcohol training</span><a>spec</a></div><div class="q-card"><span class="q-code">REST-09</span><span class="q-text">Tip pool agreement</span><a>spec</a></div><div class="q-card"><span class="q-code">REST-10</span><span class="q-text">Daily cash drop</span><a>spec</a></div></div>
+  </section>
+
+  <section>
+    <h3>Critical Cross-References (NYC Restaurant)</h3>
+    <table>
+      <tr><th>Item</th><th>Authority</th><th>Citation</th></tr>
+      <tr><td>Food protection certificate — supervisor on-shift</td><td>NYC DOHMH</td><td>24 RCNY §81.15</td></tr>
+      <tr><td>Inspection letter grade posted</td><td>NYC DOHMH</td><td>24 RCNY §23-03</td></tr>
+      <tr><td>NY State liquor license (on-premises)</td><td>NY SLA</td><td>ABC Law §64</td></tr>
+      <tr><td>Tip pool / tip credit disclosure</td><td>US DOL + NY DOL</td><td>29 CFR 531.52 / 12 NYCRR §146</td></tr>
+      <tr><td>Hospitality wage order (NY minimum wage)</td><td>NY DOL</td><td>12 NYCRR §146</td></tr>
+      <tr><td>Allergen disclosure on menu / on-request</td><td>NYC DOHMH</td><td>NYC Health Code §81.50</td></tr>
+      <tr><td>Time-temperature log (food safety)</td><td>NYC DOHMH</td><td>NYC Health Code §81.07</td></tr>
+      <tr><td>Sales tax registration (NY DTF)</td><td>NY DTF</td><td>Tax Law §1134</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h3>Bedford Universal Core — Same 80 Forms As Every Other Murphy Tenant</h3>
+    <div class="audit-banner">
+      <strong>Same skeleton, different costume.</strong> The 80 form codes
+      (F-CORE-1-01 through F-CORE-6-80) are identical across Cascadia, Rosewood,
+      and Bedford. Brand styling differs. Industry overlay differs. Universal
+      taxonomy makes platform-wide reporting possible.
+    </div>
+    <div class="universe-section"><div class="uhead"><span>People (HR / Payroll / Benefits)</span><span class="count">24 forms</span></div><div class="form-roster"><div class="row"><span class="code">01</span><span>Offer letter</span><span class="freq">per hire</span></div><div class="row"><span class="code">02</span><span>Background check authorization (FCRA)</span><span class="freq">per hire</span></div><div class="row"><span class="code">03</span><span>I-9 Employment Eligibility</span><span class="freq">per hire (federal)</span></div><div class="row"><span class="code">04</span><span>W-4 Federal Withholding</span><span class="freq">per hire / change</span></div><div class="row"><span class="code">05</span><span>State Withholding (jurisdiction-specific)</span><span class="freq">per hire / state move</span></div><div class="row"><span class="code">06</span><span>Direct Deposit</span><span class="freq">per hire / change</span></div><div class="row"><span class="code">07</span><span>Emergency Contact</span><span class="freq">per hire</span></div><div class="row"><span class="code">08</span><span>EEO Self-Identification</span><span class="freq">per hire</span></div><div class="row"><span class="code">09</span><span>Employee Handbook Acknowledgment</span><span class="freq">per hire / version</span></div><div class="row"><span class="code">10</span><span>IT Acceptable Use Policy</span><span class="freq">per hire / version</span></div><div class="row"><span class="code">11</span><span>Drug/Alcohol Policy</span><span class="freq">per hire</span></div><div class="row"><span class="code">12</span><span>Benefits Election</span><span class="freq">per hire / annual</span></div><div class="row"><span class="code">13</span><span>401(k) Auto-Enroll Notice</span><span class="freq">per hire</span></div><div class="row"><span class="code">14</span><span>PTO Policy Acknowledgment</span><span class="freq">per hire</span></div><div class="row"><span class="code">15</span><span>Sexual Harassment Training</span><span class="freq">state-annual</span></div><div class="row"><span class="code">16</span><span>Workplace Violence Prevention</span><span class="freq">state-required</span></div><div class="row"><span class="code">17</span><span>Job Description / Role Scope</span><span class="freq">per role</span></div><div class="row"><span class="code">18</span><span>30/60/90 Milestone Check</span><span class="freq">per hire</span></div><div class="row"><span class="code">19</span><span>Annual Performance Review</span><span class="freq">annual</span></div><div class="row"><span class="code">20</span><span>Compensation Change Form</span><span class="freq">per event</span></div><div class="row"><span class="code">21</span><span>Garnishment Notice</span><span class="freq">per event</span></div><div class="row"><span class="code">22</span><span>Exit Interview</span><span class="freq">per separation</span></div><div class="row"><span class="code">23</span><span>Separation Notice (state-specific)</span><span class="freq">per separation</span></div><div class="row"><span class="code">24</span><span>COBRA Notification</span><span class="freq">per separation</span></div></div></div><div class="universe-section"><div class="uhead"><span>Money In (Sales / AR)</span><span class="count">13 forms</span></div><div class="form-roster"><div class="row"><span class="code">25</span><span>Customer Onboarding / KYC</span><span class="freq">per new customer</span></div><div class="row"><span class="code">26</span><span>Master Service Agreement</span><span class="freq">per customer / version</span></div><div class="row"><span class="code">27</span><span>Statement of Work / Scope Letter</span><span class="freq">per engagement</span></div><div class="row"><span class="code">28</span><span>Pricing Schedule / Quote</span><span class="freq">per opportunity</span></div><div class="row"><span class="code">29</span><span>Customer Credit Application</span><span class="freq">per new credit customer</span></div><div class="row"><span class="code">30</span><span>W-9 Request from Customer</span><span class="freq">when customer remits</span></div><div class="row"><span class="code">31</span><span>Invoice Template</span><span class="freq">per billing cycle</span></div><div class="row"><span class="code">32</span><span>Past-Due Notice</span><span class="freq">per occurrence</span></div><div class="row"><span class="code">33</span><span>Final Demand</span><span class="freq">per occurrence</span></div><div class="row"><span class="code">34</span><span>Customer Satisfaction Survey</span><span class="freq">periodic</span></div><div class="row"><span class="code">35</span><span>Renewal Notice</span><span class="freq">per renewal</span></div><div class="row"><span class="code">36</span><span>Refund / Credit Memo</span><span class="freq">per occurrence</span></div><div class="row"><span class="code">37</span><span>AR Aging Report</span><span class="freq">monthly</span></div></div></div><div class="universe-section"><div class="uhead"><span>Money Out (AP / Expense)</span><span class="count">12 forms</span></div><div class="form-roster"><div class="row"><span class="code">38</span><span>Vendor New Account (W-9 + COI + Banking)</span><span class="freq">per new vendor</span></div><div class="row"><span class="code">39</span><span>Purchase Order</span><span class="freq">per purchase</span></div><div class="row"><span class="code">40</span><span>PO Change Order</span><span class="freq">per change</span></div><div class="row"><span class="code">41</span><span>Expense Reimbursement</span><span class="freq">per submission</span></div><div class="row"><span class="code">42</span><span>Mileage Log</span><span class="freq">weekly for drivers</span></div><div class="row"><span class="code">43</span><span>Credit Card Monthly Reconciliation</span><span class="freq">monthly</span></div><div class="row"><span class="code">44</span><span>Petty Cash Log</span><span class="freq">ongoing</span></div><div class="row"><span class="code">45</span><span>Check Request</span><span class="freq">per disbursement</span></div><div class="row"><span class="code">46</span><span>AP Invoice Approval Routing</span><span class="freq">per invoice</span></div><div class="row"><span class="code">47</span><span>1099-NEC Year-End Recon</span><span class="freq">annual</span></div><div class="row"><span class="code">48</span><span>Wire Transfer Authorization</span><span class="freq">per wire</span></div><div class="row"><span class="code">49</span><span>ACH Origination Authorization</span><span class="freq">per setup / change</span></div></div></div><div class="universe-section"><div class="uhead"><span>Compliance (Entity / Tax / Registrations)</span><span class="count">12 forms</span></div><div class="form-roster"><div class="row"><span class="code">50</span><span>Entity Formation (LLC/Corp)</span><span class="freq">at inception</span></div><div class="row"><span class="code">51</span><span>Foreign Entity Authority</span><span class="freq">per non-home state</span></div><div class="row"><span class="code">52</span><span>EIN Application (SS-4) Record</span><span class="freq">at inception</span></div><div class="row"><span class="code">53</span><span>State Tax Registration</span><span class="freq">per state</span></div><div class="row"><span class="code">54</span><span>Annual / Biennial Report</span><span class="freq">per cadence per state</span></div><div class="row"><span class="code">55</span><span>Sales Tax Registration</span><span class="freq">per state where applicable</span></div><div class="row"><span class="code">56</span><span>Use Tax Remittance</span><span class="freq">per cadence</span></div><div class="row"><span class="code">57</span><span>1099 / W-2 Year-End Filings</span><span class="freq">annual</span></div><div class="row"><span class="code">58</span><span>941 Quarterly Employment Tax</span><span class="freq">quarterly</span></div><div class="row"><span class="code">59</span><span>940 Annual FUTA</span><span class="freq">annual</span></div><div class="row"><span class="code">60</span><span>State Unemployment Registration</span><span class="freq">per state</span></div><div class="row"><span class="code">61</span><span>City / Local Business License</span><span class="freq">per locality</span></div></div></div><div class="universe-section"><div class="uhead"><span>Records (Governance / Board / Audit)</span><span class="count">9 forms</span></div><div class="form-roster"><div class="row"><span class="code">62</span><span>Operating Agreement / Bylaws</span><span class="freq">at inception</span></div><div class="row"><span class="code">63</span><span>Board Minutes</span><span class="freq">per meeting</span></div><div class="row"><span class="code">64</span><span>Member / Shareholder Resolution</span><span class="freq">per major decision</span></div><div class="row"><span class="code">65</span><span>Annual Meeting Notice</span><span class="freq">annual</span></div><div class="row"><span class="code">66</span><span>Conflict of Interest Disclosure</span><span class="freq">annual</span></div><div class="row"><span class="code">67</span><span>Records Retention Policy</span><span class="freq">annual review</span></div><div class="row"><span class="code">68</span><span>Audit Binder Index</span><span class="freq">annual</span></div><div class="row"><span class="code">69</span><span>Banking Resolution</span><span class="freq">per institution / change</span></div><div class="row"><span class="code">70</span><span>Power of Attorney</span><span class="freq">as needed</span></div></div></div><div class="universe-section"><div class="uhead"><span>Risk (Insurance / Contracts)</span><span class="count">10 forms</span></div><div class="form-roster"><div class="row"><span class="code">71</span><span>COI Request to Broker</span><span class="freq">per project / annual</span></div><div class="row"><span class="code">72</span><span>COI Received Verification</span><span class="freq">per counterparty</span></div><div class="row"><span class="code">73</span><span>Additional Insured Endorsement Request</span><span class="freq">per project</span></div><div class="row"><span class="code">74</span><span>Waiver of Subrogation Request</span><span class="freq">per project</span></div><div class="row"><span class="code">75</span><span>NDA Mutual / One-Way</span><span class="freq">per opportunity</span></div><div class="row"><span class="code">76</span><span>Contract Review Checklist</span><span class="freq">per contract</span></div><div class="row"><span class="code">77</span><span>Subcontractor / Contractor Agreement</span><span class="freq">per engagement</span></div><div class="row"><span class="code">78</span><span>Indemnification Rider</span><span class="freq">per material contract</span></div><div class="row"><span class="code">79</span><span>Data Processing Agreement</span><span class="freq">per data-touching counterparty</span></div><div class="row"><span class="code">80</span><span>Incident Report (general)</span><span class="freq">per event</span></div></div></div>
+  </section>
+
+  <section>
+    <h3>Decision &amp; Owner</h3>
+    <p><strong>Decision: Bedford adopts the Murphy universal-core spec.</strong>
+    The 20 restaurant-specific artifacts overlay on top, mapped to
+    NYC DOH / NY SLA / federal tip rules. Owner: Managing Member + General Manager.</p>
+  </section>
+
+  <div class="footer">
+    <span>R359-BSE-V1 · Bedford Stuyvesant Eats · 80 core + 20 overlay forms</span>
+    <span><a href="/ui/universal_core_spec">↩ universal spec</a> · <a href="/ui/cascadia_mep">→ MEP demo</a> · <a href="/ui/rosewood_cpa">→ CPA demo</a></span>
+  </div>
+
+</div></body></html>

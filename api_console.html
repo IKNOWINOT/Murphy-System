@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Murphy · API Console</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{
+  --bg:#050608;--bg2:#0a0d12;--surface:#0f141b;--elevated:#161d28;
+  --border:rgba(0,212,170,.18);--border-hi:rgba(0,212,170,.45);
+  --teal:#00D4AA;--cyan:#7afcff;--pink:#ff7eb6;--amber:#ffa940;
+  --green:#00ff6a;--red:#ff5c7c;--purple:#b794f6;
+  --text:#e8f0ec;--text-dim:#8fa9a0;--text-dimer:#5a6e66;
+  --font:'Inter',-apple-system,Segoe UI,sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;line-height:1.5}
+
+.topbar{
+  position:sticky;top:0;z-index:50;background:rgba(5,6,8,.92);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--border);padding:14px 28px;
+  display:flex;align-items:center;gap:18px
+}
+.topbar h1{font-size:15px;font-weight:700}
+.topbar h1 .sub{color:var(--text-dim);font-size:11px;font-family:var(--mono);
+  text-transform:uppercase;letter-spacing:.1em;margin-left:8px;font-weight:500}
+.spacer{flex:1}
+.topbar .meta{font-family:var(--mono);font-size:11px;color:var(--text-dim)}
+.topbar .api-key-input{
+  background:var(--surface);border:1px solid var(--border);
+  color:var(--text);font-family:var(--mono);font-size:11px;
+  padding:6px 10px;border-radius:6px;width:280px;outline:none
+}
+.topbar .api-key-input:focus{border-color:var(--teal)}
+
+.layout{display:grid;grid-template-columns:280px 1fr;min-height:calc(100vh - 60px)}
+
+.sidebar{
+  background:var(--bg2);border-right:1px solid var(--border);
+  padding:18px;overflow-y:auto;max-height:calc(100vh - 60px);position:sticky;top:60px
+}
+.sidebar-search{
+  width:100%;background:var(--surface);border:1px solid var(--border);
+  color:var(--text);font-family:var(--mono);font-size:12px;
+  padding:8px 12px;border-radius:6px;outline:none;margin-bottom:14px
+}
+.sidebar-search:focus{border-color:var(--teal)}
+.sidebar-label{
+  font-family:var(--mono);font-size:10px;color:var(--text-dimer);
+  text-transform:uppercase;letter-spacing:.12em;margin:14px 0 8px
+}
+.grp-item{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:6px 10px;border-radius:5px;cursor:pointer;
+  font-family:var(--mono);font-size:12px;color:var(--text-dim);
+  transition:all .12s ease
+}
+.grp-item:hover{background:var(--surface);color:var(--text)}
+.grp-item.active{background:rgba(0,212,170,.08);color:var(--teal);
+  border-left:2px solid var(--teal);padding-left:8px}
+.grp-item .count{color:var(--text-dimer);font-size:10px;
+  background:var(--bg);padding:1px 6px;border-radius:8px}
+
+.main{padding:24px 32px;overflow-x:hidden}
+.section-head{margin-bottom:18px}
+.section-head h2{font-size:22px;font-weight:700;margin-bottom:4px;letter-spacing:-.01em}
+.section-head .sub{color:var(--text-dim);font-size:13px}
+
+.endpoint{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:10px;margin-bottom:12px;overflow:hidden;
+  transition:all .15s ease
+}
+.endpoint:hover{border-color:var(--border-hi)}
+.endpoint-head{
+  display:flex;align-items:center;gap:12px;padding:12px 16px;
+  cursor:pointer;user-select:none
+}
+.method-tag{
+  display:inline-flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:10px;font-weight:700;
+  padding:3px 8px;border-radius:4px;min-width:48px;text-align:center
+}
+.method-tag.GET{background:rgba(0,212,170,.12);color:var(--teal);border:1px solid rgba(0,212,170,.3)}
+.method-tag.POST{background:rgba(122,252,255,.12);color:var(--cyan);border:1px solid rgba(122,252,255,.3)}
+.method-tag.PUT{background:rgba(183,148,246,.12);color:var(--purple);border:1px solid rgba(183,148,246,.3)}
+.method-tag.DELETE{background:rgba(255,92,124,.12);color:var(--red);border:1px solid rgba(255,92,124,.3)}
+.method-tag.PATCH{background:rgba(255,169,64,.12);color:var(--amber);border:1px solid rgba(255,169,64,.3)}
+.endpoint-path{font-family:var(--mono);font-size:13px;color:var(--text);flex:1;word-break:break-all}
+.endpoint-status{
+  font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:8px;
+  text-transform:uppercase;letter-spacing:.05em
+}
+.endpoint-status.unprobed{background:var(--bg);color:var(--text-dimer);border:1px solid var(--border)}
+.endpoint-status.s200{background:rgba(0,255,106,.08);color:var(--green);border:1px solid rgba(0,255,106,.3)}
+.endpoint-status.s401,.endpoint-status.s403{background:rgba(122,252,255,.08);color:var(--cyan);border:1px solid rgba(122,252,255,.3)}
+.endpoint-status.s4{background:rgba(255,169,64,.08);color:var(--amber);border:1px solid rgba(255,169,64,.3)}
+.endpoint-status.s5{background:rgba(255,92,124,.08);color:var(--red);border:1px solid rgba(255,92,124,.3)}
+.expand-icon{color:var(--text-dimer);font-size:14px;transition:transform .2s ease}
+.endpoint.open .expand-icon{transform:rotate(90deg)}
+
+.endpoint-body{
+  display:none;padding:14px 16px 18px;border-top:1px solid var(--border);
+  background:var(--bg2)
+}
+.endpoint.open .endpoint-body{display:block}
+.try-row{display:flex;gap:10px;align-items:center;margin-bottom:12px}
+.try-btn{
+  background:var(--teal);color:var(--bg);border:none;
+  font-family:var(--mono);font-size:11px;font-weight:700;
+  padding:7px 14px;border-radius:5px;cursor:pointer;
+  transition:all .15s ease
+}
+.try-btn:hover{background:var(--cyan);transform:translateY(-1px)}
+.try-btn.posting{background:var(--amber);cursor:wait}
+.payload-input{
+  flex:1;background:var(--surface);border:1px solid var(--border);
+  color:var(--text);font-family:var(--mono);font-size:11px;
+  padding:7px 10px;border-radius:5px;outline:none
+}
+.payload-input:focus{border-color:var(--teal)}
+.response-box{
+  background:#020404;border:1px solid var(--border);border-radius:6px;
+  padding:12px;font-family:var(--mono);font-size:11px;color:var(--text-dim);
+  white-space:pre-wrap;word-break:break-all;
+  max-height:300px;overflow-y:auto
+}
+.response-box.has-data{color:var(--text)}
+.response-meta{
+  font-family:var(--mono);font-size:10px;color:var(--text-dimer);
+  margin-bottom:6px;text-transform:uppercase;letter-spacing:.08em
+}
+
+.summary-banner{
+  background:linear-gradient(135deg,rgba(0,212,170,.06),rgba(122,252,255,.03));
+  border:1px solid var(--border);border-radius:10px;
+  padding:14px 18px;margin-bottom:24px;
+  display:flex;gap:24px;align-items:center;flex-wrap:wrap
+}
+.summary-stat{display:flex;flex-direction:column;gap:2px}
+.summary-stat .v{font-family:var(--mono);font-size:18px;font-weight:700;color:var(--teal)}
+.summary-stat .l{font-family:var(--mono);font-size:10px;color:var(--text-dimer);text-transform:uppercase;letter-spacing:.08em}
+
+.empty{text-align:center;padding:60px 20px;color:var(--text-dim)}
+.empty h3{color:var(--text);margin-bottom:8px;font-size:18px}
+
+@media (max-width:900px){
+  .layout{grid-template-columns:1fr}
+  .sidebar{position:static;max-height:none;border-right:none;border-bottom:1px solid var(--border)}
+  .topbar .api-key-input{display:none}
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <h1>API Console <span class="sub">every endpoint, browsable</span></h1>
+  <div class="spacer"></div>
+  <input class="api-key-input" id="apikey" placeholder="X-API-Key (founder_… for auth-gated)" />
+  <div class="meta" id="meta">loading…</div>
+</header>
+
+<div class="layout">
+
+  <aside class="sidebar">
+    <input class="sidebar-search" id="search" placeholder="Search groups or paths…" />
+    <div class="sidebar-label">Groups · click to view</div>
+    <div id="grp-list"></div>
+  </aside>
+
+  <main class="main">
+    <div class="summary-banner" id="banner">
+      <div class="summary-stat"><div class="v" id="b-total">—</div><div class="l">total APIs</div></div>
+      <div class="summary-stat"><div class="v" id="b-groups">—</div><div class="l">groups</div></div>
+      <div class="summary-stat"><div class="v" id="b-probed">—</div><div class="l">probed</div></div>
+      <div class="summary-stat"><div class="v" id="b-cur">—</div><div class="l">in view</div></div>
+    </div>
+
+    <div id="content">
+      <div class="empty">
+        <h3>Pick a group from the sidebar</h3>
+        <div>Or search across every endpoint above. Every endpoint in this app is browsable here.</div>
+      </div>
+    </div>
+  </main>
+
+</div>
+
+<script>
+let HEALTH_DATA = null;
+let ROUTES_BY_GROUP = {};
+let CURRENT_GROUP = null;
+
+async function init(){
+  const hr = await fetch('/api/inventory/api-health');
+  if(!hr.ok){
+    document.getElementById('content').innerHTML = '<div class="empty"><h3>Health map not available</h3><div>Run POST /api/inventory/rebuild-probe first.</div></div>';
+    return;
+  }
+  HEALTH_DATA = await hr.json();
+
+  const rr = await fetch('/api/inventory/all-routes');
+  if(!rr.ok){
+    document.getElementById('content').innerHTML = '<div class="empty"><h3>Route list not available</h3></div>';
+    return;
+  }
+  const routes = (await rr.json()).routes || [];
+
+  for(const r of routes){
+    if(!r.path.startsWith('/api/')) continue;
+    const g = r.path.split('/')[2];
+    if(!g) continue;
+    (ROUTES_BY_GROUP[g] = ROUTES_BY_GROUP[g] || []).push(r);
+  }
+
+  document.getElementById('b-total').textContent = HEALTH_DATA.total_apis;
+  document.getElementById('b-groups').textContent = HEALTH_DATA.total_groups;
+  document.getElementById('b-probed').textContent = HEALTH_DATA.probed_count;
+  document.getElementById('meta').textContent = 'Generated ' + new Date(HEALTH_DATA.generated_at*1000).toLocaleTimeString();
+
+  renderSidebar();
+
+  const stored = localStorage.getItem('murphy_api_key');
+  if(stored){ document.getElementById('apikey').value = stored; }
+  document.getElementById('apikey').addEventListener('change', e=>{
+    localStorage.setItem('murphy_api_key', e.target.value);
+  });
+
+  document.getElementById('search').addEventListener('input', filterSidebar);
+
+  // URL hash deep-link
+  if(window.location.hash){
+    const g = window.location.hash.slice(1);
+    if(ROUTES_BY_GROUP[g]) selectGroup(g);
+  }
+}
+
+function renderSidebar(filter){
+  const list = document.getElementById('grp-list');
+  list.innerHTML = '';
+  const groups = Object.entries(HEALTH_DATA.groups)
+    .filter(([g])=>!filter || g.toLowerCase().includes(filter))
+    .sort((a,b)=>b[1].total - a[1].total);
+
+  for(const [g, s] of groups){
+    const el = document.createElement('div');
+    el.className = 'grp-item' + (g === CURRENT_GROUP ? ' active' : '');
+    el.innerHTML = `<span>/api/${g}</span><span class="count">${s.total}</span>`;
+    el.onclick = ()=>selectGroup(g);
+    list.appendChild(el);
+  }
+}
+
+function filterSidebar(e){
+  const q = e.target.value.toLowerCase();
+  renderSidebar(q);
+}
+
+function selectGroup(g){
+  CURRENT_GROUP = g;
+  window.location.hash = g;
+  renderSidebar(document.getElementById('search').value.toLowerCase());
+
+  const routes = ROUTES_BY_GROUP[g] || [];
+  document.getElementById('b-cur').textContent = routes.length;
+
+  const summary = HEALTH_DATA.groups[g] || {};
+  const probedMap = {};
+  for(const [path, code] of (summary.probe_results || [])){
+    probedMap[path] = code;
+  }
+
+  const content = document.getElementById('content');
+  content.innerHTML = `
+    <div class="section-head">
+      <h2>/api/${g}</h2>
+      <div class="sub">${routes.length} endpoint${routes.length===1?'':'s'} · ${summary.get_count||0} GET · ${summary.post_count||0} POST · ${summary.probed||0} probed</div>
+    </div>
+    <div id="endpoint-list"></div>
+  `;
+
+  const list = document.getElementById('endpoint-list');
+  routes.sort((a,b)=>a.path.localeCompare(b.path));
+  for(const r of routes){
+    const method = (r.methods && r.methods[0]) || 'GET';
+    const code = probedMap[r.path];
+    let statusCls = 'unprobed', statusText = 'unprobed';
+    if(typeof code === 'number'){
+      if(code >= 200 && code < 300){ statusCls = 's200'; statusText = code+' ok'; }
+      else if(code === 401 || code === 403){ statusCls = 's' + code; statusText = code+' auth'; }
+      else if(code >= 400 && code < 500){ statusCls = 's4'; statusText = code; }
+      else if(code >= 500){ statusCls = 's5'; statusText = code; }
+    }
+
+    const ep = document.createElement('div');
+    ep.className = 'endpoint';
+    ep.innerHTML = `
+      <div class="endpoint-head" onclick="this.parentElement.classList.toggle('open')">
+        <span class="method-tag ${method}">${method}</span>
+        <span class="endpoint-path">${r.path}</span>
+        <span class="endpoint-status ${statusCls}">${statusText}</span>
+        <span class="expand-icon">▸</span>
+      </div>
+      <div class="endpoint-body">
+        <div class="try-row">
+          <button class="try-btn" onclick="tryEp(this, '${r.path}', '${method}')">▶ Try</button>
+          ${method !== 'GET' ? `<input class="payload-input" placeholder='{} JSON body' value='{}' />` : ''}
+        </div>
+        <div class="response-meta">response</div>
+        <div class="response-box">click ▶ Try to invoke</div>
+      </div>
+    `;
+    list.appendChild(ep);
+  }
+}
+
+async function tryEp(btn, path, method){
+  const ep = btn.closest('.endpoint');
+  const body = ep.querySelector('.endpoint-body');
+  const responseBox = body.querySelector('.response-box');
+  const payloadInput = body.querySelector('.payload-input');
+  const apiKey = document.getElementById('apikey').value.trim();
+
+  btn.classList.add('posting');
+  btn.textContent = '… running';
+
+  const headers = {'Content-Type':'application/json'};
+  if(apiKey) headers['X-API-Key'] = apiKey;
+
+  const opts = {method, headers};
+  if(method !== 'GET' && payloadInput){
+    try{
+      opts.body = payloadInput.value;
+      JSON.parse(opts.body); // validate
+    }catch{
+      responseBox.textContent = 'Invalid JSON in body';
+      btn.classList.remove('posting');
+      btn.textContent = '▶ Try';
+      return;
+    }
+  }
+
+  const t0 = performance.now();
+  try{
+    const r = await fetch(path, opts);
+    const dt = Math.round(performance.now() - t0);
+    const text = await r.text();
+    body.querySelector('.response-meta').textContent = `HTTP ${r.status} · ${dt}ms · ${text.length}b`;
+    try{
+      const j = JSON.parse(text);
+      responseBox.textContent = JSON.stringify(j, null, 2);
+      responseBox.classList.add('has-data');
+    }catch{
+      responseBox.textContent = text;
+      responseBox.classList.add('has-data');
+    }
+    // Update status pill
+    const pill = ep.querySelector('.endpoint-status');
+    pill.className = 'endpoint-status ' + (r.status<300?'s200':r.status<500?'s4':'s5');
+    pill.textContent = r.status + (r.status<300?' ok':'');
+  }catch(e){
+    body.querySelector('.response-meta').textContent = 'NETWORK ERROR';
+    responseBox.textContent = e.message;
+  }finally{
+    btn.classList.remove('posting');
+    btn.textContent = '▶ Try';
+  }
+}
+
+init();
+</script>
+</body>
+</html>

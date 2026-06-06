@@ -1,0 +1,150 @@
+{
+  "module": "r368_offboarding",
+  "blocks": {
+    "find_reroute_target": {
+      "intent_plain": "Find a reroute target for departing employee's open HITLs. Returns (target_email, method, note).",
+      "inputs": {
+        "con": "sqlite3.Connection",
+        "tenant_slug": "str",
+        "departing_email": "str"
+      },
+      "outputs": {
+        "return": "tuple of (email_or_None, method_str, note_str)"
+      },
+      "side_effects": [
+        "READ-ONLY"
+      ],
+      "failure_modes": [
+        "E_STATE_0028",
+        "E_CODE_0001"
+      ],
+      "must_not": [
+        "modify DB",
+        "return departed target"
+      ],
+      "test_array": {
+        "weak": [
+          {
+            "input_signature": "con_first",
+            "input": [
+              "apex_wellness",
+              ""
+            ],
+            "expected_first_is_none": true
+          }
+        ],
+        "good": [
+          {
+            "input_signature": "con_first",
+            "input": [
+              "oregon_mep_demo",
+              "evelyn.shapiro@cascadia-mep.example"
+            ],
+            "expected_truthy_first": true,
+            "expected_target_not_departed": true
+          }
+        ],
+        "precise": [
+          {
+            "input_signature": "con_first",
+            "input": [
+              "oregon_mep_demo",
+              "aisha.okonkwo@cascadia-mep.example"
+            ],
+            "expected_truthy_first": true,
+            "expected_target_not_departed": true
+          }
+        ],
+        "really_good": [
+          {
+            "input_signature": "con_first",
+            "input": [
+              "apex_wellness",
+              "james.rodriguez@apexwellness.example"
+            ],
+            "expected_truthy_first": true,
+            "expected_target_not_departed": true
+          }
+        ]
+      }
+    },
+    "get_emp": {
+      "intent_plain": "Look up employee by tenant + email. Returns sqlite3.Row dict or None.",
+      "inputs": {
+        "con": "sqlite3.Connection",
+        "tenant_slug": "str",
+        "email": "str"
+      },
+      "outputs": {
+        "return": "dict-like row or None"
+      },
+      "side_effects": [
+        "READ-ONLY"
+      ],
+      "failure_modes": [
+        "E_CODE_0001"
+      ],
+      "must_not": [
+        "modify DB",
+        "raise"
+      ],
+      "test_array": {
+        "weak": [
+          {
+            "input_signature": "con_first",
+            "input": [
+              "apex_wellness",
+              "nonexistent@x.example"
+            ],
+            "expected_return": null
+          }
+        ],
+        "good": [
+          {
+            "input_signature": "con_first",
+            "input": [
+              "apex_wellness",
+              "james.rodriguez@apexwellness.example"
+            ],
+            "expected_truthy": true
+          }
+        ],
+        "precise": [
+          {
+            "input_signature": "con_first",
+            "input": [
+              "oregon_mep_demo",
+              "aisha.okonkwo@cascadia-mep.example"
+            ],
+            "expected_truthy": true
+          }
+        ],
+        "really_good": [
+          {
+            "input_signature": "con_first",
+            "input": [
+              "oregon_mep_demo",
+              "evelyn.shapiro@cascadia-mep.example"
+            ],
+            "expected_truthy": true
+          }
+        ]
+      }
+    }
+  },
+  "pipelines": {
+    "_self_check": {
+      "intent_plain": "Module loads + offboarding functions exist",
+      "anchors": [
+        "deactivate_access",
+        "depart",
+        "err",
+        "find_reroute_target",
+        "get_emp"
+      ],
+      "pipeline_check": {
+        "module_loadable": true
+      }
+    }
+  }
+}

@@ -710,7 +710,11 @@ class SecurityMiddleware(BaseHTTPMiddleware):
 
         # Rate limiting — enforced before auth so unauthenticated flood requests
         # are still throttled (CWE-770).
-        rate_result = _rate_limiter.check(client_ip)
+        # _R422_IP_FOUNDER_EXEMPT: founder marker bypasses IP rate limit
+        if request.headers.get("X-User-ID") == "founder" or request.headers.get("X-Internal-Tool-Call") == "1":
+            rate_result = {"allowed": True, "remaining": 9999, "limit": 9999}
+        else:
+            rate_result = _rate_limiter.check(client_ip)
         if not rate_result["allowed"]:
             logger.warning("[%s] Rate limit exceeded for %s", self.service_name, client_ip)
             resp = JSONResponse(

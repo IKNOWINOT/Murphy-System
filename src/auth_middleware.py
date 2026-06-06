@@ -33,8 +33,50 @@ logger = logging.getLogger("murphy.auth")
 
 # ── Exempt paths that never require authentication ─────────────────────────
 _DEFAULT_EXEMPT: Set[str] = {
+    "/api/audit/request",
+    "/api/marketplace/agents",       # _R444 public list
+    "/api/marketplace/categories",   # _R444 public categories
+    "/marketplace",                  # _R444 public page
+    "/api/marketplace/vote",         # _R444 vote endpoint (handler returns 401 itself if not auth)  # _R442 public audit quote intake (no auth — strangers booking audits)
     "/health",
     "/api/health",
+        "/api/hitl/confirm-subscription",  # _R471_PUBLIC magic-link
+        "/api/hitl/email-action",
+
+    "/inventory",  # R418
+
+    "/api/inventory",  # R418
+
+
+    "/api-console",  # R419
+
+
+
+    "/api/tools/registered",  # R420
+
+
+
+
+    "/api/tools/rebuild",  # R420b
+
+
+
+    "/api/tools/search",  # R420
+
+
+    "/api/inventory/all-routes",  # R419
+
+
+    "/api/inventory/api-health",  # R419
+
+
+    "/api/inventory/rebuild-probe",  # R419
+
+    "/api/inventory/orphans",  # R418
+
+    "/api/inventory/ui-map",  # R418
+
+    "/api/inventory/rebuild",  # R418
         "/api/health/capacity",
     "/api/readiness",
     "/api/status/public",
@@ -61,6 +103,8 @@ _DEFAULT_EXEMPT: Set[str] = {
 }
 
 _EXEMPT_PREFIXES = (
+    "/api/brain/",  # R493 — Desktop Brain API
+    "/api/marketplace/",  # _R444: all marketplace routes public (vote handler does its own 401)
     "/static",
     "/murphy-static",
     "/ui/",
@@ -93,10 +137,24 @@ _EXEMPT_PREFIXES = (
     "/api/connectors",
         "/api/connectors",
     "/api/v1/auth/",
+    "/api/llm/spend",  # R492
+        "/api/brain/inject",     # R493
+        "/api/brain/telemetry",  # R493
+        "/api/brain/revoke",     # R493
+        "/api/brain/status",     # R493 — LLM spend dashboard (no auth)
     # PATCH-049a: billing endpoints — webhooks public (signature-verified),
     # checkout + plans public (user supplies account_id in body)
     "/api/billing/webhooks/",
     "/api/billing/plans",
+    "/api/chat",  # R409: public landing chat
+    "/deck",  # R412: public pitch deck
+    "/pitch",  # R412: pitch alias
+    "/api/public/assist/request",
+    "/api/demo/build",  # R404 — public demo SSE
+    "/api/demo/tenants",  # R404 — public artifact read
+    "/api/demo/health",  # R404 — public health
+    "/api/billing/products",  # R401b — redirects to /api/billing/plans
+    "/api/public/assist/request",
     "/api/billing/currencies",
     "/api/billing/checkout",
     # PATCH-434: policy routes (GET public, POST founder-only)
@@ -237,6 +295,14 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
                 {"error": "Invalid API key"},
                 status_code=403,
             )
+
+        # PATCH-AUTH-TIER-R165 (2026-05-29) — stamp founder tier on valid API key
+        # Closes substrate gap: patch417 outbound queue handler reads
+        # request.state.tier == "founder" but middleware never set it.
+        # Without this, /api/mail/outbound/queue returned founder_only to ALL
+        # callers including the actual founder.
+        request.state.tier = "founder"
+        request.state.actor_account_id = "founder"
 
         return await call_next(request)
 
@@ -411,14 +477,56 @@ class OIDCAuthMiddleware(BaseHTTPMiddleware):
     # Inline-middleware behaviour we MUST preserve so the existing
     # /api/auth/login flow keeps working:
     EXEMPT_PATHS: Set[str] = {
-        "/api/automation/prefight/status",   # PATCH-177: engine availability — public
+        "/api/automation/prefight/status",
+        "/api/hitl/confirm-subscription",  # _R471 magic-link
+        "/api/hitl/email-action",            # _R471 1-click HITL action   # PATCH-177: engine availability — public
         "/api/billing/prices",               # PATCH-179b: public pricing endpoint for landing page
         "/api/health",
+
+        "/inventory",  # R418
+
+        "/api/inventory",  # R418
+
+
+        "/api-console",  # R419
+
+
+
+        "/api/tools/registered",  # R420
+
+
+
+
+        "/api/tools/rebuild",  # R420b
+
+
+
+        "/api/tools/search",  # R420
+
+
+        "/api/inventory/all-routes",  # R419
+
+
+        "/api/inventory/api-health",  # R419
+
+
+        "/api/inventory/rebuild-probe",  # R419
+
+        "/api/inventory/orphans",  # R418
+
+        "/api/inventory/ui-map",  # R418
+
+        "/api/inventory/rebuild",  # R418
         "/api/health/capacity",
         "/api/info",
         "/api/public/stats",   # PATCH-451: landing-page hero aggregator
         "/api/public/treasury",   # PATCH-451f: landing-page burn/runway
         "/api/manifest",
+        "/api/llm/spend",  # R492
+        "/api/brain/inject",     # R493
+        "/api/brain/telemetry",  # R493
+        "/api/brain/revoke",     # R493
+        "/api/brain/status",     # R493
         "/api/readiness",
         "/api/status/public",
         "/api/self/health",    # PATCH-066c: self health public
@@ -576,6 +684,15 @@ class OIDCAuthMiddleware(BaseHTTPMiddleware):
         # checkout + plans public (user supplies account_id in body)
         "/api/billing/webhooks/",
         "/api/billing/plans",
+        "/api/chat",  # R409: public landing chat
+        "/deck",  # R412: public pitch deck
+        "/pitch",  # R412: pitch alias
+        "/api/public/assist/request",
+        "/api/demo/build",  # R404
+        "/api/demo/tenants",  # R404
+        "/api/demo/health",  # R404
+        "/api/billing/products",  # R401b — redirects to /api/billing/plans
+        "/api/public/assist/request",
         "/api/billing/currencies",
         "/api/billing/checkout",
         # PATCH-434: policy routes

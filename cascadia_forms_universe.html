@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Cascadia MEP — Forms Universe — 155 Recurring Artifacts</title>
+<style>/* Cascadia MEP Contractors — R357 unified style guide
+   Brand: forest green + cobalt + warm grey
+   Voice: technical, precise, regulatory-aware
+   Same tokens used across index + every doc */
+
+:root{
+  /* Brand colors */
+  --brand-primary:  #1f4e3d;   /* Cascadia forest */
+  --brand-secondary:#1a4480;   /* engineering cobalt */
+  --brand-accent:   #c97a3d;   /* permit orange */
+  --brand-paper:    #fafaf7;
+  --brand-ink:      #1a1d1f;
+  --brand-muted:    #6b7280;
+  --brand-border:   #d8d5cc;
+  --brand-rule:     #e8e5dc;
+  --brand-warn-bg:  #fef3e6;
+  --brand-warn-bd:  #fbbf24;
+  --brand-ok-bg:    #e8f5ee;
+  --brand-ok-bd:    #1f4e3d;
+
+  /* Typography */
+  --f-display: 'Inter', -apple-system, 'Helvetica Neue', sans-serif;
+  --f-body:    'Inter', -apple-system, 'Helvetica Neue', sans-serif;
+  --f-mono:    'SF Mono', 'JetBrains Mono', Menlo, monospace;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+
+body{
+  background:var(--brand-paper);
+  color:var(--brand-ink);
+  font-family:var(--f-body);
+  font-size:14px;
+  line-height:1.55;
+}
+
+.page{
+  max-width:920px;
+  margin:0 auto;
+  padding:48px 56px;
+  background:#fff;
+  min-height:100vh;
+  box-shadow:0 0 0 1px var(--brand-border);
+}
+
+/* Header masthead — same on every doc */
+.masthead{
+  border-bottom:3px solid var(--brand-primary);
+  padding-bottom:18px;
+  margin-bottom:32px;
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-end;
+}
+.masthead .brand-block{display:flex;align-items:center;gap:14px}
+.masthead .mark{
+  width:42px;height:42px;
+  background:var(--brand-primary);
+  color:#fff;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--f-mono);font-weight:700;font-size:15px;
+  border-radius:2px;
+}
+.masthead h1{
+  font-family:var(--f-display);
+  font-size:18px;font-weight:700;
+  color:var(--brand-primary);
+  letter-spacing:0.3px;
+}
+.masthead .legal{color:var(--brand-muted);font-size:11px;margin-top:2px}
+.masthead .meta{text-align:right;font-family:var(--f-mono);font-size:10px;color:var(--brand-muted);line-height:1.7}
+
+/* Doc title block */
+.doc-title{
+  margin-bottom:28px;
+  padding:18px 22px;
+  background:var(--brand-paper);
+  border-left:4px solid var(--brand-secondary);
+}
+.doc-title .kicker{
+  font-family:var(--f-mono);font-size:10px;letter-spacing:1.5px;
+  color:var(--brand-secondary);text-transform:uppercase;
+}
+.doc-title h2{
+  font-family:var(--f-display);font-size:24px;
+  margin-top:6px;color:var(--brand-ink);font-weight:700;
+}
+.doc-title .question{
+  margin-top:10px;color:var(--brand-muted);font-style:italic;font-size:13px;
+}
+
+/* Sections */
+section{margin-bottom:28px}
+section h3{
+  font-family:var(--f-display);font-size:14px;
+  color:var(--brand-primary);font-weight:700;
+  letter-spacing:0.4px;text-transform:uppercase;
+  border-bottom:1px solid var(--brand-rule);
+  padding-bottom:6px;margin-bottom:14px;
+}
+section p{margin-bottom:12px}
+section ul,section ol{margin-left:22px;margin-bottom:14px}
+section li{margin-bottom:6px}
+
+/* Citation / callout */
+.cite{
+  font-family:var(--f-mono);font-size:11px;
+  color:var(--brand-secondary);
+  background:#f0f4f9;
+  padding:1px 6px;border-radius:2px;
+}
+.callout{
+  margin:14px 0;padding:14px 18px;
+  background:var(--brand-warn-bg);
+  border-left:3px solid var(--brand-warn-bd);
+  font-size:13px;
+}
+.callout.ok{background:var(--brand-ok-bg);border-left-color:var(--brand-ok-bd)}
+.callout strong{color:var(--brand-primary)}
+
+/* Table */
+table{
+  width:100%;border-collapse:collapse;margin:14px 0;font-size:13px;
+}
+th{
+  text-align:left;background:var(--brand-primary);color:#fff;
+  padding:8px 12px;font-family:var(--f-mono);font-size:11px;
+  letter-spacing:0.5px;text-transform:uppercase;font-weight:600;
+}
+td{padding:8px 12px;border-bottom:1px solid var(--brand-rule)}
+tr:nth-child(even) td{background:#fafaf7}
+
+/* Footer + back-nav */
+.footer{
+  margin-top:42px;padding-top:18px;
+  border-top:1px solid var(--brand-rule);
+  font-size:10px;color:var(--brand-muted);
+  font-family:var(--f-mono);
+  display:flex;justify-content:space-between;
+}
+.footer a{color:var(--brand-secondary);text-decoration:none}
+
+/* Index page question grid */
+.q-grid{display:grid;grid-template-columns:1fr;gap:8px;margin-top:12px}
+.q-card{
+  border:1px solid var(--brand-rule);
+  padding:12px 16px;border-radius:3px;
+  display:flex;justify-content:space-between;align-items:center;
+  transition:border 0.15s;
+}
+.q-card:hover{border-color:var(--brand-secondary)}
+.q-card .q-code{
+  font-family:var(--f-mono);font-size:11px;color:var(--brand-secondary);
+  font-weight:600;margin-right:12px;min-width:32px;
+}
+.q-card .q-text{flex:1;font-size:13px}
+.q-card a{
+  color:var(--brand-secondary);font-family:var(--f-mono);
+  font-size:10px;text-decoration:none;
+  padding:4px 10px;border:1px solid var(--brand-secondary);
+  border-radius:2px;
+}
+.q-card.stub a{color:var(--brand-muted);border-color:var(--brand-border)}
+
+.section-head{
+  font-family:var(--f-display);font-size:11px;letter-spacing:1.5px;
+  color:var(--brand-primary);text-transform:uppercase;font-weight:700;
+  margin-top:24px;margin-bottom:8px;
+}
+
+@media print {
+  .page{box-shadow:none;padding:24px}
+  .footer a{color:var(--brand-muted)}
+}
+
+/* R358 form-specific extensions */
+.audit-banner{
+  background:var(--brand-warn-bg);border:1px solid var(--brand-warn-bd);
+  color:var(--brand-ink);padding:10px 16px;margin-bottom:24px;
+  font-size:12px;border-radius:3px;
+}
+.audit-banner strong{color:var(--brand-accent)}
+
+.draft-stamp{
+  position:absolute;top:24px;right:32px;
+  transform:rotate(-8deg);
+  border:3px solid var(--brand-accent);
+  color:var(--brand-accent);
+  padding:6px 18px;font-family:var(--f-mono);font-size:11px;
+  letter-spacing:2px;opacity:0.7;font-weight:700;
+}
+
+.form-section{
+  border:1px solid var(--brand-border);
+  padding:18px 22px;margin-bottom:16px;
+  background:#fafaf7;border-radius:3px;
+}
+.form-section legend, .form-section .legend{
+  font-family:var(--f-display);font-size:11px;font-weight:700;
+  color:var(--brand-primary);letter-spacing:1.2px;text-transform:uppercase;
+  padding:0 8px;background:#fff;border:1px solid var(--brand-border);
+  margin-bottom:14px;display:inline-block;border-radius:2px;
+  padding:4px 10px;
+}
+.field-row{display:flex;gap:14px;margin-bottom:12px;flex-wrap:wrap}
+.field{flex:1;min-width:160px}
+.field label{
+  display:block;font-size:10px;color:var(--brand-muted);
+  text-transform:uppercase;letter-spacing:0.8px;margin-bottom:4px;
+  font-family:var(--f-mono);
+}
+.field .input-box{
+  border:1px solid var(--brand-border);
+  border-bottom:1.5px solid var(--brand-ink);
+  background:#fff;padding:8px 10px;min-height:32px;font-size:13px;
+  border-radius:2px;
+}
+.field .input-box.signature{
+  font-family:'Brush Script MT',cursive;font-size:18px;color:var(--brand-secondary);
+  padding:8px 12px;min-height:42px;
+}
+.field .check-row{display:flex;gap:8px;align-items:center;padding:6px 0}
+.field .check-box{
+  width:14px;height:14px;border:1.5px solid var(--brand-ink);
+  display:inline-block;border-radius:2px;margin-right:6px;
+}
+.field .check-box.checked{background:var(--brand-primary)}
+
+.workflow-timeline{
+  display:grid;grid-template-columns:1fr;gap:0;margin:24px 0;
+  position:relative;
+}
+.workflow-timeline .phase{
+  border-left:3px solid var(--brand-primary);
+  padding:14px 20px;margin-left:24px;position:relative;
+  background:#fafaf7;margin-bottom:14px;border-radius:0 3px 3px 0;
+}
+.workflow-timeline .phase::before{
+  content:"";position:absolute;left:-9px;top:18px;
+  width:14px;height:14px;border-radius:50%;
+  background:var(--brand-primary);border:3px solid #fff;
+}
+.workflow-timeline .phase .phase-head{
+  font-family:var(--f-mono);font-size:10px;color:var(--brand-secondary);
+  text-transform:uppercase;letter-spacing:1.5px;font-weight:700;
+}
+.workflow-timeline .phase h4{
+  font-family:var(--f-display);font-size:15px;
+  color:var(--brand-primary);font-weight:700;margin:4px 0 10px;
+}
+.workflow-timeline .phase .form-list{
+  margin-left:14px;font-size:12px;color:var(--brand-ink);
+}
+.workflow-timeline .phase .form-list li{margin-bottom:4px}
+
+.universe-section{
+  margin-bottom:32px;
+}
+.universe-section .uhead{
+  font-family:var(--f-display);font-size:13px;color:#fff;
+  background:var(--brand-primary);padding:8px 16px;
+  letter-spacing:1px;text-transform:uppercase;font-weight:700;
+  display:flex;justify-content:space-between;align-items:center;
+}
+.universe-section .uhead .count{
+  background:var(--brand-accent);padding:1px 8px;border-radius:2px;
+  font-family:var(--f-mono);font-size:10px;
+}
+.form-roster{
+  border:1px solid var(--brand-border);border-top:0;
+  background:#fff;
+}
+.form-roster .row{
+  display:grid;grid-template-columns:60px 1fr 100px 80px;gap:14px;
+  padding:8px 16px;border-bottom:1px solid var(--brand-rule);
+  font-size:12px;align-items:center;
+}
+.form-roster .row:last-child{border-bottom:0}
+.form-roster .row:nth-child(even){background:#fafaf7}
+.form-roster .row .code{
+  font-family:var(--f-mono);font-size:10px;color:var(--brand-secondary);
+  font-weight:700;
+}
+.form-roster .row .name{color:var(--brand-ink)}
+.form-roster .row .freq{
+  font-family:var(--f-mono);font-size:10px;color:var(--brand-muted);
+}
+.form-roster .row .stat{
+  font-family:var(--f-mono);font-size:9px;
+  padding:2px 6px;border-radius:2px;text-align:center;
+}
+.form-roster .row .stat.deep{background:var(--brand-ok-bg);color:var(--brand-primary)}
+.form-roster .row .stat.stub{background:#f3f4f6;color:var(--brand-muted)}
+
+@media print {
+  .draft-stamp{opacity:1}
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="masthead">
+    <div class="brand-block">
+      <div class="mark">CMC</div>
+      <div>
+        <h1>Cascadia MEP Contractors, LLC</h1>
+        <div class="legal">Oregon CCB #221450 · 200 employees · NY operations active</div>
+      </div>
+    </div>
+    <div class="meta">
+      DOC: R358-UNIVERSE-V1<br>
+      ISSUED: 2026-05-30<br>
+      OWNER: Operations + Compliance<br>
+      REVIEW: Quarterly
+    </div>
+  </header>
+
+  <div class="doc-title">
+    <div class="kicker">R358 — Form Universe Catalog</div>
+    <h2>Every Recurring Form In A 200-Employee MEP Operation</h2>
+    <div class="question">"Imagine every form happening in a company with 200 employees." — 155 artifacts across 12 functional areas.</div>
+  </div>
+
+  <div class="audit-banner">
+    <strong>How to read this.</strong> Each form below is a recurring artifact
+    in Cascadia operations. <em>deep</em> = fully rendered branded template in this round.
+    <em>stub</em> = enumerated and brand-claimed but template body deferred to a
+    future operating cycle. The Cascadia brand applies to ALL of them when shipped.
+  </div>
+
+  <section>
+    <h3>Summary</h3>
+    <table>
+      <tr><th>Function</th><th>Forms</th><th>Deep This Round</th></tr>
+      <tr><td>F1. HR / Onboarding</td><td>22</td><td>3</td></tr>
+      <tr><td>F2. Daily Field</td><td>15</td><td>0</td></tr>
+      <tr><td>F3. Project / Customer</td><td>20</td><td>0</td></tr>
+      <tr><td>F4. Safety / OSHA / NYC</td><td>14</td><td>1</td></tr>
+      <tr><td>F5. Payroll / Wage</td><td>12</td><td>0</td></tr>
+      <tr><td>F6. Vendor / Procurement</td><td>10</td><td>0</td></tr>
+      <tr><td>F7. Customer Receivables / AP</td><td>10</td><td>0</td></tr>
+      <tr><td>F8. Insurance / Bonding</td><td>8</td><td>0</td></tr>
+      <tr><td>F9. Fleet / Equipment</td><td>8</td><td>0</td></tr>
+      <tr><td>F10. Permits / Regulatory</td><td>12</td><td>0</td></tr>
+      <tr><td>F11. Subcontractor / Inter-trade</td><td>12</td><td>0</td></tr>
+      <tr><td>F12. Internal / Executive</td><td>12</td><td>0</td></tr>
+      <tr style="font-weight:700;background:var(--brand-paper)"><td>TOTAL</td><td>155</td><td>4</td></tr>
+    </table>
+  </section>
+
+  <div class="universe-section"><div class="uhead"><span>F1. HR / Onboarding</span><span class="count">22 forms</span></div><div class="form-roster"><div class="row"><span class="code">F1-01</span><span class="name">I-9 Employment Eligibility Verification</span><span class="freq">per hire</span><span class="stat deep">deep</span></div><div class="row"><span class="code">F1-02</span><span class="name">W-4 Federal Withholding</span><span class="freq">per hire / change</span><span class="stat deep">deep</span></div><div class="row"><span class="code">F1-03</span><span class="name">NY IT-2104 State Withholding</span><span class="freq">per hire (NY)</span><span class="stat deep">deep</span></div><div class="row"><span class="code">F1-04</span><span class="name">NY IT-2104.1 Nonresident</span><span class="freq">per hire (OR remote)</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F1-05</span><span class="name">Direct Deposit Authorization</span><span class="freq">per hire / change</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F1-06</span><span class="name">Emergency Contact</span><span class="freq">per hire</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F1-07</span><span class="name">EEO Self-Identification</span><span class="freq">per hire</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F1-08</span><span class="name">Sexual Harassment Training Ack (NY)</span><span class="freq">annual</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F1-09</span><span class="name">Workplace Violence Prevention</span><span class="freq">annual</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F1-10</span><span class="name">Drug/Alcohol Policy Ack</span><span class="freq">per hire</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F1-11</span><span class="name">Cascadia Handbook Ack</span><span class="freq">per hire</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F1-12</span><span class="name">PTO Policy Ack</span><span class="freq">per hire</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F1-13</span><span class="name">IT Acceptable Use Policy</span><span class="freq">per hire</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F1-14</span><span class="name">Vehicle Policy Ack</span><span class="freq">per hire (drivers)</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F1-15</span><span class="name">Equipment Custody Form</span><span class="freq">per hire</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F1-16</span><span class="name">Photo + Badge / PPE Issuance</span><span class="freq">per hire</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F1-17</span><span class="name">Benefits Election</span><span class="freq">per hire / annual</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F1-18</span><span class="name">COBRA Notice</span><span class="freq">at separation</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F1-19</span><span class="name">NY PFL Notice</span><span class="freq">per hire (NY)</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F1-20</span><span class="name">NY DBL Notice</span><span class="freq">per hire (NY)</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F1-21</span><span class="name">401(k) Auto-Enroll Notice</span><span class="freq">per hire</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F1-22</span><span class="name">Photo Release</span><span class="freq">per hire (optional)</span><span class="stat stub">stub</span></div></div></div><div class="universe-section"><div class="uhead"><span>F2. Daily Field</span><span class="count">15 forms</span></div><div class="form-roster"><div class="row"><span class="code">F2-01</span><span class="name">Daily Timesheet</span><span class="freq">daily / worker</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F2-02</span><span class="name">Daily Progress Report</span><span class="freq">daily / foreman</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F2-03</span><span class="name">JHA/JSA Pre-Task Analysis</span><span class="freq">per task</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F2-04</span><span class="name">Toolbox Talk Attendance</span><span class="freq">weekly</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F2-05</span><span class="name">Near-Miss Report</span><span class="freq">event-driven</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F2-06</span><span class="name">First Aid Log</span><span class="freq">event-driven</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F2-07</span><span class="name">Equipment Pre-Use Inspection</span><span class="freq">daily</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F2-08</span><span class="name">Lift / Aerial Inspection</span><span class="freq">daily</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F2-09</span><span class="name">Scaffold Inspection (NY req)</span><span class="freq">daily</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F2-10</span><span class="name">Ladder Inspection</span><span class="freq">daily</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F2-11</span><span class="name">Fire Watch Log</span><span class="freq">per hot-work</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F2-12</span><span class="name">Hot Work Permit</span><span class="freq">per occurrence</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F2-13</span><span class="name">Energized Work Permit</span><span class="freq">per occurrence</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F2-14</span><span class="name">Confined Space Permit</span><span class="freq">per entry</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F2-15</span><span class="name">Lockout-Tagout Log</span><span class="freq">per occurrence</span><span class="stat stub">stub</span></div></div></div><div class="universe-section"><div class="uhead"><span>F3. Project / Customer</span><span class="count">20 forms</span></div><div class="form-roster"><div class="row"><span class="code">F3-01</span><span class="name">Bid Intake Form</span><span class="freq">per opportunity</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F3-02</span><span class="name">Proposal Template</span><span class="freq">per opportunity</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F3-03</span><span class="name">Scope Letter</span><span class="freq">per proposal</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F3-04</span><span class="name">AIA G701 Change Order</span><span class="freq">per change</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F3-05</span><span class="name">AIA G702 Application for Payment</span><span class="freq">monthly</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F3-06</span><span class="name">AIA G703 Continuation Sheet</span><span class="freq">monthly</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F3-07</span><span class="name">AIA G706 Affidavit Lien Release</span><span class="freq">at close</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F3-08</span><span class="name">RFI Request for Information</span><span class="freq">as needed</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F3-09</span><span class="name">Submittal Transmittal</span><span class="freq">per submittal</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F3-10</span><span class="name">Architect Supplemental Instruction</span><span class="freq">as received</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F3-11</span><span class="name">Schedule of Values</span><span class="freq">per project start</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F3-12</span><span class="name">Conditional Partial Lien Waiver</span><span class="freq">per pay app</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F3-13</span><span class="name">Unconditional Partial Lien Waiver</span><span class="freq">per pay app</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F3-14</span><span class="name">Conditional Final Lien Waiver</span><span class="freq">at close</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F3-15</span><span class="name">Unconditional Final Lien Waiver</span><span class="freq">at close</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F3-16</span><span class="name">Project Close-Out Letter</span><span class="freq">at close</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F3-17</span><span class="name">Warranty Letter</span><span class="freq">at close</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F3-18</span><span class="name">O&M Manual Cover</span><span class="freq">at close</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F3-19</span><span class="name">As-Built Drawing Transmittal</span><span class="freq">at close</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F3-20</span><span class="name">Customer Satisfaction Survey</span><span class="freq">30d post-close</span><span class="stat stub">stub</span></div></div></div><div class="universe-section"><div class="uhead"><span>F4. Safety / OSHA / NYC</span><span class="count">14 forms</span></div><div class="form-roster"><div class="row"><span class="code">F4-01</span><span class="name">OSHA 300 Log</span><span class="freq">ongoing</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F4-02</span><span class="name">OSHA 300A Annual Summary</span><span class="freq">Jan-Apr post</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F4-03</span><span class="name">OSHA 301 Incident Report</span><span class="freq">per incident</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F4-04</span><span class="name">NY DOL C-2 Employer Injury Report</span><span class="freq">per injury</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F4-05</span><span class="name">Drug Test Consent + Chain of Custody</span><span class="freq">per occurrence</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F4-06</span><span class="name">Fit-for-Duty Release</span><span class="freq">return from injury</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F4-07</span><span class="name">Site Safety Plan Template</span><span class="freq">per NYC project</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F4-08</span><span class="name">SSP Daily Check-In</span><span class="freq">daily</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F4-09</span><span class="name">LL196 SST Card Verification Log</span><span class="freq">per worker</span><span class="stat deep">deep</span></div><div class="row"><span class="code">F4-10</span><span class="name">OSHA 30 Training Cert</span><span class="freq">per supervisor</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F4-11</span><span class="name">Refresher Training Log</span><span class="freq">annual</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F4-12</span><span class="name">PPE Deficiency Report</span><span class="freq">event</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F4-13</span><span class="name">Hazcom SDS Request</span><span class="freq">as needed</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F4-14</span><span class="name">Stop-Work Order Acknowledgment</span><span class="freq">per occurrence</span><span class="stat stub">stub</span></div></div></div><div class="universe-section"><div class="uhead"><span>F5. Payroll / Wage</span><span class="count">12 forms</span></div><div class="form-roster"><div class="row"><span class="code">F5-01</span><span class="name">Weekly Time Approval (Foreman)</span><span class="freq">weekly</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F5-02</span><span class="name">Prevailing Wage Classification</span><span class="freq">per project</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F5-03</span><span class="name">Federal WH-347 Certified Payroll</span><span class="freq">weekly (Davis-Bacon)</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F5-04</span><span class="name">NY State PW Certified Payroll</span><span class="freq">weekly (NY public)</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F5-05</span><span class="name">Fringe Benefit Allocation</span><span class="freq">per pay period</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F5-06</span><span class="name">Pay Stub Template</span><span class="freq">per pay period</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F5-07</span><span class="name">Garnishment Acknowledgment</span><span class="freq">per occurrence</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F5-08</span><span class="name">Wage Adjustment Authorization</span><span class="freq">event</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F5-09</span><span class="name">Retro Pay Request</span><span class="freq">event</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F5-10</span><span class="name">Expense Reimbursement</span><span class="freq">per submission</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F5-11</span><span class="name">Mileage Log</span><span class="freq">weekly (drivers)</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F5-12</span><span class="name">Per Diem Allocation</span><span class="freq">per travel project</span><span class="stat stub">stub</span></div></div></div><div class="universe-section"><div class="uhead"><span>F6. Vendor / Procurement</span><span class="count">10 forms</span></div><div class="form-roster"><div class="row"><span class="code">F6-01</span><span class="name">Purchase Order</span><span class="freq">per order</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F6-02</span><span class="name">PO Change Order</span><span class="freq">per change</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F6-03</span><span class="name">Vendor New Account (W-9 + COI + Banking)</span><span class="freq">new vendor</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F6-04</span><span class="name">Packing Slip Receiving</span><span class="freq">per delivery</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F6-05</span><span class="name">Return Material Authorization</span><span class="freq">per return</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F6-06</span><span class="name">Vendor Performance Review</span><span class="freq">annual</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F6-07</span><span class="name">Vendor Scorecard</span><span class="freq">quarterly</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F6-08</span><span class="name">Blanket PO</span><span class="freq">annual</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F6-09</span><span class="name">Field Requisition</span><span class="freq">as needed</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F6-10</span><span class="name">3-Bid Quote Summary</span><span class="freq">per major purchase</span><span class="stat stub">stub</span></div></div></div><div class="universe-section"><div class="uhead"><span>F7. Customer Receivables / AP</span><span class="count">10 forms</span></div><div class="form-roster"><div class="row"><span class="code">F7-01</span><span class="name">AR Invoice Cover</span><span class="freq">per invoice</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F7-02</span><span class="name">Customer Credit Application</span><span class="freq">per new customer</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F7-03</span><span class="name">NSF / Late Notice</span><span class="freq">event</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F7-04</span><span class="name">NY Lien Filing Prep (Lien Law §3)</span><span class="freq">per dispute</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F7-05</span><span class="name">Payment Receipt</span><span class="freq">per payment</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F7-06</span><span class="name">AP Invoice Approval Routing</span><span class="freq">per invoice</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F7-07</span><span class="name">Expense Report</span><span class="freq">per submission</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F7-08</span><span class="name">Credit Card Monthly Reconciliation</span><span class="freq">monthly</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F7-09</span><span class="name">Petty Cash Log</span><span class="freq">ongoing</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F7-10</span><span class="name">Check Request</span><span class="freq">per disbursement</span><span class="stat stub">stub</span></div></div></div><div class="universe-section"><div class="uhead"><span>F8. Insurance / Bonding</span><span class="count">8 forms</span></div><div class="form-roster"><div class="row"><span class="code">F8-01</span><span class="name">COI Request to Broker</span><span class="freq">per project / annual</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F8-02</span><span class="name">COI Received Verification</span><span class="freq">per sub/vendor</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F8-03</span><span class="name">Additional Insured Endorsement Request</span><span class="freq">per project</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F8-04</span><span class="name">Waiver of Subrogation Request</span><span class="freq">per project</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F8-05</span><span class="name">OCIP / CCIP Enrollment</span><span class="freq">per controlled project</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F8-06</span><span class="name">Claim Notice — First Report</span><span class="freq">event</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F8-07</span><span class="name">Incident Insurance Reporting</span><span class="freq">event</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F8-08</span><span class="name">Builders Risk Schedule</span><span class="freq">per project</span><span class="stat stub">stub</span></div></div></div><div class="universe-section"><div class="uhead"><span>F9. Fleet / Equipment</span><span class="count">8 forms</span></div><div class="form-roster"><div class="row"><span class="code">F9-01</span><span class="name">Vehicle Pre-Trip Inspection</span><span class="freq">daily (driver)</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F9-02</span><span class="name">Post-Accident Report</span><span class="freq">event</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F9-03</span><span class="name">Fuel Card Reconciliation</span><span class="freq">monthly</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F9-04</span><span class="name">Vehicle Maintenance Log</span><span class="freq">per service</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F9-05</span><span class="name">Equipment Certification (Cranes, Lifts)</span><span class="freq">annual</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F9-06</span><span class="name">Calibration Log (Gauges, Meters)</span><span class="freq">quarterly</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F9-07</span><span class="name">Equipment Transfer Ticket</span><span class="freq">per move</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F9-08</span><span class="name">Equipment Depreciation Schedule</span><span class="freq">annual</span><span class="stat stub">stub</span></div></div></div><div class="universe-section"><div class="uhead"><span>F10. Permits / Regulatory</span><span class="count">12 forms</span></div><div class="form-roster"><div class="row"><span class="code">F10-01</span><span class="name">NYC DOB PW1 Work Permit</span><span class="freq">per project</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F10-02</span><span class="name">NYC DOB PW2 Issuance</span><span class="freq">per approval</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F10-03</span><span class="name">NYC DOB PW3 Cost Affidavit</span><span class="freq">per project</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F10-04</span><span class="name">NYC DOB TR-1 Controlled Inspections</span><span class="freq">per project</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F10-05</span><span class="name">NYC DOB TR-8 Energy Code</span><span class="freq">per project</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F10-06</span><span class="name">NYC DOB PL/EL/MD Trade Permits</span><span class="freq">per trade scope</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F10-07</span><span class="name">NYC DOB MEA/OTCR Equipment Approval</span><span class="freq">per non-std equip</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F10-08</span><span class="name">NY DOS Biennial Statement</span><span class="freq">biennial</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F10-09</span><span class="name">NYC DCWP License Renewal</span><span class="freq">biennial</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F10-10</span><span class="name">NYC Business Express Filings</span><span class="freq">as needed</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F10-11</span><span class="name">Federal E-Verify Case</span><span class="freq">per hire</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F10-12</span><span class="name">I-9 Audit Binder Index</span><span class="freq">ongoing</span><span class="stat stub">stub</span></div></div></div><div class="universe-section"><div class="uhead"><span>F11. Subcontractor / Inter-trade</span><span class="count">12 forms</span></div><div class="form-roster"><div class="row"><span class="code">F11-01</span><span class="name">Subcontract Template</span><span class="freq">per sub engagement</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F11-02</span><span class="name">Sub COI Request</span><span class="freq">per sub engagement</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F11-03</span><span class="name">Sub Conditional Partial Lien Waiver</span><span class="freq">per pay app</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F11-04</span><span class="name">Sub Unconditional Partial Lien Waiver</span><span class="freq">per pay app</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F11-05</span><span class="name">Sub Conditional Final Lien Waiver</span><span class="freq">at sub close</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F11-06</span><span class="name">Sub Unconditional Final Lien Waiver</span><span class="freq">at sub close</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F11-07</span><span class="name">Sub Change Order</span><span class="freq">per change</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F11-08</span><span class="name">Sub W-9 Receipt</span><span class="freq">per sub engagement</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F11-09</span><span class="name">Sub SST Card Binder</span><span class="freq">ongoing</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F11-10</span><span class="name">Sub Prequalification Questionnaire</span><span class="freq">annual</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F11-11</span><span class="name">Sub Performance Review</span><span class="freq">quarterly</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F11-12</span><span class="name">Joint Check Agreement</span><span class="freq">as needed</span><span class="stat stub">stub</span></div></div></div><div class="universe-section"><div class="uhead"><span>F12. Internal / Executive</span><span class="count">12 forms</span></div><div class="form-roster"><div class="row"><span class="code">F12-01</span><span class="name">Weekly Leadership Scorecard</span><span class="freq">weekly</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F12-02</span><span class="name">Monthly P&L Pack</span><span class="freq">monthly</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F12-03</span><span class="name">Project Profit Roll-Up</span><span class="freq">monthly</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F12-04</span><span class="name">Employee Performance Review</span><span class="freq">annual</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F12-05</span><span class="name">30-Day Onboarding Check</span><span class="freq">per hire +30</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F12-06</span><span class="name">60-Day Onboarding Check</span><span class="freq">per hire +60</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F12-07</span><span class="name">90-Day Onboarding Check</span><span class="freq">per hire +90</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F12-08</span><span class="name">Exit Interview</span><span class="freq">at separation</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F12-09</span><span class="name">NY Separation Notice</span><span class="freq">at separation</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F12-10</span><span class="name">Unemployment Response</span><span class="freq">as filed</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F12-11</span><span class="name">Board Minutes Template</span><span class="freq">quarterly</span><span class="stat stub">stub</span></div><div class="row"><span class="code">F12-12</span><span class="name">Executive Expense Pre-Approval</span><span class="freq">per occurrence</span><span class="stat stub">stub</span></div></div></div>
+
+  <div class="footer">
+    <span>R358-UNIVERSE-V1 · Cascadia MEP · 155 forms enumerated</span>
+    <span><a href="/ui/cascadia_mep">↩ index</a> · <a href="/ui/cascadia_onboarding_sequence">→ onboarding workflow</a></span>
+  </div>
+
+</div>
+</body>
+</html>

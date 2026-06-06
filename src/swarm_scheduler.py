@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import logging
 import threading
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger("murphy.swarm_scheduler")
@@ -108,7 +108,50 @@ class SwarmScheduler:
         except Exception as exc:
             logger.error("SwarmScheduler: handler wiring failed: %s", exc)
 
+    def _wire_pulse_listener(self):
+        """
+        BLOCK-A.4.2 — One APScheduler EVENT_JOB_EXECUTED listener pulses
+        cadence_pulse for every scheduled job. Replaces 14 per-job decorators.
+
+        Captures: job_id, success/error. Duration is not exposed by APScheduler
+        events directly, so we report 0; pulse_ticks still captures the tick.
+        """
+        try:
+            from apscheduler.events import EVENT_JOB_EXECUTED, EVENT_JOB_ERROR
+            from src.cadence_emit import emit_heartbeat
+        except Exception as exc:
+            logger.warning("BLOCK-A.4.2: pulse listener wiring skipped: %s", exc)
+            return
+
+        def _pulse_listener(event):
+            try:
+                source = f"apscheduler.{event.job_id}"
+                ok = (event.exception is None)
+                err = str(event.exception) if event.exception else None
+                emit_heartbeat(
+                    source,
+                    success=ok,
+                    error_text=err,
+                    payload={"job_id": event.job_id},
+                )
+            except Exception as e:
+                logger.debug("BLOCK-A.4.2 pulse_listener error: %s", e)
+
+        try:
+            self._scheduler.add_listener(
+                _pulse_listener,
+                EVENT_JOB_EXECUTED | EVENT_JOB_ERROR,
+            )
+            logger.info(
+                "BLOCK-A.4.2: apscheduler pulse listener wired"
+            )
+        except Exception as exc:
+            logger.warning("BLOCK-A.4.2: listener attach failed: %s", exc)
+
     def _register_builtin_jobs(self):
+        # BLOCK-A.4.2: attach pulse listener before any job is added
+        self._wire_pulse_listener()
+
         """Register the 3 built-in scheduled jobs."""
         if not self._scheduler:
             return
@@ -134,6 +177,13 @@ class SwarmScheduler:
                             collector._db.mark_processed(sig["signal_id"], dag_id)
                         except Exception:
                             pass
+                # BLOCK-A.4.3: pulse heartbeat at end of drain pass
+                try:
+                    from src.cadence_pulse import emit_heartbeat
+                    emit_heartbeat("apscheduler.signal_drain",
+                                   payload={"drained": len(unprocessed[:5])})
+                except Exception:
+                    pass
                     # Record to bus feed for UI
                     record_bus_event({
                         "type": "signal_drain",
@@ -184,8 +234,21 @@ class SwarmScheduler:
                     "agent": "prod_ops",
                     "ts": __import__('datetime').datetime.utcnow().isoformat(),
                 })
+                # FIX 2026-05-27: heartbeat MUST fire on success, not only on error.
+                # Previous code had this inside except: which meant pulse never saw a tick
+                # unless the watchdog itself crashed. ALSO: do not pass tier= (registry field
+                # not an emit arg — silently failed before).
+                try:
+                    from src.cadence_emit import emit_heartbeat as _eh
+                    _eh("apscheduler.health_watchdog")
+                except Exception: pass
             except Exception as exc:
                 logger.warning("Health watchdog error: %s", exc)
+                # Also emit heartbeat on error (with success=False) so pulse knows we attempted
+                try:
+                    from src.cadence_emit import emit_heartbeat as _eh
+                    _eh("apscheduler.health_watchdog", success=False, error_text=str(exc)[:200])
+                except Exception: pass
 
         self._scheduler.add_job(
             health_watchdog,
@@ -227,6 +290,11 @@ class SwarmScheduler:
                 logger.info("PATCH-170a: morning_brief dispatched via coord, dag_id=%s", dag_id)
             except Exception as exc:
                 logger.warning("Morning brief error: %s", exc)
+                # BLOCK-A.4.3: heartbeat
+                try:
+                    from src.cadence_pulse import emit_heartbeat as _eh
+                    _eh("apscheduler.morning_brief", tier=2)
+                except Exception: pass
 
         self._scheduler.add_job(
             morning_brief,
@@ -275,8 +343,19 @@ class SwarmScheduler:
                     "agent": "collector",
                     "ts": __import__('datetime').datetime.utcnow().isoformat(),
                 })
+                # FIX 2026-05-27: emit pulse heartbeat on success path so pulse sees ticks.
+                # Previously NO heartbeat anywhere = pulse stayed silent permanently.
+                # NOTE: do NOT pass tier= — it's a registry field not an emit arg.
+                try:
+                    from src.cadence_emit import emit_heartbeat as _eh
+                    _eh("apscheduler.corpus_collect")
+                except Exception: pass
             except Exception as exc:
                 logger.warning("WorldCorpus collect error: %s", exc)
+                try:
+                    from src.cadence_emit import emit_heartbeat as _eh
+                    _eh("apscheduler.corpus_collect", success=False, error_text=str(exc)[:200])
+                except Exception: pass
 
         self._scheduler.add_job(
             corpus_collect,
@@ -402,6 +481,12 @@ class SwarmScheduler:
         self._jobs["prospect_discovery"] = {"name": "Prospect Discovery", "interval": "6h", "type": "builtin"}
 
         # PATCH-195: Autonomous lead prospector — every 6 hours
+        # ⚠ PAUSED 2026-05-25 by pipeline-truth-pass: was scraping HN/YC/RemoteOK
+        # public emails, auto-promoting to stage=lead with synthetic $4,900 deal
+        # value, and outreach blocked by port 25. Re-enable AFTER fixing:
+        # (a) Outbound email path (port 25 or SendGrid), (b) Auto-promote rule
+        # (must require 2-way engagement before stage=lead), (c) Real deal-value
+        # estimator not flat $4,900.
         self._scheduler.add_job(
             func=_run_prospecting,
             trigger="interval",
@@ -409,8 +494,12 @@ class SwarmScheduler:
             id="lead_prospector",
             replace_existing=True,
             misfire_grace_time=600,
+            next_run_time=None,  # PAUSED
         )
         # PATCH-195: Follow-up cadence — every 24 hours
+        # ⚠ PAUSED 2026-05-25 by pipeline-truth-pass: was running daily but
+        # cannot send (port 25 blocked since 2026-05-14). Re-enable when
+        # outbound email path is restored AND there are real leads to follow up.
         self._scheduler.add_job(
             func=_run_followup_cadence,
             trigger="interval",
@@ -418,6 +507,7 @@ class SwarmScheduler:
             id="followup_cadence",
             replace_existing=True,
             misfire_grace_time=3600,
+            next_run_time=None,  # PAUSED
         )
 
         # PATCH-196: Twitter prospect discovery — every 4 hours
@@ -448,6 +538,20 @@ class SwarmScheduler:
             misfire_grace_time=600,
         )
         logger.info("[PATCH-190] Prospect discovery scheduled every 6h")
+
+        # ── Path index refresh (Phase 2 — 2026-05-26) ──
+        try:
+            from src.codebase_tools import refresh_path_index as _rpi
+            self._scheduler.add_job(
+                _rpi, trigger=IntervalTrigger(minutes=5),
+                id="refresh_path_index",
+                next_run_time=datetime.now(timezone.utc) + timedelta(seconds=30),
+                replace_existing=True,
+            )
+            logger.info("[PATH-IDX] Codebase path index refresh scheduled every 5 min")
+        except Exception as _e:
+            logger.warning("[PATH-IDX] could not schedule index refresh: %s", _e)
+
 
         logger.info("SwarmScheduler: 7 built-in jobs registered")
 

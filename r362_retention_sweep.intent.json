@@ -1,0 +1,16 @@
+{
+  "module": "r362_retention_sweep",
+  "blocks": {},
+  "pipelines": {
+    "_self_check": {
+      "intent_plain": "Module loads + retention sweep functions exist",
+      "anchors": [
+        "sweep",
+        "ts"
+      ],
+      "pipeline_check": {
+        "module_loadable": true
+      }
+    }
+  }
+}

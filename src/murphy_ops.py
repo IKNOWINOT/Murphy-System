@@ -152,6 +152,16 @@ try:
     import patch412_capability_cube as cube_mod
     cube_mod.install_cube_routes(app)
     cube_mod.seed_builtin_capabilities()
+    # CAF (2026-05-26): also autoseed HTTP routes from the registry
+    try:
+        try:
+            from src.capability_autoseed import autoseed_from_routes
+        except (ImportError, ModuleNotFoundError):
+            from capability_autoseed import autoseed_from_routes
+        n = autoseed_from_routes(max_routes=120)
+        log.info("CAF autoseed (ops process): %d HTTP routes registered", n)
+    except Exception as _as_exc:
+        log.warning("CAF autoseed (ops) failed: %s", _as_exc)
     log.info("PATCH-412 CapabilityCube online — %d capabilities seeded",
              len(cube_mod.get_cube().list_all()))
 except Exception as e:

@@ -1,0 +1,17 @@
+{
+  "module": "r360_org_import",
+  "blocks": {},
+  "pipelines": {
+    "_self_check": {
+      "intent_plain": "Module loads + import function exists",
+      "anchors": [
+        "err",
+        "import_roster",
+        "load_workbook"
+      ],
+      "pipeline_check": {
+        "module_loadable": true
+      }
+    }
+  }
+}

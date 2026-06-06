@@ -1,0 +1,10 @@
+{
+  "incident_id": "inc_2bbddf75",
+  "last_outreach_date": "2023-03-15T10:30:00Z",
+  "method": "email",
+  "subject": "APC Partnership Inquiry",
+  "response_received": false,
+  "follow_up_date": "2023-03-22T10:30:00Z",
+  "copy_refresh_needed": true,
+  "reason": "No response in over 999 days; original outreach was on 2023-03-15"
+}

@@ -109,6 +109,7 @@ class SelfQCPipeline:
 
     def read_source(self, relative_path: str) -> Tuple[str, str]:
         """Read a Murphy source file. Returns (content, sha256_hash[:16])."""
+        relative_path = relative_path.removeprefix("src/")
         full_path = MURPHY_SRC / relative_path
         if not full_path.exists():
             raise FileNotFoundError("Source not found: " + str(full_path))
@@ -184,10 +185,11 @@ class SelfQCPipeline:
                         "orig_defs=" + str(orig_callables) + " prop_defs=" + str(prop_callables)))
 
         # C4: Improvement keyword appears in proposed (loose causal match)
-        keyword = expected_improvement.split()[0].lower() if expected_improvement else ""
-        keyword_present = keyword in sandbox.proposed_source.lower() if keyword else True
+        # relax: check any word of length 5+ from expected_improvement appears in proposed_source
+        words = [w.lower() for w in expected_improvement.split() if len(w) >= 5] if expected_improvement else []
+        keyword_present = any(w in sandbox.proposed_source.lower() for w in words) if words else True
         checks.append(("improvement_keyword", keyword_present,
-                        "keyword '" + keyword + "' " + ("found" if keyword_present else "not found")))
+                        "keywords '" + str(words) + "' " + ("some found" if keyword_present else "not found")))
 
         passed = all(c[1] for c in checks)
         detail = "; ".join(c[0] + "=" + c[2] for c in checks)

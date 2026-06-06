@@ -1,0 +1,42 @@
+{
+  "module": "r370_validator",
+  "blocks": {
+    "compare": {
+      "intent_plain": "Compares actual block output against expected status+code. Returns 'pass' if both match, 'warn' if status matches but code differs, 'fail' otherwise.",
+      "inputs": {"actual":"dict","expected_status":"str","expected_code":"str|None"},
+      "outputs": {"return":["pass","warn","fail"]},
+      "side_effects": [],
+      "failure_modes": [],
+      "must_not": ["return 'pass' when status differs","raise on missing keys"],
+      "test_array": {
+        "weak":        [{"input":[{}, "sent", null], "expected_return":"fail"}],
+        "good":        [{"input":[{"status":"sent","code":null}, "sent", null], "expected_return":"pass"}],
+        "precise":     [{"input":[{"status":"bounce_expected","code":"E_NET_0014"}, "bounce_expected", "E_NET_0014"], "expected_return":"pass"}],
+        "really_good": [{"input":[{"status":"bounce_expected","code":"E_NET_0099"}, "bounce_expected", "E_NET_0014"], "expected_return":"warn"}]
+      }
+    },
+    "normalize_result": {
+      "intent_plain": "Normalize block return shapes (tuple or dict) into uniform {status, code, raw}.",
+      "inputs": {"result":"any"},
+      "outputs": {"return":"dict with status,code,raw"},
+      "side_effects": [],
+      "failure_modes": [],
+      "must_not": ["raise on unknown shape","silently drop data"],
+      "test_array": {
+        "weak":        [{"input":[null], "expected_return_keys":["status","code","raw"]}],
+        "good":        [{"input":[["sent", "ok", null]], "expected_return_keys":["status","code","raw"]}],
+        "precise":     [{"input":[{"status":"stubbed","code":"E_AUTH_0013"}], "expected_return_keys":["status","code","raw"]}],
+        "really_good": [{"input":["raw string"], "expected_return_keys":["status","code","raw"]}]
+      }
+    }
+  },
+  "pipelines": {
+    "_self_check": {
+      "intent_plain": "Validator module loads cleanly + 4-tier runner is reachable.",
+      "anchors": ["safe_call","compare","normalize_result","validate_block"],
+      "pipeline_check": {
+        "module_loadable": true
+      }
+    }
+  }
+}

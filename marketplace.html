@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy Marketplace — Agents built by users, used by everyone</title>
+<meta name="description" content="Browse Murphy agents built by users for every kind of job. Like the ones that work for you. Creators earn 10% finder's fee.">
+<link rel="canonical" href="https://murphy.systems/marketplace">
+<style>
+:root {
+  --bg:#080c0a; --bg2:#0d1210; --surface:#111a15;
+  --border:rgba(0,212,170,.13); --border-hi:rgba(0,212,170,.32);
+  --text:#deeae4; --text-dim:#7a9a8a;
+  --teal:#00D4AA; --amber:#ff8c42; --green:#00ff6a; --red:#ff5470;
+  --font: 'Inter', system-ui, sans-serif; --radius:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;line-height:1.5}
+.topbar{position:sticky;top:0;background:rgba(8,12,10,.92);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;justify-content:space-between;align-items:center;backdrop-filter:blur(10px);z-index:50}
+.topbar a.logo{color:var(--teal);text-decoration:none;font-weight:700;font-size:1.1rem}
+.topbar .nav a{color:var(--text-dim);margin-left:1.5rem;font-weight:400;text-decoration:none}
+.topbar .nav a:hover{color:var(--teal)}
+.topbar .nav a.cta{background:var(--teal);color:#000;padding:7px 14px;border-radius:6px;font-weight:600}
+
+.hero{max-width:1100px;margin:0 auto;padding:56px 24px 24px}
+.tag{display:inline-block;background:rgba(0,212,170,.1);color:var(--teal);padding:4px 12px;border-radius:20px;font-size:.78rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;margin-bottom:1rem}
+h1{font-size:2.4rem;letter-spacing:-.02em;margin-bottom:.5rem;color:#fff}
+.sub{color:var(--text-dim);font-size:1.05rem;max-width:680px}
+
+.toolbar{max-width:1100px;margin:1.5rem auto 0;padding:0 24px;display:flex;flex-wrap:wrap;gap:.6rem;align-items:center}
+.sort-pill{background:var(--surface);border:1px solid var(--border);color:var(--text-dim);padding:7px 14px;border-radius:20px;font-size:.85rem;cursor:pointer;transition:all .15s}
+.sort-pill:hover{border-color:var(--border-hi);color:var(--text)}
+.sort-pill.active{background:var(--teal);color:#000;border-color:var(--teal);font-weight:600}
+.cat-select{margin-left:auto;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:7px 14px;border-radius:8px;font-family:inherit;font-size:.85rem}
+
+.grid{max-width:1100px;margin:0 auto;padding:1.5rem 24px 56px;display:grid;grid-template-columns:repeat(auto-fill, minmax(320px, 1fr));gap:1.2rem}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:22px;display:flex;flex-direction:column;transition:border .15s, transform .15s}
+.card:hover{border-color:var(--border-hi);transform:translateY(-2px)}
+
+.card-head{display:flex;align-items:flex-start;gap:12px;margin-bottom:10px}
+.cover{font-size:2rem;width:48px;height:48px;display:flex;align-items:center;justify-content:center;background:rgba(0,212,170,.08);border-radius:10px;flex-shrink:0}
+.card-name{font-size:1.15rem;color:#fff;font-weight:600;margin-bottom:2px}
+.card-cat{font-size:.78rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.05em}
+
+.card-tagline{font-size:.95rem;color:var(--text);margin:.4rem 0 .8rem;line-height:1.5}
+.card-desc{font-size:.85rem;color:var(--text-dim);margin-bottom:1rem;flex-grow:1}
+
+.creator{font-size:.78rem;color:var(--text-dim);padding-top:.8rem;border-top:1px solid var(--border);margin-bottom:.8rem}
+.creator strong{color:var(--text);font-weight:500}
+.fee-badge{display:inline-block;background:rgba(0,255,106,.08);color:var(--green);padding:1px 8px;border-radius:10px;font-size:.7rem;font-weight:600;margin-left:.4rem}
+
+.card-actions{display:flex;gap:.5rem;align-items:center}
+.vote-btn{background:transparent;border:1px solid var(--border);color:var(--text-dim);padding:7px 12px;border-radius:8px;font-family:inherit;font-size:.85rem;cursor:pointer;transition:all .12s;display:flex;align-items:center;gap:6px}
+.vote-btn:hover{border-color:var(--border-hi);color:var(--text)}
+.vote-btn.liked{background:rgba(0,255,106,.1);border-color:var(--green);color:var(--green)}
+.vote-btn.disliked{background:rgba(255,84,112,.1);border-color:var(--red);color:var(--red)}
+.use-btn{margin-left:auto;background:var(--teal);color:#000;border:none;padding:8px 14px;border-radius:8px;font-family:inherit;font-size:.85rem;font-weight:600;cursor:pointer;text-decoration:none}
+.use-btn:hover{opacity:.88}
+
+.empty{grid-column:1/-1;text-align:center;padding:4rem 0;color:var(--text-dim)}
+.loading{grid-column:1/-1;text-align:center;padding:4rem 0;color:var(--text-dim)}
+
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border-hi);padding:12px 20px;border-radius:8px;font-size:.9rem;z-index:100;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+.toast.error{border-color:var(--red);color:var(--red)}
+.toast a{color:var(--teal);font-weight:600;margin-left:.5rem}
+
+.fee-info{max-width:1100px;margin:0 auto 2rem;padding:0 24px}
+.fee-info-box{background:rgba(0,212,170,.04);border:1px solid var(--border-hi);border-radius:var(--radius);padding:18px 22px;display:flex;gap:1rem;align-items:flex-start}
+.fee-info-box .icon{font-size:1.8rem;flex-shrink:0}
+.fee-info-box h3{color:var(--teal);font-size:.95rem;margin-bottom:6px}
+.fee-info-box p{font-size:.88rem;color:var(--text-dim);line-height:1.55}
+
+@media(max-width:600px){
+  .hero{padding-top:32px}
+  h1{font-size:1.8rem}
+  .grid{padding:1rem 16px 32px}
+  .topbar{padding:12px 16px}
+  .topbar .nav a{margin-left:.8rem;font-size:.85rem}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a href="/" class="logo">Murphy</a>
+  <div class="nav">
+    <a href="/pricing">Pricing</a>
+    <a href="/marketplace">Marketplace</a>
+    <a href="/how-we-work">How it works</a>
+    <a href="/login" class="cta">Sign in</a>
+  </div>
+</div>
+
+<div class="hero">
+  <div class="tag">Marketplace</div>
+  <h1>Agents built by users, used by everyone</h1>
+  <p class="sub">Browse Murphy agents trained on real work. Like the ones that solve your problems — creators earn a finder's fee every time their agent gets used.</p>
+</div>
+
+<div class="fee-info">
+  <div class="fee-info-box">
+    <div class="icon">💸</div>
+    <div>
+      <h3>Creators earn 10% of every license</h3>
+      <p>When you commission a Murphy automation, it can become an agent here. Every time another business uses your agent, you earn a 10% finder's fee. The best ops are composed from many agents — royalties split fractionally by contribution.</p>
+    </div>
+  </div>
+</div>
+
+<div class="toolbar">
+  <button class="sort-pill active" data-sort="popular" onclick="setSort('popular')">🔥 Popular</button>
+  <button class="sort-pill" data-sort="newest" onclick="setSort('newest')">✨ Newest</button>
+  <button class="sort-pill" data-sort="controversial" onclick="setSort('controversial')">⚡ Most discussed</button>
+  <select class="cat-select" id="cat-select" onchange="setCategory(this.value)">
+    <option value="">All categories</option>
+  </select>
+</div>
+
+<div class="grid" id="grid">
+  <div class="loading">Loading agents…</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let STATE = { sort: 'popular', category: '', authenticated: false };
+
+function showToast(msg, type='info', link=null){
+  const t = document.getElementById('toast');
+  t.innerHTML = msg + (link ? ` <a href="${link.href}">${link.text}</a>` : '');
+  t.className = 'toast show' + (type==='error' ? ' error' : '');
+  clearTimeout(t._h); t._h = setTimeout(()=>t.className='toast', 3500);
+}
+
+function escapeHtml(s){
+  return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function renderCard(a){
+  const liked = a.my_vote === 1;
+  const disliked = a.my_vote === -1;
+  return `<div class="card" data-agent="${a.agent_id}">
+    <div class="card-head">
+      <div class="cover">${a.cover_emoji || '🤖'}</div>
+      <div>
+        <div class="card-name">${escapeHtml(a.name)}</div>
+        <div class="card-cat">${escapeHtml(a.category || '')}</div>
+      </div>
+    </div>
+    <div class="card-tagline">${escapeHtml(a.tagline || '')}</div>
+    <div class="card-desc">${escapeHtml(a.description || '')}</div>
+    <div class="creator">
+      Built by <strong>${escapeHtml(a.creator_name || 'anonymous')}</strong>
+      <span class="fee-badge">${a.finder_fee_pct}% fee</span>
+    </div>
+    <div class="card-actions">
+      <button class="vote-btn ${liked ? 'liked' : ''}" onclick="vote('${a.agent_id}', 1)">
+        👍 <span class="count">${a.likes}</span>
+      </button>
+      <button class="vote-btn ${disliked ? 'disliked' : ''}" onclick="vote('${a.agent_id}', -1)">
+        👎 <span class="count">${a.dislikes}</span>
+      </button>
+      <a class="use-btn" href="/book?intent=use&agent=${a.agent_id}">Use this agent →</a>
+    </div>
+  </div>`;
+}
+
+async function loadAgents(){
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '<div class="loading">Loading agents…</div>';
+  try {
+    const params = new URLSearchParams({sort: STATE.sort});
+    if(STATE.category) params.set('category', STATE.category);
+    const r = await fetch('/api/marketplace/agents?' + params);
+    const d = await r.json();
+    STATE.authenticated = d.authenticated;
+    if(!d.ok || !d.agents || d.agents.length===0){
+      grid.innerHTML = '<div class="empty">No agents found. Be the first to publish one.</div>';
+      return;
+    }
+    grid.innerHTML = d.agents.map(renderCard).join('');
+  } catch(e){
+    grid.innerHTML = '<div class="empty">Couldn\\'t load marketplace. Try refreshing.</div>';
+  }
+}
+
+async function loadCategories(){
+  try {
+    const r = await fetch('/api/marketplace/categories');
+    const d = await r.json();
+    if(d.ok){
+      const sel = document.getElementById('cat-select');
+      d.categories.forEach(c => {
+        const o = document.createElement('option');
+        o.value = c.name; o.textContent = `${c.name} (${c.count})`;
+        sel.appendChild(o);
+      });
+    }
+  } catch(e){}
+}
+
+function setSort(s){
+  STATE.sort = s;
+  document.querySelectorAll('.sort-pill').forEach(p => {
+    p.classList.toggle('active', p.dataset.sort === s);
+  });
+  loadAgents();
+}
+
+function setCategory(c){
+  STATE.category = c;
+  loadAgents();
+}
+
+async function vote(agentId, val){
+  // Optimistic UI — toggle visual immediately, revert on error
+  const card = document.querySelector(`[data-agent="${agentId}"]`);
+  const btnLike = card.querySelector('.vote-btn:nth-of-type(1)');
+  const btnDis = card.querySelector('.vote-btn:nth-of-type(2)');
+  const wasLiked = btnLike.classList.contains('liked');
+  const wasDis = btnDis.classList.contains('disliked');
+
+  // If clicking the same vote we already cast → unvote (vote=0)
+  let newVal = val;
+  if(val === 1 && wasLiked) newVal = 0;
+  if(val === -1 && wasDis) newVal = 0;
+
+  try {
+    const r = await fetch('/api/marketplace/vote', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({agent_id: agentId, vote: newVal})
+    });
+    const d = await r.json();
+    if(r.status === 401 && d.error === 'sign_in_required'){
+      showToast('Sign in to vote.', 'info', {href: d.cta_url, text: 'Sign in →'});
+      return;
+    }
+    if(!d.ok){
+      showToast(d.error || 'Vote failed', 'error');
+      return;
+    }
+    // Update card with real counts
+    btnLike.classList.toggle('liked', newVal === 1);
+    btnDis.classList.toggle('disliked', newVal === -1);
+    btnLike.querySelector('.count').textContent = d.likes;
+    btnDis.querySelector('.count').textContent = d.dislikes;
+  } catch(e){
+    showToast('Network error', 'error');
+  }
+}
+
+loadCategories();
+loadAgents();
+</script>
+</body>
+</html>

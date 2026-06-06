@@ -1,0 +1,11 @@
+Incident: inc_fc5be9f3
+Status: Triaged
+Last Outreach: 2023-03-15
+Template Used: default_apc.txt
+Template Content:
+  Subject: APC Partnership Inquiry
+  Body: Hi there, we're reaching out to explore potential collaboration opportunities with your team. Let us know if you're open to connecting.
+  Follow-up: One week later if no response
+  Status: Standard template in use
+Finding: No response received in 999 days; template has not been updated since initial use.
+Recommendation: Copy refresh needed — current template appears stale. Propose A/B test with updated messaging.

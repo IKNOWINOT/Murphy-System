@@ -1,0 +1,140 @@
+{
+  "module": "r362_lifecycle",
+  "blocks": {
+    "retention_for": {
+      "intent_plain": "Return retention dict {days, basis} per STANDARD-7 schedule. Safe-defaults to 7-yr for unknown forms.",
+      "inputs": {
+        "form_code": "str"
+      },
+      "outputs": {
+        "return": "dict with days/basis keys"
+      },
+      "side_effects": [
+        "READ-ONLY: query retention_policies"
+      ],
+      "failure_modes": [
+        "E_DEP_0022",
+        "E_DB_0023"
+      ],
+      "must_not": [
+        "modify DB",
+        "raise on missing form_code"
+      ],
+      "test_array": {
+        "weak": [
+          {
+            "input": [
+              ""
+            ],
+            "expected_return_keys": [
+              "days",
+              "basis"
+            ]
+          }
+        ],
+        "good": [
+          {
+            "input": [
+              "F1-09"
+            ],
+            "expected_return_keys": [
+              "days",
+              "basis"
+            ]
+          }
+        ],
+        "precise": [
+          {
+            "input": [
+              "F1-01"
+            ],
+            "expected_return_keys": [
+              "days",
+              "basis"
+            ]
+          }
+        ],
+        "really_good": [
+          {
+            "input": [
+              "NONEXISTENT_R374"
+            ],
+            "expected_return_keys": [
+              "days",
+              "basis"
+            ]
+          }
+        ]
+      }
+    },
+    "get_row": {
+      "intent_plain": "Read a form_intake_queue row by id. Returns dict or None.",
+      "inputs": {
+        "queue_id": "int"
+      },
+      "outputs": {
+        "return": "dict or None"
+      },
+      "side_effects": [
+        "READ-ONLY"
+      ],
+      "failure_modes": [
+        "E_DEP_0022"
+      ],
+      "must_not": [
+        "modify DB"
+      ],
+      "test_array": {
+        "weak": [
+          {
+            "input": [
+              -1
+            ],
+            "expected_return": null
+          }
+        ],
+        "good": [
+          {
+            "input": [
+              5
+            ],
+            "expected_truthy": true
+          }
+        ],
+        "precise": [
+          {
+            "input": [
+              9
+            ],
+            "expected_truthy": true
+          }
+        ],
+        "really_good": [
+          {
+            "input": [
+              999999
+            ],
+            "expected_return": null
+          }
+        ]
+      }
+    }
+  },
+  "pipelines": {
+    "_self_check": {
+      "intent_plain": "Module loads + FSM functions exist",
+      "anchors": [
+        "append_audit",
+        "enter_retention",
+        "err",
+        "file_artifact",
+        "get_row",
+        "retention_for",
+        "transition"
+      ],
+      "pipeline_check": {
+        "module_loadable": true
+      }
+    }
+  }
+}

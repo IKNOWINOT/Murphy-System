@@ -1,0 +1,1 @@
+{"status": "proposal_draft_created", "reason": "No inbound replies in 999 days. Outreach log at /api/crm/activities shows no recent replies. Current APC campaign copy could not be audited — file src/campaigns/apc_live.json not found. Drafting refresh proposal for A/B test."}

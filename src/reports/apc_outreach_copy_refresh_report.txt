@@ -1,0 +1,1 @@
+No inbound replies in 999 days. APC outreach may need copy refresh. Querying crm.db for stale outreach records did not yield any results. The APC outreach copy effectiveness could not be verified due to the lack of data. Refreshing the APC outreach copy is recommended.

@@ -360,7 +360,7 @@
       // --- Load queue ---
       async function loadQueue() {
         try {
-          const res = await fetch('/api/hitl/queue');
+          const res = await fetch('/api/hitl-v2/queue', {headers:{'X-API-Key':window.MURPHY_API_KEY||''}});
           if (!res.ok) throw new Error(res.statusText);
           const data = await res.json();
           const items = Array.isArray(data) ? data : (data.items || data.queue || []);
@@ -422,7 +422,7 @@
       // --- Approve ---
       window.approveItem = async function (id) {
         try {
-          const res = await fetch('/api/hitl/' + encodeURIComponent(id) + '/approve', { method: 'POST' });
+          const res = await fetch('/api/hitl-v2/form-intake/' + encodeURIComponent(id) + '/approve', { method: 'POST' });
           if (!res.ok) throw new Error(res.statusText);
           toast('Deliverable ' + id + ' approved', 'success');
           if (typeof MurphyContext !== 'undefined') { MurphyContext.recordHITLDecision({ id: id, action: 'approved' }); }
@@ -488,7 +488,7 @@
         btn.disabled = true;
         btn.textContent = 'Rejecting…';
         try {
-          const res = await fetch('/api/hitl/' + encodeURIComponent(currentRejectId) + '/reject', {
+          const res = await fetch('/api/hitl-v2/form-intake/' + encodeURIComponent(currentRejectId) + '/reject', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
@@ -518,7 +518,7 @@
         }
         btn.disabled = true;
         try {
-          const res = await fetch('/api/hitl/' + encodeURIComponent(id) + '/inspect');
+          const res = await fetch('/api/hitl-v2/mail/' + encodeURIComponent(id) + '/inspect');
           if (!res.ok) throw new Error(res.statusText);
           const data = await res.json();
           target.innerHTML = renderInspection(data);

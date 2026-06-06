@@ -135,6 +135,10 @@ class RegenerativeCore:
         self._running = False
         self._thread: Optional[threading.Thread] = None
         self._hitl_queue: List[Dict] = []
+        # PATCH-REGEN-RATELIMIT-001 (2026-05-28): rate-limit CRITICAL log
+        # noise. Keep a per-function timestamp of the last CRITICAL emission
+        # so repeat probe failures don't flood the journal at ~12/hour.
+        self._last_critical_emit: Dict[str, float] = {}
 
         # Wire existing subsystems
         self._immune_memory = self._load_immune_memory()
@@ -212,9 +216,12 @@ class RegenerativeCore:
         import aiohttp, asyncio
 
         def probe_health() -> Tuple[bool, str]:
+            # PATCH-PROBE-HEALTH-401 (2026-05-28): timeout 5→15s tolerates
+            # load spikes. PATCH-402's _startup_grace_until already handles
+            # the in-restart-window case at monitor-loop level (line 521).
             try:
                 import urllib.request
-                resp = urllib.request.urlopen("http://127.0.0.1:8000/api/health", timeout=5)
+                resp = urllib.request.urlopen("http://127.0.0.1:8000/api/health", timeout=15)
                 data = resp.read().decode()
                 ok = '"status": "healthy"' in data or '"status":"healthy"' in data
                 return ok, ("healthy" if ok else "unhealthy: " + data[:100])
@@ -234,7 +241,16 @@ class RegenerativeCore:
             except Exception as e:
                 return False, "recovery failed: " + str(e)
 
+        # PATCH-PROBE-DISPATCH-401 (2026-05-28): exponential backoff state
+        # for dispatch probe. After 429, skip the next N probe cycles to give
+        # upstream rate-limiter time to clear.
+        _dispatch_backoff = {"skip_until": 0.0, "consecutive_429": 0}
+
         def probe_dispatch() -> Tuple[bool, str]:
+            import time as _t_pd
+            _now = _t_pd.time()
+            if _now < _dispatch_backoff["skip_until"]:
+                return False, "backing off until " + str(int(_dispatch_backoff["skip_until"]-_now)) + "s remaining"
             try:
                 import urllib.request, json as _json, os
                 req = urllib.request.Request(
@@ -244,9 +260,18 @@ class RegenerativeCore:
                 resp = urllib.request.urlopen(req, timeout=30)
                 data = _json.loads(resp.read())
                 ok = data.get("success", False) or data.get("status") in ("ready", "online")
+                if ok:
+                    _dispatch_backoff["consecutive_429"] = 0
                 return ok, str(data)[:100]
             except Exception as e:
-                return False, "dispatch probe: " + str(e)
+                err = str(e)
+                # If 429, schedule backoff. Sequence: 30s → 60s → 120s → 300s cap
+                if "429" in err or "Too Many Requests" in err:
+                    _dispatch_backoff["consecutive_429"] += 1
+                    _delay = min(30 * (2 ** (_dispatch_backoff["consecutive_429"]-1)), 300)
+                    _dispatch_backoff["skip_until"] = _now + _delay
+                    return False, "dispatch 429 — backoff " + str(_delay) + "s: " + err[:60]
+                return False, "dispatch probe: " + err
 
         def recover_dispatch() -> Tuple[bool, str]:
             try:
@@ -434,21 +459,16 @@ class RegenerativeCore:
             except Exception as e:
                 results.append("immune_recall error: " + str(e)[:50])
 
-        # Step 2: Causality sandbox — test recovery action before applying
+        # Step 2: Causality sandbox — DISABLED 2026-05-27.
+        # The sandbox API (evaluate_action) referenced here does not match the
+        # current CausalitySandboxEngine implementation (enumerate_actions +
+        # commit_action). When this block ran, every health check escalated to
+        # HITL with a truncated error msg, generating ~30 false alarms/hour.
+        # Until regenerative_core is rewritten against the new sandbox API,
+        # we skip this step. Recovery still works — causality_ok was always set
+        # to True when the sandbox failed anyway, so this is a no-op semantically.
+        # Issue tracked: needs proper integration with enumerate_actions().
         causality_ok = True
-        try:
-            from causality_sandbox import CausalitySandboxEngine
-            cs = CausalitySandboxEngine()
-            # Simulate the recovery — probe before and after
-            before_ok, before_detail = fn.probe()
-            action = {"type": "service_recovery", "fn_id": fn.fn_id, "action": "recovery_callable"}
-            scored = cs.evaluate_action(action, {"fn_id": fn.fn_id, "status": "failing"})
-            if scored is not None:
-                causality_ok = getattr(scored, "should_commit", True)
-                results.append("causality: " + ("approved" if causality_ok else "blocked"))
-        except Exception as e:
-            results.append("causality sandbox unavailable: " + str(e)[:50])
-            causality_ok = True  # allow recovery if sandbox unavailable
 
         if causality_ok:
             # Step 3: Apply recovery
@@ -505,7 +525,18 @@ class RegenerativeCore:
         }
         with self._lock:
             self._hitl_queue.append(item)
-        logger.critical("[PATCH-361] HITL ESCALATION: %s — %s", fn.name, detail[:100])
+            # PATCH-REGEN-RATELIMIT-001: rate-limit CRITICAL emissions per fn.name.
+            # Repeats within 5 min log at INFO instead. Queue append above is
+            # unchanged so HITL UI consumers still see every event.
+            import time as _t_rl
+            _now = _t_rl.time()
+            _last = self._last_critical_emit.get(fn.name, 0)
+            if _now - _last >= 300:
+                logger.critical("[PATCH-361] HITL ESCALATION: %s — %s", fn.name, detail[:100])
+                self._last_critical_emit[fn.name] = _now
+            else:
+                logger.info("[PATCH-361] HITL escalation (rate-limited, last %.0fs ago): %s — %s",
+                            _now - _last, fn.name, detail[:100])
 
     # ── Dial-down tightening ──────────────────────────────────────────────────
 

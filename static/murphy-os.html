@@ -10,7 +10,7 @@
 /* ─────────────────────────────────────────────
    DESIGN LANGUAGE — Murphy Landing Page System
    - Background: #0d1117 (dark GitHub-like near-black)
-   - Primary accent: #00d4ff (cyan — Murphy brand)
+   - Primary accent: #00d4aa (mint — Murphy brand, matches landing)
    - Secondary: #39d353 (green — live/healthy indicator)
    - Font: Inter (exact landing page match)
    - Headings: bold, tight letter-spacing, cyan
@@ -32,8 +32,8 @@
   --text3:    #484f58;
 
   /* PRIMARY accent — Murphy cyan (exact landing page) */
-  --live:     #00d4ff;
-  --live-dim: #00d4ff18;
+  --live:     #00d4aa;
+  --live-dim: #00d4aa18;
 
   /* Secondary — landing page green (nav, badges, live indicator) */
   --teal:     #39d353;
@@ -939,6 +939,7 @@ body {
   .ask-bar { width: 100%; }
 }
 </style>
+<!-- _R460_PANELS -->
 </head>
 <body>
 <div class="sidebar-backdrop" onclick="toggleMobileMenu()"></div>
@@ -1045,6 +1046,38 @@ body {
 
     <!-- ═══ OVERVIEW ═══ -->
     <div class="page active" id="page-overview">
+
+<div id="capacity-card" style="
+  background:#0e1410;border:1px solid #1f2a26;border-radius:8px;
+  padding:14px;margin-top:12px;
+">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+    <div style="font-size:13px;font-weight:600;color:#00D4AA;">SERVER CAPACITY</div>
+    <div id="cap-alerts" style="display:flex;gap:6px;"></div>
+  </div>
+  <div id="cap-bars" style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;">
+    <div><div style="font-size:11px;color:#788079;margin-bottom:4px;">
+      CPU <span id="cap-cpu-pct" style="float:right;color:#cfd5d2;">—</span></div>
+      <div style="height:6px;background:#1a211e;border-radius:3px;overflow:hidden;">
+        <div id="cap-cpu-bar" style="height:100%;width:0%;background:#00D4AA;transition:width 0.5s;"></div>
+      </div>
+    </div>
+    <div><div style="font-size:11px;color:#788079;margin-bottom:4px;">
+      MEM <span id="cap-mem-pct" style="float:right;color:#cfd5d2;">—</span></div>
+      <div style="height:6px;background:#1a211e;border-radius:3px;overflow:hidden;">
+        <div id="cap-mem-bar" style="height:100%;width:0%;background:#00D4AA;transition:width 0.5s;"></div>
+      </div>
+    </div>
+    <div><div style="font-size:11px;color:#788079;margin-bottom:4px;">
+      DISK <span id="cap-disk-pct" style="float:right;color:#cfd5d2;">—</span></div>
+      <div style="height:6px;background:#1a211e;border-radius:3px;overflow:hidden;">
+        <div id="cap-disk-bar" style="height:100%;width:0%;background:#00D4AA;transition:width 0.5s;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
       <div class="overview-grid">
 
         <!-- LEFT: Identity + Business -->
@@ -1053,61 +1086,61 @@ body {
           <div class="agent-card">
             <!-- Murphy Eye — iris tracks cursor, color = state -->
             <div class="eye-container" id="eye-container">
-              <svg class="eye-svg" id="murphy-eye" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+              <svg class="eye-svg" id="murphy-eye" viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
                 <defs>
-                  <radialGradient id="sclera-grad" cx="50%" cy="45%" r="50%">
-                    <stop offset="0%" stop-color="#1a2332"/>
-                    <stop offset="100%" stop-color="#0d1117"/>
-                  </radialGradient>
-                  <radialGradient id="iris-grad" cx="40%" cy="35%" r="60%">
-                    <stop offset="0%" stop-color="#00f0ff" stop-opacity="0.9"/>
-                    <stop offset="60%" stop-color="#00a8cc" stop-opacity="1"/>
-                    <stop offset="100%" stop-color="#005f7a" stop-opacity="1"/>
-                  </radialGradient>
-                  <radialGradient id="pupil-grad" cx="35%" cy="30%" r="70%">
-                    <stop offset="0%" stop-color="#1a2a3a"/>
-                    <stop offset="100%" stop-color="#000810"/>
+                  <mask id="ml-gear-mask">
+                    <rect width="240" height="240" fill="#000"/>
+                    <circle cx="120" cy="120" r="98" fill="#fff"/>
+                    <circle cx="120" cy="120" r="78" fill="#000"/>
+                  </mask>
+                  <clipPath id="ml-eye-clip">
+                    <path d="M 55 120 Q 120 75 185 120 Q 120 165 55 120 Z"/>
+                  </clipPath>
+                  <radialGradient id="iris-grad" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stop-color="#00d4aa" stop-opacity="1"/>
+                    <stop offset="100%" stop-color="#008f74" stop-opacity="1"/>
                   </radialGradient>
                   <filter id="glow-filter">
                     <feGaussianBlur stdDeviation="2.5" result="blur"/>
                     <feComposite in="SourceGraphic" in2="blur" operator="over"/>
                   </filter>
-                  <filter id="iris-glow">
-                    <feGaussianBlur stdDeviation="3" result="blur"/>
-                    <feComposite in="SourceGraphic" in2="blur" operator="over"/>
-                  </filter>
-                  <clipPath id="eye-clip">
-                    <ellipse cx="60" cy="60" rx="52" ry="36"/>
-                  </clipPath>
                 </defs>
-                <!-- Outer eyelid shape -->
-                <ellipse cx="60" cy="60" rx="56" ry="40" fill="none" stroke="#00d4ff" class="eye-stroke" stroke-width="1.5" opacity="0.3"/>
-                <!-- Eye white / sclera -->
-                <ellipse cx="60" cy="60" rx="52" ry="36" fill="url(#sclera-grad)" clip-path="url(#eye-clip)"/>
-                <!-- Iris group — moves with cursor -->
-                <g id="iris-group" transform="translate(60,60)">
-                  <!-- Iris outer ring glow -->
-                  <circle r="18" fill="none" stroke="#00d4ff" class="eye-stroke" stroke-width="1" opacity="0.5" filter="url(#glow-filter)"/>
-                  <!-- Iris body -->
-                  <circle r="16" fill="url(#iris-grad)" filter="url(#iris-glow)"/>
-                  <!-- Iris detail rings -->
-                  <circle r="13" fill="none" stroke="#00d4ff" class="eye-stroke" stroke-width="0.4" opacity="0.3"/>
-                  <circle r="10" fill="none" stroke="#00d4ff" class="eye-stroke" stroke-width="0.3" opacity="0.2"/>
-                  <!-- Pupil -->
-                  <circle r="7" fill="url(#pupil-grad)"/>
-                  <!-- Pupil inner depth -->
-                  <circle r="4" fill="#000510"/>
-                  <!-- Specular highlight -->
-                  <circle r="2.5" cx="-3" cy="-3" fill="white" opacity="0.7"/>
-                  <circle r="1" cx="2" cy="-1" fill="white" opacity="0.3"/>
+
+                <!-- ═══ GEAR TEETH ═══ -->
+                <g class="eye-stroke" fill="#00d4aa" stroke="#00d4aa" transform="translate(120 120)">
+                  <rect x="-11" y="-118" width="22" height="24" rx="3"/>
+                  <rect x="-11" y="-118" width="22" height="24" rx="3" transform="rotate(36)"/>
+                  <rect x="-11" y="-118" width="22" height="24" rx="3" transform="rotate(72)"/>
+                  <rect x="-11" y="-118" width="22" height="24" rx="3" transform="rotate(108)"/>
+                  <rect x="-11" y="-118" width="22" height="24" rx="3" transform="rotate(144)"/>
+                  <rect x="-11" y="-118" width="22" height="24" rx="3" transform="rotate(180)"/>
+                  <rect x="-11" y="-118" width="22" height="24" rx="3" transform="rotate(216)"/>
+                  <rect x="-11" y="-118" width="22" height="24" rx="3" transform="rotate(252)"/>
+                  <rect x="-11" y="-118" width="22" height="24" rx="3" transform="rotate(288)"/>
+                  <rect x="-11" y="-118" width="22" height="24" rx="3" transform="rotate(324)"/>
                 </g>
-                <!-- Eyelid top -->
-                <path d="M8,60 Q60,10 112,60" fill="none" stroke="#00d4ff" class="eye-stroke" stroke-width="1.5" opacity="0.6"/>
-                <!-- Eyelid bottom -->
-                <path d="M8,60 Q60,110 112,60" fill="none" stroke="#00d4ff" class="eye-stroke" stroke-width="1.5" opacity="0.6"/>
-                <!-- Corner accent marks -->
-                <line x1="4" y1="60" x2="12" y2="60" stroke="#00d4ff" class="eye-stroke" stroke-width="1" opacity="0.4"/>
-                <line x1="108" y1="60" x2="116" y2="60" stroke="#00d4ff" class="eye-stroke" stroke-width="1" opacity="0.4"/>
+
+                <!-- ═══ GEAR BODY (annulus) ═══ -->
+                <rect class="eye-stroke" x="0" y="0" width="240" height="240" fill="#00d4aa" stroke="none" mask="url(#ml-gear-mask)"/>
+
+                <!-- ═══ EYE SCLERA ═══ -->
+                <path d="M 55 120 Q 120 75 185 120 Q 120 165 55 120 Z" fill="#d8ebe3"/>
+
+                <!-- ═══ IRIS + PUPIL (moving — JS uses #iris-group) ═══ -->
+                <g clip-path="url(#ml-eye-clip)">
+                  <g id="iris-group" transform="translate(0,0)" style="transition: transform 90ms cubic-bezier(.25,.7,.3,1);">
+                    <circle cx="120" cy="120" r="26" fill="#00d4aa"/>
+                    <circle class="eye-stroke" cx="120" cy="120" r="26" fill="none" stroke="#008f74" stroke-width="1.5"/>
+                    <g id="ml-pupil">
+                      <circle cx="120" cy="120" r="11" fill="#0a1a14"/>
+                      <circle cx="114.5" cy="114.5" r="2.8" fill="#deeae4" opacity="0.75"/>
+                    </g>
+                  </g>
+                </g>
+
+                <!-- ═══ EYE OUTLINE ═══ -->
+                <path class="eye-stroke" d="M 55 120 Q 120 75 185 120 Q 120 165 55 120 Z"
+                      fill="none" stroke="#00d4aa" stroke-width="2.5"/>
               </svg>
             </div>
             <div class="agent-state" id="agent-state">Ready</div>
@@ -1393,6 +1426,11 @@ body {
         <div style="background:#0d1428;border:1px solid rgba(94,224,196,0.2);border-radius:8px;padding:20px;margin-bottom:16px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
             <h3 style="color:#5ee0c4;margin:0;font-size:14px;">📤 Outbound review queue</h3>
+          <div id="r465-bulk-bar" style="display:flex;gap:8px;margin-top:8px;font-size:11px">
+            <button onclick="r465BulkApproveAll()" style="background:#0a3b2e;color:#5ee0c4;border:1px solid #5ee0c4;padding:6px 12px;border-radius:4px;cursor:pointer;font-weight:600">✓ Approve all pending</button>
+            <button onclick="r465BulkRejectAll()" style="background:#3b0a0a;color:#ff8888;border:1px solid #ff8888;padding:6px 12px;border-radius:4px;cursor:pointer">✗ Reject all pending</button>
+            <span id="r465-status" style="color:#9ab;align-self:center;margin-left:8px;font-size:11px"></span>
+          </div>
             <div style="display:flex;gap:8px;align-items:center;">
               <span id="mail-stats-pending" style="background:rgba(255,200,80,0.15);color:#fc8;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600;">— pending</span>
               <span id="mail-stats-sent" style="background:rgba(94,224,196,0.15);color:#5ee0c4;padding:3px 10px;border-radius:12px;font-size:11px;">— sent</span>
@@ -1484,7 +1522,7 @@ setInterval(() => rotateTerminal(), 3500);
 
 // ─── MURPHY EYE — cursor tracking + state color ───
 const EYE_STATES = {
-  running:       { color: '#00d4ff', label: 'Running',         pupil: 8  },
+  running:       { color: '#00d4aa', label: 'Running',         pupil: 8  },
   thinking:      { color: '#e3b341', label: 'Thinking…',       pupil: 6  },
   done:          { color: '#39d353', label: 'Triumphant',       pupil: 7  },
   idle:          { color: '#484f58', label: 'Ready & Waiting',  pupil: 7  },
@@ -1527,11 +1565,11 @@ function initEyeTracker() {
     const dist   = Math.sqrt(dx * dx + dy * dy);
     const angle  = Math.atan2(dy, dx);
     // Max iris travel — constrained inside sclera
-    const maxTravel = 12;
+    const maxTravel = 24;
     const travel = Math.min(dist / 12, maxTravel);
     const ix = Math.cos(angle) * travel;
     const iy = Math.sin(angle) * travel;
-    irisGroup.setAttribute('transform', `translate(${60 + ix},${60 + iy})`);
+    irisGroup.setAttribute('transform', `translate(${ix},${iy})`);
   }
 }
 
@@ -1574,12 +1612,12 @@ function setFace(state) {
       }
     });
     // Update iris outer ring
-    const outerRing = svg.querySelector('#iris-group circle[r="18"]');
-    if (outerRing) outerRing.setAttribute('stroke', cfg.color);
-    const innerRing = svg.querySelector('#iris-group circle[r="13"]');
-    if (innerRing) innerRing.setAttribute('stroke', cfg.color);
-    const innerRing2 = svg.querySelector('#iris-group circle[r="10"]');
-    if (innerRing2) innerRing2.setAttribute('stroke', cfg.color);
+    // R63a-redo: new SVG uses #iris-group > circle[r="26"] for iris ring
+    const irisRing = svg.querySelector('#iris-group circle[r="26"][stroke]');
+    if (irisRing) irisRing.setAttribute('stroke', cfg.color);
+    // Also tint iris fill via gradient stop
+    const gradStop = svg.querySelector('#iris-grad stop:first-child');
+    if (gradStop) gradStop.setAttribute('stop-color', cfg.color);
     // Update eyelid paths
     svg.querySelectorAll('path, line, ellipse[fill="none"]').forEach(el => {
       el.setAttribute('stroke', cfg.color);
@@ -1961,7 +1999,7 @@ async function runDispatch() {
   //   rubix   → simulated (no rubix endpoint surfaced yet)
   //   mss     → /api/swarm/mind/status      (proxy: shows confidence)
   //   swarm   → /api/swarm/status           (must show running)
-  //   learn   → /api/events/feed            (new event added since dispatch start)
+  //   learn   → /api/swarm/bus/feed         (new event added since dispatch start)
   //   transcript → simulated (logged automatically)
   const dispatchStartTs = Date.now();
   const realCheckers = {
@@ -1971,30 +2009,45 @@ async function runDispatch() {
     rubix:   () => Promise.resolve(true),  // placeholder until rubix surface exists
     mss:     () => api('GET','/api/swarm/mind/status').then(r => r && r.running !== false),
     swarm:   () => api('GET','/api/swarm/status').then(r => r && !r.error),
-    learn:   () => api('GET','/api/events/feed?limit=5').then(r => {
+    learn:   () => api('GET','/api/swarm/bus/feed?limit=5').then(r => {
+                     // PATCH-OS-LEARN (2026-05-27): was /api/events/feed (404).
+                     // /api/swarm/bus/feed returns recent agent_run events with
+                     // a 'ts' field (ISO string). New event since dispatch = pass.
                      if (!r || !r.events) return false;
-                     return r.events.some(e => new Date(e.occurred_at).getTime() > dispatchStartTs - 5000);
+                     return r.events.some(e => {
+                       const t = e.ts || e.occurred_at;
+                       return t && new Date(t).getTime() > dispatchStartTs - 5000;
+                     });
                    }),
     transcript: () => Promise.resolve(true),
   };
-  let stepIdx = 0;
-  const advance = async () => {
-    if (stepIdx >= steps.length) return;
-    const [stageId, stageLabel] = steps[stepIdx];
-    setPipeStep(stageId, 'active');
-    logConsole(stageLabel, 'live');
-    const checker = realCheckers[stageId];
-    let ok = false;
-    try { ok = await checker(); } catch(_) { ok = false; }
-    setPipeStep(stageId, ok ? 'done' : 'warn');
-    if (!ok) logConsole('  ⚠ ' + stageId + ' did not confirm — continuing', 'warn');
-    stepIdx++;
+  // PATCH-OS-PIPEFIX (2026-05-27): each stage logs+checks ONCE, sequentially.
+  let pipelineCancelled = false;
+  const withTimeout = (p, ms) => Promise.race([
+    p,
+    new Promise(res => setTimeout(() => res(false), ms))
+  ]);
+  const runPipeline = async () => {
+    for (const [stageId, stageLabel] of steps) {
+      if (pipelineCancelled) break;
+      setPipeStep(stageId, 'active');
+      logConsole(stageLabel, 'live');
+      const checker = realCheckers[stageId];
+      let ok = false;
+      try { ok = await withTimeout(checker(), 2500); } catch(_) { ok = false; }
+      setPipeStep(stageId, ok ? 'done' : 'warn');
+      if (!ok) logConsole('  ⚠ ' + stageId + ' did not confirm — continuing', 'warn');
+      await new Promise(r => setTimeout(r, 250));
+    }
   };
-  const stepTimer = setInterval(advance, 700);
+  const pipelinePromise = runPipeline();
+  const stepTimer = undefined;
 
   try {
     const result = await api('POST', '/api/swarm/execute', { task, budget: 50 }, 180000);
+    pipelineCancelled = true;
     clearInterval(stepTimer);
+    await pipelinePromise;
     steps.forEach(s => setPipeStep(s[0], 'done'));
     setFace('done');
 
@@ -2432,14 +2485,22 @@ async function loadROILive() {
   }
 }
 async function loadActivity() {
-  const d = await api('GET', '/api/events/feed?limit=30');
-  if (!d || d.status !== 'OK') return;
+  // PATCH-OS-FEED-MAP (2026-05-27): /api/swarm/bus/feed returns
+  // {type, signal_id, agent_id, domain, intent, outcome, ts} — map onto
+  // the activity-row shape the UI expects.
+  const d = await api('GET', '/api/swarm/bus/feed?limit=30');
+  if (!d || !d.events) return;
   const feed = document.getElementById('activity-feed');
   if (!feed) return;
-  feed.innerHTML = (d.events||[]).slice(0,30).map(e => {
-    const when = new Date(e.occurred_at).toLocaleString();
-    const sev = e.severity === 'warning' ? '#ffd166' : (e.outcome === 'success' || e.outcome === 'approved' ? '#5ee0c4' : '#8aa');
-    return '<div class="feed-row" onclick="openEventDrill(\''+e.id+'\')" style="cursor:pointer;"><span class="feed-text" style="color:'+sev+'">'+e.actor_type+'/'+e.actor_id+' — '+e.action_verb+'</span><span class="feed-time">'+when+'</span></div>';
+  feed.innerHTML = d.events.slice(0,30).map(e => {
+    const ts = e.ts || e.occurred_at;
+    const when = ts ? new Date(ts).toLocaleString() : '—';
+    const sev = e.outcome === 'completed' || e.outcome === 'success' || e.outcome === 'approved' ? '#5ee0c4' :
+                (e.outcome === 'failed' || e.outcome === 'error') ? '#ffd166' : '#8aa';
+    const actor = (e.type || 'event') + '/' + (e.agent_id || e.domain || '—');
+    const verb = e.intent || e.outcome || e.type || 'event';
+    const eid = e.signal_id || e.id || '';
+    return '<div class="feed-row" onclick="openEventDrill(\''+eid+'\')" style="cursor:pointer;"><span class="feed-text" style="color:'+sev+'">'+actor+' — '+verb.slice(0,60)+'</span><span class="feed-time">'+when+'</span></div>';
   }).join('');
 }
 function openDrill(title, html) {
@@ -2450,9 +2511,9 @@ function openDrill(title, html) {
 function closeDrill() { document.getElementById('drill-panel').classList.remove('open'); }
 async function openEventDrill(eventId) {
   openDrill('Event ' + eventId.slice(0,16), '<div style="color:#8aa">Loading...</div>');
-  const d = await api('GET', '/api/events/feed?limit=200');
+  const d = await api('GET', '/api/swarm/bus/feed?limit=200');
   if (!d || !d.events) return;
-  const evt = d.events.find(e => e.id === eventId);
+  const evt = d.events.find(e => (e.signal_id || e.id) === eventId);
   if (!evt) { document.getElementById('drill-body').innerHTML = '<div style="color:#f88">Not found.</div>'; return; }
   const kv = (k, v) => v ? '<div class="k">'+k+'</div><div class="v">'+v+'</div>' : '';
   const body = '<div class="drill-section"><h4>Event</h4><div class="drill-kv">' +
@@ -2518,6 +2579,144 @@ window.addEventListener('load', () => {
 });
 
 // ── PATCH-417c: Mail outbound review queue ─────────────────────────
+/* _R451 — fixed hitl-v2/mail → mail/outbound URL paths */
+/* ═══ _R460_PANELS + _R460B_AUTH — wire /os dashboard panels ═══
+ * Pre-R460 most panels showed "Loading…" forever because no fetch was bound.
+ * R460b: bootstrap founder API key from ?key= or localStorage, same as /welcome.
+ * Refreshes every 30s. Failures are silent (panel stays as last good state).
+ */
+const _R460_KEY = (new URLSearchParams(location.search).get('key')) ||
+                  localStorage.getItem('murphy_api_key') || '';
+if (new URLSearchParams(location.search).get('key')) {
+  localStorage.setItem('murphy_api_key',
+    new URLSearchParams(location.search).get('key'));
+}
+function _r460Headers() {
+  const h = {};
+  if (_R460_KEY) h['X-API-Key'] = _R460_KEY;
+  return h;
+}
+async function _r460Fetch(url) {
+  return fetch(url, {headers: _r460Headers(), credentials: 'include'});
+}
+
+async function r460RefreshPanels() {
+  // Signals / prospector
+  try {
+    const r = await _r460Fetch('/api/prospector/stats');
+    if (r.ok) {
+      const d = await r.json();
+      const el = document.getElementById('signals-list');
+      if (el) {
+        el.innerHTML = `
+          <div class="metric-row"><span class="metric-label">Total Contacts</span><span class="metric-value">${d.total_contacts ?? '—'}</span></div>
+          <div class="metric-row"><span class="metric-label">Auto-prospected</span><span class="metric-value">${d.auto_prospected ?? '—'}</span></div>
+          <div class="metric-row"><span class="metric-label">Open Leads</span><span class="metric-value" style="color:var(--green)">${d.open_leads ?? '—'}</span></div>
+          <div class="metric-row"><span class="metric-label">DNC</span><span class="metric-value">${d.dnc_entries ?? '—'}</span></div>
+          <div class="metric-row"><span class="metric-label">Archived</span><span class="metric-value">${d.archived ?? '—'}</span></div>
+        `;
+      }
+    }
+  } catch (e) {}
+
+  // Swarm status (used for Swarm Mind block — r-cycle, r-total, r-conf, r-status)
+  try {
+    const r = await _r460Fetch('/api/status');
+    if (r.ok) {
+      const d = await r.json();
+      const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+      set('r-cycle', d.uptime_seconds ? Math.floor(d.uptime_seconds / 60) + 'm' : '—');
+      set('r-total', d.version || '—');
+      set('r-conf', d.llm?.healthy ? 'healthy' : 'check');
+      set('r-status', d.status || '—');
+    }
+  } catch (e) {}
+
+  // HITL pending count → hitl-content panel
+  try {
+    const r = await _r460Fetch('/api/hitl/items');
+    if (r.ok) {
+      const d = await r.json();
+      const el = document.getElementById('hitl-content');
+      if (el) {
+        const items = d.items || [];
+        if (items.length === 0) {
+          el.innerHTML = '<div style="color:var(--text3);font-style:italic">No HITL items pending</div>';
+        } else {
+          el.innerHTML = `
+            <div style="font-size:24px;color:var(--green);font-weight:600">${d.count}</div>
+            <div style="color:var(--text2);font-size:11px;margin-top:4px">pending approval</div>
+            <div style="margin-top:10px;font-size:11px;color:var(--text3)">
+              ${items.slice(0, 3).map(it => '• ' + ((it.title||'').substring(0, 55))).join('<br>')}
+            </div>
+            <div style="margin-top:10px"><a href="#mail" style="color:var(--green);font-size:11px">Open queue ↓</a></div>
+          `;
+        }
+      }
+    }
+  } catch (e) {}
+
+  // CRM recent — try /api/crm/contacts/recent or list a few from prospector
+  try {
+    const r = await _r460Fetch('/api/prospector/stats');
+    if (r.ok) {
+      const d = await r.json();
+      const el = document.getElementById('crm-recent');
+      if (el) {
+        el.innerHTML = `<div style="color:var(--text2);font-size:12px;line-height:1.7">
+          ${d.total_contacts || 0} total contacts<br>
+          ${d.open_leads || 0} open leads<br>
+          ${d.auto_prospected || 0} auto-prospected this run
+        </div>`;
+      }
+      const tot = document.getElementById('crm-total');
+      if (tot) tot.textContent = (d.total_contacts || 0) + ' total · ' + (d.open_leads || 0) + ' open';
+    }
+  } catch (e) {}
+
+  // Tasks-list — show what cadence + automations look like
+  try {
+    const el = document.getElementById('tasks-list');
+    if (el) {
+      el.innerHTML = `
+        <div class="feed-row" style="padding:6px 0">
+          <span class="feed-text">⏰ Sales cadence — next run 09:00 PT</span>
+        </div>
+        <div class="feed-row" style="padding:6px 0">
+          <span class="feed-text">📧 R461 SMTP gate — live</span>
+        </div>
+        <div class="feed-row" style="padding:6px 0">
+          <span class="feed-text">🔍 HITL drill-down — live</span>
+        </div>
+      `;
+    }
+  } catch (e) {}
+
+  // Activity-feed — heartbeat from /api/status
+  try {
+    const r = await _r460Fetch('/api/status');
+    if (r.ok) {
+      const d = await r.json();
+      const el = document.getElementById('activity-feed');
+      if (el) {
+        const t = new Date().toLocaleTimeString();
+        const line = `<div class="feed-row"><span class="feed-text">${t} · substrate ${d.status} · LLM ${d.llm?.healthy ? '✓' : '✗'}</span></div>`;
+        // Prepend, keep last 5
+        const rows = (el.innerHTML.match(/<div class="feed-row">.*?<\/div>/g) || []).filter(r => !r.includes('Connecting'));
+        el.innerHTML = line + rows.slice(0, 4).join('');
+      }
+    }
+  } catch (e) {}
+}
+
+// Boot + 30s refresh
+if (typeof window !== 'undefined') {
+  window.addEventListener('DOMContentLoaded', () => {
+    setTimeout(r460RefreshPanels, 500);
+    setInterval(r460RefreshPanels, 30000);
+  });
+}
+
 async function mailRefresh() {
   const container = document.getElementById('mail-outbound-queue');
   if (!container) return;
@@ -2580,7 +2779,7 @@ async function mailRefresh() {
 async function mailApprove(queueId) {
   if (!confirm('Approve and send this email?')) return;
   try {
-    const resp = await fetch(BASE + '/api/mail/outbound/' + queueId + '/approve', {
+    const resp = await fetch('/api/mail/outbound/' + queueId + '/approve', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       credentials: 'include',
@@ -2601,7 +2800,7 @@ async function mailReject(queueId) {
   const reason = prompt('Reason for rejection (will be shown to the swarm agent for learning):', '');
   if (reason === null) return;  // user hit cancel
   try {
-    const resp = await fetch(BASE + '/api/mail/outbound/' + queueId + '/reject', {
+    const resp = await fetch('/api/mail/outbound/' + queueId + '/reject', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       credentials: 'include',
@@ -2672,5 +2871,115 @@ async function mailViewFull(queueId) {
 
 </script>
 
+
+<script>
+(function(){
+  async function pollCapacity(){
+    try {
+      const r = await fetch('/api/health/capacity', {credentials:'include'});
+      if (!r.ok) return;
+      const d = await r.json();
+      const m = d.metrics || {};
+      const cpu = m.cpu_percent ?? 0, mem = m.ram_percent ?? 0, dsk = m.disk_percent ?? 0;
+      document.getElementById('cap-cpu-pct').textContent = cpu.toFixed(1)+'%';
+      document.getElementById('cap-mem-pct').textContent = mem.toFixed(1)+'%';
+      document.getElementById('cap-disk-pct').textContent = dsk.toFixed(1)+'%';
+      document.getElementById('cap-cpu-bar').style.width = cpu+'%';
+      document.getElementById('cap-mem-bar').style.width = mem+'%';
+      document.getElementById('cap-disk-bar').style.width = dsk+'%';
+      // Color shift if hot
+      ['cpu','mem','disk'].forEach((k,i)=>{
+        const v = [cpu,mem,dsk][i];
+        const bar = document.getElementById('cap-'+k+'-bar');
+        bar.style.background = v > 85 ? '#ff5252' : v > 65 ? '#ffb84d' : '#00D4AA';
+      });
+      // Alert pills
+      const alerts = d.alerts || [];
+      const ac = document.getElementById('cap-alerts');
+      ac.innerHTML = alerts.map(a =>
+        `<span style="padding:2px 8px;background:#2a1a1a;color:#ff7676;border-radius:10px;font-size:10px;font-weight:600;">${a}</span>`
+      ).join('');
+    } catch(e) { /* silent */ }
+  }
+  pollCapacity();
+  setInterval(pollCapacity, 15000);
+})();
+</script>
+
+
+<script>
+/* ═══ _R465_BULK — bulk approve/reject for outbound queue (calls R464 API) ═══ */
+async function r465BulkApproveAll() {
+  if (!confirm('Approve and send ALL pending outbound emails (up to 50)? This will fire real SMTP.')) return;
+  const status = document.getElementById('r465-status');
+  status.textContent = 'Approving…';
+  status.style.color = '#5ee0c4';
+  try {
+    const r = await _r460Fetch('/api/hitl/items/bulk-approve');
+    // _r460Fetch is GET-shaped; we need POST. Use direct fetch with same headers.
+    const h = _r460Headers();
+    h['Content-Type'] = 'application/json';
+    const resp = await fetch('/api/hitl/items/bulk-approve', {
+      method: 'POST',
+      headers: h,
+      credentials: 'include',
+      body: JSON.stringify({all_pending: true})
+    });
+    const d = await resp.json();
+    if (d.ok) {
+      status.textContent = `✓ ${d.sent} sent, ${d.failed} failed (of ${d.requested} requested)`;
+      status.style.color = d.failed > 0 ? '#ffaa55' : '#5ee0c4';
+      // Refresh the queue display
+      setTimeout(() => { if (typeof mailRefresh === 'function') mailRefresh(); }, 1000);
+    } else {
+      status.textContent = '✗ ' + (d.error || 'unknown');
+      status.style.color = '#ff8888';
+    }
+  } catch (e) {
+    status.textContent = '✗ network: ' + e.message;
+    status.style.color = '#ff8888';
+  }
+}
+
+async function r465BulkRejectAll() {
+  const reason = prompt('Reject all pending — reason for log:', 'not_relevant');
+  if (!reason) return;
+  const status = document.getElementById('r465-status');
+  status.textContent = 'Fetching pending ids…';
+  status.style.color = '#9ab';
+  try {
+    // First get the pending ids
+    const h = _r460Headers();
+    h['Content-Type'] = 'application/json';
+    const qResp = await fetch('/api/mail/outbound/queue?status=pending_review&limit=100',
+                              {headers: h, credentials: 'include'});
+    const qData = await qResp.json();
+    const ids = (qData.items || qData.queue || []).map(x => x.queue_id || x.id).filter(Boolean);
+    if (ids.length === 0) {
+      status.textContent = 'No pending items';
+      return;
+    }
+    status.textContent = `Rejecting ${ids.length}…`;
+    const resp = await fetch('/api/hitl/items/bulk-reject', {
+      method: 'POST',
+      headers: h,
+      credentials: 'include',
+      body: JSON.stringify({ids: ids, reason: reason})
+    });
+    const d = await resp.json();
+    if (d.ok) {
+      status.textContent = `✗ ${d.rejected} rejected`;
+      status.style.color = '#ff8888';
+      setTimeout(() => { if (typeof mailRefresh === 'function') mailRefresh(); }, 800);
+    } else {
+      status.textContent = '✗ ' + (d.error || 'unknown');
+      status.style.color = '#ff8888';
+    }
+  } catch (e) {
+    status.textContent = '✗ network: ' + e.message;
+    status.style.color = '#ff8888';
+  }
+}
+</script>
 </body>
 </html>

@@ -1,0 +1,1 @@
+{"incident_id": "inc_7a2a5350", "status": "triaged", "findings": {"outbound_emails_last_30_days": 0, "inbound_replies_last_999_days": 0, "recommendation": "Refresh APC outreach copy and re-engage prospects with updated messaging."}, "evidence": "API calls to /api/crm/activities confirmed no email activity in the specified timeframes."}

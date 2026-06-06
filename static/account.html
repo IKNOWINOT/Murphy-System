@@ -1,0 +1,30 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Account · Murphy</title>
+<link rel="stylesheet" href="/static/_tenant_shared.css"></head><body>
+<header><h1>Account</h1></header>
+<nav><a href="/tenant" id="n_dash">Dashboard</a><a href="/ui/billing" id="n_bill">Billing</a><a href="/ui/settings" id="n_set">Settings</a><a href="/ui/account" id="n_acc">Account</a></nav>
+<div class="card"><h2>Profile</h2><div id="prof">Loading…</div></div>
+<div class="card"><h2>Tenant</h2><div id="ten">Loading…</div></div>
+<div class="card"><h2>Danger Zone</h2>
+  <div class="row"><span class="k">Sign out</span><span class="v"><a href="/api/auth/logout" style="color:var(--teal)">Sign out</a></span></div>
+  <div class="row"><span class="k">Delete account</span><span class="v"><a href="mailto:cpost@murphy.systems" style="color:#ff5c7c">Email founder to request deletion</a></span></div>
+</div>
+<script>
+async function get(p){try{const r=await fetch(p);if(r.status===401)return{_auth:true};return await r.json()}catch(e){return{_err:e.message}}}
+async function load(){
+  document.getElementById('n_acc').classList.add('active');
+  const p = await get('/api/account/profile');
+  if(p._auth){document.getElementById('prof').innerHTML='<div class="empty">Sign in to view profile</div>';}
+  else{document.getElementById('prof').innerHTML=
+    `<div class="row"><span class="k">Email</span><span class="v">${p.email||'—'}</span></div>`+
+    `<div class="row"><span class="k">Name</span><span class="v">${p.name||p.full_name||'—'}</span></div>`+
+    `<div class="row"><span class="k">Role</span><span class="v">${p.role||'—'}</span></div>`+
+    `<div class="row"><span class="k">Tier</span><span class="v">${p.tier||'—'}</span></div>`;}
+  const t = await get('/api/account/tenant');
+  if(t._auth){document.getElementById('ten').innerHTML='<div class="empty">Sign in to view tenant</div>';}
+  else{document.getElementById('ten').innerHTML=
+    `<div class="row"><span class="k">Tenant ID</span><span class="v">${t.tenant_id||t.id||'—'}</span></div>`+
+    `<div class="row"><span class="k">Slug</span><span class="v">${t.slug||'—'}</span></div>`+
+    `<div class="row"><span class="k">Members</span><span class="v">${(t.members||[]).length}</span></div>`;}
+}
+load();
+</script></body></html>

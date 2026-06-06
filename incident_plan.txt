@@ -1,0 +1,6 @@
+Incident #inc_4eecd447: No inbound replies in 999 days. APC outreach may need copy refresh.
+
+Plan:
+1. Check outreach log at `/api/crm/activities` for last reply timestamp — verify if gap is accurate
+2. Query crm: /var/lib/murphy-production/crm.db to confirm APC campaign status and contact history
+3. If no replies confirmed, draft copy refresh for APC outreach and tag Corey for approval

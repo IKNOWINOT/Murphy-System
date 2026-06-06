@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" id="murphy-eye-svg">
+  <defs>
+    <clipPath id="murphy-eye-mask">
+      <ellipse cx="100" cy="100" rx="42" ry="22"/>
+    </clipPath>
+  </defs>
+  <g clip-path="url(#murphy-eye-mask)">
+    <g id="murphy-iris" style="transition: transform 80ms cubic-bezier(.2,.7,.3,1)">
+      <circle cx="100" cy="100" r="20" fill="#00D4AA"/>
+      <g id="murphy-pupil" style="transition: transform 80ms cubic-bezier(.2,.7,.3,1)">
+        <circle cx="100" cy="100" r="8" fill="#0a1a14"/>
+        <circle cx="97" cy="97" r="2" fill="#e8f5f0" opacity="0.85"/>
+      </g>
+    </g>
+  </g>
+</svg>

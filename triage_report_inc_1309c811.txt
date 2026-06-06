@@ -1,0 +1,9 @@
+Incident #inc_1309c811: No inbound replies in 999 days. APC outreach may need copy refresh.
+
+Investigation:
+- Attempted to read /api/crm/activities but path escapes MURPHY_SRC (not accessible).
+- Searched for 'APC outreach' in src/comms/* and src/*: no results found.
+- Reviewed relevant modules in src/comms: compliance.py, connectors.py, governance.py, pipeline.py — none reference APC outreach or logs.
+- No directory at src/comms/outreach or src/logs.
+
+Conclusion: No evidence of APC outreach logs or related functionality in current codebase. Recommendation: Confirm correct path or scope with engineering team.

@@ -1016,17 +1016,17 @@ def init_identity_routes(app):
         except Exception:
             pass
 
+        # R428: generalized — accept any class. Wallet seed inferred from class shape.
         agent_class = (body.get("class") or "SDR").upper().replace("-", "_")
-        if agent_class not in ("SDR", "AE", "ENTERPRISE_AE"):
-            return JSONResponse({"ok": False, "error": "invalid_class",
-                                 "valid": ["SDR", "AE", "Enterprise_AE"]}, status_code=400)
-
-        department = body.get("department") or "sales"
+        department = body.get("department") or "general"
         territory = body.get("territory")
         name_hint = body.get("name_hint")
 
-        # Phase 5a compute-budget model: starting wallet seed in USD
-        wallet_seed = {"SDR": 5.00, "AE": 15.00, "ENTERPRISE_AE": 50.00}[agent_class]
+        # Wallet seed: legacy sales classes keep their tiers, novel roles get $5 default.
+        _R428_WALLETS = {"SDR": 5.00, "AE": 15.00, "ENTERPRISE_AE": 50.00,
+                         "EXEC": 25.00, "INTERVIEWER": 3.00, "ANALYST": 5.00,
+                         "COORDINATOR": 10.00, "OPERATOR": 5.00}
+        wallet_seed = _R428_WALLETS.get(agent_class, 5.00)
 
         # Mint key
         api_key = "swarm_" + _secrets.token_urlsafe(32)

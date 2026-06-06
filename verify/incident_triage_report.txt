@@ -1,0 +1,1 @@
+Incident #inc_bd2665fd: No inbound replies in 999 days. Attempted to read /api/crm/activities but received file_not_found error. Listed api/crm directory to investigate structure. Creating verification report with current findings.

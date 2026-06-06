@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<title>Cascadia — R364 Revisions + Semantic Compliance</title>
+<style>
+:root{--bg:#fafaf7;--text:#1a1d1f;--muted:#6b7280;--border:#d8d5cc;--rule:#e8e5dc;
+--primary:#1f4e3d;--secondary:#1a4480;--accent:#c97a3d;--paper:#fafaf7;
+--passing:#1f4e3d;--gap:#b91c1c;--pending:#fbbf24;--llm:#7c3aed;
+--add-bg:#e8f5ee;--rem-bg:#fee2e2;
+--mono:'SF Mono',Menlo,monospace;--display:'Inter',-apple-system,sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--display);font-size:14px;line-height:1.5}
+.page{max-width:1280px;margin:0 auto;padding:32px 40px;background:#fff;min-height:100vh;box-shadow:0 0 0 1px var(--border)}
+.masthead{border-bottom:3px solid var(--primary);padding-bottom:18px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:flex-end}
+.mark{width:42px;height:42px;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:700;font-size:14px;border-radius:2px;margin-right:14px}
+.brand-block{display:flex;align-items:center}
+.masthead h1{font-family:var(--display);font-size:18px;font-weight:700;color:var(--primary)}
+.masthead .meta{text-align:right;font-family:var(--mono);font-size:10px;color:var(--muted);line-height:1.7}
+.doc-title{margin-bottom:24px;padding:18px 22px;background:var(--paper);border-left:4px solid var(--secondary)}
+.doc-title .kicker{font-family:var(--mono);font-size:10px;letter-spacing:1.5px;color:var(--secondary);text-transform:uppercase}
+.doc-title h2{font-family:var(--display);font-size:22px;margin-top:6px;font-weight:700}
+.doc-title .question{margin-top:10px;color:var(--muted);font-style:italic;font-size:13px}
+.audit-banner{background:#e8f5ee;border:1px solid var(--primary);padding:10px 16px;margin-bottom:20px;font-size:12px;border-radius:3px}
+.audit-banner strong{color:var(--primary)}
+section{margin-bottom:32px}
+section h3{font-family:var(--display);font-size:12px;color:var(--primary);font-weight:700;letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid var(--rule);padding-bottom:6px;margin-bottom:14px}
+.tools{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}
+.tools a{font-family:var(--mono);font-size:11px;color:var(--secondary);text-decoration:none;padding:6px 12px;border:1px solid var(--secondary);border-radius:2px}
+.form-block{border:1.5px solid var(--border);border-radius:4px;margin-bottom:20px;padding:18px}
+.fhead{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px}
+.fcode{font-family:var(--mono);font-size:14px;color:var(--secondary);font-weight:700}
+.fcount{font-family:var(--mono);font-size:10px;color:var(--muted)}
+.chain{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.chip{border:1.5px solid var(--border);padding:8px 14px;border-radius:3px;background:#fff;font-family:var(--mono);font-size:11px;display:flex;flex-direction:column;gap:2px;min-width:160px}
+.chip .v{font-weight:700;font-size:13px;color:var(--secondary)}
+.chip .h{font-size:9px;color:var(--muted)}
+.chip .s{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;padding:1px 6px;border-radius:2px;display:inline-block;width:fit-content;margin-top:2px}
+.chip .s.passing{background:var(--add-bg);color:var(--passing)}
+.chip .s.gap{background:var(--rem-bg);color:var(--gap)}
+.diff-block{background:#0d1117;color:#c9d1d9;font-family:var(--mono);font-size:11px;padding:12px 16px;border-radius:4px;overflow-x:auto;line-height:1.55;max-height:300px;overflow-y:auto}
+.diff-block .add{background:rgba(46,160,67,0.15);color:#7ee787;display:block;padding:0 4px}
+.diff-block .rem{background:rgba(248,81,73,0.15);color:#ff7b72;display:block;padding:0 4px}
+.diff-block .ctx{color:#8b949e;display:block;padding:0 4px}
+.diff-block .meta{color:#79c0ff;display:block;padding:0 4px}
+.engine-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:14px;background:#fff;border:1px solid var(--border)}
+.engine-table th{background:var(--primary);color:#fff;padding:8px 12px;text-align:left;font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:0.5px}
+.engine-table td{padding:8px 12px;border-bottom:1px solid var(--rule);vertical-align:top}
+.engine-table .field{font-family:var(--mono);font-weight:700;color:var(--secondary);font-size:11px}
+.engine-table .v-yes{color:var(--passing);font-weight:700;font-family:var(--mono);font-size:11px}
+.engine-table .v-no{color:var(--gap);font-weight:700;font-family:var(--mono);font-size:11px}
+.engine-table .v-unk{color:var(--muted);font-family:var(--mono);font-size:11px}
+.engine-table .conf{font-family:var(--mono);font-size:10px;color:var(--muted)}
+.engine-table .evidence{font-style:italic;color:var(--muted);font-size:11px;max-width:300px}
+.engine-table .disagree{background:#fef3e6}
+.disagreement-tag{display:inline-block;font-family:var(--mono);font-size:9px;background:var(--accent);color:#fff;padding:1px 6px;border-radius:2px;text-transform:uppercase;letter-spacing:0.5px;margin-left:6px}
+.fix-card{background:linear-gradient(to bottom,#faf5ff 0%,#fff 80%);border:1.5px solid var(--llm);border-left-width:5px;padding:14px 18px;margin-top:14px;border-radius:3px}
+.fix-card .fixhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.fix-card .fixtitle{font-family:var(--mono);font-size:11px;color:var(--llm);font-weight:700;text-transform:uppercase;letter-spacing:0.5px}
+.fix-card .ai-tag{font-family:var(--mono);font-size:9px;background:var(--llm);color:#fff;padding:2px 8px;border-radius:2px;font-weight:700;letter-spacing:0.5px}
+.fix-card .injected-cite{font-family:var(--mono);font-size:10px;color:var(--muted);margin-bottom:8px}
+.fix-card .injected-cite strong{color:var(--secondary)}
+.fix-card .proposed{background:#fff;border:1px dashed var(--llm);padding:10px 14px;font-size:12px;line-height:1.65;border-radius:3px;white-space:pre-wrap;max-height:280px;overflow-y:auto}
+.fix-card .actions{display:flex;gap:6px;margin-top:10px}
+.fix-card .actions button{font-family:var(--mono);font-size:10px;padding:4px 10px;border:1px solid var(--llm);background:#fff;color:var(--llm);border-radius:2px;cursor:pointer;font-weight:700;text-transform:uppercase;letter-spacing:0.5px}
+.fix-card .actions button.primary{background:var(--llm);color:#fff}
+.footer{margin-top:32px;padding-top:18px;border-top:1px solid var(--rule);font-size:10px;color:var(--muted);font-family:var(--mono);display:flex;justify-content:space-between}
+.footer a{color:var(--secondary);text-decoration:none}
+
+/* R366 mobile responsive — inlined */
+/* R366 mobile responsive partial — applies across all Cascadia/Apex/wizard surfaces */
+@media (max-width: 768px) {
+  .page { padding: 16px 14px !important; max-width: 100% !important; box-shadow: none !important; }
+  .masthead { flex-direction: column; align-items: flex-start; gap: 10px; padding-bottom: 14px; }
+  .masthead .meta { text-align: left; font-size: 9px; }
+  .masthead h1 { font-size: 16px; }
+  .brand-block { width: 100%; }
+  .mark { width: 36px; height: 36px; font-size: 12px; }
+  .doc-title h2 { font-size: 18px; line-height: 1.3; }
+  section h3 { font-size: 11px; }
+  .audit-banner, .doc-title { padding: 12px 14px; font-size: 12px; }
+  .tools { gap: 6px; flex-wrap: wrap; }
+  .tools a { font-size: 10px; padding: 5px 9px; }
+  .summary, .field-grid, .compliance, .flow,
+  .q-grid[style*="grid-template-columns"] { 
+    grid-template-columns: 1fr !important; 
+  }
+  .step-tracker { flex-direction: column; }
+  .step-tile { border-right: 0 !important; border-bottom: 1px solid var(--border); }
+  .step-tile.current { border-bottom: 3px solid var(--current) !important; }
+  .step-tile::after, .fsm-step::after, .flow .step::after,
+  .binder-card .head .left::after { display: none !important; }
+  table { font-size: 10px; }
+  table.compact td, table.compact th { padding: 4px 6px; }
+  .engine-table th, .engine-table td { padding: 6px 8px; font-size: 10px; }
+  .chart-wrap { overflow-x: auto; padding: 12px 0; -webkit-overflow-scrolling: touch; }
+  .tree { transform-origin: top left; min-width: 600px; }
+  .binder-grid, .queue-list, .form-block, .lifecycle-row,
+  .binder-card, .intake-card, .hitl-card { padding: 12px 14px !important; }
+  .access-bar { gap: 4px; }
+  .access-bar .chip { font-size: 9px; padding: 3px 7px; }
+  .summary { gap: 8px; }
+  .stat { padding: 10px 12px; }
+  .stat .value, .summary .stat .value { font-size: 20px; }
+  .fsm-track { gap: 1px; flex-wrap: wrap; }
+  .fsm-step { font-size: 8px; padding: 5px 2px; min-width: 60px; }
+  .actions { flex-wrap: wrap; gap: 5px; }
+  .actions button { font-size: 10px; padding: 5px 9px; }
+  .diff-block { font-size: 10px; padding: 8px 10px; max-height: 240px; }
+  .chain { gap: 6px; }
+  .chip { min-width: 130px; font-size: 10px; padding: 6px 10px; }
+  .fix-card .proposed, .fix-card-mini .ftext { font-size: 11px; max-height: 200px; }
+  .compliance-row { grid-template-columns: 1fr 1fr; font-size: 10px; gap: 4px; padding: 6px 8px; }
+  .compliance-row.header { font-size: 9px; }
+  ol, ul { font-size: 12px !important; padding-left: 18px; }
+  .footer { flex-direction: column; gap: 6px; align-items: flex-start; }
+}
+@media (max-width: 480px) {
+  .page { padding: 10px 8px !important; }
+  .masthead h1 { font-size: 14px; }
+  .masthead .meta { font-size: 8px; }
+  .doc-title h2 { font-size: 16px; }
+  .stat .value, .summary .stat .value { font-size: 16px; }
+  .stat .label, .summary .stat .label { font-size: 8px; }
+  .summary { grid-template-columns: 1fr 1fr !important; gap: 6px; }
+  .compliance-row { grid-template-columns: 1fr; }
+  .compliance-row.header { display: none; }
+  .access-bar .chip { font-size: 8px; padding: 2px 6px; }
+  .audit-banner, .doc-title { font-size: 11px; padding: 10px 12px; }
+  .doc-title .kicker { font-size: 8px; }
+  .tools a { font-size: 9px; padding: 4px 8px; }
+  .binder-card .form-code, .form-block .fcode { font-size: 11px; }
+  .intake-card .payload, .diff-block { font-size: 9px; }
+  .fsm-step { font-size: 7px; min-width: 50px; padding: 4px 1px; }
+  .org-mini .emp-row { font-size: 10px; flex-direction: column; gap: 3px; align-items: flex-start; }
+  table { font-size: 9px; }
+  .spec-table td, .spec-table th { padding: 4px 6px; font-size: 9px; }
+  .card { min-width: 160px; max-width: 200px; padding: 7px 10px; font-size: 10px; }
+  .card .name { font-size: 11px; }
+  .card .role { font-size: 9px; }
+}
+
+</style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head><body>
+<div class="page">
+
+  <header class="masthead">
+    <div class="brand-block">
+      <div class="mark">CMC</div>
+      <div>
+        <h1>Cascadia MEP Contractors, LLC</h1>
+        <div style="color:var(--muted);font-size:11px;margin-top:2px">R364 — Semantic Compliance + LLM-Suggested Fixes (Live)</div>
+      </div>
+    </div>
+    <div class="meta">
+      DOC: R364-REV-V2<br>
+      ISSUED: 2026-05-30<br>
+      ENGINE: regex + Ollama phi3<br>
+      TENANT: oregon_mep_demo
+    </div>
+  </header>
+
+  <div class="doc-title">
+    <div class="kicker">R364 — Semantic Layer Atop R363</div>
+    <h2>Paraphrased Clauses Now Caught — And A Draft Fix Is Generated</h2>
+    <div class="question">Cascadia uploaded v3 where "paid safe leave" was reworded as "protective leave for personal safety reasons." R363 regex missed it (false negative). R364 semantic caught it with 0.98 confidence. The one genuine missing clause (NY workplace violence) triggered an LLM-generated fix proposal — citation NOT LLM-generated, injected from form_compliance_specs.</div>
+  </div>
+
+  <div class="audit-banner">
+    <strong>What R364 added on top of R363.</strong> Same upload pipeline; same dept routing; same HITL fabric. New: every R363 regex check now runs alongside an Ollama phi3 semantic check (via the existing /api/chat gateway, 0.4-3s/rule). Disagreements between the two engines are surfaced, not hidden. For each genuine gap, an LLM proposes 2-3 paragraphs of handbook prose. Citations come from the form_compliance_specs table to prevent E_PROMPT_0004 (LLM hallucinated statutes).
+  </div>
+
+  <div class="tools">
+    <a href="/ui/cascadia_mep">↩ CEO briefing</a>
+    <a href="/ui/cascadia_compliance_demo">↗ compliance follow-ups</a>
+    <a href="/ui/cascadia_employee_view">↗ Evelyn's HR inbox</a>
+    <a href="/ui/cascadia_audit_binder">↗ audit binder</a>
+    <a href="/ui/cascadia_lifecycle_demo">↗ lifecycle FSM</a>
+  </div>
+
+  <section>
+    <h3>Summary</h3>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">
+      <div style="background:var(--paper);border:1px solid var(--border);padding:12px 16px;border-radius:4px">
+        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase">Forms with Revisions</div>
+        <div style="font-size:24px;font-weight:700;color:var(--primary);margin-top:4px">1</div>
+      </div>
+      <div style="background:var(--paper);border:1px solid var(--border);padding:12px 16px;border-radius:4px">
+        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase">Total Revisions</div>
+        <div style="font-size:24px;font-weight:700;color:var(--primary);margin-top:4px">3</div>
+      </div>
+      <div style="background:var(--paper);border:1px solid var(--border);padding:12px 16px;border-radius:4px">
+        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase">Compliance HITLs</div>
+        <div style="font-size:24px;font-weight:700;color:var(--gap);margin-top:4px">2</div>
+      </div>
+      <div style="background:var(--paper);border:1px solid var(--border);padding:12px 16px;border-radius:4px">
+        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase">Spec Rules + Hints</div>
+        <div style="font-size:24px;font-weight:700;color:var(--secondary);margin-top:4px">11</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h3>Revision Chains + Compliance</h3>
+    
+    <div class="form-block">
+      <div class="fhead">
+        <span class="fcode">F1-09</span>
+        <span class="fcount">3 revisions</span>
+      </div>
+      <div class="chain">
+        <div class="chip">
+          <span class="v">v1</span>
+          <span class="h">id=1 · parent=—</span>
+          <span class="h">sha256:b01b45e0c7e5c4a2e…</span>
+          <span class="s passing">passing</span>
+          
+        </div>
+        <div class="chip">
+          <span class="v">v2</span>
+          <span class="h">id=2 · parent=1</span>
+          <span class="h">sha256:9391f79bf2bae25ba…</span>
+          <span class="s gap">gap</span>
+          
+        </div>
+        <div class="chip">
+          <span class="v">v3</span>
+          <span class="h">id=3 · parent=2</span>
+          <span class="h">sha256:266b39a2a1134d28d…</span>
+          <span class="s gap">gap</span>
+          <span class="h" style="color:var(--llm);font-weight:700">R364 ●</span>
+        </div></div>
+      <h4 style="font-family:var(--mono);font-size:11px;color:var(--muted);margin:14px 0 8px;text-transform:uppercase;letter-spacing:0.5px">diff: v2 → v3</h4><div class="diff-block"><span class="meta">--- v2</span><span class="meta">+++ v3</span><span class="meta">@@ -1,5 +1,5 @@</span><span class="ctx"> CASCADIA MEP CONTRACTORS, LLC</span><span class="rem">-EMPLOYEE HANDBOOK — v2 (effective 2026-06-01)</span><span class="add">+EMPLOYEE HANDBOOK — v3 (effective 2026-07-01)</span><span class="ctx"> </span><span class="ctx"> SECTION 1 — EMPLOYMENT AT-WILL</span><span class="ctx"> All employment at Cascadia MEP Contractors is at-will employment. Either</span><span class="meta">@@ -11,19 +11,24 @@</span><span class="ctx"> employees and applicants regardless of race, color, religion, sex, national</span><span class="ctx"> origin, age, disability, or any other characteristic protected by law.</span><span class="ctx"> </span><span class="rem">-SECTION 3 — HARASSMENT TRAINING (NY ANNUAL REQUIREMENT)</span><span class="rem">-All Cascadia employees working any NY worksite must complete sexual</span><span class="rem">-harassment prevention training annually, in accordance with NY Labor Law</span><span class="rem">-§201-g. Training is provided by Cascadia HR each January.</span><span class="add">+SECTION 3 — ANTI-HARASSMENT TRAINING PROGRAM</span><span class="add">+All Cascadia personnel are required to complete the company anti-harassment</span><span class="add">+training program annually. This includes coursework on workplace respect,</span><span class="add">+discrimination prevention, and reporting protocols. Training is provided</span><span class="add">+by Cascadia HR each January.</span><span class="ctx"> </span><span class="rem">-[Sections 4 and 5 were removed in this revision for review]</span><span class="add">+SECTION 4 — PROTECTIVE LEAVE POLICY</span><span class="add">+Cascadia provides employees with up to 40 hours per year of paid protective</span><span class="add">+leave for personal safety reasons, including matters related to domestic</span><span class="add">+violence, sexual assault, stalking, or human trafficking. Leave accrues at</span><span class="add">+one hour per 30 hours worked.</span><span class="ctx"> </span><span class="rem">-SECTION 6 — STANDARDS OF CONDUCT</span><span class="add">+SECTION 5 — STANDARDS OF CONDUCT</span><span class="ctx"> All employees are expected to act with integrity, respect, and professionalism.</span><span class="ctx"> Violations may result in disciplinary action up to and including termination.</span><span class="ctx"> </span><span class="rem">-SECTION 7 — REMOTE WORK POLICY (new in v2)</span><span class="add">+SECTION 6 — REMOTE WORK POLICY</span><span class="ctx"> Engineering and office roles may work remotely up to 2 days/week subject</span><span class="ctx"> to supervisor approval. Field roles are on-site only.</span><span class="ctx"> </span><span class="rem">-[end of handbook v2]</span><span class="add">+[end of handbook v3]</span></div>
+      <h4 style="font-family:var(--mono);font-size:11px;color:var(--muted);margin:14px 0 8px;text-transform:uppercase;letter-spacing:0.5px">compliance — latest (v3)</h4>
+      <table class="engine-table"><tr><th>Field</th><th>Regex</th><th>Semantic (LLM)</th><th>Final</th><th>Evidence</th></tr><tr class="disagree"><td><span class="field">NYC_paid_safe_leave</span><span class="disagreement-tag">disagrees</span></td><td><span class="v-no">✗ no</span></td><td><span class="v-yes">✓ YES</span><span class="conf">0.98</span></td><td><span class="v-yes">PRESENT</span></td><td><span class="evidence">"Cascadia provides employees with up to 40 hours per year of paid protective leave for personal safety reasons, including"</span></td></tr><tr><td><span class="field">NY_harassment_training</span></td><td><span class="v-yes">✓ YES</span></td><td><span class="v-yes">✓ YES</span><span class="conf">0.98</span></td><td><span class="v-yes">PRESENT</span></td><td><span class="evidence">"All Cascadia personnel are required to complete the company anti-harassment training program annually. This includes cou"</span></td></tr><tr><td><span class="field">at_will</span></td><td><span class="v-yes">✓ YES</span></td><td><span class="v-yes">✓ YES</span><span class="conf">1.00</span></td><td><span class="v-yes">PRESENT</span></td><td><span class="evidence">"All employment at Cascadia MEP Contractors is at-will employment. Either the employee or the company may terminate the e"</span></td></tr><tr><td><span class="field">equal_opportunity</span></td><td><span class="v-yes">✓ YES</span></td><td><span class="v-yes">✓ YES</span><span class="conf">0.98</span></td><td><span class="v-yes">PRESENT</span></td><td><span class="evidence">"Cascadia MEP Contractors provides equal employment opportunity to all employees and applicants regardless of race, color"</span></td></tr><tr><td><span class="field">NY_workplace_violence</span></td><td><span class="v-no">✗ no</span></td><td><span class="v-no">✗ no</span><span class="conf">0.95</span></td><td><span class="v-no">MISSING</span></td><td><span class="evidence">"No mention of a workplace violence prevention program, written WPV policy, signed acknowledgment, or NY worksite coverag"</span></td></tr></table>
+      
+        <div class="fix-card">
+          <div class="fixhead">
+            <span class="fixtitle">🪄 LLM-Suggested Fix · NY_workplace_violence</span>
+            <span class="ai-tag">R364 phi3</span>
+          </div>
+          <div class="injected-cite">Will inject citation: <strong>NY Labor Law §27-b</strong> (sourced from form_compliance_specs, NOT LLM-generated per E_PROMPT_0004)</div>
+          <div class="proposed">All Cascadia MEP Contractors employees working at New York worksites are covered under the company’s Workplace Violence Prevention  program. This program establishes a comprehensive framework to identify, assess, and mitigate risks associated with workplace violence, ensuring a safe and secure environment for all personnel. A written WPV policy is maintained and accessible to all employees, outlining prohibited behaviors, reporting procedures, investigation protocols, and corrective actions for any incidents of violence or threats.
+
+Supervisors are responsible for enforcing the WPV policy and ensuring all employees receive appropriate training. Each employee must complete annual training on recognizing and responding to potential workplace violence risks. A signed acknowledgment form, confirming receipt and understanding of the policy and training, is required and retained in the employee’s personnel file. Failure to submit the signed acknowledgment may result in disciplinary action, up to and including termination of employment.</div>
+          <div class="actions">
+            <button class="primary" onclick="alert('R365 will wire this to copy-into-v3 upload. R364 ships the draft.')">📋 Copy to clipboard</button>
+            <button onclick="alert('R365 will wire revise-in-place')">📝 Use in v4</button>
+            <button onclick="alert('R365 will wire regenerate with adjusted hint')">🔁 Regenerate</button>
+          </div>
+        </div>
+    </div>
+  </section>
+
+  <section>
+    <h3>R364 In-Round Failure (Caught + Fixed Per R355)</h3>
+    <div style="background:var(--paper);border-left:3px solid var(--accent);padding:12px 16px;font-size:12px;line-height:1.6">
+      <strong>E_PROMPT_0005 fired.</strong> First semantic run truncated v3 to first 600 chars. The PROTECTIVE LEAVE section started at byte 887 of the handbook — invisible to the LLM. So semantic ALSO said missing.
+      <br><br>
+      <strong>Fix (same round, R355 discipline).</strong> Switched <code>r364_semantic_compliance.py</code> to <em>keyword-anchor window selection</em>: scan the doc for any keyword associated with the rule (e.g. NYC_paid_safe_leave → ["leave","safe","sick","psl","protective"]), center a 700-char window on the first hit, fall back to head-window if no anchor.
+      <br><br>
+      Result after patch: semantic caught NYC_paid_safe_leave at byte 891 with confidence 0.98 — the exact section it had missed.
+    </div>
+  </section>
+
+  <section>
+    <h3>How R364 Works</h3>
+    <ol style="font-size:13px;line-height:1.9;margin-left:20px">
+      <li><strong>Dual-engine</strong> — each revision runs <em>both</em> regex (R363) and Ollama phi3 semantic via /api/chat</li>
+      <li><strong>Anchor window</strong> — for each rule, semantic prompt sees a 700-char window centered on rule-relevant keywords (E_PROMPT_0005 fix)</li>
+      <li><strong>Conservative verdict</strong> — final = present if EITHER engine says present (minimize false-negatives)</li>
+      <li><strong>Disagreement surfacing</strong> — when engines diverge, both verdicts logged + flagged in UI</li>
+      <li><strong>Fix generation</strong> — for each genuine gap, LLM drafts 2-3 paragraphs of handbook prose; citation injected from spec table (E_PROMPT_0004 prevention)</li>
+      <li><strong>Same HITL fabric</strong> — fix-suggestions ride on the R361 queue + R360 dept routing + R362 lifecycle</li>
+    </ol>
+  </section>
+
+  <div class="footer">
+    <span>R364-REV-V2 · Cascadia · Live from tenant_form_revisions · 61 error codes registered</span>
+    <span><a href="/ui/cascadia_mep">↩ index</a></span>
+  </div>
+
+</div></body></html>

@@ -73,12 +73,27 @@ _MAX_AUDIO_HISTORY = 500
 
 class TTSBackend:
     """Available text-to-speech backend identifiers."""
+    PIPER = "piper"
     PYTTSX3 = "pyttsx3"
     ESPEAK = "espeak"
     TEXT = "text"
 
 
+def _piper_available() -> bool:
+    """Piper is available iff (a) library importable AND (b) voice model exists AND (c) .approved file present."""
+    try:
+        from piper import PiperVoice  # noqa: F401
+    except ImportError:
+        return False
+    if not os.path.exists("/opt/Murphy-System/voice_assets/piper/en_US-lessac-medium.onnx"):
+        return False
+    return os.path.exists("/opt/Murphy-System/voice_assets/piper/.approved")
+
+
 def _detect_tts_backend() -> str:
+    # Piper requires explicit approval via /hitl page (writes .approved file)
+    if _piper_available():
+        return TTSBackend.PIPER
     try:
         import pyttsx3  # noqa: F401
         return TTSBackend.PYTTSX3
@@ -329,6 +344,31 @@ class AudioPackage:
 # TTS Synthesis helpers
 # ---------------------------------------------------------------------------
 
+def _synthesize_piper(text: str, output_path: str) -> bool:
+    """Synthesize speech with Piper TTS (Apache-2.0).
+
+    Piper is a high-quality neural TTS. Voice model is en_US-lessac-medium
+    (22050Hz mono, single-speaker, ~63MB). Inference via onnxruntime on CPU,
+    typically 0.1-0.2x realtime on modern hardware.
+    """
+    try:
+        import wave
+        from piper import PiperVoice
+
+        model_path = "/opt/Murphy-System/voice_assets/piper/en_US-lessac-medium.onnx"
+        if not os.path.exists(model_path):
+            logger.warning("piper model not found at %s", model_path)
+            return False
+
+        voice = PiperVoice.load(model_path)
+        with wave.open(output_path, "wb") as wav_file:
+            voice.synthesize_wav(text, wav_file)
+        return os.path.exists(output_path) and os.path.getsize(output_path) > 44
+    except Exception as exc:
+        logger.warning("piper synthesis failed: %s", exc)
+        return False
+
+
 def _synthesize_pyttsx3(text: str, output_path: str) -> bool:
     """Synthesize speech with pyttsx3. Returns True on success."""
     try:
@@ -559,6 +599,12 @@ class AnnouncerVoiceEngine:
 
     def _synthesize(self, text: str, pkg_dir: Path, audio_id: str) -> Optional[str]:
         """Synthesize text to audio using the best available backend."""
+        if self._tts_backend == TTSBackend.PIPER:
+            wav_path = str(pkg_dir / f"{audio_id}.wav")
+            if _synthesize_piper(text, wav_path):
+                return wav_path
+            logger.warning("piper failed, falling back to pyttsx3")
+
         if self._tts_backend == TTSBackend.PYTTSX3:
             wav_path = str(pkg_dir / f"{audio_id}.wav")
             if _synthesize_pyttsx3(text, wav_path):

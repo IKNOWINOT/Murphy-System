@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DLF-R Packages — Murphy</title>
+<style>
+  :root {
+    --bg: #080c0a;
+    --fg: #e6f4ef;
+    --teal: #00d4aa;
+    --teal-dim: #00b894;
+    --card: #0f1614;
+    --line: #1a2520;
+    --muted: #6b8079;
+  }
+  * { box-sizing: border-box; }
+  body { background: var(--bg); color: var(--fg); font-family: -apple-system, BlinkMacSystemFont, "SF Mono", Menlo, monospace; margin: 0; padding: 24px; }
+  h1 { color: var(--teal); margin: 0 0 8px 0; font-size: 22px; }
+  .sub { color: var(--muted); font-size: 13px; margin-bottom: 24px; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 24px; }
+  .stat { background: var(--card); border: 1px solid var(--line); padding: 14px; border-radius: 6px; }
+  .stat-label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .stat-val { color: var(--teal); font-size: 24px; font-weight: 600; margin-top: 4px; }
+  .controls { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  button { background: var(--card); color: var(--fg); border: 1px solid var(--line); padding: 8px 14px; border-radius: 4px; cursor: pointer; font-family: inherit; font-size: 13px; }
+  button.active { background: var(--teal); color: var(--bg); border-color: var(--teal); }
+  button:hover:not(.active) { border-color: var(--teal-dim); }
+  .grid { display: grid; grid-template-columns: 1fr 1.5fr; gap: 16px; }
+  @media (max-width: 800px) { .grid { grid-template-columns: 1fr; } }
+  .list { background: var(--card); border: 1px solid var(--line); border-radius: 6px; max-height: 70vh; overflow-y: auto; }
+  .item { padding: 12px 14px; border-bottom: 1px solid var(--line); cursor: pointer; }
+  .item:hover { background: rgba(0,212,170,0.05); }
+  .item.selected { background: rgba(0,212,170,0.12); border-left: 3px solid var(--teal); padding-left: 11px; }
+  .item-label { color: var(--fg); font-size: 13px; font-weight: 500; }
+  .item-meta { color: var(--muted); font-size: 11px; margin-top: 3px; }
+  .detail { background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 16px; max-height: 70vh; overflow-y: auto; }
+  .detail h3 { color: var(--teal); margin: 0 0 8px 0; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .detail pre { background: var(--bg); border: 1px solid var(--line); padding: 12px; border-radius: 4px; font-size: 11px; color: var(--fg); overflow-x: auto; white-space: pre-wrap; }
+  .layer { margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+  .layer:last-child { border-bottom: none; }
+  .chip { display: inline-block; background: var(--bg); border: 1px solid var(--teal-dim); color: var(--teal); padding: 2px 8px; border-radius: 10px; font-size: 10px; margin: 2px; }
+  .weave { font-size: 11px; color: var(--muted); margin: 3px 0; }
+  .weave .type { color: var(--teal); font-weight: 600; }
+  .empty { color: var(--muted); text-align: center; padding: 40px; }
+</style>
+</head>
+<body>
+  <h1>🧠 DLF-R Packages</h1>
+  <div class="sub">Portable semantic continuity — Threads · Nodes · Weaves · Rosetta snapshot</div>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="controls">
+    <button data-filter="all" class="active">All</button>
+    <button data-filter="incident">Incidents</button>
+    <button data-filter="mind_cycle">Mind Cycles</button>
+    <button data-filter="other">Other</button>
+  </div>
+
+  <div class="grid">
+    <div class="list" id="list"><div class="empty">Loading…</div></div>
+    <div class="detail" id="detail"><div class="empty">Select a package to view</div></div>
+  </div>
+
+<script>
+let packages = [];
+let currentFilter = 'all';
+let selectedId = null;
+
+async function loadStats() {
+  const r = await fetch('/api/dlfr/stats');
+  const s = await r.json();
+  const el = document.getElementById('stats');
+  el.innerHTML = `
+    <div class="stat"><div class="stat-label">Total</div><div class="stat-val">${s.total}</div></div>
+    <div class="stat"><div class="stat-label">Incidents</div><div class="stat-val">${s.by_kind.incident || 0}</div></div>
+    <div class="stat"><div class="stat-label">Mind Cycles</div><div class="stat-val">${s.by_kind.mind_cycle || 0}</div></div>
+    <div class="stat"><div class="stat-label">Other</div><div class="stat-val">${s.by_kind.other || 0}</div></div>
+    <div class="stat"><div class="stat-label">w/ Rosetta</div><div class="stat-val">${s.with_rosetta}</div></div>
+    <div class="stat"><div class="stat-label">Size (KB)</div><div class="stat-val">${(s.total_bytes/1024).toFixed(0)}</div></div>
+  `;
+}
+
+async function loadList() {
+  const r = await fetch('/api/dlfr/list?limit=200');
+  const data = await r.json();
+  packages = data.packages || [];
+  renderList();
+}
+
+function getKind(label) {
+  if (!label) return 'other';
+  if (label.startsWith('incident:')) return 'incident';
+  if (label.startsWith('mind_cycle:')) return 'mind_cycle';
+  return 'other';
+}
+
+function renderList() {
+  const filtered = currentFilter === 'all'
+    ? packages
+    : packages.filter(p => getKind(p.label) === currentFilter);
+  const el = document.getElementById('list');
+  if (filtered.length === 0) {
+    el.innerHTML = '<div class="empty">No packages</div>';
+    return;
+  }
+  el.innerHTML = filtered.map(p => `
+    <div class="item ${p.package_id === selectedId ? 'selected' : ''}" data-id="${p.package_id}">
+      <div class="item-label">${p.label || '(no label)'}</div>
+      <div class="item-meta">
+        ${p.package_id.substring(0,8)} ·
+        ${(p.size_bytes||0)}B · T:${p.n_threads} N:${p.n_nodes} W:${p.n_weaves}
+        ${p.has_rosetta ? '· 🧠' : ''}
+      </div>
+    </div>`).join('');
+  el.querySelectorAll('.item').forEach(item => {
+    item.addEventListener('click', () => loadDetail(item.dataset.id));
+  });
+}
+
+async function loadDetail(id) {
+  selectedId = id;
+  renderList();
+  const r = await fetch(`/api/dlfr/load/${id}`);
+  const body = await r.json();
+  if (!body || body.error) {
+    document.getElementById('detail').innerHTML = `<div class="empty">${body?.error || 'Not found'}</div>`;
+    return;
+  }
+  const layers = body.semantic_layers || {};
+  const rosetta = body.rosetta_block || {};
+  const fabric = body.fabric || {};
+
+  document.getElementById('detail').innerHTML = `
+    <div class="layer">
+      <h3>📦 Package</h3>
+      <div><span class="chip">${body.package_id}</span><span class="chip">${body.format_version || '?'}</span><span class="chip">${body.creator || '?'}</span></div>
+      <div style="margin-top:6px; color:var(--muted); font-size:11px;">${body.created_at_utc || ''}</div>
+    </div>
+
+    <div class="layer">
+      <h3>🧵 Threads (${(layers.threads||[]).length})</h3>
+      ${(layers.threads||[]).map(t => `
+        <div style="margin-bottom:8px;">
+          <div style="color:var(--teal); font-size:11px;">${t.id} — ${(t.metadata||{}).kind || 'thread'}</div>
+          <pre>${escape(t.payload || '')}</pre>
+        </div>`).join('') || '<div class="empty">none</div>'}
+    </div>
+
+    <div class="layer">
+      <h3>🔵 Nodes (${(layers.nodes||[]).length})</h3>
+      ${(layers.nodes||[]).map(n => `<span class="chip" title="${escape(JSON.stringify(n.metadata||{}))}">${n.label}</span>`).join(' ') || '<div class="empty">none</div>'}
+    </div>
+
+    <div class="layer">
+      <h3>🕸️ Weaves (${(layers.weaves||[]).length})</h3>
+      ${Object.entries(fabric.weave_type_histogram||{}).map(([k,v]) => `<span class="chip">${k}: ${v}</span>`).join(' ')}
+      <div style="margin-top:10px;">
+        ${(layers.weaves||[]).map(w => `
+          <div class="weave">
+            ${nodeLabel(layers.nodes, w.source)}
+            → <span class="type">${w.type}</span> →
+            ${nodeLabel(layers.nodes, w.target)}
+            <span style="color:var(--muted)"> (conf: ${w.confidence || '?'})</span>
+          </div>`).join('')}
+      </div>
+    </div>
+
+    <div class="layer">
+      <h3>🌟 Rosetta Snapshot</h3>
+      ${rosetta.north_star ? `<div style="color:var(--fg); font-size:12px; margin-bottom:8px;"><b style="color:var(--teal)">NORTH_STAR:</b> ${escape(rosetta.north_star)}</div>` : ''}
+      ${rosetta.harm_thresholds ? `<div style="margin-bottom:8px;"><b style="color:var(--teal); font-size:11px;">HARM_THRESHOLDS:</b> <pre>${escape(JSON.stringify(rosetta.harm_thresholds, null, 2))}</pre></div>` : ''}
+      ${rosetta.team_covenant ? `<div style="margin-bottom:8px;"><b style="color:var(--teal); font-size:11px;">TEAM_COVENANT:</b> ${(rosetta.team_covenant||[]).map(c => `<span class="chip">${c}</span>`).join(' ')}</div>` : ''}
+      ${rosetta.characters ? `<div><b style="color:var(--teal); font-size:11px;">CHARACTERS (${Object.keys(rosetta.characters).length}):</b><br>${Object.values(rosetta.characters).map(c => `<span class="chip">${c.emoji || ''} ${c.name} · ${c.tone} · hitl=${c.hitl_threshold}</span>`).join(' ')}</div>` : ''}
+    </div>
+  `;
+}
+
+function nodeLabel(nodes, id) {
+  const n = (nodes||[]).find(x => x.id === id);
+  return n ? `<span style="color:var(--fg)">${n.label}</span>` : `<span style="color:var(--muted)">${id}</span>`;
+}
+function escape(s) { return String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+
+document.querySelectorAll('button[data-filter]').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('button[data-filter]').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    currentFilter = b.dataset.filter;
+    renderList();
+  });
+});
+
+loadStats();
+loadList();
+setInterval(() => { loadStats(); loadList(); }, 30000);
+</script>
+</body>
+</html>

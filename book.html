@@ -3,192 +3,199 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Book a Free Audit — Murphy System</title>
-<link rel="stylesheet" href="/static/murphy-design-system.css">
+<title>Request an AI ROI Audit — Murphy System</title>
+<meta name="description" content="Request a Murphy AI ROI Audit. We quote $1,000–$5,000 per role analyzed based on job complexity. Retainer rolls into your automation contract.">
+<link rel="canonical" href="https://murphy.systems/book">
 <style>
-  body { background:#050505; color:#f0f0f0; font-family:'Inter',sans-serif; margin:0; min-height:100vh; }
-  .book-wrap { max-width:760px; margin:0 auto; padding:4rem 1.5rem 6rem; }
-  .tag { display:inline-block; background:#0f1a0f; border:1px solid #2a4a2a; border-radius:6px; padding:.3rem .8rem; font-size:.75rem; color:#4caf50; letter-spacing:.08em; text-transform:uppercase; margin-bottom:1.2rem; }
-  h1 { font-size:clamp(1.8rem,4vw,2.6rem); font-weight:700; line-height:1.2; margin:0 0 .75rem; }
-  .sub { color:#aaa; font-size:1.05rem; line-height:1.7; margin:0 0 2.5rem; }
-  .form-card { background:#111; border:1px solid #1e3a1e; border-radius:12px; padding:2.5rem; }
-  .form-row { display:grid; grid-template-columns:1fr 1fr; gap:1.25rem; margin-bottom:1.25rem; }
-  @media(max-width:600px){ .form-row { grid-template-columns:1fr; } }
-  .form-group { display:flex; flex-direction:column; gap:.45rem; margin-bottom:1.25rem; }
-  label { font-size:.8rem; color:#888; letter-spacing:.06em; text-transform:uppercase; font-weight:500; }
-  input, select, textarea {
-    background:#0a0a0a; border:1px solid #2a3a2a; border-radius:8px;
-    color:#f0f0f0; font-size:.95rem; padding:.7rem 1rem; width:100%; box-sizing:border-box;
-    transition:border-color .2s;
-  }
-  input:focus, select:focus, textarea:focus { outline:none; border-color:#4caf50; }
-  textarea { resize:vertical; min-height:90px; }
-  .roi-box { background:#0a180a; border:1px solid #2a4a2a; border-radius:8px; padding:1.25rem; margin:1.5rem 0; display:none; }
-  .roi-box h4 { margin:0 0 .75rem; font-size:.85rem; color:#4caf50; text-transform:uppercase; letter-spacing:.06em; }
-  .roi-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:.75rem; }
-  .roi-num { font-size:1.3rem; font-weight:700; color:#f0f0f0; }
-  .roi-lbl { font-size:.75rem; color:#888; margin-top:.2rem; }
-  .btn-submit { width:100%; background:#4caf50; color:#000; border:none; border-radius:8px; padding:1rem; font-size:1rem; font-weight:700; cursor:pointer; margin-top:1.5rem; transition:opacity .2s; }
-  .btn-submit:hover { opacity:.88; }
-  .btn-submit:disabled { opacity:.5; cursor:not-allowed; }
-  .success-msg { display:none; text-align:center; padding:3rem 1rem; }
-  .success-msg .big { font-size:2.5rem; margin-bottom:1rem; }
-  .success-msg h2 { font-size:1.5rem; margin:0 0 .75rem; }
-  .success-msg p { color:#aaa; margin:0 0 1.5rem; }
-  .back-link { display:block; text-align:center; margin-bottom:2rem; color:#4caf50; text-decoration:none; font-size:.9rem; }
-  .back-link:hover { text-decoration:underline; }
-  .trust-row { display:flex; gap:2rem; margin-bottom:2.5rem; flex-wrap:wrap; }
-  .trust-item { display:flex; align-items:center; gap:.5rem; color:#888; font-size:.85rem; }
-  .trust-item span:first-child { color:#4caf50; font-size:1rem; }
+:root {
+  --bg:#080c0a; --bg2:#0d1210; --surface:#111a15; --border:rgba(0,212,170,.13);
+  --border-hi:rgba(0,212,170,.32); --text:#deeae4; --text-dim:#7a9a8a;
+  --teal:#00D4AA; --amber:#ff8c42; --green:#00ff6a;
+  --font: 'Inter', system-ui, sans-serif; --radius:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;padding:0;line-height:1.55}
+.topbar{position:sticky;top:0;background:rgba(8,12,10,.9);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;justify-content:space-between;align-items:center;backdrop-filter:blur(10px);z-index:50}
+.topbar a{color:var(--teal);text-decoration:none;font-weight:600}
+.topbar .nav a{color:var(--text-dim);margin-left:1.5rem;font-weight:400}
+.topbar .nav a:hover{color:var(--teal)}
+.wrap{max-width:780px;margin:0 auto;padding:48px 24px}
+.tag{display:inline-block;background:rgba(0,212,170,.1);color:var(--teal);padding:4px 12px;border-radius:20px;font-size:.78rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;margin-bottom:1rem}
+h1{font-size:2.2rem;letter-spacing:-.02em;margin-bottom:.6rem;color:#fff}
+.sub{color:var(--text-dim);margin-bottom:2rem;font-size:1.05rem}
+.pricing-note{background:rgba(0,212,170,.04);border:1px solid var(--border-hi);border-radius:var(--radius);padding:18px 22px;margin-bottom:2rem}
+.pricing-note h3{font-size:.95rem;color:var(--teal);margin-bottom:8px;font-weight:600}
+.pricing-note p{font-size:.92rem;color:var(--text);margin-bottom:6px}
+.pricing-note ul{padding-left:1.3rem;color:var(--text-dim);font-size:.88rem}
+.pricing-note ul li{margin:3px 0}
+.field{margin-bottom:1.25rem}
+.field label{display:block;font-size:.85rem;color:var(--text-dim);margin-bottom:6px;font-weight:500}
+.field input,.field select,.field textarea{
+  width:100%;padding:11px 14px;background:var(--surface);border:1px solid var(--border);
+  border-radius:8px;color:var(--text);font-family:inherit;font-size:.95rem;transition:border .15s
+}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--border-hi)}
+.field textarea{min-height:90px;resize:vertical}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+@media(max-width:600px){.row{grid-template-columns:1fr}}
+
+.quote-box{
+  background:linear-gradient(135deg,rgba(0,212,170,.06),rgba(0,212,170,.02));
+  border:1px solid var(--border-hi);border-radius:var(--radius);
+  padding:22px 26px;margin:2rem 0;text-align:center
+}
+.quote-box .label{font-size:.75rem;color:var(--text-dim);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px}
+.quote-box .range{font-size:1.8rem;color:var(--teal);font-weight:700;letter-spacing:-.02em}
+.quote-box .breakdown{color:var(--text-dim);font-size:.85rem;margin-top:8px}
+.quote-box .rollover{font-size:.85rem;color:var(--green);margin-top:10px;font-weight:500}
+
+button.submit{
+  width:100%;background:var(--teal);color:#000;border:none;padding:14px;border-radius:8px;
+  font-size:1rem;font-weight:700;cursor:pointer;margin-top:1rem;transition:opacity .15s
+}
+button.submit:hover{opacity:.88}
+button.submit:disabled{opacity:.4;cursor:not-allowed}
+
+.notice{font-size:.82rem;color:var(--text-dim);text-align:center;margin-top:14px;line-height:1.6}
+.notice strong{color:var(--text)}
+.success{background:rgba(0,255,106,.08);border:1px solid rgba(0,255,106,.3);border-radius:var(--radius);padding:22px;margin-top:1.5rem;display:none}
+.success.show{display:block}
+.success h3{color:var(--green);margin-bottom:8px}
 </style>
 </head>
 <body>
-<div class="book-wrap">
-  <a href="/" class="back-link">← Back to Murphy Systems</a>
-  <div class="tag">Free Consultation</div>
-  <h1>Book a Free Ops Audit</h1>
-  <p class="sub">30 minutes. We map your biggest operational waste, estimate your savings, and show you exactly what Murphy can automate in 60 days. No pitch deck. Just numbers.</p>
+<div class="topbar">
+  <a href="/">Murphy</a>
+  <div class="nav"><a href="/pricing">Pricing</a><a href="/how-we-work">How it works</a><a href="/login">Log in</a></div>
+</div>
 
-  <div class="trust-row">
-    <div class="trust-item"><span>✓</span><span>No commitment required</span></div>
-    <div class="trust-item"><span>✓</span><span>Performance-based pricing</span></div>
-    <div class="trust-item"><span>✓</span><span>Same-day ROI estimate</span></div>
+<div class="wrap">
+  <div class="tag">AI ROI Audit</div>
+  <h1>Request a Murphy ROI audit</h1>
+  <p class="sub">We analyze each role you'd want to automate, calculate the hours we can free up, and show you the savings before you commit to anything.</p>
+
+  <div class="pricing-note">
+    <h3>How the audit works</h3>
+    <p>Each role is analyzed at <strong>$1,000–$5,000</strong> depending on job complexity. We quote you after you submit this form — no payment yet.</p>
+    <ul>
+      <li><strong>Standard role</strong> ($1k) — repeatable tasks, clear processes (admin, data entry, scheduling)</li>
+      <li><strong>Mixed role</strong> ($2.5k) — judgment + repetitive work blended (CSR, junior ops, basic sales)</li>
+      <li><strong>Specialist role</strong> ($5k) — domain expertise required (engineering, senior sales, controller)</li>
+    </ul>
+    <p style="margin-top:10px;color:var(--green);font-size:.9rem"><strong>Rollover:</strong> if you contract us for automations after the audit, 100% of what you paid rolls into your build.</p>
   </div>
 
-  <div class="form-card" id="book-form-wrap">
-    <form id="bookForm" onsubmit="submitBooking(event)">
-      <div class="form-row">
-        <div class="form-group">
-          <label>First Name *</label>
-          <input type="text" id="fname" placeholder="Corey" required>
-        </div>
-        <div class="form-group">
-          <label>Last Name *</label>
-          <input type="text" id="lname" placeholder="Post" required>
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>Work Email *</label>
-          <input type="email" id="email" placeholder="you@company.com" required oninput="calcROI()">
-        </div>
-        <div class="form-group">
-          <label>Phone</label>
-          <input type="tel" id="phone" placeholder="+1 (555) 000-0000">
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>Company *</label>
-          <input type="text" id="company" placeholder="Acme MEP Inc." required>
-        </div>
-        <div class="form-group">
-          <label>Employees *</label>
-          <select id="employees" required onchange="calcROI()">
-            <option value="">Select...</option>
-            <option value="1-5">1–5</option>
-            <option value="6-20">6–20</option>
-            <option value="21-50">21–50</option>
-            <option value="51-100">51–100</option>
-            <option value="101-250">101–250</option>
-            <option value="250+">250+</option>
-          </select>
-        </div>
-      </div>
-      <div class="form-group">
-        <label>Industry *</label>
-        <select id="industry" required onchange="calcROI()">
-          <option value="">Select your industry...</option>
-          <option value="mep">MEP Contractor</option>
-          <option value="civil">Civil / Structural Engineering</option>
-          <option value="gc">General Contractor</option>
-          <option value="logistics">Freight / Logistics</option>
-          <option value="msp">IT Managed Services</option>
-          <option value="insurance">Insurance Brokerage</option>
-          <option value="legal">Legal / Law Firm</option>
-          <option value="healthcare">Healthcare / Surgery Center</option>
-          <option value="manufacturing">Manufacturing</option>
-          <option value="other">Other</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>What's your biggest operational headache?</label>
-        <textarea id="pain" placeholder="e.g. Too much manual invoicing, job costing takes 3 days, field tech reports are always late..."></textarea>
-      </div>
+  <form id="audit-form" autocomplete="on">
+    <div class="row">
+      <div class="field"><label>First name *</label><input id="fname" required></div>
+      <div class="field"><label>Last name *</label><input id="lname" required></div>
+    </div>
+    <div class="row">
+      <div class="field"><label>Work email *</label><input id="email" type="email" required></div>
+      <div class="field"><label>Phone</label><input id="phone" type="tel" placeholder="+1 (___) ___-____"></div>
+    </div>
+    <div class="field"><label>Company *</label><input id="company" required></div>
+    <div class="field"><label>Industry *</label>
+      <select id="industry" required>
+        <option value="">Select...</option>
+        <option>MEP / construction</option><option>Manufacturing</option><option>Real estate / property</option>
+        <option>Healthcare</option><option>Professional services</option><option>SaaS / tech</option>
+        <option>Energy / utilities</option><option>Logistics</option><option>Other</option>
+      </select>
+    </div>
 
-      <div class="roi-box" id="roiBox">
-        <h4>📊 Estimated Annual Opportunity</h4>
-        <div class="roi-grid">
-          <div><div class="roi-num" id="roi-savings">—</div><div class="roi-lbl">Recoverable Savings</div></div>
-          <div><div class="roi-num" id="roi-fee">—</div><div class="roi-lbl">Performance Fee (40%)</div></div>
-          <div><div class="roi-num" id="roi-keep">—</div><div class="roi-lbl">You Keep (60%)</div></div>
-        </div>
-      </div>
+    <h3 style="margin:1.5rem 0 .5rem;color:var(--teal);font-size:1rem">Roles to analyze</h3>
+    <p style="color:var(--text-dim);font-size:.85rem;margin-bottom:1rem">Tell us how many people in each complexity tier — we'll quote a total.</p>
 
-      <button type="submit" class="btn-submit" id="submitBtn">📅 Confirm Booking</button>
-    </form>
-  </div>
+    <div class="row">
+      <div class="field"><label>Standard roles ($1k each)</label><input id="standard_count" type="number" min="0" value="0" oninput="calcQuote()"></div>
+      <div class="field"><label>Mixed roles ($2.5k each)</label><input id="mixed_count" type="number" min="0" value="0" oninput="calcQuote()"></div>
+    </div>
+    <div class="row">
+      <div class="field"><label>Specialist roles ($5k each)</label><input id="specialist_count" type="number" min="0" value="0" oninput="calcQuote()"></div>
+      <div class="field"><label>Total headcount (company)</label><input id="total_employees" type="number" min="1" value="1"></div>
+    </div>
 
-  <div class="success-msg" id="successMsg">
-    <div class="big">✅</div>
-    <h2>You're booked.</h2>
-    <p>We'll send a calendar invite to your email within 2 business hours. The audit is free — no card, no commitment.</p>
-    <a href="/" style="color:#4caf50;text-decoration:none;font-weight:600;">← Back to Murphy Systems</a>
+    <div class="field"><label>What's the biggest time-sink you want to eliminate?</label>
+      <textarea id="pain" placeholder="e.g. Engineers spend 8 hrs/week on quote prep. CSRs handle 200 emails/day that could be templated. We can't track jobs without manual updates."></textarea>
+    </div>
+
+    <div class="quote-box">
+      <div class="label">Estimated audit retainer</div>
+      <div class="range" id="quote-amount">$0</div>
+      <div class="breakdown" id="quote-breakdown">Add roles above to see your quote</div>
+      <div class="rollover">100% rolls into your automation contract if you sign with us</div>
+    </div>
+
+    <button type="submit" class="submit" id="submit-btn" disabled>Request quote (no payment yet)</button>
+    <p class="notice">
+      You'll get a quote within 1 business day. We follow up to confirm scope.<br>
+      Payment via <strong>NOWPayments</strong> (crypto or card) only after you approve the quote.
+    </p>
+  </form>
+
+  <div class="success" id="success">
+    <h3>✓ Quote request received</h3>
+    <p style="color:var(--text);margin-bottom:8px">We'll review and send you a finalized quote at <strong id="ack-email">your email</strong> within 1 business day.</p>
+    <p style="color:var(--text-dim);font-size:.85rem">No payment is owed until you confirm the scope and accept the quote.</p>
   </div>
 </div>
 
 <script>
-const ROI_MAP = {
-  mep: { base: 420000, mult: { '1-5':0.2, '6-20':0.5, '21-50':1, '51-100':1.8, '101-250':2.5, '250+':3.5 } },
-  civil: { base: 380000, mult: { '1-5':0.2, '6-20':0.5, '21-50':1, '51-100':1.8, '101-250':2.5, '250+':3.5 } },
-  gc: { base: 500000, mult: { '1-5':0.2, '6-20':0.5, '21-50':1, '51-100':1.8, '101-250':2.5, '250+':3.5 } },
-  logistics: { base: 600000, mult: { '1-5':0.2, '6-20':0.5, '21-50':1, '51-100':1.8, '101-250':2.5, '250+':3.5 } },
-  msp: { base: 320000, mult: { '1-5':0.2, '6-20':0.5, '21-50':1, '51-100':1.8, '101-250':2.5, '250+':3.5 } },
-  insurance: { base: 290000, mult: { '1-5':0.2, '6-20':0.5, '21-50':1, '51-100':1.8, '101-250':2.5, '250+':3.5 } },
-  legal: { base: 250000, mult: { '1-5':0.2, '6-20':0.5, '21-50':1, '51-100':1.8, '101-250':2.5, '250+':3.5 } },
-  healthcare: { base: 450000, mult: { '1-5':0.2, '6-20':0.5, '21-50':1, '51-100':1.8, '101-250':2.5, '250+':3.5 } },
-  manufacturing: { base: 550000, mult: { '1-5':0.2, '6-20':0.5, '21-50':1, '51-100':1.8, '101-250':2.5, '250+':3.5 } },
-  other: { base: 300000, mult: { '1-5':0.2, '6-20':0.5, '21-50':1, '51-100':1.8, '101-250':2.5, '250+':3.5 } }
-};
-function fmt(n) { return n >= 1000000 ? '$' + (n/1000000).toFixed(1) + 'M' : '$' + Math.round(n/1000) + 'k'; }
-function calcROI() {
-  const ind = document.getElementById('industry').value;
-  const emp = document.getElementById('employees').value;
-  if (!ind || !emp || !ROI_MAP[ind]) { document.getElementById('roiBox').style.display='none'; return; }
-  const savings = Math.round(ROI_MAP[ind].base * (ROI_MAP[ind].mult[emp] || 1));
-  const fee = Math.round(savings * 0.4);
-  const keep = savings - fee;
-  document.getElementById('roi-savings').textContent = fmt(savings);
-  document.getElementById('roi-fee').textContent = fmt(fee);
-  document.getElementById('roi-keep').textContent = fmt(keep);
-  document.getElementById('roiBox').style.display = 'block';
+function calcQuote(){
+  const std = parseInt(document.getElementById('standard_count').value)||0;
+  const mix = parseInt(document.getElementById('mixed_count').value)||0;
+  const spec = parseInt(document.getElementById('specialist_count').value)||0;
+  const total = std*1000 + mix*2500 + spec*5000;
+  const roles = std+mix+spec;
+  document.getElementById('quote-amount').textContent = total ? `$${total.toLocaleString()}` : '$0';
+  if(roles===0){
+    document.getElementById('quote-breakdown').textContent = 'Add roles above to see your quote';
+  } else {
+    const parts = [];
+    if(std) parts.push(`${std}× std ($${(std*1000).toLocaleString()})`);
+    if(mix) parts.push(`${mix}× mixed ($${(mix*2500).toLocaleString()})`);
+    if(spec) parts.push(`${spec}× specialist ($${(spec*5000).toLocaleString()})`);
+    document.getElementById('quote-breakdown').textContent = parts.join(' + ');
+  }
+  document.getElementById('submit-btn').disabled = (roles===0);
 }
-async function submitBooking(e) {
+
+document.getElementById('audit-form').addEventListener('submit', async (e)=>{
   e.preventDefault();
-  const btn = document.getElementById('submitBtn');
-  btn.disabled = true; btn.textContent = 'Booking...';
-  const payload = {
-    first_name: document.getElementById('fname').value,
-    last_name: document.getElementById('lname').value,
-    email: document.getElementById('email').value,
-    phone: document.getElementById('phone').value,
-    company: document.getElementById('company').value,
-    employees: document.getElementById('employees').value,
-    industry: document.getElementById('industry').value,
-    pain_point: document.getElementById('pain').value
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true; btn.textContent = 'Submitting...';
+  const data = {
+    fname: fname.value, lname: lname.value, email: email.value, phone: phone.value,
+    company: company.value, industry: industry.value,
+    standard_count: +standard_count.value, mixed_count: +mixed_count.value,
+    specialist_count: +specialist_count.value, total_employees: +total_employees.value,
+    pain: pain.value,
+    quote_total: (+standard_count.value*1000) + (+mixed_count.value*2500) + (+specialist_count.value*5000),
+    submitted_at: new Date().toISOString()
   };
   try {
-    const res = await fetch('/api/booking/create', {
-      method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload)
+    const r = await fetch('/api/audit/request', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(data)
     });
-    document.getElementById('book-form-wrap').style.display = 'none';
-    document.getElementById('successMsg').style.display = 'block';
-  } catch(err) {
-    // Show success anyway — booking is captured
-    document.getElementById('book-form-wrap').style.display = 'none';
-    document.getElementById('successMsg').style.display = 'block';
+    const out = await r.json();
+    if(out.ok){
+      document.getElementById('audit-form').style.display='none';
+      document.getElementById('ack-email').textContent = data.email;
+      document.getElementById('success').classList.add('show');
+      window.scrollTo({top:0, behavior:'smooth'});
+    } else {
+      btn.disabled = false; btn.textContent = 'Request quote (no payment yet)';
+      alert(out.error || 'Submission failed. Try again or email cpost@murphy.systems');
+    }
+  } catch(err){
+    btn.disabled = false; btn.textContent = 'Request quote (no payment yet)';
+    alert('Network error. Try again or email cpost@murphy.systems');
   }
-}
+});
+calcQuote();
 </script>
 </body>
 </html>

@@ -11,6 +11,8 @@ Cron: 0 14 * * * (= 7:00 AM Pacific / 14:00 UTC)
 import os
 import json
 import smtplib
+import ssl
+import subprocess
 import requests
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -18,7 +20,19 @@ from datetime import datetime, timezone
 
 # ── Config ──────────────────────────────────────────────────────────────────
 BASE_URL      = "http://127.0.0.1:8000"
-API_KEY       = os.getenv("MURPHY_API_KEY", "Sputnik12!")
+def _read_env_api_key():
+    """R325: read MURPHY_API_KEY from environment file as the fallback."""
+    if os.getenv("MURPHY_API_KEY"):
+        return os.getenv("MURPHY_API_KEY")
+    try:
+        with open("/etc/murphy-production/environment") as _f:
+            for _l in _f:
+                if _l.startswith("MURPHY_API_KEY="):
+                    return _l.split("=", 1)[1].strip().strip('"')
+    except Exception:
+        pass
+    return ""
+API_KEY       = _read_env_api_key()
 HEADERS       = {"X-Murphy-Key": API_KEY, "Content-Type": "application/json"}
 
 SMTP_HOST     = "localhost"
@@ -32,6 +46,21 @@ RECIPIENTS    = [
     "callmehandy@gmail.com",
     "corey.gfc@gmail.com",
 ]
+
+
+def _send_via_sendmail(msg_obj, to_addrs):
+    """R327: bypass SMTP auth — use local sendmail directly (matches R320 mailer)."""
+    try:
+        if isinstance(to_addrs, str):
+            to_addrs = [to_addrs]
+        r = subprocess.run(
+            ["/usr/sbin/sendmail", "-f", FROM_EMAIL] + list(to_addrs),
+            input=msg_obj.as_bytes(), timeout=20, capture_output=True,
+        )
+        return r.returncode == 0, (r.stderr.decode()[:100] if r.returncode else "")
+    except Exception as e:
+        return False, str(e)
+
 
 # ── Fetch helpers ─────────────────────────────────────────────────────────────
 def get(path, default=None):
@@ -84,6 +113,200 @@ def collect_data():
     }
 
 # ── Format helpers ────────────────────────────────────────────────────────────
+
+# ── R337: substrate + sales + automation + signup collectors ────────────────
+def _r337_console_get(path, timeout=8):
+    """Fetch JSON from console-api (port 8090)."""
+    import urllib.request, json as _j
+    try:
+        with urllib.request.urlopen(f"http://127.0.0.1:8090{path}",
+                                     timeout=timeout) as r:
+            return _j.loads(r.read())
+    except Exception:
+        return None
+
+
+def _r337_collect_extras():
+    """Collect data for R337 morning brief sections."""
+    data = {}
+
+    # Substrate health (R333 detection)
+    psu = _r337_console_get("/diag/psutil-now")
+    if psu:
+        gap = psu.get("gap", {})
+        gate = psu.get("capacity_gate_sees", {})
+        actual = psu.get("actual", {})
+        data["substrate"] = {
+            "diagnosis": gap.get("diagnosis"),
+            "actual_cpu": actual.get("cpu_percent"),
+            "gate_cpu": gate.get("avg_cpu"),
+            "staleness_hours": gate.get("staleness_hours"),
+            "degraded": gap.get("diagnosis") == "R333_capacity_gate_stale",
+        }
+
+    # Publish flow
+    pg = _r337_console_get("/diag/publish-gap?window_minutes=60")
+    if pg:
+        data["publish"] = {
+            "events_published": pg.get("events_published_total"),
+            "outcome_count": pg.get("outcome_count"),
+            "diagnosis": pg.get("diagnosis"),
+        }
+
+    # Sales activity (last 24h)
+    sm = _r337_console_get("/sales/overview")
+    if sm:
+        data["sales"] = sm
+
+    # Send controls
+    settings = _r337_console_get("/sales/settings")
+    if settings:
+        data["send_controls"] = {
+            "paused": bool(settings.get("paused")),
+            "daily_cap": settings.get("daily_cap"),
+            "sends_today": settings.get("sends_today"),
+        }
+
+    # Automation pattern (R336)
+    ad = _r337_console_get("/sales/automation-detail?limit=10")
+    if ad:
+        data["automation"] = {
+            "runs_seen": len(ad.get("runs", [])),
+            "most_common": ad.get("most_common_pattern"),
+            "diagnosis_counts": ad.get("diagnosis_counts", {}),
+        }
+
+    # Prospect replies (R325)
+    replies = _r337_console_get("/sales/replies?limit=10")
+    if replies:
+        # Count replies in last 24h
+        from datetime import datetime, timezone, timedelta
+        cutoff = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
+        recent = [r for r in replies.get("replies", [])
+                  if (r.get("replied_at") or "") > cutoff]
+        data["replies_24h"] = {
+            "count": len(recent),
+            "samples": [{"from": r.get("reply_from"),
+                         "company": r.get("contact_company"),
+                         "excerpt": (r.get("reply_excerpt") or "")[:120]}
+                        for r in recent[:3]],
+        }
+
+    # Pending signups
+    try:
+        import sqlite3
+        with sqlite3.connect(
+                "/var/lib/murphy-tenants/murphy_tenants.db", timeout=3) as c:
+            n_pending = c.execute(
+                "SELECT COUNT(*) FROM pending_tenants WHERE status='pending'"
+            ).fetchone()[0]
+            recent_signups = c.execute(
+                "SELECT desired_slug, legal_name, contact_email, created_at "
+                "FROM pending_tenants WHERE status='pending' "
+                "ORDER BY created_at DESC LIMIT 3"
+            ).fetchall()
+            n_tenants = c.execute(
+                "SELECT COUNT(*) FROM tenants").fetchone()[0]
+        data["signups"] = {
+            "pending_count": n_pending,
+            "total_tenants": n_tenants,
+            "recent_pending": [
+                {"slug": r[0], "name": r[1], "email": r[2], "at": r[3]}
+                for r in recent_signups
+            ],
+        }
+    except Exception:
+        pass
+
+    # ShieldWall blocks today
+    try:
+        import sqlite3
+        from datetime import datetime, timezone, timedelta
+        cutoff = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
+        with sqlite3.connect(
+                "/var/lib/murphy-tenants/murphy_tenants.db", timeout=3) as c:
+            # quarantine_manifest table from R312
+            try:
+                n_blocked = c.execute(
+                    "SELECT COUNT(*) FROM quarantine_manifest "
+                    "WHERE quarantined_at >= ?", (cutoff,)
+                ).fetchone()[0]
+            except Exception:
+                n_blocked = 0
+        data["security"] = {"quarantined_24h": n_blocked}
+    except Exception:
+        pass
+
+    return data
+
+
+def _r337_format_extras(data):
+    """Build the new brief sections from collected data."""
+    lines = []
+
+    # Substrate alert (only if degraded)
+    sub = data.get("substrate", {})
+    if sub.get("degraded"):
+        lines.append("")
+        lines.append("⚠ SUBSTRATE DEGRADED")
+        lines.append(
+            f"   Capacity gate reading {sub.get('staleness_hours','?')}h-old data."
+        )
+        lines.append(
+            f"   Sees {sub.get('gate_cpu',0):.0f}% cpu | actual {sub.get('actual_cpu','?')}%."
+        )
+        lines.append("   Murphy LLM dispatch is gated. R333 memo has fix.")
+
+    # Sales activity
+    sales = data.get("sales", {})
+    sc = data.get("send_controls", {})
+    replies = data.get("replies_24h", {})
+    lines.append("")
+    lines.append("📤 SALES (last 24h)")
+    paused = "⏸ PAUSED" if sc.get("paused") else "▶ active"
+    lines.append(
+        f"   Send controls: {paused} | sent today {sc.get('sends_today',0)}/{sc.get('daily_cap','?')}"
+    )
+    if replies.get("count", 0) > 0:
+        lines.append(f"   ✓ {replies['count']} new prospect replies")
+        for r in replies.get("samples", []):
+            lines.append(f"     • {r['from']} ({r['company']}): {r['excerpt'][:80]}")
+    else:
+        lines.append("   No new prospect replies")
+
+    # Automation diagnosis (R336)
+    auto = data.get("automation", {})
+    if auto.get("runs_seen", 0) > 0:
+        lines.append("")
+        lines.append("🔄 AUTOMATION (Sales Engine cron)")
+        lines.append(
+            f"   {auto.get('runs_seen')} runs analyzed | most common: {auto.get('most_common')}"
+        )
+        for diag, count in auto.get("diagnosis_counts", {}).items():
+            lines.append(f"     {diag:35s} {count}x")
+
+    # Signups
+    su = data.get("signups", {})
+    if su:
+        lines.append("")
+        lines.append("👤 SIGNUPS")
+        lines.append(
+            f"   {su.get('pending_count',0)} pending | {su.get('total_tenants',0)} total tenants"
+        )
+        for s in su.get("recent_pending", [])[:3]:
+            lines.append(f"     • {s['slug']} ({s['name']}) — {s['email']}")
+
+    # Security
+    sec = data.get("security", {})
+    if sec.get("quarantined_24h", 0) > 0:
+        lines.append("")
+        lines.append("🛡 SECURITY")
+        lines.append(f"   {sec['quarantined_24h']} files quarantined in last 24h")
+
+    return "\n".join(lines)
+
+
+
 def fmt_confidence(val):
     try:
         pct = float(val) * 100 if float(val) <= 1 else float(val)
@@ -395,11 +618,17 @@ def send_brief(html_body, text_body):
     msg.attach(MIMEText(html_body,  "html"))
 
     print(f"Connecting to {SMTP_HOST}:{SMTP_PORT} (STARTTLS)...")
-    with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=15) as server:
-        server.ehlo()
-        server.starttls()
-        server.login(SMTP_USER, SMTP_PASS)
-        server.sendmail(FROM_EMAIL, RECIPIENTS, msg.as_string())
+    # R327: SMTP block replaced by sendmail
+
+    _msg_to_send = msg if 'msg' in dir() else None
+
+    if _msg_to_send is not None:
+
+        _ok, _err = _send_via_sendmail(_msg_to_send, RECIPIENTS)
+
+        if not _ok:
+
+            print(f'  WARN: {_err}')
     print(f"✅ Brief sent to: {', '.join(RECIPIENTS)}")
 
 # ── Main ──────────────────────────────────────────────────────────────────────
@@ -421,10 +650,17 @@ if __name__ == "__main__":
             context = ssl.create_default_context()
             context.check_hostname = False
             context.verify_mode    = ssl.CERT_NONE
-            with smtplib.SMTP(SMTP_HOST, 587) as server:
-                server.ehlo()
-                server.starttls(context=context)
-                server.login(SMTP_USER, SMTP_PASS)
+            # R327: SMTP block replaced by sendmail
+
+            _msg_to_send = msg if 'msg' in dir() else None
+
+            if _msg_to_send is not None:
+
+                _ok, _err = _send_via_sendmail(_msg_to_send, RECIPIENTS)
+
+                if not _ok:
+
+                    print(f'  WARN: {_err}')
                 msg_str = html_body  # reuse msg object
                 today = datetime.now(timezone.utc).strftime("%b %d")
                 from email.mime.multipart import MIMEMultipart

@@ -1,0 +1,1195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Welcome to Murphy</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<style>
+:root {
+  --bg:#050608; --bg2:#0a0d12; --surface:#0f141b; --elevated:#161d28;
+  --border:rgba(0,212,170,.18); --border-hi:rgba(0,212,170,.45);
+  --teal:#00D4AA; --teal-soft:#7afcff; --pink:#ff7eb6;
+  --green:#00ff6a; --amber:#ffa940; --red:#ff5c7c;
+  --text:#e8f0ec; --text-dim:#8fa9a0; --text-dimer:#5a6e66;
+  --font:'Inter',-apple-system,Segoe UI,sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;line-height:1.5}
+
+.topbar{
+  position:sticky;top:0;z-index:50;background:rgba(5,6,8,.92);
+  backdrop-filter:blur(10px);border-bottom:1px solid var(--border);
+  padding:14px 28px;display:flex;align-items:center;gap:16px;
+}
+.topbar .brand{font-weight:700;font-size:15px;letter-spacing:.02em}
+.topbar .brand .sub{color:var(--text-dim);font-size:11px;font-family:var(--mono);
+  text-transform:uppercase;letter-spacing:.1em;margin-left:10px}
+.topbar .role-pill{
+  margin-left:auto;padding:5px 12px;border:1px solid var(--border-hi);
+  border-radius:14px;font-family:var(--mono);font-size:11px;
+  color:var(--teal);background:rgba(0,212,170,.06);text-transform:uppercase;
+  letter-spacing:.08em;
+}
+
+.container{max-width:920px;margin:0 auto;padding:48px 28px 96px}
+
+.hero{margin-bottom:36px}
+.hero h1{font-size:32px;font-weight:700;letter-spacing:-.02em;margin-bottom:8px}
+.hero .subtitle{color:var(--text-dim);font-size:16px}
+
+.progress-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:12px;padding:20px 24px;margin-bottom:32px;
+  display:flex;align-items:center;gap:20px;
+}
+.progress-card .progress-text{flex:1}
+.progress-card .progress-text .pct{font-size:24px;font-weight:700;color:var(--teal)}
+.progress-card .progress-text .label{color:var(--text-dim);font-size:13px;font-family:var(--mono)}
+.progress-bar{
+  flex:2;height:8px;background:var(--bg2);border-radius:4px;overflow:hidden;
+  border:1px solid var(--border);
+}
+.progress-bar .fill{
+  height:100%;background:linear-gradient(90deg,var(--teal),var(--teal-soft));
+  transition:width 400ms ease;
+}
+.btn-ghost{
+  background:transparent;border:1px solid var(--border);color:var(--text-dim);
+  padding:8px 14px;border-radius:6px;font-family:var(--mono);font-size:11px;
+  cursor:pointer;text-transform:uppercase;letter-spacing:.08em;
+}
+.btn-ghost:hover{border-color:var(--border-hi);color:var(--text)}
+
+.steps{display:flex;flex-direction:column;gap:14px}
+
+.step{
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  padding:20px 22px;display:flex;gap:18px;transition:all 180ms ease;
+}
+.step.next{border-color:var(--border-hi);background:var(--elevated);box-shadow:0 0 0 1px rgba(0,212,170,.15)}
+.step.done{opacity:.6}
+.step.skipped{opacity:.5}
+.step.expanded .expand-area{display:block}
+
+.step-marker{
+  width:32px;height:32px;border-radius:50%;flex:0 0 32px;
+  border:2px solid var(--border);display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:13px;font-weight:600;color:var(--text-dim);
+}
+.step.next .step-marker{border-color:var(--teal);color:var(--teal);background:rgba(0,212,170,.08)}
+.step.done .step-marker{border-color:var(--green);color:var(--green);background:rgba(0,255,106,.08)}
+.step.skipped .step-marker{border-color:var(--text-dimer);color:var(--text-dimer)}
+
+.step-body{flex:1;min-width:0}
+.step-title{font-size:16px;font-weight:600;margin-bottom:4px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.step-title .req-tag{
+  font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:10px;
+  letter-spacing:.1em;text-transform:uppercase;
+}
+.step-title .req-tag.required{background:rgba(255,124,140,.12);color:var(--red);border:1px solid rgba(255,124,140,.3)}
+.step-title .req-tag.optional{background:rgba(127,254,255,.08);color:var(--teal-soft);border:1px solid rgba(127,254,255,.2)}
+.step-desc{color:var(--text-dim);font-size:14px;margin-bottom:12px}
+.step-meta{font-family:var(--mono);font-size:11px;color:var(--text-dimer);text-transform:uppercase;letter-spacing:.06em}
+
+.step-actions{display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap}
+.btn-primary{
+  background:var(--teal);color:#000;border:none;padding:8px 18px;border-radius:6px;
+  font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;
+  text-decoration:none;display:inline-flex;align-items:center;gap:6px;
+}
+.btn-primary:hover{background:var(--teal-soft)}
+.btn-secondary{
+  background:transparent;border:1px solid var(--border-hi);color:var(--teal);
+  padding:8px 16px;border-radius:6px;font-family:var(--font);font-size:13px;
+  cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px;
+}
+.btn-secondary:hover{background:rgba(0,212,170,.06)}
+.btn-skip{
+  background:transparent;border:1px dashed var(--border);color:var(--text-dimer);
+  padding:7px 14px;border-radius:6px;font-family:var(--mono);font-size:11px;
+  cursor:pointer;text-transform:uppercase;letter-spacing:.08em;
+}
+.btn-skip:hover{border-color:var(--text-dim);color:var(--text-dim)}
+
+/* Expand area for inline forms / tables */
+.expand-area{
+  display:none;margin-top:18px;padding-top:18px;border-top:1px dashed var(--border);
+}
+
+/* Inline form */
+.iform{display:flex;flex-direction:column;gap:14px;max-width:540px}
+.iform label{font-size:12px;color:var(--text-dim);font-family:var(--mono);
+  text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px}
+.iform input,.iform select,.iform textarea{
+  width:100%;background:var(--bg2);border:1px solid var(--border);color:var(--text);
+  padding:10px 14px;border-radius:6px;font-family:var(--font);font-size:14px;
+}
+.iform input:focus,.iform select:focus,.iform textarea:focus{outline:none;border-color:var(--teal)}
+.checkbox-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.checkbox-grid label{
+  display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);
+  text-transform:none;letter-spacing:0;font-family:var(--font);
+  padding:8px 12px;border:1px solid var(--border);border-radius:6px;cursor:pointer;margin-bottom:0;
+}
+.checkbox-grid input[type=checkbox]{width:auto;margin:0}
+
+/* Roster table */
+.roster-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+.roster-table th{
+  text-align:left;padding:8px 12px;color:var(--text-dim);
+  font-family:var(--mono);font-size:10px;text-transform:uppercase;
+  letter-spacing:.08em;border-bottom:1px solid var(--border);
+}
+.roster-table td{padding:8px 12px;border-bottom:1px solid var(--border)}
+.roster-table tr:hover td{background:rgba(0,212,170,.03)}
+.role-badge{
+  font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:10px;
+  text-transform:uppercase;letter-spacing:.06em;
+}
+.role-badge.founder{background:rgba(255,209,102,.15);color:#FFD166}
+.role-badge.platform_admin,.role-badge.tenant_owner{background:rgba(0,212,170,.12);color:var(--teal)}
+.role-badge.tenant_admin{background:rgba(127,254,255,.1);color:var(--teal-soft)}
+.role-badge.user,.role-badge.tenant_member{background:rgba(143,169,160,.1);color:var(--text-dim)}
+.role-badge.family{background:rgba(255,126,182,.12);color:var(--pink)}
+
+/* HITL inbox cards */
+.hitl-item{
+  background:var(--bg2);border:1px solid var(--border);border-radius:8px;
+  padding:14px 16px;margin-bottom:10px;
+}
+.hitl-item .hitl-head{display:flex;justify-content:space-between;align-items:start;gap:12px;margin-bottom:8px}
+.hitl-item .hitl-title{font-weight:600;font-size:14px}
+.hitl-item .hitl-meta{font-family:var(--mono);font-size:10px;color:var(--text-dimer);text-transform:uppercase}
+.hitl-item .hitl-body{font-size:13px;color:var(--text-dim);margin-bottom:10px;font-family:var(--mono);
+  background:var(--bg);padding:10px;border-radius:4px;max-height:120px;overflow:auto}
+.hitl-item .hitl-actions{display:flex;gap:6px}
+.btn-approve{background:rgba(0,255,106,.12);border:1px solid rgba(0,255,106,.3);
+  color:var(--green);padding:6px 14px;border-radius:5px;font-size:12px;
+  font-family:var(--mono);cursor:pointer;text-transform:uppercase;letter-spacing:.06em}
+.btn-approve:hover{background:rgba(0,255,106,.2)}
+.btn-reject{background:rgba(255,92,124,.1);border:1px solid rgba(255,92,124,.3);
+  color:var(--red);padding:6px 14px;border-radius:5px;font-size:12px;
+  font-family:var(--mono);cursor:pointer;text-transform:uppercase;letter-spacing:.06em}
+.btn-reject:hover{background:rgba(255,92,124,.18)}
+
+.complete-banner{
+  background:linear-gradient(135deg,rgba(0,212,170,.12),rgba(127,254,255,.06));
+  border:1px solid var(--border-hi);border-radius:12px;padding:28px;
+  text-align:center;margin-bottom:24px;
+}
+.complete-banner h2{font-size:22px;color:var(--teal);margin-bottom:8px}
+
+.toast{
+  position:fixed;bottom:24px;right:24px;background:var(--elevated);
+  border:1px solid var(--border-hi);border-radius:8px;padding:14px 20px;
+  color:var(--text);font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.4);
+  opacity:0;transform:translateY(20px);transition:all 200ms ease;z-index:100;
+  max-width:380px;
+}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast.error{border-color:var(--red);color:var(--red)}
+
+.loading,.empty{text-align:center;padding:32px;color:var(--text-dim);font-family:var(--mono);font-size:13px}
+.error-state{text-align:center;padding:64px;color:var(--red);font-family:var(--mono);font-size:13px}
+
+@media(max-width:640px){
+  .container{padding:24px 16px 64px}
+  .hero h1{font-size:24px}
+  .progress-card{flex-direction:column;align-items:stretch;gap:14px}
+  .step{flex-direction:column;gap:12px}
+  .checkbox-grid{grid-template-columns:1fr}
+}
+
+/* _R458_DRILL — HITL Drill-down modal */
+.drill-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:1000;
+               align-items:center; justify-content:center; padding:24px; }
+.drill-modal.open { display:flex; }
+.drill-shell { background:var(--bg2); border:1px solid var(--border-hi); border-radius:10px;
+               width:min(960px, 100%); max-height:90vh; overflow:auto; }
+.drill-head { display:flex; justify-content:space-between; align-items:center; padding:16px 20px;
+              border-bottom:1px solid var(--border); font-family:var(--mono); font-size:13px;
+              color:var(--teal); position:sticky; top:0; background:var(--bg2); z-index:2; }
+.drill-close { background:none; border:1px solid var(--border); color:var(--text);
+               width:28px; height:28px; border-radius:4px; cursor:pointer; }
+.drill-close:hover { background:var(--bg); }
+#drill-body { padding:16px 20px; }
+.drill-card { background:var(--bg); border:1px solid var(--border); border-radius:6px;
+              padding:14px 16px; margin-bottom:14px; }
+.drill-card-h { font-size:11px; font-family:var(--mono); color:var(--teal);
+                text-transform:uppercase; letter-spacing:.1em; margin-bottom:10px; }
+.drill-row { display:flex; gap:12px; padding:4px 0; font-size:13px; }
+.drill-row.dim { color:var(--text-dim); font-size:12px; }
+.drill-k { font-family:var(--mono); color:var(--text-dim); min-width:90px; font-size:12px; }
+.drill-snippet { background:rgba(0,212,170,.04); border-left:3px solid var(--teal);
+                 padding:10px 14px; margin-top:10px; font-style:italic; color:var(--text);
+                 font-size:13px; line-height:1.5; }
+.drill-excel { width:100%; border-collapse:collapse; font-size:13px; }
+.drill-excel th, .drill-excel td { padding:8px 10px; text-align:left;
+                                  border-bottom:1px solid var(--border); }
+.drill-excel th { font-family:var(--mono); font-size:11px; color:var(--text-dim);
+                  text-transform:uppercase; letter-spacing:.1em; }
+.drill-excel td.dim { color:var(--text-dim); font-family:var(--mono); font-size:11px; }
+.drill-template { background:rgba(0,0,0,.3); padding:12px; border-radius:4px;
+                  font-family:var(--mono); font-size:12px; line-height:1.5;
+                  white-space:pre-wrap; overflow:auto; max-height:200px;
+                  color:var(--text-dim); }
+.drill-body-rendered { background:rgba(0,0,0,.2); padding:14px 16px; border-radius:4px;
+                       font-size:14px; line-height:1.6; color:var(--text);
+                       margin-top:10px; }
+.drill-tok { padding:1px 4px; border-radius:3px; cursor:help; }
+.drill-meta-row { font-size:13px; padding:3px 0; color:var(--text-dim); }
+.drill-legend { margin-top:14px; padding-top:10px; border-top:1px solid var(--border);
+                font-size:12px; color:var(--text-dim); display:flex; gap:14px; flex-wrap:wrap; }
+
+</style>
+<!-- _R458_DRILL -->
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">Murphy<span class="sub">Welcome</span></div>
+  <div id="role-pill" class="role-pill" style="display:none"></div>
+</div>
+
+<div class="container">
+  <div id="content">
+    <div class="loading">Loading your setup flow…</div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+const API_KEY_FROM_QS = new URLSearchParams(location.search).get('key');
+const FOUNDER_KEY = API_KEY_FROM_QS || localStorage.getItem('murphy_api_key') || '';
+if (API_KEY_FROM_QS) localStorage.setItem('murphy_api_key', API_KEY_FROM_QS);
+
+let CURRENT_FLOW = null;
+let CURRENT_IDENTITY = null;
+
+function H() {
+  const h = {'Content-Type':'application/json'};
+  if (FOUNDER_KEY) h['X-API-Key'] = FOUNDER_KEY;
+  return h;
+}
+
+function toast(msg, isError = false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (isError ? ' error' : '');
+  setTimeout(() => t.className = 'toast', 2800);
+}
+
+function esc(s) {
+  if (s === null || s === undefined) return '';
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+async function loadFlow() {
+  try {
+    const [flowR, whoR] = await Promise.all([
+      fetch('/api/flows/me', {headers: H()}),
+      fetch('/api/auth/whoami', {headers: H()})
+    ]);
+    if (flowR.status === 401) {
+      document.getElementById('content').innerHTML =
+        '<div class="error-state">Not authenticated. <a href="/api/auth/login" style="color:var(--teal)">Sign in</a> or pass <code>?key=YOUR_KEY</code>.</div>';
+      return;
+    }
+    const data = await flowR.json();
+    CURRENT_IDENTITY = await whoR.json();
+    if (!data.ok) {
+      document.getElementById('content').innerHTML = '<div class="error-state">Error: ' + (data.error || 'unknown') + '</div>';
+      return;
+    }
+    CURRENT_FLOW = data;
+    renderFlow(data);
+  } catch (e) {
+    document.getElementById('content').innerHTML = '<div class="error-state">Connection error: ' + e.message + '</div>';
+  }
+}
+
+function renderFlow(data) {
+  const rp = document.getElementById('role-pill');
+  rp.textContent = data.role;
+  rp.style.display = 'inline-block';
+
+  const isComplete = !data.next_step;
+  const completeBanner = isComplete ? `
+    <div class="complete-banner">
+      <h2>✓ All steps complete</h2>
+      <p style="color:var(--text-dim)">You're all set. Restart to revisit, or close this tab.</p>
+    </div>` : '';
+
+  let html = `
+    <div class="hero">
+      <h1>${esc(data.title)}</h1>
+      <div class="subtitle">${esc(data.subtitle)}</div>
+    </div>
+    ${completeBanner}
+    <div class="progress-card">
+      <div class="progress-text">
+        <div class="pct">${data.percent_complete}%</div>
+        <div class="label">${data.completed_steps} of ${data.total_steps} steps</div>
+      </div>
+      <div class="progress-bar"><div class="fill" style="width:${data.percent_complete}%"></div></div>
+      <button class="btn-ghost" onclick="restartFlow()">Restart</button>
+    </div>
+    <div class="steps">`;
+
+  for (let i = 0; i < data.steps.length; i++) {
+    const s = data.steps[i];
+    const isNext = data.next_step && data.next_step.id === s.id;
+    const cls = s.completed ? (s.skipped ? 'skipped' : 'done') : (isNext ? 'next expanded' : '');
+    const marker = s.completed ? (s.skipped ? '⊘' : '✓') : (i + 1);
+    const reqTag = s.required
+      ? '<span class="req-tag required">Required</span>'
+      : '<span class="req-tag optional">Optional</span>';
+
+    html += `
+      <div class="step ${cls}" id="step-${esc(s.id)}">
+        <div class="step-marker">${marker}</div>
+        <div class="step-body">
+          <div class="step-title">${esc(s.title)} ${reqTag}</div>
+          ${s.description ? `<div class="step-desc">${esc(s.description)}</div>` : ''}
+          <div class="step-meta">${esc(s.category)} · ${esc(s.action)}${s.completed_at ? ' · done ' + esc(s.completed_at) : ''}</div>
+          ${s.completed ? '' : renderStepActions(s)}
+          ${s.completed ? '' : `<div class="expand-area" id="expand-${esc(s.id)}">${renderInlinePanel(s)}</div>`}
+        </div>
+      </div>`;
+  }
+  html += '</div>';
+  document.getElementById('content').innerHTML = html;
+
+  // Auto-load data-bound panels for the "next" step
+  if (data.next_step) {
+    autoLoadPanel(data.next_step);
+  }
+}
+
+function renderStepActions(s) {
+  const expandable = ['review_roster', 'add_family', 'check_inbox', 'name_org', 'claim_slug',
+                      'invite_first', 'channel_prefs', 'verify_engagements',
+                      'review_cadence', 'see_scope', 'see_members',
+                      'engage_hitl', 'connect_data'].includes(s.id);
+  let primary = '';
+  if (expandable) {
+    primary = `<button class="btn-primary" onclick="toggleStep('${esc(s.id)}')">Open ↓</button>`;
+  } else if (s.action === 'link') {
+    primary = `<a class="btn-primary" href="${esc(s.target)}" onclick="markComplete('${esc(s.id)}', false, {via:'link'})">${esc(s.title)} →</a>`;
+  } else if (s.action === 'info') {
+    primary = `<button class="btn-primary" onclick="markComplete('${esc(s.id)}', false, {})">Got it</button>`;
+  } else {
+    primary = `<button class="btn-primary" onclick="markComplete('${esc(s.id)}', false, {})">Mark done</button>`;
+  }
+  const skip = s.required ? '' : `<button class="btn-skip" onclick="markComplete('${esc(s.id)}', true, {})">Skip</button>`;
+  return `<div class="step-actions">${primary}${skip}</div>`;
+}
+
+function toggleStep(stepId) {
+  const el = document.getElementById('step-' + stepId);
+  if (!el) return;
+  el.classList.toggle('expanded');
+  const step = CURRENT_FLOW.steps.find(x => x.id === stepId);
+  if (step && el.classList.contains('expanded')) autoLoadPanel(step);
+}
+
+function renderInlinePanel(s) {
+  switch (s.id) {
+    case 'verify_engagements':
+    case 'review_cadence':
+      return '<div id="panel-' + esc(s.id) + '"><div class="loading">Checking…</div></div>';
+    case 'review_roster':
+    case 'see_members':
+      return '<div id="panel-' + esc(s.id) + '"><div class="loading">Loading roster…</div></div>';
+    case 'add_family':
+      return renderFamilyForm();
+    case 'check_inbox':
+      return '<div id="panel-' + esc(s.id) + '"><div class="loading">Loading HITL items…</div></div>';
+    case 'name_org':
+      return renderNameOrgForm();
+    case 'claim_slug':
+      return renderClaimSlugForm();
+    case 'engage_hitl':
+      return renderEngageHitlForm();
+    case 'connect_data':
+      return renderConnectDataForm();
+    case 'invite_first':
+      return renderInviteForm();
+    case 'channel_prefs':
+      return renderChannelPrefsForm();
+    case 'see_scope':
+      return renderFamilyScopePanel();
+    default:
+      return '';
+  }
+}
+
+async function autoLoadPanel(s) {
+  if (s.id === 'verify_engagements') return loadEngagementsCheck();
+  if (s.id === 'review_cadence') return loadCadenceCheck();
+  if (s.id === 'review_roster' || s.id === 'see_members') return loadRoster(s.id);
+  if (s.id === 'check_inbox') return loadHitlInbox();
+  if (s.id === 'see_scope') return loadFamilyScope();
+}
+
+// ─── verify_engagements panel ───
+async function loadEngagementsCheck() {
+  try {
+    const r = await fetch('/api/hitl/engagements', {headers: H()});
+    const d = await r.json();
+    const p = document.getElementById('panel-verify_engagements');
+    if (!p) return;
+    const count = d.count || 0;
+    const active = (d.engagements || []).filter(e => e.status === 'active');
+    if (active.length === 0) {
+      p.innerHTML = `
+        <div style="padding:16px;background:rgba(255,92,124,.06);border:1px solid rgba(255,92,124,.2);border-radius:6px;margin-bottom:12px">
+          ⚠ <strong>No active engagements.</strong> You can't approve HITL items until you engage for at least one action class.
+        </div>
+        <a class="btn-primary" href="/api/hitl/engage">Engage now →</a>`;
+      return;
+    }
+    // Show the canonical contract + each engagement card
+    let html = `
+      <div style="padding:16px;background:rgba(0,212,170,.04);border:1px solid var(--border-hi);border-radius:6px;margin-bottom:16px">
+        <div style="font-size:11px;font-family:var(--mono);color:var(--teal);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">Engagement Contract (canonical text)</div>
+        <div style="font-size:14px;color:var(--text);line-height:1.6;font-style:italic">"${esc(d.canonical_text)}"</div>
+        <div style="margin-top:10px;font-family:var(--mono);font-size:11px;color:var(--text-dim)">
+          → <a href="/terms#section-1b" target="_blank" style="color:var(--teal-soft)">Read full Terms §1B</a>
+        </div>
+      </div>
+      <div style="font-size:13px;color:var(--text-dim);margin-bottom:10px">You have ${active.length} active engagement${active.length===1?'':'s'}:</div>`;
+
+    for (const e of active) {
+      const expires = new Date(e.valid_until);
+      const daysLeft = Math.ceil((expires - new Date()) / (1000*60*60*24));
+      const expireColor = daysLeft < 14 ? 'var(--amber)' : 'var(--text-dim)';
+      html += `
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:14px 16px;margin-bottom:10px">
+          <div style="display:flex;justify-content:space-between;align-items:start;gap:12px;margin-bottom:8px">
+            <div style="font-family:var(--mono);font-size:13px;color:var(--teal);font-weight:600">${esc(e.action_class)}</div>
+            <div style="font-family:var(--mono);font-size:11px;color:${expireColor}">expires in ${daysLeft}d</div>
+          </div>
+          <div style="font-size:13px;color:var(--text);margin-bottom:10px;line-height:1.5">${esc(e.plain_english)}</div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--text-dimer);display:flex;gap:16px;flex-wrap:wrap">
+            <span>signed: ${esc((e.created_at || '').substring(0,10))}</span>
+            <span>valid until: ${esc((e.valid_until || '').substring(0,10))}</span>
+            <span title="${esc(e.hash_of_engagement_text)}">hash: ${esc((e.hash_of_engagement_text || '').substring(0,16))}…</span>
+          </div>
+        </div>`;
+    }
+    html += `
+      <div style="display:flex;gap:8px;margin-top:14px">
+        <button class="btn-primary" onclick="markComplete('verify_engagements', false, {reviewed_count:${active.length}})">I've reviewed these — continue</button>
+        <a class="btn-secondary" href="/api/hitl/engage">Engage more action classes</a>
+      </div>`;
+    p.innerHTML = html;
+  } catch (e) { toast('Check failed: ' + e.message, true); }
+}
+
+// ─── review_cadence panel ───
+async function loadCadenceCheck() {
+  try {
+    const r = await fetch('/api/hitl/items', {headers: H()});
+    const d = await r.json();
+    const p = document.getElementById('panel-review_cadence');
+    if (!p) return;
+    const count = d.count || 0;
+    p.innerHTML = `
+      <div style="padding:14px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;margin-bottom:12px">
+        Cadence pipeline state: <strong>${count}</strong> items currently in HITL queue.
+        ${count === 0 ? '<div style="color:var(--amber);font-size:12px;margin-top:6px">No items yet — cadence runs daily 09:00 PT.</div>' : ''}
+      </div>
+      <button class="btn-primary" onclick="markComplete('review_cadence', false, {queue_count:${count}})">Acknowledge</button>`;
+  } catch (e) { toast('Check failed', true); }
+}
+
+// ─── roster panel ───
+async function loadRoster(stepId) {
+  try {
+    const r = await fetch('/api/admin/roster', {headers: H()});
+    const d = await r.json();
+    const p = document.getElementById('panel-' + stepId);
+    if (!p) return;
+    if (!d.ok) { p.innerHTML = '<div class="error-state">Cannot load roster</div>'; return; }
+    const rows = d.rows || [];
+    const grouped = {};
+    for (const row of rows) {
+      const k = row.org_name || '(no org / plain users)';
+      if (!grouped[k]) grouped[k] = [];
+      grouped[k].push(row);
+    }
+    let html = `<div style="margin-bottom:12px;color:var(--text-dim);font-size:13px">${rows.length} accounts across ${Object.keys(grouped).length} groups</div>`;
+    for (const orgName of Object.keys(grouped)) {
+      const members = grouped[orgName];
+      html += `<div style="margin-bottom:18px">
+        <div style="font-family:var(--mono);font-size:11px;color:var(--teal);
+                    text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px">
+          ${esc(orgName)} (${members.length})
+        </div>
+        <table class="roster-table">
+          <thead><tr><th>Email</th><th>Role</th><th>Tier</th><th>Appointed</th></tr></thead>
+          <tbody>`;
+      for (const m of members.slice(0, 50)) {
+        const role = m.role || 'user';
+        html += `<tr>
+          <td>${esc(m.email || '')}</td>
+          <td><span class="role-badge ${esc(role)}">${esc(role)}</span></td>
+          <td>${esc(m.tier || 'free')}</td>
+          <td style="font-family:var(--mono);font-size:11px;color:var(--text-dimer)">${esc((m.appointed_at || '').substring(0,10) || '—')}</td>
+        </tr>`;
+      }
+      if (members.length > 50) html += `<tr><td colspan="4" style="color:var(--text-dimer);text-align:center;font-family:var(--mono);font-size:11px">… and ${members.length-50} more</td></tr>`;
+      html += `</tbody></table></div>`;
+    }
+    html += `<div style="display:flex;gap:8px;margin-top:12px">
+      <a class="btn-secondary" href="/api/admin/roster.csv" download>Download CSV</a>
+      <button class="btn-primary" onclick="markComplete('${stepId}', false, {viewed_count:${rows.length}})">Reviewed</button>
+    </div>`;
+    p.innerHTML = html;
+  } catch (e) { toast('Roster failed: ' + e.message, true); }
+}
+
+// ─── add_family inline form ───
+function renderFamilyForm() {
+  return `
+    <form class="iform" onsubmit="submitFamilyForm(event)">
+      <div>
+        <label>Email</label>
+        <input type="email" name="email" placeholder="someone@example.com" required>
+      </div>
+      <div>
+        <label>Display name</label>
+        <input type="text" name="display_name" placeholder="Their name (optional)">
+      </div>
+      <div>
+        <label>Scope (what they can interact with)</label>
+        <div class="checkbox-grid">
+          <label><input type="checkbox" name="scope" value="inbound_autoresponse" checked> Autorespond to their messages</label>
+          <label><input type="checkbox" name="scope" value="read_reports"> Send them reports</label>
+          <label><input type="checkbox" name="scope" value="voice_callback"> Voice callbacks OK</label>
+          <label><input type="checkbox" name="scope" value="schedule_view"> See calendar</label>
+        </div>
+      </div>
+      <div>
+        <label>Notes (optional)</label>
+        <textarea name="notes" rows="2" placeholder="Any context Murphy should know"></textarea>
+      </div>
+      <div class="step-actions">
+        <button type="submit" class="btn-primary">Add family member</button>
+      </div>
+    </form>`;
+}
+async function submitFamilyForm(ev) {
+  ev.preventDefault();
+  const fd = new FormData(ev.target);
+  const scope = Array.from(ev.target.querySelectorAll('input[name=scope]:checked')).map(x => x.value);
+  const body = {
+    email: fd.get('email'),
+    display_name: fd.get('display_name') || '',
+    scope: scope,
+    notes: fd.get('notes') || ''
+  };
+  try {
+    const r = await fetch('/api/founder/family/add', {method:'POST', headers: H(), body: JSON.stringify(body)});
+    const d = await r.json();
+    if (d.ok) {
+      toast('Added ' + body.email);
+      markComplete('add_family', false, {added: body.email});
+    } else { toast('Error: ' + (d.error || 'failed'), true); }
+  } catch (e) { toast('Error: ' + e.message, true); }
+}
+
+// ═══ _R465_BULK_UI — bulk approve/reject helpers ═══
+let _r465LastItemIds = [];
+async function bulkApproveVisible() {
+  if (_r465LastItemIds.length === 0) { toast('No items to approve', true); return; }
+  const n = _r465LastItemIds.length;
+  if (!confirm(`Send ${n} real emails right now?\n\nEach one will be approved AND delivered via SMTP.\nThis cannot be undone.`)) return;
+  toast(`Sending ${n} emails…`);
+  try {
+    const r = await fetch('/api/hitl/items/bulk-approve', {
+      method: 'POST', headers: H(),
+      body: JSON.stringify({ids: _r465LastItemIds})
+    });
+    const d = await r.json();
+    if (d.ok) {
+      toast(`✓ Sent ${d.sent} / ${d.requested} (${d.failed} failed)`);
+      loadHitlInbox();
+    } else {
+      toast('Bulk approve error: ' + (d.error || 'failed'), true);
+    }
+  } catch (e) { toast('Error: ' + e.message, true); }
+}
+
+async function bulkRejectVisible() {
+  if (_r465LastItemIds.length === 0) { toast('No items to reject', true); return; }
+  const reason = prompt(`Reject ${_r465LastItemIds.length} items. Reason?`, 'not_relevant');
+  if (!reason) return;
+  try {
+    const r = await fetch('/api/hitl/items/bulk-reject', {
+      method: 'POST', headers: H(),
+      body: JSON.stringify({ids: _r465LastItemIds, reason: reason})
+    });
+    const d = await r.json();
+    if (d.ok) {
+      toast(`✗ Rejected ${d.rejected} / ${d.requested}`);
+      loadHitlInbox();
+    } else {
+      toast('Bulk reject error: ' + (d.error || 'failed'), true);
+    }
+  } catch (e) { toast('Error: ' + e.message, true); }
+}
+
+// ═══ _R458_DRILL — HITL Drill-down (R456+R457 lineage) ═══
+async function openDrill(itemId) {
+  const modal = document.getElementById('drill-modal') || createDrillModal();
+  modal.classList.add('open');
+  const body = document.getElementById('drill-body');
+  body.innerHTML = '<div class="loading">Loading lineage…</div>';
+  try {
+    const r = await fetch('/api/hitl/items/' + encodeURIComponent(itemId) + '/drill',
+                         {headers: H()});
+    const d = await r.json();
+    if (!d.ok) {
+      body.innerHTML = `<div class="empty" style="color:#FF6B6B">Error: ${esc(d.error||'failed')}</div>`;
+      return;
+    }
+    body.innerHTML = renderDrillContent(d);
+  } catch (e) {
+    body.innerHTML = `<div class="empty" style="color:#FF6B6B">${esc(e.message)}</div>`;
+  }
+}
+
+function createDrillModal() {
+  const m = document.createElement('div');
+  m.id = 'drill-modal';
+  m.className = 'drill-modal';
+  m.innerHTML = `
+    <div class="drill-shell">
+      <div class="drill-head">
+        <div>HITL Drill-down — source → input → template → output</div>
+        <button class="drill-close" onclick="closeDrill()">✕</button>
+      </div>
+      <div id="drill-body"></div>
+    </div>`;
+  m.onclick = (e) => { if (e.target === m) closeDrill(); };
+  document.body.appendChild(m);
+  return m;
+}
+
+function closeDrill() {
+  const m = document.getElementById('drill-modal');
+  if (m) m.classList.remove('open');
+}
+
+function renderDrillContent(d) {
+  const sourceDoc = d.source_document || {};
+  const excel = d.input_fields_excel || [];
+  const spans = (d.highlight_spans || []).slice().sort((a,b)=>a.start-b.start);
+  const msg = d.message || {};
+  const tmpl = d.template || {};
+
+  // Build highlighted body — wrap input-derived spans in colored span tags
+  let highlighted = '';
+  const full = msg.full || (msg.subject + '\n\n' + msg.body);
+  let cursor = 0;
+  const colors = {
+    first_name:   '#00D4AA',
+    company:      '#FFD66B',
+    title:        '#FF9D9D',
+    role_context: '#A78BFA',
+  };
+  for (const s of spans) {
+    if (s.start < cursor) continue;  // overlap, skip
+    highlighted += esc(full.substring(cursor, s.start));
+    const color = colors[s.field] || '#5EE9C2';
+    highlighted += `<span class="drill-tok" style="background:${color}22;border-bottom:2px solid ${color}" title="${esc(s.field)} = ${esc(s.value)}">${esc(s.value)}</span>`;
+    cursor = s.end;
+  }
+  highlighted += esc(full.substring(cursor));
+  highlighted = highlighted.replace(/\n/g, '<br>');
+
+  // Excel-style rows
+  const excelHtml = excel.length === 0
+    ? '<div class="empty">No input fields recorded (item pre-dates R456 lineage)</div>'
+    : `<table class="drill-excel">
+         <thead><tr><th>Field</th><th>Value</th><th>Source</th></tr></thead>
+         <tbody>
+           ${excel.map(r => `
+             <tr>
+               <td><code>${esc(r.field)}</code></td>
+               <td>${esc(r.value||'')}</td>
+               <td class="dim">${esc(r.source||'')}</td>
+             </tr>`).join('')}
+         </tbody>
+       </table>`;
+
+  // Source document
+  const sourceHtml = `
+    <div class="drill-card">
+      <div class="drill-card-h">① Source document</div>
+      ${sourceDoc.system ? `
+        <div class="drill-row"><span class="drill-k">system</span><span>${esc(sourceDoc.system)}</span></div>
+        <div class="drill-row"><span class="drill-k">lead_id</span><span><code>${esc(sourceDoc.lead_id||'—')}</code></span></div>
+        ${sourceDoc.source_url ? `<div class="drill-row"><span class="drill-k">source url</span><a href="${esc(sourceDoc.source_url)}" target="_blank">${esc(sourceDoc.source_url)} ↗</a></div>` : ''}
+        ${sourceDoc.raw_snippet ? `<div class="drill-snippet">"${esc(sourceDoc.raw_snippet)}"</div>` : ''}
+        ${sourceDoc.fetched_at ? `<div class="drill-row dim"><span class="drill-k">fetched</span>${esc(sourceDoc.fetched_at)}</div>` : ''}
+      ` : '<div class="empty">No source document recorded</div>'}
+    </div>`;
+
+  // Template card
+  const tmplHtml = `
+    <div class="drill-card">
+      <div class="drill-card-h">③ Template — <code>${esc(tmpl.id || 'unknown')}</code></div>
+      ${tmpl.raw ? `<pre class="drill-template">${esc(tmpl.raw)}</pre>` : '<div class="empty">No template recorded</div>'}
+    </div>`;
+
+  return `
+    ${sourceHtml}
+    <div class="drill-card">
+      <div class="drill-card-h">② Parsed input fields (Excel mapping)</div>
+      ${excelHtml}
+    </div>
+    ${tmplHtml}
+    <div class="drill-card">
+      <div class="drill-card-h">④ Final message — input values highlighted</div>
+      <div class="drill-meta-row"><strong>To:</strong> ${esc(msg.to||'')}</div>
+      <div class="drill-meta-row"><strong>From:</strong> ${esc(msg.from||'')}</div>
+      <div class="drill-body-rendered">${highlighted}</div>
+      <div class="drill-legend">
+        ${Object.entries(colors).map(([f,c]) => `<span><span class="drill-tok" style="background:${c}22;border-bottom:2px solid ${c}">${f}</span></span>`).join(' ')}
+      </div>
+    </div>
+    ${d.has_lineage ? '' : '<div class="empty" style="margin-top:12px">⚠ This item was queued before R456 — lineage will be empty. Newer items will show full source & template detail.</div>'}
+  `;
+}
+
+// ─── check_inbox HITL panel ───
+async function loadHitlInbox() {
+  try {
+    const r = await fetch('/api/hitl/items', {headers: H()});
+    const d = await r.json();
+    const p = document.getElementById('panel-check_inbox');
+    if (!p) return;
+    const items = d.items || [];
+    if (items.length === 0) {
+      p.innerHTML = `
+        <div class="empty">No HITL items pending. Inbox is clear ✓</div>
+        <button class="btn-primary" onclick="markComplete('check_inbox', false, {queue:0})">Acknowledge clear inbox</button>`;
+      return;
+    }
+    _r465LastItemIds = items.map(it => it.id);
+    let html = '';
+    for (const item of items.slice(0, 10)) {
+      const body = typeof item.submitted_data === 'string' ? item.submitted_data : JSON.stringify(item.submitted_data || {}, null, 2);
+      html += `
+        <div class="hitl-item">
+          <div class="hitl-head">
+            <div>
+              <div class="hitl-title">${esc(item.title || item.template_code || item.id)}</div>
+              <div class="hitl-meta">${esc(item.template_code || '?')} · ${esc(item.id)}</div>
+            </div>
+          </div>
+          <div class="hitl-body">${esc(body.substring(0, 500))}${body.length > 500 ? '…' : ''}</div>
+          <div class="hitl-actions">
+            <button class="btn-approve" onclick="decideHitl('${esc(item.id)}','approve')">Approve</button>
+            <button class="btn-reject" onclick="decideHitl('${esc(item.id)}','reject')">Reject</button>
+            <button class="btn-secondary" onclick="openDrill('${esc(item.id)}')">🔍 Drill into source</button>
+          </div>
+        </div>`;
+    }
+    if (items.length > 10) html += `<div class="empty">+ ${items.length - 10} more</div>`;
+    // _R465_BULK_UI — bulk approve/reject the visible queue
+    html += `<div class="step-actions" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <button class="btn-approve" onclick="bulkApproveVisible()" style="background:#00D4AA;color:#0a0f0d;border:none;padding:10px 16px;border-radius:6px;font-weight:600;cursor:pointer">
+        ✓ Approve all ${items.length} (send now)
+      </button>
+      <button class="btn-reject" onclick="bulkRejectVisible()" style="background:#FF6B6B;color:#0a0f0d;border:none;padding:10px 16px;border-radius:6px;font-weight:600;cursor:pointer">
+        ✗ Reject all ${items.length}
+      </button>
+      <button class="btn-primary" onclick="markComplete('check_inbox', false, {reviewed:${items.length}})">Done reviewing</button>
+      <span style="color:#888;font-size:11px;margin-left:auto">⚠ Bulk approve sends real emails immediately</span>
+    </div>`;
+    p.innerHTML = html;
+  } catch (e) { toast('Inbox failed: ' + e.message, true); }
+}
+async function decideHitl(itemId, action) {
+  try {
+    const r = await fetch('/api/hitl/items/' + itemId + '/decide', {
+      method:'POST', headers: H(), body: JSON.stringify({action: action})
+    });
+    const d = await r.json();
+    if (d.ok) {
+      toast(action === 'approve' ? '✓ Approved' : 'Rejected');
+      loadHitlInbox();
+    } else { toast('Error: ' + (d.error || d.detail || 'failed'), true); }
+  } catch (e) { toast('Error: ' + e.message, true); }
+}
+
+// ─── name_org form ───
+function renderNameOrgForm() {
+  return `
+    <form class="iform" onsubmit="submitNameOrgForm(event)">
+      <div>
+        <label>Organization name</label>
+        <input type="text" name="name" placeholder="Acme Corp" required>
+      </div>
+      <div>
+        <label>Brief description (optional)</label>
+        <input type="text" name="description" placeholder="What does your team do?">
+      </div>
+      <div class="step-actions">
+        <button type="submit" class="btn-primary">Create organization</button>
+      </div>
+    </form>`;
+}
+async function submitNameOrgForm(ev) {
+  ev.preventDefault();
+  const fd = new FormData(ev.target);
+  const body = {name: fd.get('name'), metadata: {description: fd.get('description') || ''}};
+  try {
+    const r = await fetch('/api/tenant/create', {method:'POST', headers: H(), body: JSON.stringify(body)});
+    const d = await r.json();
+    if (d.ok) {
+      toast('Org created: ' + d.org_id);
+      markComplete('name_org', false, {org_id: d.org_id, name: body.name});
+      setTimeout(() => location.reload(), 800);
+    } else { toast('Error: ' + (d.error || 'failed'), true); }
+  } catch (e) { toast('Error: ' + e.message, true); }
+}
+
+
+// ─── claim_slug form (R446) ───
+function renderClaimSlugForm() {
+  return `
+    <form class="iform" onsubmit="submitClaimSlugForm(event)">
+      <div>
+        <label>Your tenant URL</label>
+        <div style="display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:14px;color:var(--text-dim)">
+          <span>murphy.systems/</span>
+          <input type="text" id="slug-input" name="slug"
+                 placeholder="your-shop" required minlength="3" maxlength="30"
+                 pattern="[a-z0-9][a-z0-9-]*[a-z0-9]"
+                 style="flex:1;max-width:260px"
+                 oninput="onSlugInput(this)">
+        </div>
+        <div id="slug-status" class="step-meta" style="margin-top:6px;min-height:18px"></div>
+      </div>
+      <div class="step-actions">
+        <button type="submit" class="btn-primary" id="claim-slug-btn" disabled>Claim URL</button>
+      </div>
+    </form>
+  `;
+}
+
+let _slugCheckTimer = null;
+async function onSlugInput(input) {
+  const raw = input.value.trim().toLowerCase();
+  const status = document.getElementById('slug-status');
+  const btn = document.getElementById('claim-slug-btn');
+  btn.disabled = true;
+  if (!raw || raw.length < 3) {
+    status.textContent = '';
+    return;
+  }
+  status.textContent = 'Checking…';
+  status.style.color = 'var(--text-dim)';
+  clearTimeout(_slugCheckTimer);
+  _slugCheckTimer = setTimeout(async () => {
+    try {
+      const r = await fetch('/api/tenant/check-slug?slug=' + encodeURIComponent(raw));
+      const d = await r.json();
+      if (d.ok && d.available) {
+        status.textContent = '✓ Available — murphy.systems/' + d.slug;
+        status.style.color = 'var(--green)';
+        btn.disabled = false;
+      } else {
+        status.textContent = '✗ ' + (d.reason || 'Not available') +
+          (d.suggested ? ' (try: ' + d.suggested + ')' : '');
+        status.style.color = 'var(--red)';
+        btn.disabled = true;
+      }
+    } catch (e) {
+      status.textContent = 'Couldn\'t check availability';
+      status.style.color = 'var(--text-dim)';
+    }
+  }, 350);
+}
+
+async function submitClaimSlugForm(ev) {
+  ev.preventDefault();
+  const slug = document.getElementById('slug-input').value.trim().toLowerCase();
+  const btn = document.getElementById('claim-slug-btn');
+  const status = document.getElementById('slug-status');
+  btn.disabled = true;
+  btn.textContent = 'Claiming…';
+  try {
+    const r = await fetch('/api/tenant/claim-slug', {
+      method: 'POST',
+      headers: H(),
+      body: JSON.stringify({slug: slug})
+    });
+    const d = await r.json();
+    if (d.ok) {
+      status.textContent = '✓ Claimed: ' + d.url;
+      status.style.color = 'var(--green)';
+      await markComplete('claim_slug', false, {slug: d.slug, url: d.url});
+    } else {
+      status.textContent = '✗ ' + (d.error || 'Failed to claim');
+      status.style.color = 'var(--red)';
+      btn.disabled = false;
+      btn.textContent = 'Claim URL';
+    }
+  } catch (e) {
+    status.textContent = 'Network error';
+    status.style.color = 'var(--red)';
+    btn.disabled = false;
+    btn.textContent = 'Claim URL';
+  }
+}
+
+
+// ─── engage_hitl form (R448) ───
+const HITL_ACTION_CLASSES = [
+  {key: 'outbound_email',   label: 'Outbound email',
+   note: 'Murphy drafts outbound emails; each one waits for your approval before sending.'},
+  {key: 'outbound_message', label: 'Outbound SMS / chat',
+   note: 'Same as email but for text-based channels.'},
+  {key: 'sales_outreach',   label: 'Sales outreach (cold)',
+   note: 'Cold outreach to prospects. Requires per-item approval.'},
+  {key: 'prospect_email',   label: 'Prospect emails',
+   note: 'Email replies and drip sequences to known prospects.'},
+];
+
+function renderEngageHitlForm() {
+  const checks = HITL_ACTION_CLASSES.map(c => `
+    <label style="display:block;padding:10px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;cursor:pointer">
+      <input type="checkbox" name="ac" value="${c.key}" checked style="margin-right:8px">
+      <span style="font-weight:600">${esc(c.label)}</span>
+      <div style="color:var(--text-dim);font-size:12px;margin-left:24px;margin-top:2px">${esc(c.note)}</div>
+    </label>`).join('');
+  return `
+    <form class="iform" onsubmit="submitEngageHitlForm(event)">
+      <div style="color:var(--text-dim);font-size:13px;margin-bottom:10px">
+        Pick which actions Murphy is allowed to draft for you. You'll approve each one before it goes out.
+        <a href="/terms#section-1b" target="_blank" style="color:var(--teal)">Terms §1B →</a>
+      </div>
+      ${checks}
+      <div>
+        <label>Engagement length (days)</label>
+        <input type="number" name="valid_days" value="90" min="1" max="365" required>
+      </div>
+      <div class="step-actions">
+        <button type="submit" class="btn-primary">Engage</button>
+      </div>
+    </form>`;
+}
+
+async function submitEngageHitlForm(ev) {
+  ev.preventDefault();
+  const fd = new FormData(ev.target);
+  const action_classes = fd.getAll('ac');
+  if (action_classes.length === 0) {
+    toast('Pick at least one action class', true);
+    return;
+  }
+  const valid_days = parseInt(fd.get('valid_days') || '90', 10);
+  try {
+    const r = await fetch('/api/hitl/engage', {
+      method: 'POST', headers: H(),
+      body: JSON.stringify({action_classes, valid_days})
+    });
+    const d = await r.json();
+    if (d.ok) {
+      toast(`Engaged for ${action_classes.length} action class(es)`);
+      markComplete('engage_hitl', false, {action_classes, valid_days});
+    } else {
+      toast('Error: ' + (d.error || 'failed'), true);
+    }
+  } catch (e) {
+    toast('Error: ' + e.message, true);
+  }
+}
+
+// ─── connect_data form (R448) ───
+const DATA_SOURCES = [
+  {key: 'gmail',         label: 'Gmail',         hint: 'gmail.com'},
+  {key: 'gcal',          label: 'Google Calendar', hint: 'calendar.google.com'},
+  {key: 'slack',         label: 'Slack',         hint: 'workspace URL'},
+  {key: 'github',        label: 'GitHub',        hint: 'repo URL or org name'},
+  {key: 'doc_upload',    label: 'Upload a doc',  hint: 'PDF / docx / txt'},
+];
+
+function renderConnectDataForm() {
+  const opts = DATA_SOURCES.map(s => `<option value="${s.key}">${esc(s.label)} (${esc(s.hint)})</option>`).join('');
+  return `
+    <form class="iform" onsubmit="submitConnectDataForm(event)">
+      <div style="color:var(--text-dim);font-size:13px;margin-bottom:10px">
+        Tell Murphy what to read from. You can connect more sources later in settings.
+      </div>
+      <div>
+        <label>Source type</label>
+        <select name="source_type">${opts}</select>
+      </div>
+      <div>
+        <label>Identifier (URL, email, or repo name)</label>
+        <input type="text" name="source" placeholder="example@gmail.com or https://..." required>
+      </div>
+      <div class="step-actions">
+        <button type="submit" class="btn-primary">Queue connection</button>
+        <button type="button" class="btn-skip" onclick="markComplete('connect_data', true, {})">Skip for now</button>
+      </div>
+      <div style="color:var(--text-dimer);font-size:11px;font-family:var(--mono);margin-top:4px">
+        Note: OAuth-based sources (Gmail/Slack) require approval and a follow-up flow.
+      </div>
+    </form>`;
+}
+
+async function submitConnectDataForm(ev) {
+  ev.preventDefault();
+  const fd = new FormData(ev.target);
+  const body = {
+    source: fd.get('source'),
+    integration_type: fd.get('source_type'),
+    category: 'onboarding',
+    auto_approve: false,
+  };
+  try {
+    const r = await fetch('/api/integrations/add', {
+      method: 'POST', headers: H(),
+      body: JSON.stringify(body)
+    });
+    const d = await r.json();
+    // /api/integrations/add returns whatever murphy.add_integration returns;
+    // tolerate either {ok:true} or {success:true} or anything truthy.
+    if (d && (d.ok || d.success || d.request_id || d.status === 'queued')) {
+      toast('Connection queued for review');
+      markComplete('connect_data', false, body);
+    } else {
+      toast('Error: ' + (d && (d.error || d.message) || 'failed'), true);
+    }
+  } catch (e) {
+    toast('Error: ' + e.message, true);
+  }
+}
+
+// ─── invite_first form ───
+function renderInviteForm() {
+  const orgId = (CURRENT_IDENTITY && CURRENT_IDENTITY.org_id) || '';
+  return `
+    <form class="iform" onsubmit="submitInviteForm(event, '${esc(orgId)}')">
+      <div>
+        <label>Their email</label>
+        <input type="email" name="target_email" placeholder="teammate@example.com" required>
+      </div>
+      <div>
+        <label>Role</label>
+        <select name="role">
+          <option value="tenant_admin">Tenant Admin (can manage members)</option>
+          <option value="tenant_member">Tenant Member (uses the system)</option>
+        </select>
+      </div>
+      <div>
+        <label>Reason (optional)</label>
+        <input type="text" name="reason" placeholder="Why you're adding them">
+      </div>
+      <div class="step-actions">
+        <button type="submit" class="btn-primary">Invite</button>
+      </div>
+      <div style="color:var(--text-dimer);font-size:11px;font-family:var(--mono);margin-top:4px">
+        Note: they must already have a Murphy account.
+      </div>
+    </form>`;
+}
+async function submitInviteForm(ev, orgId) {
+  ev.preventDefault();
+  const fd = new FormData(ev.target);
+  const body = {target_email: fd.get('target_email'), role: fd.get('role'), reason: fd.get('reason') || ''};
+  try {
+    const r = await fetch('/api/tenant/' + orgId + '/appoint', {method:'POST', headers: H(), body: JSON.stringify(body)});
+    const d = await r.json();
+    if (d.ok) {
+      toast('Invited ' + body.target_email);
+      markComplete('invite_first', false, {invited: body.target_email, role: body.role});
+    } else { toast('Error: ' + (d.error || 'failed'), true); }
+  } catch (e) { toast('Error: ' + e.message, true); }
+}
+
+// ─── channel_prefs form ───
+function renderChannelPrefsForm() {
+  return `
+    <form class="iform" onsubmit="submitChannelPrefs(event)">
+      <div>
+        <label>Preferred channels</label>
+        <div class="checkbox-grid">
+          <label><input type="checkbox" name="channel" value="email" checked> Email</label>
+          <label><input type="checkbox" name="channel" value="sms"> SMS</label>
+          <label><input type="checkbox" name="channel" value="voice"> Voice call</label>
+          <label><input type="checkbox" name="channel" value="none"> Don't contact me</label>
+        </div>
+      </div>
+      <div>
+        <label>Best time to reach you</label>
+        <input type="text" name="best_time" placeholder="e.g. mornings, weekdays after 6pm">
+      </div>
+      <div class="step-actions">
+        <button type="submit" class="btn-primary">Save preferences</button>
+      </div>
+    </form>`;
+}
+async function submitChannelPrefs(ev) {
+  ev.preventDefault();
+  const fd = new FormData(ev.target);
+  const channels = Array.from(ev.target.querySelectorAll('input[name=channel]:checked')).map(x => x.value);
+  markComplete('channel_prefs', false, {channels: channels, best_time: fd.get('best_time') || ''});
+}
+
+// ─── see_scope (family) ───
+function renderFamilyScopePanel() {
+  return '<div id="panel-see_scope"><div class="loading">Loading your scope…</div></div>';
+}
+async function loadFamilyScope() {
+  const p = document.getElementById('panel-see_scope');
+  if (!p) return;
+  const ident = CURRENT_IDENTITY || {};
+  const scope = ident.family_scope || [];
+  p.innerHTML = `
+    <div style="margin-bottom:12px;font-size:13px">Murphy can do the following with you:</div>
+    <ul style="margin:0 0 14px 18px;color:var(--text-dim);font-size:13px">
+      ${scope.length ? scope.map(s => '<li>' + esc(s) + '</li>').join('') : '<li>(no scope configured yet)</li>'}
+    </ul>
+    <button class="btn-primary" onclick="markComplete('see_scope', false, {scope:${JSON.stringify(scope).replace(/"/g,'&quot;')}})">Acknowledge</button>`;
+}
+
+// ─── shared: markComplete + restart ───
+async function markComplete(stepId, skipped, payload) {
+  try {
+    const r = await fetch('/api/flows/step-complete', {
+      method: 'POST', headers: H(),
+      body: JSON.stringify({step_id: stepId, skipped: !!skipped, payload: payload || {}})
+    });
+    const d = await r.json();
+    if (d.ok) {
+      toast(skipped ? 'Skipped' : '✓ Done');
+      setTimeout(loadFlow, 400);
+    } else { toast('Error: ' + (d.error || 'unknown'), true); }
+  } catch (e) { toast('Connection error', true); }
+}
+async function restartFlow() {
+  if (!confirm('Reset all steps in this flow?')) return;
+  try {
+    const r = await fetch('/api/flows/restart', {method:'POST', headers: H(), body:'{}'});
+    const d = await r.json();
+    if (d.ok) { toast('Restarted'); setTimeout(loadFlow, 300); }
+  } catch (e) { toast('Error', true); }
+}
+
+loadFlow();
+</script>
+
+</body>
+</html>

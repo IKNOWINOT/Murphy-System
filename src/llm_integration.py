@@ -218,8 +218,9 @@ class LLMEnhancedMFGC:
         self.llm_provider = llm_provider
         # Use unified LLM provider regardless of legacy enum value
         try:
-            from src.llm_provider import MurphyLLMProvider
-            self._unified_llm = MurphyLLMProvider.from_env()
+            # R405 (2026-06-01): use singleton so LLMCostLedger captures
+            from src.llm_provider import get_llm as _r405_get_llm
+            self._unified_llm = _r405_get_llm()
         except Exception:
             self._unified_llm = None
         # Keep self.llm = None to signal legacy path is disabled

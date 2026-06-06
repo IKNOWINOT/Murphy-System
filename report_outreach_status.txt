@@ -1,0 +1,1 @@
+Investigation initiated. Unable to access /api/crm/activities and templates/apc_copy_v2.txt directly. Attempting directory enumeration to locate valid paths within approved roots.

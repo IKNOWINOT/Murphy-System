@@ -946,6 +946,46 @@ def advance_step(chain_id: str, step_index: int, agent_id: str = "system",
                 (chain_id, "chain_fulfilled", agent_id,
                  f"Chain {chain_id} FULFILLED — all {step_index + 1} steps complete")
             )
+            # ── PATCH-WIRE6-R177 (2026-05-29) — chain → royalty integration ──
+            # Wire #6 substrate (chain_royalty.py at R52) exposes record_chain_revenue_event.
+            # This hook calls it on chain completion. Policy: only record when requestor is
+            # set (real chains, not platform-internal). gross = sum of actual step costs.
+            # cross_tenant flag is determined inside chain_royalty by agent_contracts lookup.
+            try:
+                _r177_cost = conn.execute(
+                    "SELECT COALESCE(SUM(actual_cost_usd), 0) FROM chain_steps WHERE chain_id=?",
+                    (chain_id,)
+                ).fetchone()
+                _r177_gross = float(_r177_cost[0]) if _r177_cost else 0.0
+                _r177_chain = conn.execute(
+                    "SELECT requestor FROM chain_requests WHERE id=?",
+                    (chain_id,)
+                ).fetchone()
+                _r177_renting = _r177_chain[0] if _r177_chain and _r177_chain[0] else None
+                if _r177_gross > 0 and _r177_renting:
+                    try:
+                        from src.chain_royalty import record_chain_revenue_event as _r177_rec
+                        _r177_result = _r177_rec(
+                            chain_id=chain_id,
+                            agent_id=agent_id or "platform",
+                            renting_tenant=_r177_renting,
+                            gross_amount_usd=_r177_gross,
+                            notes=f"Chain fulfilled via template={tmpl.get('id','unknown') if tmpl else 'unknown'}",
+                        )
+                        logger.info(
+                            "PATCH-WIRE6-R177: royalty event chain=%s gross=$%.2f cross_tenant=%s",
+                            chain_id, _r177_gross, _r177_result.get("cross_tenant", False) if isinstance(_r177_result, dict) else False,
+                        )
+                    except Exception as _r177_re:
+                        logger.warning("PATCH-WIRE6-R177: royalty record skipped: %s", _r177_re)
+                else:
+                    logger.debug(
+                        "PATCH-WIRE6-R177: skipped chain=%s gross=$%.2f requestor=%s (need both)",
+                        chain_id, _r177_gross, _r177_renting,
+                    )
+            except Exception as _r177_e:
+                logger.warning("PATCH-WIRE6-R177: chain cost lookup failed: %s", _r177_e)
+            # ── END PATCH-WIRE6-R177 ────────────────────────────────────────
             return {"status": "chain_fulfilled", "chain_id": chain_id}
 
         # Re-gate next step against live compliance

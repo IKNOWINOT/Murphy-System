@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy Capability Map — 1,283 things, all in one view</title>
+<style>
+:root{
+  --bg:#fafaf7;--text:#1a1d1f;--muted:#6b7280;--border:#d8d5cc;--rule:#e8e5dc;
+  --primary:#1f4e3d;--secondary:#1a4480;--accent:#c97a3d;--paper:#fafaf7;
+  --pass:#1f4e3d;--block:#1a4480;--cap:#7c3aed;--page:#0891b2;--cad:#854d0e;--act:#dc2626;
+  --mono:'SF Mono',Menlo,monospace;--display:'Inter',-apple-system,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--display);font-size:14px;line-height:1.5}
+.page{max-width:1280px;margin:0 auto;padding:32px 40px;background:#fff;min-height:100vh;box-shadow:0 0 0 1px var(--border)}
+.masthead{border-bottom:3px solid var(--pass);padding-bottom:18px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px}
+.mark{width:42px;height:42px;background:var(--pass);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:700;font-size:14px;border-radius:2px;margin-right:14px}
+.brand{display:flex;align-items:center}
+.masthead h1{font-family:var(--display);font-size:18px;font-weight:700;color:var(--pass)}
+.masthead .meta{text-align:right;font-family:var(--mono);font-size:10px;color:var(--muted);line-height:1.7}
+.doc-title{margin-bottom:24px;padding:18px 22px;background:var(--paper);border-left:4px solid var(--pass)}
+.doc-title .kicker{font-family:var(--mono);font-size:10px;letter-spacing:1.5px;color:var(--pass);text-transform:uppercase}
+.doc-title h2{font-family:var(--display);font-size:22px;margin-top:6px;font-weight:700}
+.summary-row{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:24px}
+.stat{background:var(--paper);border:1px solid var(--border);padding:14px 18px;border-radius:4px;text-align:left}
+.stat .label{font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px}
+.stat .value{font-family:var(--display);font-size:28px;font-weight:700;margin-top:4px}
+.stat.pages .value{color:var(--page)}
+.stat.routes .value{color:var(--block)}
+.stat.caps .value{color:var(--cap)}
+.stat.acts .value{color:var(--act)}
+.stat.cad .value{color:var(--cad)}
+section{margin-bottom:32px}
+section h3{font-family:var(--display);font-size:12px;color:var(--primary);font-weight:700;letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid var(--rule);padding-bottom:6px;margin-bottom:14px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.card{background:var(--paper);border:1px solid var(--border);padding:12px 14px;border-radius:4px}
+.card h4{font-family:var(--mono);font-size:11px;color:var(--text);font-weight:700;margin-bottom:8px}
+.kv{font-family:var(--mono);font-size:10px;color:var(--muted);display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px dotted var(--rule)}
+.kv:last-child{border-bottom:none}
+.kv .k{color:var(--text)}
+.kv .v{color:var(--muted)}
+.bar{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10px;padding:3px 0}
+.bar .name{flex:0 0 200px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar .track{flex:1;height:6px;background:var(--rule);border-radius:2px;overflow:hidden}
+.bar .fill{height:100%;background:var(--block)}
+.bar .n{flex:0 0 50px;text-align:right;color:var(--muted)}
+.tools{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}
+.tools a{font-family:var(--mono);font-size:11px;color:var(--secondary);text-decoration:none;padding:6px 12px;border:1px solid var(--secondary);border-radius:2px}
+.cap-pill{display:inline-block;background:#f3e8ff;color:var(--cap);font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:2px;margin:2px 4px 2px 0;border:1px solid var(--cap)}
+.act-pill{display:inline-block;background:#fee2e2;color:var(--act);font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:2px;margin:2px 4px 2px 0;border:1px solid var(--act)}
+.section-name{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--secondary);margin-bottom:4px}
+.section-count{font-family:var(--mono);font-size:10px;color:var(--muted)}
+.section-card{background:var(--paper);border-left:3px solid var(--page);padding:10px 14px;border-radius:3px;margin-bottom:8px}
+.cadence-row{font-family:var(--mono);font-size:11px;padding:6px 12px;border-bottom:1px dashed var(--rule);display:flex;justify-content:space-between}
+.cadence-row .src{color:var(--text);font-weight:700}
+.cadence-row .desc{color:var(--muted);font-size:10px;margin-left:12px;flex:1;text-align:right}
+.footer{margin-top:32px;padding-top:18px;border-top:1px solid var(--rule);font-size:10px;color:var(--muted);font-family:var(--mono);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.footer a{color:var(--secondary);text-decoration:none}
+.note{background:#fef3e6;border:1px solid var(--accent);padding:10px 16px;margin-bottom:20px;font-size:12px;border-radius:3px;color:var(--text)}
+.note strong{color:var(--accent)}
+
+/* mobile */
+/* R366 mobile responsive partial — applies across all Cascadia/Apex/wizard surfaces */
+@media (max-width: 768px) {
+  .page { padding: 16px 14px !important; max-width: 100% !important; box-shadow: none !important; }
+  .masthead { flex-direction: column; align-items: flex-start; gap: 10px; padding-bottom: 14px; }
+  .masthead .meta { text-align: left; font-size: 9px; }
+  .masthead h1 { font-size: 16px; }
+  .brand-block { width: 100%; }
+  .mark { width: 36px; height: 36px; font-size: 12px; }
+  .doc-title h2 { font-size: 18px; line-height: 1.3; }
+  section h3 { font-size: 11px; }
+  .audit-banner, .doc-title { padding: 12px 14px; font-size: 12px; }
+  .tools { gap: 6px; flex-wrap: wrap; }
+  .tools a { font-size: 10px; padding: 5px 9px; }
+  .summary, .field-grid, .compliance, .flow,
+  .q-grid[style*="grid-template-columns"] { 
+    grid-template-columns: 1fr !important; 
+  }
+  .step-tracker { flex-direction: column; }
+  .step-tile { border-right: 0 !important; border-bottom: 1px solid var(--border); }
+  .step-tile.current { border-bottom: 3px solid var(--current) !important; }
+  .step-tile::after, .fsm-step::after, .flow .step::after,
+  .binder-card .head .left::after { display: none !important; }
+  table { font-size: 10px; }
+  table.compact td, table.compact th { padding: 4px 6px; }
+  .engine-table th, .engine-table td { padding: 6px 8px; font-size: 10px; }
+  .chart-wrap { overflow-x: auto; padding: 12px 0; -webkit-overflow-scrolling: touch; }
+  .tree { transform-origin: top left; min-width: 600px; }
+  .binder-grid, .queue-list, .form-block, .lifecycle-row,
+  .binder-card, .intake-card, .hitl-card { padding: 12px 14px !important; }
+  .access-bar { gap: 4px; }
+  .access-bar .chip { font-size: 9px; padding: 3px 7px; }
+  .summary { gap: 8px; }
+  .stat { padding: 10px 12px; }
+  .stat .value, .summary .stat .value { font-size: 20px; }
+  .fsm-track { gap: 1px; flex-wrap: wrap; }
+  .fsm-step { font-size: 8px; padding: 5px 2px; min-width: 60px; }
+  .actions { flex-wrap: wrap; gap: 5px; }
+  .actions button { font-size: 10px; padding: 5px 9px; }
+  .diff-block { font-size: 10px; padding: 8px 10px; max-height: 240px; }
+  .chain { gap: 6px; }
+  .chip { min-width: 130px; font-size: 10px; padding: 6px 10px; }
+  .fix-card .proposed, .fix-card-mini .ftext { font-size: 11px; max-height: 200px; }
+  .compliance-row { grid-template-columns: 1fr 1fr; font-size: 10px; gap: 4px; padding: 6px 8px; }
+  .compliance-row.header { font-size: 9px; }
+  ol, ul { font-size: 12px !important; padding-left: 18px; }
+  .footer { flex-direction: column; gap: 6px; align-items: flex-start; }
+}
+@media (max-width: 480px) {
+  .page { padding: 10px 8px !important; }
+  .masthead h1 { font-size: 14px; }
+  .masthead .meta { font-size: 8px; }
+  .doc-title h2 { font-size: 16px; }
+  .stat .value, .summary .stat .value { font-size: 16px; }
+  .stat .label, .summary .stat .label { font-size: 8px; }
+  .summary { grid-template-columns: 1fr 1fr !important; gap: 6px; }
+  .compliance-row { grid-template-columns: 1fr; }
+  .compliance-row.header { display: none; }
+  .access-bar .chip { font-size: 8px; padding: 2px 6px; }
+  .audit-banner, .doc-title { font-size: 11px; padding: 10px 12px; }
+  .doc-title .kicker { font-size: 8px; }
+  .tools a { font-size: 9px; padding: 4px 8px; }
+  .binder-card .form-code, .form-block .fcode { font-size: 11px; }
+  .intake-card .payload, .diff-block { font-size: 9px; }
+  .fsm-step { font-size: 7px; min-width: 50px; padding: 4px 1px; }
+  .org-mini .emp-row { font-size: 10px; flex-direction: column; gap: 3px; align-items: flex-start; }
+  table { font-size: 9px; }
+  .spec-table td, .spec-table th { padding: 4px 6px; font-size: 9px; }
+  .card { min-width: 160px; max-width: 200px; padding: 7px 10px; font-size: 10px; }
+  .card .name { font-size: 11px; }
+  .card .role { font-size: 9px; }
+}
+</style>
+</head><body>
+<div class="page">
+
+  <header class="masthead">
+    <div class="brand">
+      <div class="mark">MAP</div>
+      <div>
+        <h1>Murphy Capability Map</h1>
+        <div style="color:var(--muted);font-size:11px;margin-top:2px">Surfaced from existing murphy_registry.db — 1,283 already-classified rows</div>
+      </div>
+    </div>
+    <div class="meta">
+      SOURCE: murphy_registry.db<br>
+      BUILT: Murphy + Corey, R376<br>
+      ROWS: 1,283 classified<br>
+      AUDIT: 159,065 events
+    </div>
+  </header>
+
+  <div class="doc-title">
+    <div class="kicker">R376 — Use What's Already Built</div>
+    <h2>The 6,837-file Codebase, Mapped via Existing Registry Tables</h2>
+    <div style="margin-top:10px;color:var(--muted);font-style:italic;font-size:13px">Per R226 — Murphy picked "a" (use existing registry) over (b) fresh fs walk. Founder reframe: "massive archive can we map it?" Answer: yes, the map was already there. PATCH-412 capability cube + capability_registry seeded 1,283 rows months ago. This page surfaces them.</div>
+  </div>
+
+  <div class="note">
+    <strong>Why this works:</strong> instead of walking 6,837 .py files fresh (high cost, would duplicate registry data), we surface the existing 5-table registry. Routes are auto-indexed from app.py at startup. Pages from /opt/Murphy-System/*.html. Capabilities from patch412_capability_cube + 9 aionmind bridges. Cadence sources from scheduled runners.
+  </div>
+
+  <div class="tools">
+    <a href="/api/registry/summary">API: /api/registry/summary</a>
+    <a href="/api/registry/pages">API: pages</a>
+    <a href="/api/registry/routes">API: routes</a>
+    <a href="/api/registry/capabilities">API: capabilities</a>
+    <a href="/api/registry/cadence">API: cadence</a>
+    <a href="/ui/cascadia_validation_demo">↗ validation map (17 of 6837)</a>
+  </div>
+
+  <section>
+    <h3>Summary — what's in the registry RIGHT NOW</h3>
+    <div class="summary-row">
+      <div class="stat pages"><div class="label">Pages</div><div class="value">142</div></div>
+      <div class="stat routes"><div class="label">Routes</div><div class="value">1073</div></div>
+      <div class="stat caps"><div class="label">Capabilities</div><div class="value">39</div></div>
+      <div class="stat acts"><div class="label">Actions</div><div class="value">6</div></div>
+      <div class="stat cad"><div class="label">Cadence</div><div class="value">23</div></div>
+    </div>
+    <p style="font-family:var(--mono);font-size:11px;color:var(--muted)">Audit events tied to these rows: <strong>159,065</strong> (136,246 with tenant scope)</p>
+  </section>
+
+  <section>
+    <h3>Routes by Prefix (top 20 of 225 prefixes)</h3>
+    <div class="grid-2">
+      <div class="card">
+        <h4>By Path Prefix</h4>
+        <div class="bar"><span class="name">/api/self</span><span class="track"><span class="fill" style="width:100%"></span></span><span class="n">27</span></div><div class="bar"><span class="name">/api/shadow</span><span class="track"><span class="fill" style="width:92%"></span></span><span class="n">25</span></div><div class="bar"><span class="name">/api/swarm</span><span class="track"><span class="fill" style="width:81%"></span></span><span class="n">22</span></div><div class="bar"><span class="name">/api/admin</span><span class="track"><span class="fill" style="width:74%"></span></span><span class="n">20</span></div><div class="bar"><span class="name">/api/automation</span><span class="track"><span class="fill" style="width:74%"></span></span><span class="n">20</span></div><div class="bar"><span class="name">/api/gate-synthesis</span><span class="track"><span class="fill" style="width:70%"></span></span><span class="n">19</span></div><div class="bar"><span class="name">/api/onboarding</span><span class="track"><span class="fill" style="width:70%"></span></span><span class="n">19</span></div><div class="bar"><span class="name">/api/auth</span><span class="track"><span class="fill" style="width:66%"></span></span><span class="n">18</span></div><div class="bar"><span class="name">/api/hitl</span><span class="track"><span class="fill" style="width:66%"></span></span><span class="n">18</span></div><div class="bar"><span class="name">/api/trading</span><span class="track"><span class="fill" style="width:62%"></span></span><span class="n">17</span></div><div class="bar"><span class="name">/api/cce</span><span class="track"><span class="fill" style="width:59%"></span></span><span class="n">16</span></div><div class="bar"><span class="name">/api/coa</span><span class="track"><span class="fill" style="width:59%"></span></span><span class="n">16</span></div><div class="bar"><span class="name">/api/security</span><span class="track"><span class="fill" style="width:59%"></span></span><span class="n">16</span></div><div class="bar"><span class="name">/api/org</span><span class="track"><span class="fill" style="width:55%"></span></span><span class="n">15</span></div><div class="bar"><span class="name">/api/identity</span><span class="track"><span class="fill" style="width:51%"></span></span><span class="n">14</span></div><div class="bar"><span class="name">/api/soul</span><span class="track"><span class="fill" style="width:51%"></span></span><span class="n">14</span></div><div class="bar"><span class="name">/api/rosetta</span><span class="track"><span class="fill" style="width:48%"></span></span><span class="n">13</span></div><div class="bar"><span class="name">/api/client-solutions</span><span class="track"><span class="fill" style="width:44%"></span></span><span class="n">12</span></div><div class="bar"><span class="name">/api/bat</span><span class="track"><span class="fill" style="width:40%"></span></span><span class="n">11</span></div><div class="bar"><span class="name">/api/billing</span><span class="track"><span class="fill" style="width:40%"></span></span><span class="n">11</span></div>
+      </div>
+      <div class="card">
+        <h4>By HTTP Method</h4>
+        <div class="bar"><span class="name">GET</span><span class="track"><span class="fill" style="width:100%"></span></span><span class="n">602</span></div><div class="bar"><span class="name">POST</span><span class="track"><span class="fill" style="width:73%"></span></span><span class="n">441</span></div><div class="bar"><span class="name">DELETE</span><span class="track"><span class="fill" style="width:2%"></span></span><span class="n">14</span></div><div class="bar"><span class="name">PUT</span><span class="track"><span class="fill" style="width:1%"></span></span><span class="n">9</span></div><div class="bar"><span class="name">PATCH</span><span class="track"><span class="fill" style="width:1%"></span></span><span class="n">7</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h3>Capabilities by Provider (39 total)</h3>
+    <div class="grid-2">
+      <div class="card"><h4>patch412_capability_cube <span style="color:var(--muted);font-weight:400">— 10</span></h4><span class="cap-pill">Audit History Read</span><span class="cap-pill">Client Solutions Classify</span><span class="cap-pill">Household Profile Read</span><span class="cap-pill">Identity Device Pair</span><span class="cap-pill">Picarx Move</span><span class="cap-pill">Rosetta Dispatch</span><span class="cap-pill">Sales Followup Send</span><span class="cap-pill">Self Heal Probe</span><span class="cap-pill">+2 more</span></div><div class="card"><h4>automations <span style="color:var(--muted);font-weight:400">— 6</span></h4><span class="cap-pill">Commission Automation</span><span class="cap-pill">Delete Automation Workflow</span><span class="cap-pill">Execute Automation Workflow</span><span class="cap-pill">Fire Automation Trigger</span><span class="cap-pill">Get Automation Workflow</span><span class="cap-pill">List Automation Workflows</span></div><div class="card"><h4>boards <span style="color:var(--muted);font-weight:400">— 5</span></h4><span class="cap-pill">Create Board</span><span class="cap-pill">Delete Board</span><span class="cap-pill">Get Board</span><span class="cap-pill">List Boards</span><span class="cap-pill">Update Board</span></div><div class="card"><h4>production <span style="color:var(--muted);font-weight:400">— 5</span></h4><span class="cap-pill">Create Production Proposal</span><span class="cap-pill">Create Work Order</span><span class="cap-pill">Delete Production Proposal</span><span class="cap-pill">List Production Proposals</span><span class="cap-pill">Set Production Schedule</span></div><div class="card"><h4>document <span style="color:var(--muted);font-weight:400">— 4</span></h4><span class="cap-pill">Evaluate Living Document Gate</span><span class="cap-pill">Get Document Block</span><span class="cap-pill">List Living Document Gates</span><span class="cap-pill">Update Document Block</span></div><div class="card"><h4>hitl <span style="color:var(--muted);font-weight:400">— 4</span></h4><span class="cap-pill">Decide HITL Item</span><span class="cap-pill">List HITL Queue</span><span class="cap-pill">List Pending HITL Items</span><span class="cap-pill">Respond to HITL Intervention</span></div><div class="card"><h4>founder <span style="color:var(--muted);font-weight:400">— 3</span></h4><span class="cap-pill">Rotate Founder Password</span><span class="cap-pill">Run Founder Maintenance</span><span class="cap-pill">Update Founder Settings</span></div><div class="card"><h4>exec_admin <span style="color:var(--muted);font-weight:400">— 1</span></h4><span class="cap-pill">Executive Revenue Driver</span></div><div class="card"><h4>integration_bus <span style="color:var(--muted);font-weight:400">— 1</span></h4><span class="cap-pill">IntegrationBus Process</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h3>Pages by Section (142 total HTML pages)</h3>
+    <div class="grid-3">
+      <div class="section-card"><div class="section-name">/ui</div><div class="section-count">134 pages</div></div><div class="section-card"><div class="section-name">/static</div><div class="section-count">8 pages</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h3>Actions (6 canonical action types)</h3>
+    <div class="card">
+      <span class="act-pill">contract_send</span><span class="act-pill">email_outbound</span><span class="act-pill">phone_call_outbound</span><span class="act-pill">proposal_send</span><span class="act-pill">quote_send</span><span class="act-pill">sms_outbound</span>
+    </div>
+  </section>
+
+  <section>
+    <h3>Cadence Sources (23 scheduled runners)</h3>
+    <div class="card" style="padding:0">
+      <div class="cadence-row"><span class="src">activated_heartbeat_runner.tick</span><span class="desc">Activated Heartbeat Runner.Tick</span></div><div class="cadence-row"><span class="src">adapter_contract.heartbeat</span><span class="desc">Adapter Contract.Heartbeat</span></div><div class="cadence-row"><span class="src">apscheduler.corpus_collect</span><span class="desc">WorldCorpus Collect</span></div><div class="cadence-row"><span class="src">apscheduler.health_watchdog</span><span class="desc">Health Watchdog</span></div><div class="cadence-row"><span class="src">apscheduler.signal_drain</span><span class="desc">Swarm Signal Drain</span></div><div class="cadence-row"><span class="src">apscheduler.swarm_heartbeat</span><span class="desc">Swarm Heartbeat</span></div><div class="cadence-row"><span class="src">automation_safeguard_engine.tick</span><span class="desc">Automation Safeguard Engine.Tick</span></div><div class="cadence-row"><span class="src">backup_disaster_recovery._tick</span><span class="desc">Backup Disaster Recovery. Tick</span></div><div class="cadence-row"><span class="src">ceo_branch_activation.tick</span><span class="desc">Ceo Branch Activation.Tick</span></div><div class="cadence-row"><span class="src">engine.tick</span><span class="desc">Engine.Tick</span></div><div class="cadence-row"><span class="src">heartbeat_liveness_protocol.tick</span><span class="desc">Heartbeat Liveness Protocol.Tick</span></div><div class="cadence-row"><span class="src">http_adapter.heartbeat</span><span class="desc">Http Adapter.Heartbeat</span></div><div class="cadence-row"><span class="src">mock_adapter.heartbeat</span><span class="desc">Mock Adapter.Heartbeat</span></div><div class="cadence-row"><span class="src">murphy-autonomy-reset.timer</span><span class="desc">Murphy Autonomy Reset</span></div><div class="cadence-row"><span class="src">murphy-hitl-expire.timer</span><span class="desc">Murphy Hitl Expire</span></div><div class="cadence-row"><span class="src">murphy-watchdog.timer</span><span class="desc">Murphy Watchdog</span></div><div class="cadence-row"><span class="src">murphy_code_healer.heartbeat</span><span class="desc">Murphy Code Healer.Heartbeat</span></div><div class="cadence-row"><span class="src">murphy_mind.cycle_loop</span><span class="desc">Murphy Mind Reasoning Cycle</span></div><div class="cadence-row"><span class="src">operations_cycle_engine.tick</span><span class="desc">Operations Cycle Engine.Tick</span></div><div class="cadence-row"><span class="src">safety_hooks.heartbeat</span><span class="desc">Safety Hooks.Heartbeat</span></div><div class="cadence-row"><span class="src">trading_bot_lifecycle._tick</span><span class="desc">Trading Bot Lifecycle. Tick</span></div><div class="cadence-row"><span class="src">trading_shadow_learner.tick</span><span class="desc">Trading Shadow Learner.Tick</span></div><div class="cadence-row"><span class="src">websocket_event_server.heartbeat</span><span class="desc">Websocket Event Server.Heartbeat</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h3>What This Map Does NOT Cover Yet</h3>
+    <div class="note" style="background:#f3e8ff;border-color:var(--cap);color:var(--text)">
+      <strong>Honest gaps:</strong>
+      <ul style="margin-top:8px;margin-left:20px;font-size:11px;line-height:1.7">
+        <li>The 6,837 .py files in /opt/Murphy-System — only ~1,200 are reflected in routes/capabilities; the rest are helpers, tests, fixtures, and historical patches</li>
+        <li>78 PATCH_*.py modules — wired into the system but not individually registry-classified</li>
+        <li>R36x validation tools (17 of them) live in /usr/local/bin and are mapped in <a href="/ui/cascadia_validation_demo">cascadia_validation_demo</a>, not here</li>
+        <li>123 SQLite DBs — schema not yet enumerated</li>
+        <li>Tenant-scoped modules (platform_modules + tenant_modules in murphy_tenants.db) are separate</li>
+      </ul>
+      Next steps could: (1) add a /diag/db-inventory endpoint to enumerate the 123 DBs + tables, (2) cross-link r36x tools into registry_capabilities, (3) PATCH_*.py classification sweep.
+    </div>
+  </section>
+
+  <div class="footer">
+    <span>Capability Map · sourced from /var/lib/murphy-production/murphy_registry.db · 1,283 rows · R376</span>
+    <span><a href="/ui/cascadia_mep">↩ CEO briefing</a> · <a href="/ui/cascadia_validation_demo">validation layer</a></span>
+  </div>
+
+</div></body></html>

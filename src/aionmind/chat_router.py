@@ -36,11 +36,15 @@ router = APIRouter(prefix="/api/aionmind", tags=["murphy"])
 # ---------------------------------------------------------------------------
 
 class ChatRequest(BaseModel):
+    # _R443_TENANT_AWARE
     message: str
     agent_id: Optional[str] = "aionmind_default"
     auto_approve: bool = False
     include_memory: bool = True
     actor: Optional[str] = None
+    tenant_id: Optional[str] = None
+    thread_id: Optional[str] = "default"
+    user_id: Optional[str] = None
 
 
 class IntegrateRequest(BaseModel):
@@ -70,9 +74,20 @@ def _resolve_tool_calls(message: str, memory_context: str, available_tools: List
         from src.llm_provider import MurphyLLMProvider
         llm = MurphyLLMProvider.from_env()
 
+        # _R420C_TOOL_FILTER: with 1800+ tools, alphabetical first-20 misses everything.
+        # Rank tools by keyword overlap with the user message before truncating.
+        _msg_words = set(re.findall(r"[a-z]{3,}", message.lower()))
+        def _score(t):
+            hay = (t.get('tool_id','') + ' ' + t.get('description','') + ' ' + ' '.join(t.get('tags', []))).lower()
+            return sum(1 for w in _msg_words if w in hay)
+        ranked = sorted(available_tools, key=_score, reverse=True)
+        # Always keep the 11 generic tools available (provider check)
+        generic = [t for t in available_tools if t.get('provider','') != 'murphy.internal'][:11]
+        top_specific = [t for t in ranked if t.get('provider','') == 'murphy.internal' and _score(t) > 0][:25]
+        tools_for_prompt = top_specific + generic
         tools_summary = "\n".join(
             f"- {t['tool_id']}: {t['description']} (approval_required={t['requires_approval']})"
-            for t in available_tools[:20]
+            for t in tools_for_prompt
         )
 
         system = (
@@ -196,6 +211,27 @@ async def aionmind_chat(req: ChatRequest, request: Request):
     session_id = str(uuid.uuid4())
     tool_results = []
 
+    # _R443_RESOLVE_TENANT
+    _r443_tenant_id = req.tenant_id
+    _r443_user_id = req.user_id
+    _r443_role = "anonymous"
+    _r443_org_id = None
+    try:
+        from src.runtime.app import _r432_resolve_identity as _r443_resolve
+        _r443_ident = _r443_resolve(request) or {}
+        _r443_tenant_id = _r443_tenant_id or _r443_ident.get("tenant_id") or _r443_ident.get("org_id") or "platform"
+        _r443_user_id = _r443_user_id or _r443_ident.get("user_email") or _r443_ident.get("user_id") or "anon"
+        _r443_role = _r443_ident.get("role") or "anonymous"
+        _r443_org_id = _r443_ident.get("org_id")
+    except Exception:
+        _r443_tenant_id = _r443_tenant_id or (request.headers.get("X-Tenant-ID") or "platform").strip() or "platform"
+        _r443_user_id = _r443_user_id or "anon"
+    _r443_thread_id = (req.thread_id or "default").strip() or "default"
+    _r443_session_key = f"{_r443_tenant_id}:{_r443_user_id}:{_r443_thread_id}"
+    logger.info("AION-CHAT-R443 tenant=%s user=%s thread=%s role=%s",
+                _r443_tenant_id, _r443_user_id, _r443_thread_id, _r443_role)
+
+
     try:
         # Load agent memory from Rosetta
         memory_context = ""
@@ -220,6 +256,8 @@ async def aionmind_chat(req: ChatRequest, request: Request):
                     "tool_id": t.tool_id,
                     "description": t.description,
                     "requires_approval": t.requires_approval,
+                    "tags": list(t.tags),
+                    "provider": t.provider,
                 }
                 for t in registry.list_all()
             ]
@@ -292,13 +330,30 @@ async def aionmind_chat(req: ChatRequest, request: Request):
         except Exception as exc:
             logger.debug("Rosetta persist skipped: %s", exc)
 
+        # _R443_PERSIST_CALL
+        _r443_tools_used = len([t for t in tool_results if t.get("status") == "executed"])
+        try:
+            _r443_persist_turn(
+                _r443_session_key, _r443_tenant_id, _r443_user_id,
+                _r443_thread_id, _r443_role, _r443_org_id,
+                req.message, response_text, _r443_tools_used,
+            )
+        except Exception:
+            pass
+
         return {
             "ok": True,
             "session_id": session_id,
             "agent_id": req.agent_id,
             "response": response_text,
             "tool_calls": tool_results,
-            "tools_used": len([t for t in tool_results if t.get("status") == "executed"]),
+            "tools_used": _r443_tools_used,
+            # _R443_TENANT_CONTEXT
+            "tenant_id": _r443_tenant_id,
+            "user_id": _r443_user_id,
+            "thread_id": _r443_thread_id,
+            "role": _r443_role,
+            "session_key": _r443_session_key,
         }
 
     except Exception as exc:
@@ -358,3 +413,47 @@ async def invoke_tool(tool_id: str, req: ToolCallRequest, request: Request):
         return result
     except Exception as exc:
         raise HTTPException(500, detail=str(exc))
+
+
+# _R443_PERSIST — per-tenant session write-through
+def _r443_persist_turn(session_key, tenant_id, user_id, thread_id, role, org_id,
+                       user_msg, assistant_msg, tools_used):
+    """Write one turn to aionmind_chat_sessions. Best-effort — never raises."""
+    import sqlite3 as _sq, json as _j, time as _t
+    try:
+        with _sq.connect("/var/lib/murphy-production/murphy_mind.db", timeout=4) as c:
+            row = c.execute(
+                "SELECT turns, turn_count, tools_used FROM aionmind_chat_sessions "
+                "WHERE tenant_id=? AND user_id=? AND thread_id=?",
+                (tenant_id, user_id, thread_id)).fetchone()
+            if row:
+                turns = _j.loads(row[0])
+                turn_count = row[1] + 1
+                tools_total = row[2] + int(tools_used or 0)
+            else:
+                turns = []
+                turn_count = 1
+                tools_total = int(tools_used or 0)
+            turns.append({
+                "u": (user_msg or "")[:2000],
+                "a": (assistant_msg or "")[:4000],
+                "tools": int(tools_used or 0),
+                "t": _t.time(),
+            })
+            turns = turns[-32:]
+            c.execute("""
+                INSERT INTO aionmind_chat_sessions
+                  (tenant_id, user_id, thread_id, turns, role, org_id,
+                   updated_at, turn_count, tools_used)
+                VALUES (?,?,?,?,?,?, datetime('now'), ?, ?)
+                ON CONFLICT(tenant_id, user_id, thread_id) DO UPDATE SET
+                  turns=excluded.turns,
+                  role=excluded.role,
+                  org_id=excluded.org_id,
+                  updated_at=excluded.updated_at,
+                  turn_count=excluded.turn_count,
+                  tools_used=excluded.tools_used
+            """, (tenant_id, user_id, thread_id, _j.dumps(turns),
+                  role, org_id, turn_count, tools_total))
+    except Exception:
+        pass

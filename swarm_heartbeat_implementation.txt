@@ -1,0 +1,1 @@
+The swarm heartbeat is implemented in the swarm_scheduler.py file, which dispatches a signal to all 9 domains every 5 minutes and records a bus event for each domain.

@@ -1,0 +1,525 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Cascadia MEP — CEO Compliance Briefing — Working in New York</title>
+<style>/* Cascadia MEP Contractors — R357 unified style guide
+   Brand: forest green + cobalt + warm grey
+   Voice: technical, precise, regulatory-aware
+   Same tokens used across index + every doc */
+
+:root{
+  /* Brand colors */
+  --brand-primary:  #1f4e3d;   /* Cascadia forest */
+  --brand-secondary:#1a4480;   /* engineering cobalt */
+  --brand-accent:   #c97a3d;   /* permit orange */
+  --brand-paper:    #fafaf7;
+  --brand-ink:      #1a1d1f;
+  --brand-muted:    #6b7280;
+  --brand-border:   #d8d5cc;
+  --brand-rule:     #e8e5dc;
+  --brand-warn-bg:  #fef3e6;
+  --brand-warn-bd:  #fbbf24;
+  --brand-ok-bg:    #e8f5ee;
+  --brand-ok-bd:    #1f4e3d;
+
+  /* Typography */
+  --f-display: 'Inter', -apple-system, 'Helvetica Neue', sans-serif;
+  --f-body:    'Inter', -apple-system, 'Helvetica Neue', sans-serif;
+  --f-mono:    'SF Mono', 'JetBrains Mono', Menlo, monospace;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+
+body{
+  background:var(--brand-paper);
+  color:var(--brand-ink);
+  font-family:var(--f-body);
+  font-size:14px;
+  line-height:1.55;
+}
+
+.page{
+  max-width:920px;
+  margin:0 auto;
+  padding:48px 56px;
+  background:#fff;
+  min-height:100vh;
+  box-shadow:0 0 0 1px var(--brand-border);
+}
+
+/* Header masthead — same on every doc */
+.masthead{
+  border-bottom:3px solid var(--brand-primary);
+  padding-bottom:18px;
+  margin-bottom:32px;
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-end;
+}
+.masthead .brand-block{display:flex;align-items:center;gap:14px}
+.masthead .mark{
+  width:42px;height:42px;
+  background:var(--brand-primary);
+  color:#fff;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--f-mono);font-weight:700;font-size:15px;
+  border-radius:2px;
+}
+.masthead h1{
+  font-family:var(--f-display);
+  font-size:18px;font-weight:700;
+  color:var(--brand-primary);
+  letter-spacing:0.3px;
+}
+.masthead .legal{color:var(--brand-muted);font-size:11px;margin-top:2px}
+.masthead .meta{text-align:right;font-family:var(--f-mono);font-size:10px;color:var(--brand-muted);line-height:1.7}
+
+/* Doc title block */
+.doc-title{
+  margin-bottom:28px;
+  padding:18px 22px;
+  background:var(--brand-paper);
+  border-left:4px solid var(--brand-secondary);
+}
+.doc-title .kicker{
+  font-family:var(--f-mono);font-size:10px;letter-spacing:1.5px;
+  color:var(--brand-secondary);text-transform:uppercase;
+}
+.doc-title h2{
+  font-family:var(--f-display);font-size:24px;
+  margin-top:6px;color:var(--brand-ink);font-weight:700;
+}
+.doc-title .question{
+  margin-top:10px;color:var(--brand-muted);font-style:italic;font-size:13px;
+}
+
+/* Sections */
+section{margin-bottom:28px}
+section h3{
+  font-family:var(--f-display);font-size:14px;
+  color:var(--brand-primary);font-weight:700;
+  letter-spacing:0.4px;text-transform:uppercase;
+  border-bottom:1px solid var(--brand-rule);
+  padding-bottom:6px;margin-bottom:14px;
+}
+section p{margin-bottom:12px}
+section ul,section ol{margin-left:22px;margin-bottom:14px}
+section li{margin-bottom:6px}
+
+/* Citation / callout */
+.cite{
+  font-family:var(--f-mono);font-size:11px;
+  color:var(--brand-secondary);
+  background:#f0f4f9;
+  padding:1px 6px;border-radius:2px;
+}
+.callout{
+  margin:14px 0;padding:14px 18px;
+  background:var(--brand-warn-bg);
+  border-left:3px solid var(--brand-warn-bd);
+  font-size:13px;
+}
+.callout.ok{background:var(--brand-ok-bg);border-left-color:var(--brand-ok-bd)}
+.callout strong{color:var(--brand-primary)}
+
+/* Table */
+table{
+  width:100%;border-collapse:collapse;margin:14px 0;font-size:13px;
+}
+th{
+  text-align:left;background:var(--brand-primary);color:#fff;
+  padding:8px 12px;font-family:var(--f-mono);font-size:11px;
+  letter-spacing:0.5px;text-transform:uppercase;font-weight:600;
+}
+td{padding:8px 12px;border-bottom:1px solid var(--brand-rule)}
+tr:nth-child(even) td{background:#fafaf7}
+
+/* Footer + back-nav */
+.footer{
+  margin-top:42px;padding-top:18px;
+  border-top:1px solid var(--brand-rule);
+  font-size:10px;color:var(--brand-muted);
+  font-family:var(--f-mono);
+  display:flex;justify-content:space-between;
+}
+.footer a{color:var(--brand-secondary);text-decoration:none}
+
+/* Index page question grid */
+.q-grid{display:grid;grid-template-columns:1fr;gap:8px;margin-top:12px}
+.q-card{
+  border:1px solid var(--brand-rule);
+  padding:12px 16px;border-radius:3px;
+  display:flex;justify-content:space-between;align-items:center;
+  transition:border 0.15s;
+}
+.q-card:hover{border-color:var(--brand-secondary)}
+.q-card .q-code{
+  font-family:var(--f-mono);font-size:11px;color:var(--brand-secondary);
+  font-weight:600;margin-right:12px;min-width:32px;
+}
+.q-card .q-text{flex:1;font-size:13px}
+.q-card a{
+  color:var(--brand-secondary);font-family:var(--f-mono);
+  font-size:10px;text-decoration:none;
+  padding:4px 10px;border:1px solid var(--brand-secondary);
+  border-radius:2px;
+}
+.q-card.stub a{color:var(--brand-muted);border-color:var(--brand-border)}
+
+.section-head{
+  font-family:var(--f-display);font-size:11px;letter-spacing:1.5px;
+  color:var(--brand-primary);text-transform:uppercase;font-weight:700;
+  margin-top:24px;margin-bottom:8px;
+}
+
+@media print {
+  .page{box-shadow:none;padding:24px}
+  .footer a{color:var(--brand-muted)}
+}
+
+/* R366 mobile responsive — inlined */
+/* R366 mobile responsive partial — applies across all Cascadia/Apex/wizard surfaces */
+@media (max-width: 768px) {
+  .page { padding: 16px 14px !important; max-width: 100% !important; box-shadow: none !important; }
+  .masthead { flex-direction: column; align-items: flex-start; gap: 10px; padding-bottom: 14px; }
+  .masthead .meta { text-align: left; font-size: 9px; }
+  .masthead h1 { font-size: 16px; }
+  .brand-block { width: 100%; }
+  .mark { width: 36px; height: 36px; font-size: 12px; }
+  .doc-title h2 { font-size: 18px; line-height: 1.3; }
+  section h3 { font-size: 11px; }
+  .audit-banner, .doc-title { padding: 12px 14px; font-size: 12px; }
+  .tools { gap: 6px; flex-wrap: wrap; }
+  .tools a { font-size: 10px; padding: 5px 9px; }
+  .summary, .field-grid, .compliance, .flow,
+  .q-grid[style*="grid-template-columns"] { 
+    grid-template-columns: 1fr !important; 
+  }
+  .step-tracker { flex-direction: column; }
+  .step-tile { border-right: 0 !important; border-bottom: 1px solid var(--border); }
+  .step-tile.current { border-bottom: 3px solid var(--current) !important; }
+  .step-tile::after, .fsm-step::after, .flow .step::after,
+  .binder-card .head .left::after { display: none !important; }
+  table { font-size: 10px; }
+  table.compact td, table.compact th { padding: 4px 6px; }
+  .engine-table th, .engine-table td { padding: 6px 8px; font-size: 10px; }
+  .chart-wrap { overflow-x: auto; padding: 12px 0; -webkit-overflow-scrolling: touch; }
+  .tree { transform-origin: top left; min-width: 600px; }
+  .binder-grid, .queue-list, .form-block, .lifecycle-row,
+  .binder-card, .intake-card, .hitl-card { padding: 12px 14px !important; }
+  .access-bar { gap: 4px; }
+  .access-bar .chip { font-size: 9px; padding: 3px 7px; }
+  .summary { gap: 8px; }
+  .stat { padding: 10px 12px; }
+  .stat .value, .summary .stat .value { font-size: 20px; }
+  .fsm-track { gap: 1px; flex-wrap: wrap; }
+  .fsm-step { font-size: 8px; padding: 5px 2px; min-width: 60px; }
+  .actions { flex-wrap: wrap; gap: 5px; }
+  .actions button { font-size: 10px; padding: 5px 9px; }
+  .diff-block { font-size: 10px; padding: 8px 10px; max-height: 240px; }
+  .chain { gap: 6px; }
+  .chip { min-width: 130px; font-size: 10px; padding: 6px 10px; }
+  .fix-card .proposed, .fix-card-mini .ftext { font-size: 11px; max-height: 200px; }
+  .compliance-row { grid-template-columns: 1fr 1fr; font-size: 10px; gap: 4px; padding: 6px 8px; }
+  .compliance-row.header { font-size: 9px; }
+  ol, ul { font-size: 12px !important; padding-left: 18px; }
+  .footer { flex-direction: column; gap: 6px; align-items: flex-start; }
+}
+@media (max-width: 480px) {
+  .page { padding: 10px 8px !important; }
+  .masthead h1 { font-size: 14px; }
+  .masthead .meta { font-size: 8px; }
+  .doc-title h2 { font-size: 16px; }
+  .stat .value, .summary .stat .value { font-size: 16px; }
+  .stat .label, .summary .stat .label { font-size: 8px; }
+  .summary { grid-template-columns: 1fr 1fr !important; gap: 6px; }
+  .compliance-row { grid-template-columns: 1fr; }
+  .compliance-row.header { display: none; }
+  .access-bar .chip { font-size: 8px; padding: 2px 6px; }
+  .audit-banner, .doc-title { font-size: 11px; padding: 10px 12px; }
+  .doc-title .kicker { font-size: 8px; }
+  .tools a { font-size: 9px; padding: 4px 8px; }
+  .binder-card .form-code, .form-block .fcode { font-size: 11px; }
+  .intake-card .payload, .diff-block { font-size: 9px; }
+  .fsm-step { font-size: 7px; min-width: 50px; padding: 4px 1px; }
+  .org-mini .emp-row { font-size: 10px; flex-direction: column; gap: 3px; align-items: flex-start; }
+  table { font-size: 9px; }
+  .spec-table td, .spec-table th { padding: 4px 6px; font-size: 9px; }
+  .card { min-width: 160px; max-width: 200px; padding: 7px 10px; font-size: 10px; }
+  .card .name { font-size: 11px; }
+  .card .role { font-size: 9px; }
+}
+
+</style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+<div class="page">
+
+  <header class="masthead">
+    <div class="brand-block">
+      <div class="mark">CMC</div>
+      <div>
+        <h1>Cascadia MEP Contractors, LLC</h1>
+        <div class="legal">Oregon CCB #221450 · NY Foreign Entity registration pending</div>
+      </div>
+    </div>
+    <div class="meta">
+      DOC: R357-INDEX-V1<br>
+      ISSUED: 2026-05-30<br>
+      AUDIENCE: CEO + Operations<br>
+      JURISDICTION: OR → NY
+    </div>
+  </header>
+
+  <div class="doc-title">
+    <div class="kicker">CEO Compliance Briefing</div>
+    <h2>Working as an Oregon MEP Contractor in New York</h2>
+    <div class="question">Every question I'd ask before quoting my first NY job — and where the answers live.</div>
+  </div>
+
+  <section>
+    <h3>R358 — Form Universe Now Available</h3>
+    <p>Beyond the 25 CEO questions in this briefing, the Cascadia operation runs
+    <strong>~155 recurring forms across 12 functional areas</strong> at 200-employee scale.
+    See the full enumeration plus the new-hire onboarding workflow:</p>
+    <div class="q-grid" style="margin-bottom:18px">
+      <div class="q-card">
+        <span class="q-code">R358</span>
+        <span class="q-text">Forms Universe — 155 recurring forms catalogued by function/role/frequency</span>
+        <a href="/ui/cascadia_forms_universe">open →</a></div>
+      <div class="q-card">
+        <span class="q-code">R358</span>
+        <span class="q-text">New Hire Onboarding Workflow — 22 forms across 5 phases over 90 days</span>
+        <a href="/ui/cascadia_onboarding_sequence">open →</a></div>
+      <div class="q-card">
+        <span class="q-code">R360</span>
+        <span class="q-text">Org Chart — 25 employees, reports-to graph, HITL routing fabric (R361 next)</span>
+        <a href="/ui/cascadia_org_chart">open →</a></div>
+      <div class="q-card">
+        <span class="q-code">R360</span>
+        <span class="q-text">Employee Roster Excel (download, edit, re-upload — round-trip safe)</span>
+        <a href="/ui/cascadia_roster.xlsx">↓ xlsx</a></div>
+        <div class="q-card">
+          <span class="q-code">R361</span>
+          <span class="q-text">Multi-Channel Intake Demo — email/upload/API → PII redact → HITL queue</span>
+          <a href="/ui/cascadia_intake_demo">open →</a></div>
+        <div class="q-card">
+          <span class="q-code">R361</span>
+          <span class="q-text">Evelyn Shapiro's HR Inbox — dept-scoped form approval view</span>
+          <a href="/ui/cascadia_employee_view">open →</a></div>
+        <div class="q-card">
+          <span class="q-code">R362</span>
+          <span class="q-text">Audit Binder — filed artifacts on disk, retention clocks, FSM-enforced</span>
+          <a href="/ui/cascadia_audit_binder">open →</a></div>
+        <div class="q-card">
+          <span class="q-code">R362</span>
+          <span class="q-text">Lifecycle Visualization — every queue row's journey, live audit chain</span>
+          <a href="/ui/cascadia_lifecycle_demo">open →</a></div>
+        <div class="q-card">
+          <span class="q-code">R363</span>
+          <span class="q-text">Revision System — upload existing forms, version chains, diff viewer</span>
+          <a href="/ui/cascadia_revisions">open →</a></div>
+        <div class="q-card">
+          <span class="q-code">R365</span>
+          <span class="q-text">Intake Wizard + Apex Wellness — self-serve flow + brand-new tenant fully provisioned</span>
+          <a href="/ui/intake_wizard">open →</a></div>
+        <div class="q-card">
+          <span class="q-code">R366</span>
+          <span class="q-text">SLA Escalation + State Overlay + Agreement-Gating + Delegation — 4 vertebrae in one</span>
+          <a href="/ui/cascadia_escalation_demo">open →</a></div>
+        <div class="q-card">
+          <span class="q-code">R368</span>
+          <span class="q-text">Offboarding Cascade — departures reroute work, spawn separation packet, recalc retention</span>
+          <a href="/ui/cascadia_offboarding_demo">open →</a></div>
+        <div class="q-card">
+          <span class="q-code">R369</span>
+          <span class="q-text">Notifications — email real + SMS env-stub + retroactive demo + 5-min SLA sweep timer</span>
+          <a href="/ui/cascadia_notifications_demo">open →</a></div>
+        <div class="q-card">
+          <span class="q-code">R367</span>
+          <span class="q-text">E-Signature — per-tenant policy (DocuSign stub + wet flow) — closes LAST original-13 item</span>
+          <a href="/ui/cascadia_esign_demo">open →</a></div>
+        <div class="q-card">
+          <span class="q-code">R370</span>
+          <span class="q-text">Self-Patch Validation — Murphy's own gap (4-tier test array + pipeline scope + intent contracts) ✅</span>
+          <a href="/ui/cascadia_validation_demo">open →</a></div>
+        <div class="q-card">
+          <span class="q-code">R371</span>
+          <span class="q-text">Validation × 3 targets — r369 + r364 + r370 recursive on itself ✅ DESIGNED-TO-DO</span>
+          <a href="/ui/cascadia_validation_demo">open →</a></div>
+        <div class="q-card">
+          <span class="q-code">R372</span>
+          <span class="q-text">Composing pair validation — r366_state_overlay + r366_sla_escalation + R368 departed-edge ✅</span>
+          <a href="/ui/cascadia_validation_demo">open →</a></div>
+        <div class="q-card">
+          <span class="q-code">R373</span>
+          <span class="q-text">Full contract coverage — 10 minimal contracts batched · 17 modules ✅ DESIGNED-TO-DO</span>
+          <a href="/ui/cascadia_validation_demo">open →</a></div>
+        <div class="q-card">
+          <span class="q-code">R374</span>
+          <span class="q-text">Depth + composition — 3 tools × 2 blocks + r361→r363 chain · 18 modules ✅</span>
+          <a href="/ui/cascadia_validation_demo">open →</a></div>
+        <div class="q-card">
+          <span class="q-code">R375</span>
+          <span class="q-text">r367 depth + sign-then-depart chain — same tool at 2 scopes · 8-for-8 Murphy ✅</span>
+          <a href="/ui/cascadia_validation_demo">open →</a></div>
+        <div class="q-card">
+          <span class="q-code">MAP</span>
+          <span class="q-text">Capability map — 1,283 already-classified rows surfaced from murphy_registry.db</span>
+          <a href="/ui/capability_map">open →</a></div>
+        <div class="q-card">
+          <span class="q-code">R377</span>
+          <span class="q-text">r362→r369 eventual-consistency chain — NEW pattern: shared-column coupling · 19 modules ✅</span>
+          <a href="/ui/cascadia_validation_demo">open →</a></div>
+        <div class="q-card">
+          <span class="q-code">R378</span>
+          <span class="q-text">Shape of Complete audit — 7 pillars defined by Murphy · 62 patches + 123 DBs + 500 src classified</span>
+          <a href="/ui/shape_audit">audit →</a></div>
+        <div class="q-card">
+          <span class="q-code">R379</span>
+          <span class="q-text">Redundancy audit — AST functional-clone detection · 1,642 modules scanned · 7 clusters</span>
+          <a href="/ui/redundancy_audit">audit →</a></div>
+        <div class="q-card">
+          <span class="q-code">R380</span>
+          <span class="q-text">Canonical recommendations — 6 clusters categorized · 1 HIGH (module_loader dup) · advisory-only</span>
+          <a href="/ui/redundancy_audit">review →</a></div>
+        <div class="q-card">
+          <span class="q-code">R381</span>
+          <span class="q-text">OPERATIONAL — stuck escalation notifier · r366+r381+r369 chain sends real founder email</span>
+          <a href="/ui/cascadia_escalation_demo">live →</a></div>
+        <div class="q-card">
+          <span class="q-code">R363</span>
+          <span class="q-text">Compliance Gap Detection — missing fields auto-fire HITL to dept owner</span>
+          <a href="/ui/cascadia_compliance_demo">open →</a></div>
+        <div class="q-card">
+          <span class="q-code">R364</span>
+          <span class="q-text">Semantic Compliance + Suggested Fixes — paraphrased clauses caught, LLM proposes corrective text</span>
+          <a href="/ui/cascadia_revisions">open →</a></div>
+    </div>
+
+    <h3>How to Use This Briefing</h3>
+    <p>This briefing enumerates 25 questions every CEO of an Oregon-licensed
+    MEP contractor must answer before bidding, staffing, or executing work in
+    New York State (and especially New York City). Three are answered in full
+    branded documents below; the remaining 22 are stubbed for the next
+    operating cycle.</p>
+    <div class="callout">
+      <strong>Regulatory note.</strong> Citations reference statute and
+      agency rule as of mid-2026. Verify currency with the named agency
+      before reliance — license rules and DOB filing protocols change yearly.
+    </div>
+  </section>
+
+  <div class="section-head">A — Licensing &amp; Registration</div>
+  <div class="q-grid">
+    <div class="q-card"><span class="q-code">A1</span>
+      <span class="q-text">Can my Oregon CCB license be used in NY, or do I need separate registration?</span>
+      <a href="/ui/cascadia_doc1">read →</a></div>
+    <div class="q-card stub"><span class="q-code">A2</span>
+      <span class="q-text">Which NY state and city licenses does my superintendent need (master electrician, master plumber)?</span>
+      <a>stub</a></div>
+    <div class="q-card stub"><span class="q-code">A3</span>
+      <span class="q-text">What's the bond requirement for an out-of-state MEP contractor in NYC?</span>
+      <a>stub</a></div>
+    <div class="q-card stub"><span class="q-code">A4</span>
+      <span class="q-text">How do I register my Oregon LLC as a foreign entity with NY Department of State?</span>
+      <a>stub</a></div>
+    <div class="q-card stub"><span class="q-code">A5</span>
+      <span class="q-text">What sales tax / use tax accounts do I need with NY DTF?</span>
+      <a>stub</a></div>
+  </div>
+
+  <div class="section-head">B — Project-Level Compliance</div>
+  <div class="q-grid">
+    <div class="q-card"><span class="q-code">B1</span>
+      <span class="q-text">What NY DOB filings does my crew need for a typical commercial MEP install?</span>
+      <a href="/ui/cascadia_doc2">read →</a></div>
+    <div class="q-card stub"><span class="q-code">B2</span>
+      <span class="q-text">How does NYC Local Law 152 (gas piping inspection) affect my scope?</span>
+      <a>stub</a></div>
+    <div class="q-card stub"><span class="q-code">B3</span>
+      <span class="q-text">What's the Site Safety Plan requirement, and do I need an SSP?</span>
+      <a>stub</a></div>
+    <div class="q-card stub"><span class="q-code">B4</span>
+      <span class="q-text">Do I need a NY-licensed PE to stamp my drawings, or will my Oregon PE work?</span>
+      <a>stub</a></div>
+    <div class="q-card stub"><span class="q-code">B5</span>
+      <span class="q-text">What's the workflow for filing PW1, PW2, PW3 with DOB NOW?</span>
+      <a>stub</a></div>
+  </div>
+
+  <div class="section-head">C — Labor &amp; Prevailing Wage</div>
+  <div class="q-grid">
+    <div class="q-card stub"><span class="q-code">C1</span>
+      <span class="q-text">Davis-Bacon vs NY State prevailing wage — when does each apply?</span>
+      <a>stub</a></div>
+    <div class="q-card stub"><span class="q-code">C2</span>
+      <span class="q-text">How do I register with NY DOL for certified payroll?</span>
+      <a>stub</a></div>
+    <div class="q-card stub"><span class="q-code">C3</span>
+      <span class="q-text">What workers comp / disability insurance does NY accept (vs OR SAIF)?</span>
+      <a>stub</a></div>
+    <div class="q-card stub"><span class="q-code">C4</span>
+      <span class="q-text">Do my Oregon employees need NY DBL, PFL, or just W-2 NY-source withholding?</span>
+      <a>stub</a></div>
+  </div>
+
+  <div class="section-head">D — Safety &amp; OSHA</div>
+  <div class="q-grid">
+    <div class="q-card stub"><span class="q-code">D1</span>
+      <span class="q-text">Difference between Federal OSHA and NY DOL PESH for my crew?</span>
+      <a>stub</a></div>
+    <div class="q-card"><span class="q-code">D2</span>
+      <span class="q-text">SST card requirements (OSHA 30 + course curriculum) — how many of my guys need it?</span>
+      <a href="/ui/cascadia_doc3">read →</a></div>
+    <div class="q-card stub"><span class="q-code">D3</span>
+      <span class="q-text">What scaffolding / fall protection variances does NY enforce that OR doesn't?</span>
+      <a>stub</a></div>
+  </div>
+
+  <div class="section-head">E — Insurance &amp; Bonding</div>
+  <div class="q-grid">
+    <div class="q-card stub"><span class="q-code">E1</span>
+      <span class="q-text">GL, umbrella, and auto coverage minimums for NY public work?</span>
+      <a>stub</a></div>
+    <div class="q-card stub"><span class="q-code">E2</span>
+      <span class="q-text">Do I need a NY-specific surety bond beyond my OR CCB bond?</span>
+      <a>stub</a></div>
+    <div class="q-card stub"><span class="q-code">E3</span>
+      <span class="q-text">How does NY Labor Law §240 (Scaffold Law) change my liability exposure?</span>
+      <a>stub</a></div>
+  </div>
+
+  <div class="section-head">F — Tax &amp; Financial</div>
+  <div class="q-grid">
+    <div class="q-card stub"><span class="q-code">F1</span>
+      <span class="q-text">NY corporate franchise tax — am I taxable as an OR LLC with a NY job?</span>
+      <a>stub</a></div>
+    <div class="q-card stub"><span class="q-code">F2</span>
+      <span class="q-text">NYC commercial rent tax / business income tax exposure?</span>
+      <a>stub</a></div>
+    <div class="q-card stub"><span class="q-code">F3</span>
+      <span class="q-text">Sales tax on materials bought in NJ vs installed in NY?</span>
+      <a>stub</a></div>
+  </div>
+
+  <div class="section-head">G — Business Operations</div>
+  <div class="q-grid">
+    <div class="q-card stub"><span class="q-code">G1</span>
+      <span class="q-text">NYC GC expectation for schedule of values, lien waivers, AIA G702/G703?</span>
+      <a>stub</a></div>
+    <div class="q-card stub"><span class="q-code">G2</span>
+      <span class="q-text">DBE / WBE / MWBE certification for NY public work?</span>
+      <a>stub</a></div>
+  </div>
+
+  <div class="footer">
+    <span>Cascadia MEP Contractors, LLC · Tenant: oregon_mep_demo · R357</span>
+    <span><a href="/ui/console">↩ console</a> · <a href="/ui/ops">ops</a></span>
+  </div>
+
+</div>
+</body>
+</html>

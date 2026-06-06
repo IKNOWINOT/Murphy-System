@@ -1,0 +1,11 @@
+Incident #inc_f3f5f95b: Capacity info check.
+
+Last outreach: 2023-03-15T10:30:00Z
+Current time: 2026-06-05T11:36:47Z
+
+Time elapsed: far beyond 54 seconds.
+APC outreach copy has not been refreshed.
+
+Action: Triggered copy refresh by updating needs_copy_refresh flag.
+
+Status: Resolved.

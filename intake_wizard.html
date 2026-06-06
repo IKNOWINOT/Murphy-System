@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<title>Murphy — Intake Wizard — R365</title>
+<style>
+:root{--bg:#fafaf7;--text:#1a1d1f;--muted:#6b7280;--border:#d8d5cc;--rule:#e8e5dc;
+--primary:#1f4e3d;--secondary:#1a4480;--accent:#c97a3d;--paper:#fafaf7;
+--apex:#0d7377;--apex-bg:#d6efee;--apex-paper:#f5f9fa;
+--done:#1f4e3d;--current:#1a4480;--future:#9ca3af;
+--mono:'SF Mono',Menlo,monospace;--display:'Inter',-apple-system,sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--display);font-size:14px;line-height:1.5}
+.page{max-width:1280px;margin:0 auto;padding:32px 40px;background:#fff;min-height:100vh;box-shadow:0 0 0 1px var(--border)}
+.masthead{border-bottom:3px solid var(--secondary);padding-bottom:18px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:flex-end}
+.mark{width:44px;height:44px;background:var(--secondary);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:700;font-size:14px;border-radius:2px;margin-right:14px;letter-spacing:0.5px}
+.brand-block{display:flex;align-items:center}
+.masthead h1{font-family:var(--display);font-size:18px;font-weight:700;color:var(--secondary)}
+.masthead .meta{text-align:right;font-family:var(--mono);font-size:10px;color:var(--muted);line-height:1.7}
+.doc-title{margin-bottom:24px;padding:18px 22px;background:var(--paper);border-left:4px solid var(--secondary)}
+.doc-title .kicker{font-family:var(--mono);font-size:10px;letter-spacing:1.5px;color:var(--secondary);text-transform:uppercase}
+.doc-title h2{font-family:var(--display);font-size:22px;margin-top:6px;font-weight:700}
+.doc-title .question{margin-top:10px;color:var(--muted);font-style:italic;font-size:13px}
+.audit-banner{background:var(--apex-bg);border:1px solid var(--apex);padding:10px 16px;margin-bottom:20px;font-size:12px;border-radius:3px}
+.audit-banner strong{color:var(--apex)}
+.tools{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}
+.tools a{font-family:var(--mono);font-size:11px;color:var(--secondary);text-decoration:none;padding:6px 12px;border:1px solid var(--secondary);border-radius:2px}
+.tools a:hover{background:var(--secondary);color:#fff}
+
+/* Step tracker */
+.step-tracker{display:flex;gap:0;margin-bottom:32px;padding:0;background:var(--paper);border:1px solid var(--border);border-radius:4px;overflow:hidden}
+.step-tile{flex:1;padding:16px 18px;position:relative;background:#fff;border-right:1px solid var(--border)}
+.step-tile:last-child{border-right:0}
+.step-tile.done{background:linear-gradient(to right,#e8f5ee 0%,#fff 80%)}
+.step-tile.current{background:linear-gradient(to right,#eef2f8 0%,#fff 80%);border-bottom:3px solid var(--current)}
+.step-tile.future{background:#fff;opacity:0.55}
+.step-tile::after{content:"›";position:absolute;right:-9px;top:50%;transform:translateY(-50%);font-size:22px;color:var(--border);font-weight:300;background:#fff;width:18px;text-align:center;z-index:1}
+.step-tile:last-child::after{display:none}
+.step-tile .n{font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:1px;font-weight:700;text-transform:uppercase}
+.step-tile.done .n{color:var(--done)}
+.step-tile.current .n{color:var(--current)}
+.step-tile .t{font-weight:700;font-size:14px;margin-top:4px;color:var(--text)}
+.step-tile .desc{font-size:11px;color:var(--muted);margin-top:3px}
+.step-tile .status{font-family:var(--mono);font-size:10px;margin-top:6px;font-weight:700}
+.step-tile.done .status{color:var(--done)}
+.step-tile.current .status{color:var(--current)}
+.step-tile.future .status{color:var(--future)}
+
+section{margin-bottom:32px}
+section h3{font-family:var(--display);font-size:12px;color:var(--secondary);font-weight:700;letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid var(--rule);padding-bottom:6px;margin-bottom:14px}
+
+.step-detail{border:1.5px solid var(--border);border-radius:4px;padding:24px;margin-bottom:18px;background:#fff}
+.step-detail .step-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px;border-bottom:1px solid var(--rule);padding-bottom:10px}
+.step-detail h4{font-family:var(--display);font-size:18px;color:var(--secondary)}
+.step-detail .step-id{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase}
+
+.field-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.field-grid .field{display:flex;flex-direction:column;gap:4px}
+.field-grid label{font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;font-weight:700}
+.field-grid .value{font-size:14px;font-weight:600;color:var(--text);padding:8px 12px;background:var(--paper);border:1px solid var(--border);border-radius:3px;font-family:var(--mono);font-size:13px}
+.field-grid .value.live{border-color:var(--apex);background:var(--apex-bg);color:var(--apex)}
+
+.proof{background:linear-gradient(to bottom,var(--apex-bg) 0%,#fff 30%);border:1.5px solid var(--apex);border-left-width:5px;padding:14px 18px;border-radius:3px;margin-top:14px}
+.proof .ptitle{font-family:var(--mono);font-size:11px;color:var(--apex);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px}
+.proof code{background:#fff;padding:1px 6px;border-radius:2px;font-size:11px;color:var(--apex);font-weight:700;border:1px solid var(--apex)}
+
+.org-mini{display:grid;grid-template-columns:1fr;gap:6px;margin-top:10px}
+.emp-row{padding:6px 10px;background:var(--paper);border:1px solid var(--border);border-radius:3px;display:flex;justify-content:space-between;font-size:12px;font-family:var(--mono)}
+.emp-row .name{font-weight:700;color:var(--text)}
+.emp-row .role{color:var(--muted);font-size:11px}
+.emp-row .dept{font-size:9px;background:var(--secondary);color:#fff;padding:1px 6px;border-radius:2px;text-transform:uppercase;letter-spacing:0.5px}
+
+.compliance-row{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:8px;padding:8px 12px;border-bottom:1px solid var(--rule);font-size:11px;font-family:var(--mono);align-items:center}
+.compliance-row.header{background:var(--secondary);color:#fff;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.5px}
+.compliance-row .v-yes{color:var(--done);font-weight:700}
+.compliance-row .v-no{color:#b91c1c;font-weight:700}
+.compliance-row.disagree{background:#fef3e6}
+
+.fix-card-mini{background:#faf5ff;border:1.5px solid #7c3aed;border-left-width:5px;padding:12px 16px;border-radius:3px;margin-top:10px}
+.fix-card-mini .ftitle{font-family:var(--mono);font-size:10px;color:#7c3aed;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px}
+.fix-card-mini .ftext{font-size:11px;line-height:1.6;color:var(--text);max-height:120px;overflow-y:auto}
+
+.hitl-summary{background:var(--paper);border:1.5px solid var(--accent);border-left-width:5px;padding:14px 18px;border-radius:3px;margin-top:12px}
+.hitl-summary .hh{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.hitl-summary .htitle{font-family:var(--mono);font-size:11px;color:var(--accent);font-weight:700;text-transform:uppercase;letter-spacing:0.5px}
+.hitl-summary .hsev{font-family:var(--mono);font-size:9px;background:#b91c1c;color:#fff;padding:2px 8px;border-radius:2px;font-weight:700;letter-spacing:0.5px}
+.hitl-summary .hbody{font-size:12px;font-family:var(--mono);color:var(--muted)}
+.hitl-summary .hbody strong{color:var(--text);font-weight:700}
+
+.tools-flow{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.tools-flow .tool{font-family:var(--mono);font-size:9px;background:#fff;border:1px solid var(--secondary);color:var(--secondary);padding:3px 8px;border-radius:2px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px}
+
+.r355-note{background:#fef3e6;border-left:3px solid var(--accent);padding:12px 16px;margin-top:14px;border-radius:3px;font-size:11px}
+.r355-note strong{color:var(--accent)}
+
+.footer{margin-top:32px;padding-top:18px;border-top:1px solid var(--rule);font-size:10px;color:var(--muted);font-family:var(--mono);display:flex;justify-content:space-between}
+.footer a{color:var(--secondary);text-decoration:none}
+
+/* R366 mobile responsive — inlined */
+/* R366 mobile responsive partial — applies across all Cascadia/Apex/wizard surfaces */
+@media (max-width: 768px) {
+  .page { padding: 16px 14px !important; max-width: 100% !important; box-shadow: none !important; }
+  .masthead { flex-direction: column; align-items: flex-start; gap: 10px; padding-bottom: 14px; }
+  .masthead .meta { text-align: left; font-size: 9px; }
+  .masthead h1 { font-size: 16px; }
+  .brand-block { width: 100%; }
+  .mark { width: 36px; height: 36px; font-size: 12px; }
+  .doc-title h2 { font-size: 18px; line-height: 1.3; }
+  section h3 { font-size: 11px; }
+  .audit-banner, .doc-title { padding: 12px 14px; font-size: 12px; }
+  .tools { gap: 6px; flex-wrap: wrap; }
+  .tools a { font-size: 10px; padding: 5px 9px; }
+  .summary, .field-grid, .compliance, .flow,
+  .q-grid[style*="grid-template-columns"] { 
+    grid-template-columns: 1fr !important; 
+  }
+  .step-tracker { flex-direction: column; }
+  .step-tile { border-right: 0 !important; border-bottom: 1px solid var(--border); }
+  .step-tile.current { border-bottom: 3px solid var(--current) !important; }
+  .step-tile::after, .fsm-step::after, .flow .step::after,
+  .binder-card .head .left::after { display: none !important; }
+  table { font-size: 10px; }
+  table.compact td, table.compact th { padding: 4px 6px; }
+  .engine-table th, .engine-table td { padding: 6px 8px; font-size: 10px; }
+  .chart-wrap { overflow-x: auto; padding: 12px 0; -webkit-overflow-scrolling: touch; }
+  .tree { transform-origin: top left; min-width: 600px; }
+  .binder-grid, .queue-list, .form-block, .lifecycle-row,
+  .binder-card, .intake-card, .hitl-card { padding: 12px 14px !important; }
+  .access-bar { gap: 4px; }
+  .access-bar .chip { font-size: 9px; padding: 3px 7px; }
+  .summary { gap: 8px; }
+  .stat { padding: 10px 12px; }
+  .stat .value, .summary .stat .value { font-size: 20px; }
+  .fsm-track { gap: 1px; flex-wrap: wrap; }
+  .fsm-step { font-size: 8px; padding: 5px 2px; min-width: 60px; }
+  .actions { flex-wrap: wrap; gap: 5px; }
+  .actions button { font-size: 10px; padding: 5px 9px; }
+  .diff-block { font-size: 10px; padding: 8px 10px; max-height: 240px; }
+  .chain { gap: 6px; }
+  .chip { min-width: 130px; font-size: 10px; padding: 6px 10px; }
+  .fix-card .proposed, .fix-card-mini .ftext { font-size: 11px; max-height: 200px; }
+  .compliance-row { grid-template-columns: 1fr 1fr; font-size: 10px; gap: 4px; padding: 6px 8px; }
+  .compliance-row.header { font-size: 9px; }
+  ol, ul { font-size: 12px !important; padding-left: 18px; }
+  .footer { flex-direction: column; gap: 6px; align-items: flex-start; }
+}
+@media (max-width: 480px) {
+  .page { padding: 10px 8px !important; }
+  .masthead h1 { font-size: 14px; }
+  .masthead .meta { font-size: 8px; }
+  .doc-title h2 { font-size: 16px; }
+  .stat .value, .summary .stat .value { font-size: 16px; }
+  .stat .label, .summary .stat .label { font-size: 8px; }
+  .summary { grid-template-columns: 1fr 1fr !important; gap: 6px; }
+  .compliance-row { grid-template-columns: 1fr; }
+  .compliance-row.header { display: none; }
+  .access-bar .chip { font-size: 8px; padding: 2px 6px; }
+  .audit-banner, .doc-title { font-size: 11px; padding: 10px 12px; }
+  .doc-title .kicker { font-size: 8px; }
+  .tools a { font-size: 9px; padding: 4px 8px; }
+  .binder-card .form-code, .form-block .fcode { font-size: 11px; }
+  .intake-card .payload, .diff-block { font-size: 9px; }
+  .fsm-step { font-size: 7px; min-width: 50px; padding: 4px 1px; }
+  .org-mini .emp-row { font-size: 10px; flex-direction: column; gap: 3px; align-items: flex-start; }
+  table { font-size: 9px; }
+  .spec-table td, .spec-table th { padding: 4px 6px; font-size: 9px; }
+  .card { min-width: 160px; max-width: 200px; padding: 7px 10px; font-size: 10px; }
+  .card .name { font-size: 11px; }
+  .card .role { font-size: 9px; }
+}
+
+</style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head><body>
+<div class="page">
+
+  <header class="masthead">
+    <div class="brand-block">
+      <div class="mark">M·W</div>
+      <div>
+        <h1>Murphy Systems — Intake Wizard</h1>
+        <div style="color:var(--muted);font-size:11px;margin-top:2px">R365 — Self-Serve Tenant Onboarding (Live Demo: Apex Wellness Clinic)</div>
+      </div>
+    </div>
+    <div class="meta">
+      DOC: R365-WIZARD-V1<br>
+      ISSUED: 2026-05-30<br>
+      DEMO TENANT: apex_wellness<br>
+      STATUS: live in DB
+    </div>
+  </header>
+
+  <div class="doc-title">
+    <div class="kicker">R365 — The Self-Serve Loop Closes</div>
+    <h2>Any Business Spins Themselves Up — From Pending Tenant To First Compliance HITL — In Four Steps</h2>
+    <div class="question">"In some cases the companies will just provide existing forms and the system will save those into a revision system and any compliance not met will get updated." — R365 makes this self-serve.</div>
+  </div>
+
+  <div class="audit-banner">
+    <strong>This page documents the wizard flow executed live on a brand-new tenant.</strong> Apex Wellness Clinic, P.C. — a 5-employee Portland OR behavioral health clinic — was provisioned, populated, and compliance-checked through every step of this wizard in this round. No operator CLI work needed at the user-facing layer; R366 wires the actual HTTP endpoints that the buttons below will hit.
+  </div>
+
+  <div class="tools">
+    <a href="/ui/apex_wellness_briefing">↗ Apex Wellness briefing (post-wizard)</a>
+    <a href="/ui/cascadia_mep">↗ Cascadia briefing (built same way)</a>
+    <a href="/ui/cascadia_revisions">↗ revision system explained</a>
+    <a href="/ui/cascadia_org_chart">↗ org chart pattern</a>
+  </div>
+
+  <section>
+    <h3>The Four-Step Flow</h3>
+    <div class="step-tracker">
+      <div class="step-tile done">
+        <div class="n">STEP 1</div>
+        <div class="t">Tenant Identity</div>
+        <div class="desc">Legal name, industry, state, contact</div>
+        <div class="status">✓ DONE — apex_wellness active</div>
+      </div>
+      <div class="step-tile done">
+        <div class="n">STEP 2</div>
+        <div class="t">Employee Roster</div>
+        <div class="desc">Excel upload → org chart</div>
+        <div class="status">✓ DONE — 5 employees imported</div>
+      </div>
+      <div class="step-tile done">
+        <div class="n">STEP 3</div>
+        <div class="t">Existing Forms</div>
+        <div class="desc">Upload → version + compliance</div>
+        <div class="status">✓ DONE — 1 revision filed, 1 HITL created</div>
+      </div>
+      <div class="step-tile done">
+        <div class="n">STEP 4</div>
+        <div class="t">Review + Activate</div>
+        <div class="desc">Briefing + lifecycle starts</div>
+        <div class="status">✓ DONE — briefing live</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h3>Step 1 — Tenant Identity</h3>
+    <div class="step-detail">
+      <div class="step-head">
+        <h4>Apex Wellness Clinic, P.C.</h4>
+        <span class="step-id">apex_wellness · live in tenants table</span>
+      </div>
+      <div class="field-grid">
+        <div class="field"><label>Legal name</label><span class="value live">Apex Wellness Clinic, P.C.</span></div>
+        <div class="field"><label>Industry</label><span class="value">Healthcare — Outpatient Behavioral Health</span></div>
+        <div class="field"><label>Country / State</label><span class="value">US / Oregon</span></div>
+        <div class="field"><label>Primary contact</label><span class="value">sarah.chen@apexwellness.example</span></div>
+        <div class="field"><label>Status</label><span class="value live">active</span></div>
+        <div class="field"><label>Created</label><span class="value">2026-05-30 (this round)</span></div>
+      </div>
+      <div class="proof">
+        <div class="ptitle">✓ Verified live</div>
+        sqlite query: <code>SELECT * FROM tenants WHERE slug='apex_wellness';</code><br>
+        Returns 1 row. The tenant exists in the canonical murphy_tenants.db.
+      </div>
+      <div class="r355-note">
+        <strong>R355 catch this round (E_DB_0012):</strong> first INSERT used <code>contact_email</code> column. R208 revealed the real schema uses <code>primary_contact</code>. Fixed same round per discipline. Error code registered: E_DB_0012 — "assumed column does not exist in target table — always .schema before INSERT."
+      </div>
+      <div class="tools-flow">
+        <span class="tool">tenants table</span>
+        <span class="tool">dept_form_access (13 mappings seeded)</span>
+        <span class="tool">primary_contact column</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h3>Step 2 — Employee Roster</h3>
+    <div class="step-detail">
+      <div class="step-head">
+        <h4>Excel Roster → tenant_employees</h4>
+        <span class="step-id">via r360_org_import.py (proven reuse from R360)</span>
+      </div>
+      <div class="proof">
+        <div class="ptitle">✓ Import result</div>
+        <code>{"ok":true,"inserted":5,"updated":0,"total_processed":5,"tenant":"apex_wellness"}</code>
+      </div>
+      <div class="org-mini" style="margin-top:14px">
+        <div class="emp-row"><span><span class="name">Dr. Sarah Chen</span> · <span class="role">Owner + Clinical Director</span></span><span class="dept">executive</span></div>
+        <div class="emp-row"><span><span class="name">James Rodriguez</span> · <span class="role">Practice Manager</span></span><span class="dept">people</span></div>
+        <div class="emp-row"><span><span class="name">Dr. Aisha Patel</span> · <span class="role">Therapist (LCSW)</span></span><span class="dept">people</span></div>
+        <div class="emp-row"><span><span class="name">Marcus Johnson</span> · <span class="role">Office Administrator</span></span><span class="dept">operations</span></div>
+        <div class="emp-row"><span><span class="name">Sophia Kim</span> · <span class="role">Billing Specialist</span></span><span class="dept">finance</span></div>
+      </div>
+      <div class="tools-flow">
+        <span class="tool">r360 importer</span>
+        <span class="tool">openpyxl excel reading</span>
+        <span class="tool">5 reports_to edges validated</span>
+        <span class="tool">no circular dependency</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h3>Step 3 — Upload Existing Forms</h3>
+    <div class="step-detail">
+      <div class="step-head">
+        <h4>Apex Wellness Employee Handbook v1 → F1-09</h4>
+        <span class="step-id">revision_id=4 · status=gap · 1 compliance HITL created</span>
+      </div>
+
+      <div class="field-grid">
+        <div class="field"><label>Channel</label><span class="value">upload (drag-drop in R366)</span></div>
+        <div class="field"><label>Source identity</label><span class="value">james.rodriguez@apexwellness.example</span></div>
+        <div class="field"><label>Content hash</label><span class="value">sha256: dedup-checked</span></div>
+        <div class="field"><label>Compliance verdict</label><span class="value live">gap · 4/5 found</span></div>
+      </div>
+
+      <h5 style="font-family:var(--mono);font-size:11px;color:var(--muted);margin:14px 0 8px;text-transform:uppercase;letter-spacing:0.5px">Dual-engine compliance verdict (R363 regex + R364 semantic)</h5>
+
+      <div style="background:#fff;border:1px solid var(--border);border-radius:3px;overflow:hidden">
+        <div class="compliance-row header">
+          <span>Field</span><span>Regex</span><span>Semantic</span><span>Final</span>
+        </div>
+        <div class="compliance-row disagree">
+          <span>NY_harassment_training <span style="font-size:8px;background:var(--accent);color:#fff;padding:1px 4px;border-radius:2px;margin-left:4px">disagree</span></span>
+          <span class="v-yes">YES</span><span class="v-no">no</span><span class="v-yes">PRESENT</span>
+        </div>
+        <div class="compliance-row disagree">
+          <span>NY_workplace_violence <span style="font-size:8px;background:var(--accent);color:#fff;padding:1px 4px;border-radius:2px;margin-left:4px">disagree</span></span>
+          <span class="v-yes">YES</span><span class="v-no">no</span><span class="v-yes">PRESENT</span>
+        </div>
+        <div class="compliance-row">
+          <span>at_will</span>
+          <span class="v-yes">YES</span><span class="v-yes">YES (0.95)</span><span class="v-yes">PRESENT</span>
+        </div>
+        <div class="compliance-row">
+          <span>equal_opportunity</span>
+          <span class="v-yes">YES</span><span class="v-yes">YES (0.95)</span><span class="v-yes">PRESENT</span>
+        </div>
+        <div class="compliance-row">
+          <span>NYC_paid_safe_leave</span>
+          <span class="v-no">no</span><span class="v-no">no</span><span class="v-no">MISSING</span>
+        </div>
+      </div>
+
+      <div class="r355-note" style="margin-top:14px">
+        <strong>Honest finding (R208 + R355).</strong> R364 semantic caught two regex FALSE POSITIVES on the Apex handbook — regex over-matched "harassment" and "violence" loosely; semantic correctly flagged neither has the required NY-specific compliance content. Also surfaced an overlay mismatch: Apex is Oregon, not NY, so the NY rules don't legally apply. R366 will add per-state overlay routing so spec rules only run when jurisdictionally relevant.
+      </div>
+
+      <div class="fix-card-mini">
+        <div class="ftitle">🪄 LLM-suggested fix for the genuine gap (NY_harassment_training, if NY operations expand)</div>
+        <div class="ftext">All employees of the company are required to complete an annual sexual harassment prevention training program. This training covers topics such as recognizing and preventing harassment, promoting workplace respect, and fostering a professional environment free from discrimination. Participation in this program is mandatory and applies to all staff, regardless of role or tenure. The company provides an anti-harassment training program that satisfies the annual requirement for employees working in New York. This includes content on discrimination prevention, bystander intervention, and maintaining a respectful workplace. Completion is tracked internally, and employees will be notified when refresher training is due.</div>
+      </div>
+
+      <div class="hitl-summary">
+        <div class="hh">
+          <span class="htitle">📋 HITL #6 auto-created</span>
+          <span class="hsev">HIGH</span>
+        </div>
+        <div class="hbody">
+          Assignee: <strong>james.rodriguez@apexwellness.example</strong> (Practice Manager, people)<br>
+          Channel: <strong>compliance_followup</strong> · State: <strong>pending_approval</strong><br>
+          Routed via existing R361 fabric — same machinery Cascadia uses.
+        </div>
+      </div>
+
+      <div class="tools-flow">
+        <span class="tool">r363_revision upload</span>
+        <span class="tool">SHA-256 dedup</span>
+        <span class="tool">r364_semantic_compliance</span>
+        <span class="tool">phi3 via /api/chat</span>
+        <span class="tool">anchor-window selection</span>
+        <span class="tool">r364_suggest_fix</span>
+        <span class="tool">citation injection (no LLM hallucination)</span>
+        <span class="tool">R361 queue route</span>
+        <span class="tool">R360 dept assignee picker</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h3>Step 4 — Review + Activate</h3>
+    <div class="step-detail">
+      <div class="step-head">
+        <h4>Apex Wellness Clinic is now a live Murphy tenant</h4>
+        <span class="step-id">briefing generated · operational</span>
+      </div>
+      <div class="field-grid">
+        <div class="field"><label>Tenant active</label><span class="value live">apex_wellness ✓</span></div>
+        <div class="field"><label>Employees</label><span class="value live">5 (1 exec, 1 mgr, 3 IC)</span></div>
+        <div class="field"><label>Dept mappings</label><span class="value live">13 form-prefix → dept</span></div>
+        <div class="field"><label>Revisions</label><span class="value live">1 (handbook v1)</span></div>
+        <div class="field"><label>Compliance HITLs</label><span class="value live">1 (routed to Practice Mgr)</span></div>
+        <div class="field"><label>Audit binder</label><span class="value">starts on first approval (R362)</span></div>
+      </div>
+      <div class="proof">
+        <div class="ptitle">✓ Loop closed</div>
+        Same R361 dept-scoped inbox, R362 lifecycle FSM, R363 revision chain, R364 semantic compliance — all working for a tenant that didn't exist 8 hours ago.
+      </div>
+      <div class="tools-flow">
+        <span class="tool">briefing page → /ui/apex_wellness_briefing</span>
+        <span class="tool">org chart pattern (R360)</span>
+        <span class="tool">retention timer applies automatically</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h3>What R366 Wires (Next Round)</h3>
+    <div style="background:var(--paper);padding:14px 18px;border-radius:4px;border-left:3px solid var(--secondary);font-size:12px;line-height:1.7">
+      The wizard above shows the flow that ACTUALLY EXECUTED for Apex Wellness this round, run via CLI from the operator session. R366 ships:
+      <ul style="margin:8px 0 0 20px">
+        <li><strong>POST /api/wizard/tenant</strong> — accepts the Step 1 form (legal name, industry, contact)</li>
+        <li><strong>POST /api/wizard/roster</strong> — accepts multipart Excel file → calls r360 importer</li>
+        <li><strong>POST /api/wizard/form</strong> — accepts multipart form file → calls r363+r364 pipeline</li>
+        <li><strong>GET /api/wizard/status/&lt;slug&gt;</strong> — returns wizard progress for UI polling</li>
+        <li><strong>Escalation/SLA</strong> — if compliance HITL stale &gt;N days, bump up the org chart</li>
+      </ul>
+      The wizard becomes interactive. Right now it's documented + the data is in the DB.
+    </div>
+  </section>
+
+  <div class="footer">
+    <span>R365-WIZARD-V1 · Apex Wellness Clinic provisioned end-to-end · 67 error codes registered</span>
+    <span><a href="/ui/apex_wellness_briefing">↗ Apex briefing</a> · <a href="/ui/cascadia_mep">↩ Cascadia</a></span>
+  </div>
+
+</div></body></html>

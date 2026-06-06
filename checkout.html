@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Checkout — Murphy Systems</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: #0a0e14;
+  color: #e8eaed;
+  min-height: 100vh;
+  padding: 40px 20px;
+}
+.wrap { max-width: 880px; margin: 0 auto; }
+.brand { font-weight: 600; font-size: 18px; letter-spacing: 0.5px; margin-bottom: 32px; color: #58a6ff; }
+h1 { font-size: 28px; font-weight: 600; margin-bottom: 8px; }
+.sub { color: #9da5b4; margin-bottom: 32px; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+@media (max-width: 720px) { .grid { grid-template-columns: 1fr; } }
+.card {
+  background: #131820;
+  border: 1px solid #21262d;
+  border-radius: 8px;
+  padding: 22px;
+}
+.card h2 { font-size: 16px; font-weight: 600; margin-bottom: 14px; color: #c9d1d9; }
+.field { margin-bottom: 14px; }
+label { display: block; font-size: 13px; color: #9da5b4; margin-bottom: 6px; }
+input, select {
+  width: 100%; padding: 10px 12px; border-radius: 6px;
+  border: 1px solid #30363d; background: #0d1117; color: #e8eaed; font-size: 14px;
+}
+input:focus, select:focus { outline: none; border-color: #58a6ff; }
+.summary-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #21262d; font-size: 14px; }
+.summary-row:last-child { border-bottom: none; font-weight: 600; padding-top: 14px; font-size: 17px; }
+.summary-row .label { color: #9da5b4; }
+.method {
+  display: flex; align-items: center; padding: 12px 14px;
+  border: 1px solid #30363d; border-radius: 6px; margin-bottom: 10px;
+  cursor: pointer; transition: border-color 0.15s;
+}
+.method:hover { border-color: #58a6ff; }
+.method.active { border-color: #58a6ff; background: #0d1117; }
+.method input { width: auto; margin-right: 12px; }
+.method .title { font-weight: 500; }
+.method .note { color: #9da5b4; font-size: 12px; margin-left: auto; }
+.btn {
+  width: 100%; padding: 14px; margin-top: 18px;
+  background: #238636; color: white; border: none; border-radius: 6px;
+  font-size: 15px; font-weight: 600; cursor: pointer; transition: background 0.15s;
+}
+.btn:hover { background: #2ea043; }
+.btn:disabled { background: #30363d; cursor: not-allowed; }
+.status { margin-top: 14px; padding: 12px; border-radius: 6px; font-size: 13px; display: none; }
+.status.ok { background: #0d2818; border: 1px solid #238636; color: #7ee787; display: block; }
+.status.err { background: #2d1014; border: 1px solid #f85149; color: #ffa198; display: block; }
+.status.loading { background: #1a1f29; border: 1px solid #30363d; color: #9da5b4; display: block; }
+.foot { margin-top: 32px; text-align: center; color: #6e7681; font-size: 12px; }
+.foot a { color: #58a6ff; text-decoration: none; }
+.spinner { display: inline-block; width: 12px; height: 12px; border: 2px solid #30363d; border-top-color: #58a6ff; border-radius: 50%; animation: spin 0.8s linear infinite; margin-right: 8px; vertical-align: middle; }
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">Murphy Systems</div>
+  <h1>Checkout</h1>
+  <p class="sub">Start your subscription. You can change or cancel anytime.</p>
+
+  <div class="grid">
+    <!-- LEFT: form -->
+    <div class="card">
+      <h2>Your details</h2>
+      <div class="field">
+        <label>Email</label>
+        <input id="email" type="email" placeholder="you@example.com" autocomplete="email">
+      </div>
+      <div class="field">
+        <label>Plan</label>
+        <select id="tier"></select>
+      </div>
+      <div class="field">
+        <label>Billing interval</label>
+        <select id="interval">
+          <option value="monthly">Monthly</option>
+          <option value="annual">Annual (save 17%)</option>
+        </select>
+      </div>
+
+      <h2 style="margin-top: 26px;">Payment method</h2>
+      <!-- _R447_CARD -->
+      <label class="method active" data-method="card">
+        <input type="radio" name="method" value="card" checked>
+        <span class="title">Card (Visa, Mastercard, Amex)</span>
+        <span class="note">Instant · +3%</span>
+      </label>
+      <label class="method" data-method="crypto">
+        <input type="radio" name="method" value="crypto">
+        <span class="title">Crypto (BTC, ETH, USDT, +50)</span>
+        <span class="note">Instant · no fee</span>
+      </label>
+      <label class="method" data-method="invoice">
+        <input type="radio" name="method" value="invoice">
+        <span class="title">Invoice (annual only)</span>
+        <span class="note">Net 30</span>
+      </label>
+
+      <button class="btn" id="payBtn">Continue to payment</button>
+      <div id="status" class="status"></div>
+    </div>
+
+    <!-- RIGHT: order summary -->
+    <div class="card">
+      <h2>Order summary</h2>
+      <div id="summary"></div>
+      <div style="margin-top: 24px; padding-top: 18px; border-top: 1px solid #21262d; color: #9da5b4; font-size: 13px;">
+        <div style="margin-bottom: 8px;">✓ Cancel anytime</div>
+        <div style="margin-bottom: 8px;">✓ 30-day money-back guarantee</div>
+        <div>✓ HIPAA / SOC2 posture (in progress)</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">
+    Questions? <a href="mailto:cpost@murphy.systems">cpost@murphy.systems</a>
+    &nbsp;·&nbsp; <a href="/terms">Terms</a> &nbsp;·&nbsp; <a href="/privacy">Privacy</a>
+  </div>
+</div>
+
+<script>
+let PLANS = [];
+let SELECTED = null;
+
+const $ = id => document.getElementById(id);
+
+// Read ?tier= from URL if present
+const URL_TIER = new URLSearchParams(location.search).get('tier');
+
+async function loadPlans() {
+  try {
+    const r = await fetch('/api/billing/plans');
+    const j = await r.json();
+    PLANS = (j.plans || []).filter(p => p.tier !== 'free' && p.tier !== 'enterprise');
+    const sel = $('tier');
+    sel.innerHTML = PLANS.map(p =>
+      `<option value="${p.tier}">${p.name} — $${p.monthly_price}/mo</option>`
+    ).join('');
+    if (URL_TIER && PLANS.find(p => p.tier === URL_TIER)) sel.value = URL_TIER;
+    renderSummary();
+  } catch (e) {
+    showStatus('err', 'Could not load plans. Refresh and try again.');
+  }
+}
+
+function renderSummary() {
+  const tier = $('tier').value;
+  const interval = $('interval').value;
+  SELECTED = PLANS.find(p => p.tier === tier);
+  if (!SELECTED) return;
+  const price = interval === 'annual' ? SELECTED.annual_price : SELECTED.monthly_price;
+  const intervalLbl = interval === 'annual' ? '/year' : '/month';
+  const monthly = SELECTED.monthly_price;
+  const savings = interval === 'annual' ? (monthly * 12 - SELECTED.annual_price) : 0;
+
+  $('summary').innerHTML = `
+    <div class="summary-row">
+      <span class="label">${SELECTED.name} plan</span>
+      <span>$${price.toFixed(2)}${intervalLbl}</span>
+    </div>
+    ${savings > 0 ? `<div class="summary-row"><span class="label">Annual discount</span><span style="color:#7ee787;">−$${savings.toFixed(2)}</span></div>` : ''}
+    <div class="summary-row">
+      <span class="label">Tax</span>
+      <span>Calculated at payment</span>
+    </div>
+    <div class="summary-row">
+      <span>Total due today</span>
+      <span>$${price.toFixed(2)}</span>
+    </div>
+  `;
+}
+
+function showStatus(kind, msg) {
+  const s = $('status');
+  s.className = 'status ' + kind;
+  s.innerHTML = kind === 'loading' ? `<span class="spinner"></span>${msg}` : msg;
+}
+
+document.querySelectorAll('.method').forEach(m => {
+  m.addEventListener('click', () => {
+    document.querySelectorAll('.method').forEach(x => x.classList.remove('active'));
+    m.classList.add('active');
+    m.querySelector('input').checked = true;
+  });
+});
+
+$('tier').addEventListener('change', renderSummary);
+$('interval').addEventListener('change', renderSummary);
+
+$('payBtn').addEventListener('click', async () => {
+  const email = $('email').value.trim();
+  const tier = $('tier').value;
+  const interval = $('interval').value;
+  const method = document.querySelector('input[name="method"]:checked').value;
+
+  if (!email || !email.includes('@')) {
+    showStatus('err', 'Please enter a valid email address.');
+    return;
+  }
+  if (!SELECTED) {
+    showStatus('err', 'No plan selected.');
+    return;
+  }
+
+  if (method === 'invoice') {
+    if (interval !== 'annual') {
+      showStatus('err', 'Invoice billing is available for annual plans only. Switch to annual or choose crypto.');
+      return;
+    }
+    // Send to invoice request endpoint (best-effort, falls back to email)
+    showStatus('loading', 'Submitting invoice request…');
+    try {
+      await fetch('/api/billing/invoice-request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, tier, interval })
+      });
+    } catch (e) {}
+    showStatus('ok', `Invoice request received. We'll email an invoice to ${email} within 1 business day.`);
+    return;
+  }
+
+  // _R447_CARD path — uses NOWPayments hosted checkout with prefer_card=true.
+  // Backend adds 3% surcharge to cover processing.
+  if (method === 'card') {
+    $('payBtn').disabled = true;
+    showStatus('loading', 'Creating your card checkout…');
+    try {
+      const guestId = 'guest_' + Math.random().toString(36).slice(2, 12);
+      const r = await fetch('/api/payments/nowpayments/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ account_id: guestId, email, tier, interval, prefer_card: true })
+      });
+      const j = await r.json();
+      if (j.ok && j.checkout_url) {
+        showStatus('ok', 'Redirecting to secure card payment…');
+        setTimeout(() => { window.location.href = j.checkout_url; }, 600);
+      } else {
+        showStatus('err', j.error || 'Could not create checkout. Please email cpost@murphy.systems.');
+        $('payBtn').disabled = false;
+      }
+    } catch (e) {
+      showStatus('err', 'Network error. Please try again or email cpost@murphy.systems.');
+      $('payBtn').disabled = false;
+    }
+    return;
+  }
+
+  // Crypto path
+  $('payBtn').disabled = true;
+  showStatus('loading', 'Creating your crypto invoice…');
+  try {
+    const guestId = 'guest_' + Math.random().toString(36).slice(2, 12);
+    const r = await fetch('/api/payments/nowpayments/checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ account_id: guestId, email, tier, interval })
+    });
+    const j = await r.json();
+    if (j.ok && j.checkout_url) {
+      showStatus('ok', `Invoice created. Redirecting…`);
+      setTimeout(() => { window.location.href = j.checkout_url; }, 800);
+    } else {
+      showStatus('err', j.error || 'Could not create invoice. Please email cpost@murphy.systems.');
+      $('payBtn').disabled = false;
+    }
+  } catch (e) {
+    showStatus('err', 'Network error. Please try again or email cpost@murphy.systems.');
+    $('payBtn').disabled = false;
+  }
+});
+
+loadPlans();
+</script>
+</body>
+</html>

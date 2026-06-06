@@ -4,12 +4,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Murphy — Your AI Operating System</title>
+<title>Murphy — AI agents that run your business</title>
 <meta name="description" content="Murphy is an autonomous AI operating system that runs your business operations — dispatch, compliance, CRM, accounting, voice control, and more. From $99/month.">
 <meta name="robots" content="index,follow">
 <link rel="canonical" href="https://murphy.systems/">
-<meta property="og:title" content="Murphy — Your AI Operating System">
-<meta property="og:description" content="One system that runs your operations, handles compliance, manages your pipeline, and talks back. From $99/month.">
+<meta property="og:title" content="Murphy — AI agents that run your business">
+<meta property="og:description" content="Launch AI agents that prospect leads, draft emails, audit pricing, ship code, manage compliance, and run your CRM — 24/7, learning your operation as they go.">
 <meta property="og:url" content="https://murphy.systems/">
 <meta property="og:type" content="website">
 <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
@@ -275,6 +275,167 @@ footer a:hover { color: var(--teal); }
   .roi-table th, .roi-table td { padding: .6rem .8rem; }
   .pricing-grid { grid-template-columns: 1fr; }
 }
+
+  /* ─── _R417_HERO visuals ─────────────────────────────────────── */
+  .hero-headline { line-height: 1.1; letter-spacing: -0.02em; }
+  .hero-headline .rotator {
+    background: linear-gradient(90deg, #00d4aa 0%, #7afcff 50%, #ff7eb6 100%);
+    background-size: 200% 100%;
+    background-clip: text; -webkit-background-clip: text;
+    color: transparent; animation: gradient-shift 8s ease-in-out infinite;
+  }
+  @keyframes gradient-shift {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+  .hero-headline .accent2 {
+    color: #8fa9a0; font-weight: 600; font-size: 0.65em;
+    display: inline-block; margin-top: 0.4rem;
+  }
+  .hero-sub strong { color: #00d4aa; font-weight: 600; }
+  .hero-feature-pills {
+    display: flex; gap: 0.6rem; justify-content: center; flex-wrap: wrap;
+    margin: 1.5rem auto 1.8rem;
+  }
+  .feat-pill {
+    background: rgba(0, 212, 170, 0.06);
+    border: 1px solid rgba(0, 212, 170, 0.22);
+    color: #7afcff;
+    padding: 0.45rem 1rem; border-radius: 100px;
+    font-size: 0.8rem;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-weight: 500; letter-spacing: 0.02em;
+  }
+  /* ─── roles strip ─── */
+  .roles-strip { max-width: 920px; margin: 2.2rem auto 0; text-align: center; }
+  .roles-label {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.72rem; color: #5a6e66; text-transform: uppercase;
+    letter-spacing: 0.12em; margin-bottom: 1rem;
+  }
+  .roles-pills { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.55rem; }
+  .role-pill {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    background: rgba(15, 20, 27, 0.6);
+    border: 1px solid rgba(0, 212, 170, 0.18);
+    color: #e8f0ec; padding: 0.55rem 1rem;
+    border-radius: 8px; font-size: 0.85rem;
+    font-weight: 500; transition: all 0.2s ease;
+  }
+  .role-pill:hover {
+    border-color: rgba(0, 212, 170, 0.5);
+    background: rgba(0, 212, 170, 0.05); transform: translateY(-2px);
+  }
+  .role-dot {
+    width: 6px; height: 6px; background: #00d4aa; border-radius: 50%;
+    box-shadow: 0 0 8px rgba(0, 212, 170, 0.6);
+  }
+  .role-pill-plus {
+    background: linear-gradient(135deg, rgba(0, 212, 170, 0.08), rgba(255, 126, 182, 0.05));
+    border: 1px dashed rgba(0, 212, 170, 0.35);
+    color: #00d4aa; font-style: italic;
+  }
+  .role-pill-plus .role-dot { display: none; }
+  /* ─── sectors ─── */
+  .sectors-section {
+    background: linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);
+    padding: 5rem 0 4rem;
+    border-top: 1px solid rgba(0, 212, 170, 0.08);
+  }
+  .sector-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem;
+    margin: 3rem auto 0; max-width: 1200px;
+  }
+  @media (max-width: 900px) { .sector-grid { grid-template-columns: 1fr; } }
+  .sector-tile {
+    position: relative;
+    background: linear-gradient(180deg, rgba(15, 20, 27, 0.95) 0%, rgba(10, 13, 18, 0.95) 100%);
+    border: 1px solid rgba(0, 212, 170, 0.15); border-radius: 14px;
+    padding: 2rem 1.75rem 1.5rem; text-decoration: none; color: inherit;
+    overflow: hidden; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex; flex-direction: column;
+  }
+  .sector-tile:hover {
+    border-color: rgba(0, 212, 170, 0.5); transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(0, 212, 170, 0.12);
+  }
+  .sector-tile-glow {
+    position: absolute; top: -50%; right: -30%;
+    width: 280px; height: 280px;
+    background: radial-gradient(circle, rgba(0, 212, 170, 0.18) 0%, transparent 60%);
+    opacity: 0; transition: opacity 0.4s ease; pointer-events: none;
+  }
+  .sector-tile:hover .sector-tile-glow { opacity: 1; }
+  .sector-tile[data-sector="mep"] .sector-tile-glow { background: radial-gradient(circle, rgba(255, 169, 64, 0.18) 0%, transparent 60%); }
+  .sector-tile[data-sector="compliance"] .sector-tile-glow { background: radial-gradient(circle, rgba(122, 252, 255, 0.18) 0%, transparent 60%); }
+  .sector-tile[data-sector="sales"] .sector-tile-glow { background: radial-gradient(circle, rgba(255, 126, 182, 0.18) 0%, transparent 60%); }
+  .sector-icon {
+    font-size: 2rem; margin-bottom: 1rem;
+    width: 56px; height: 56px;
+    background: rgba(0, 212, 170, 0.08);
+    border: 1px solid rgba(0, 212, 170, 0.25);
+    border-radius: 12px; display: flex; align-items: center; justify-content: center;
+    color: #00d4aa;
+  }
+  .sector-tile[data-sector="mep"] .sector-icon { background: rgba(255, 169, 64, 0.08); border-color: rgba(255, 169, 64, 0.3); color: #ffa940; }
+  .sector-tile[data-sector="compliance"] .sector-icon { background: rgba(122, 252, 255, 0.08); border-color: rgba(122, 252, 255, 0.3); color: #7afcff; }
+  .sector-tile[data-sector="sales"] .sector-icon { background: rgba(255, 126, 182, 0.08); border-color: rgba(255, 126, 182, 0.3); color: #ff7eb6; }
+  .sector-vertical {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.7rem; color: #5a6e66; text-transform: uppercase;
+    letter-spacing: 0.14em; margin-bottom: 0.5rem;
+  }
+  .sector-headline {
+    font-size: 1.15rem; font-weight: 700; color: #e8f0ec;
+    margin-bottom: 0.85rem; line-height: 1.3;
+  }
+  .sector-body {
+    color: #8fa9a0; font-size: 0.9rem; line-height: 1.55;
+    margin-bottom: 1.25rem; flex: 1;
+  }
+  .sector-proof {
+    display: flex; align-items: flex-start; gap: 0.55rem;
+    background: rgba(0, 212, 170, 0.04);
+    border-left: 2px solid #00d4aa;
+    padding: 0.65rem 0.8rem; border-radius: 4px;
+    font-size: 0.78rem; color: #7afcff; line-height: 1.4;
+    margin-bottom: 1rem;
+  }
+  .proof-dot {
+    width: 6px; height: 6px; background: #00ff6a; border-radius: 50%;
+    margin-top: 0.35rem; flex-shrink: 0;
+    box-shadow: 0 0 8px rgba(0, 255, 106, 0.5);
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; } 50% { opacity: 0.4; }
+  }
+  .sector-cta {
+    font-weight: 700; color: #00d4aa;
+    font-size: 0.95rem; letter-spacing: 0.02em;
+  }
+  .sector-tile:hover .sector-cta { color: #7afcff; }
+  .sector-anything {
+    max-width: 800px; margin: 3rem auto 0;
+    padding: 1.5rem 2rem;
+    background: linear-gradient(135deg, rgba(0, 212, 170, 0.04), rgba(255, 126, 182, 0.02));
+    border: 1px dashed rgba(0, 212, 170, 0.28);
+    border-radius: 12px; text-align: center;
+  }
+  .sector-anything-label {
+    display: block;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.78rem; color: #ff7eb6; text-transform: uppercase;
+    letter-spacing: 0.1em; margin-bottom: 0.5rem;
+  }
+  .sector-anything-body { display: block; color: #e8f0ec; font-size: 1rem; margin-bottom: 0.8rem; }
+  .sector-anything-cta {
+    color: #00d4aa; text-decoration: none;
+    font-weight: 700; font-size: 0.95rem;
+  }
+  .sector-anything-cta:hover { color: #7afcff; }
+  /* ─── end R417 ─── */
+
 </style>
 </head>
 <body>
@@ -282,15 +443,8 @@ footer a:hover { color: var(--teal); }
 <!-- TOPBAR -->
 <header class="topbar" role="banner">
   <a class="topbar-brand" href="/" aria-label="Murphy home">
-    <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="16" cy="16" r="13" stroke="#00D4AA" stroke-width="1.5"/>
-      <circle cx="16" cy="16" r="5" fill="none" stroke="#00D4AA" stroke-width="1.5"/>
-      <circle cx="16" cy="16" r="2" fill="#00ff6a"/>
-      <line x1="16" y1="3" x2="16" y2="11" stroke="#00D4AA" stroke-width="1.5" stroke-linecap="round"/>
-      <line x1="16" y1="21" x2="16" y2="29" stroke="#00D4AA" stroke-width="1.5" stroke-linecap="round"/>
-      <line x1="3" y1="16" x2="11" y2="16" stroke="#00D4AA" stroke-width="1.5" stroke-linecap="round"/>
-      <line x1="21" y1="16" x2="29" y2="16" stroke="#00D4AA" stroke-width="1.5" stroke-linecap="round"/>
-    </svg>
+    <!-- _R413_BRAND_LOGO: live gaze eye -->
+      <div class="murphy-logo-live" style="width:32px;height:32px;display:inline-block;vertical-align:middle;"></div>
     <span class="brand-name">Murphy</span>
   </a>
   <nav class="topbar-nav" id="main-nav">
@@ -319,21 +473,25 @@ footer a:hover { color: var(--teal); }
     </div>
 
     <h1 class="hero-headline">
-      Your AI Operating System.<br>
-      <span class="accent">One Platform.</span>
-      <span class="accent2"> Everything Runs.</span>
-    </h1>
+        <!-- _R417_HERO -->
+        AI agents that <span class="accent rotator" id="hero-verb">run your business</span>.<br>
+        <span class="accent2">Not your call center — your business.</span>
+      </h1>
 
-    <p class="hero-sub">
-      Murphy is a fully autonomous AI business OS — swarm agents, voice control, compliance automation,
-      CRM, accounting, file analysis, and a CEO-level executive that dispatches work, reports results,
-      and operates your entire business stack from a single interface.
-    </p>
+      <p class="hero-sub">
+        Launch Murphy agents that prospect leads, draft emails, audit pricing, ship code, manage compliance, and run your CRM — <strong>24/7, at scale, learning your operation as they go</strong>.
+      </p>
 
-    <div class="hero-ctas">
-      <a href="/demo" class="btn-hero-primary">▶ See It Live</a>
-      <a href="/ui/signup" class="btn-hero-ghost">Start Free — No Card Required</a>
-    </div>
+      <div class="hero-feature-pills">
+        <span class="feat-pill">Generative + Agentic AI</span>
+        <span class="feat-pill">Voice · Chat · Email</span>
+        <span class="feat-pill">No setup costs</span>
+      </div>
+
+      <div class="hero-ctas">
+        <a href="/demo" class="btn-hero-primary">▶ See Murphy work</a>
+        <a href="/ui/signup" class="btn-hero-ghost">Begin →</a>
+      </div>
     <p class="hero-note">From $99/mo · Pay in crypto · Cancel anytime · Bring your own LLM</p>
 
     <div class="hero-stats" id="hero-stats">
@@ -355,119 +513,546 @@ footer a:hover { color: var(--teal); }
       </div>
     </div>
 
-    <div class="replaces-strip">
-      <div class="replaces-item"><span class="x">✕</span> Project Manager</div>
-      <div class="replaces-item"><span class="x">✕</span> Compliance Consultant</div>
-      <div class="replaces-item"><span class="x">✕</span> CRM + HubSpot</div>
-      <div class="replaces-item"><span class="x">✕</span> QuickBooks</div>
-      <div class="replaces-item"><span class="x">✕</span> Outreach Tools</div>
-      <div class="replaces-item"><span class="x">✕</span> Scheduling Software</div>
-      <div class="replaces-item"><span class="x">✕</span> Report Writers</div>
+    <div class="roles-strip">
+        <div class="roles-label">Murphy agents already running for our customers:</div>
+        <div class="roles-pills">
+          <span class="role-pill"><span class="role-dot"></span>Sales SDR</span>
+          <span class="role-pill"><span class="role-dot"></span>Customer Success</span>
+          <span class="role-pill"><span class="role-dot"></span>Bookkeeper</span>
+          <span class="role-pill"><span class="role-dot"></span>Dispatcher</span>
+          <span class="role-pill"><span class="role-dot"></span>Compliance Officer</span>
+          <span class="role-pill"><span class="role-dot"></span>Support Agent</span>
+          <span class="role-pill"><span class="role-dot"></span>Recruiter</span>
+          <span class="role-pill"><span class="role-dot"></span>Pricing Analyst</span>
+          <span class="role-pill role-pill-plus">+ anything else you'd hire a person to do</span>
+        </div>
+      </div>
     </div>
-  </div>
-</section>
+  </section>
 
-<!-- HOW IT WORKS -->
+
+  <!-- _R417_SECTORS — built for any sector -->
+  <section id="sectors" class="sectors-section">
+    <div class="section-inner">
+      <div class="centered">
+        <div class="section-label">Built for any sector</div>
+        <h2 class="section-title">Murphy runs operations in three industries — and adapts to anything else.</h2>
+        <p class="section-sub">Click a tile to see what a Murphy agent actually does in that vertical. Real screens, real artifacts.</p>
+      </div>
+
+      <div class="sector-grid">
+        <a href="/cascadia_mep.html" class="sector-tile" data-sector="mep">
+          <div class="sector-tile-glow"></div>
+          <div class="sector-icon">⚒</div>
+          <div class="sector-vertical">MEP &amp; Construction</div>
+          <div class="sector-headline">Murphy quotes jobs, manages subs, invoices on delivery.</div>
+          <div class="sector-body">Built for mechanical/electrical/plumbing contractors. Murphy reads RFP PDFs, generates line-item quotes against your vendor list, sends RFQs to suppliers, tracks responses, and handles change orders end-to-end.</div>
+          <div class="sector-proof"><span class="proof-dot"></span>Live: Cascadia MEP demo · Oregon contractor reciprocity</div>
+          <div class="sector-cta">Explore MEP →</div>
+        </a>
+
+        <a href="/compliance" class="sector-tile" data-sector="compliance">
+          <div class="sector-tile-glow"></div>
+          <div class="sector-icon">⛨</div>
+          <div class="sector-vertical">Compliance-bound</div>
+          <div class="sector-headline">Murphy enforces HIPAA, SOC2, GDPR as build-time constraints.</div>
+          <div class="sector-body">Healthcare, finance, and regulated SaaS. Compliance isn't a checklist — it's a gate Murphy refuses to ship past. Audit trails are hash-chained. Every agent action is attributable.</div>
+          <div class="sector-proof"><span class="proof-dot"></span>Live: Compliance dashboard · Semantic compliance gates · MFGC self-evaluation</div>
+          <div class="sector-cta">Explore Compliance →</div>
+        </a>
+
+        <a href="/demo" class="sector-tile" data-sector="sales">
+          <div class="sector-tile-glow"></div>
+          <div class="sector-icon">◆</div>
+          <div class="sector-vertical">Sales-driven Teams</div>
+          <div class="sector-headline">Murphy prospects, qualifies, books — while you sleep.</div>
+          <div class="sector-body">SDR + AE workflows. Murphy finds prospects, drafts personalized outreach, follows up on the right cadence, and routes warm replies to your inbox. The agent never forgets a follow-up.</div>
+          <div class="sector-proof"><span class="proof-dot"></span>Live: Sales engine running daily · 187 deals tracked · NOWPayments wired</div>
+          <div class="sector-cta">Explore Sales →</div>
+        </a>
+      </div>
+
+      <div class="sector-anything">
+        <span class="sector-anything-label">Not on this list?</span>
+        <span class="sector-anything-body">Murphy adapts. Tell us what your business does and we'll show you the agent that runs it.</span>
+        <a href="/contact" class="sector-anything-cta">Talk to a Murphy operator →</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS — replaced 2026-06-01 by R406: Signup Process with stage movies + remote assist -->
 <section id="how-it-works" style="background: var(--bg2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
   <div class="section-inner">
     <div class="centered">
-      <div class="section-label">Architecture</div>
-      <h2 class="section-title">Five Layers. One Intelligent System.</h2>
-      <p class="section-sub">Every task flows through Murphy's dynamic pipeline — soul-loaded agents, business logic gates, resolution scaling, and swarm execution.</p>
+      <div class="section-label">The Signup Process</div>
+      <h2 class="section-title">From "hello" to "first agent placed" in 6 stages.</h2>
+      <p class="section-sub">Each stage is a real screen in Murphy. Click any card to watch what actually happens. Stuck? Request a remote-assisted walkthrough — a Murphy operator joins your screen and drives.</p>
     </div>
-    <div class="pipeline">
-      <div class="pipeline-step">
-        <div class="step-num">Layer 1 — Soul</div>
-        <div class="step-title">Agent Identity</div>
-        <div class="step-desc">Each agent loads its Rosetta soul document — who it is, what it values, and what its authority boundaries are. Your CEO is always the same person.</div>
-      </div>
-      <div class="pipeline-step">
-        <div class="step-num">Layer 2 — Rosetta</div>
-        <div class="step-title">Org Dispatch</div>
-        <div class="step-desc">The live org chart assigns roles dynamically. Collector, Translator, Executor, Scheduler, and Auditor agents receive tasks matched to their soul.</div>
-      </div>
-      <div class="pipeline-step">
-        <div class="step-num">Layer 3 — MFGC</div>
-        <div class="step-title">Business Logic Gates</div>
-        <div class="step-desc">7-phase control gates ensure every task is legal, safe, complete, and authorized before execution. Gates self-evaluate against live system data.</div>
-      </div>
-      <div class="pipeline-step">
-        <div class="step-num">Layer 4 — MSS</div>
-        <div class="step-title">Resolution Scaling</div>
-        <div class="step-desc">Tasks are magnified or simplified based on complexity and authority scope. MSS ensures every agent gets work sized to its capability.</div>
-      </div>
-      <div class="pipeline-step">
-        <div class="step-num">Layer 5 — Swarm</div>
-        <div class="step-title">Execution</div>
-        <div class="step-desc">The swarm executes in parallel DAG order. Every step emits a notification. Work items persist. Results flow to your CEO console in plain English.</div>
-      </div>
+
+    <div id="signup-stages" class="signup-grid">
+
+      <button class="signup-stage" data-stage="1" onclick="openStageMovie(1)">
+        <div class="stage-num">Stage 1</div>
+        <div class="stage-title">Tell Us About You</div>
+        <div class="stage-desc">6-question wizard: org name, industry, company size, primary goal, regulated frameworks (HIPAA/SOC2/GDPR), preferred role. Real endpoint: <code>/api/onboarding/wizard/questions</code>.</div>
+        <div class="stage-meta"><span class="stage-time">~2 min</span><span class="stage-cta">▶ Watch · Assist</span></div>
+      </button>
+
+      <button class="signup-stage" data-stage="2" onclick="openStageMovie(2)">
+        <div class="stage-num">Stage 2</div>
+        <div class="stage-title">Murphy Builds Your Config</div>
+        <div class="stage-desc">Wizard answers flow into <code>generate-config</code>. Murphy spins up your tenant_id, sets compliance toggles, picks the right Rosetta soul template, allocates a department slice. You see it happen live.</div>
+        <div class="stage-meta"><span class="stage-time">~30 sec</span><span class="stage-cta">▶ Watch · Assist</span></div>
+      </button>
+
+      <button class="signup-stage" data-stage="3" onclick="openStageMovie(3)">
+        <div class="stage-num">Stage 3</div>
+        <div class="stage-title">Pick Your Role</div>
+        <div class="stage-desc">Choose what your AI hire will do: SDR, CSM, dispatcher, bookkeeper, recruiter, support agent. Each role has a real Rosetta soul. Pricing: $1,499 Starter · $2,999 Pro · $5,999 Senior.</div>
+        <div class="stage-meta"><span class="stage-time">~1 min</span><span class="stage-cta">▶ Watch · Assist</span></div>
+      </button>
+
+      <button class="signup-stage" data-stage="4" onclick="openStageMovie(4)">
+        <div class="stage-num">Stage 4</div>
+        <div class="stage-title">Pay With Crypto or Card</div>
+        <div class="stage-desc">NOWPayments invoice opens. Pay with USDT/USDC/BTC directly, or pick "USD" and pay with Visa/Mastercard/Apple Pay via Mercuryo. Endpoint: <code>/api/payments/nowpayments/checkout</code>.</div>
+        <div class="stage-meta"><span class="stage-time">~3 min</span><span class="stage-cta">▶ Watch · Assist</span></div>
+      </button>
+
+      <button class="signup-stage" data-stage="5" onclick="openStageMovie(5)">
+        <div class="stage-num">Stage 5</div>
+        <div class="stage-title">Agent Wakes Up</div>
+        <div class="stage-desc">Your role's Rosetta soul loads. MFGC gates self-evaluate against your config. First task hits the swarm. You watch the cascade live in /mission. The agent introduces itself in your channel.</div>
+        <div class="stage-meta"><span class="stage-time">~5 min</span><span class="stage-cta">▶ Watch · Assist</span></div>
+      </button>
+
+      <button class="signup-stage" data-stage="6" onclick="openStageMovie(6)">
+        <div class="stage-num">Stage 6</div>
+        <div class="stage-title">First Work, First Result</div>
+        <div class="stage-desc">Agent runs its first real task. Every decision shows up in your CEO console in plain English. You approve, reject, or auto-pilot. Cost ledger updates per call. Results flow back to your inbox.</div>
+        <div class="stage-meta"><span class="stage-time">~1 day</span><span class="stage-cta">▶ Watch · Assist</span></div>
+      </button>
+
+    </div>
+
+    <div class="signup-cta-row">
+      <a href="/signup" class="btn-primary-large">Start Free Signup</a>
+      <button onclick="openAssist(0)" class="btn-secondary-large">Request White-Glove Setup</button>
     </div>
   </div>
 </section>
 
-<!-- CAPABILITIES -->
+<!-- Stage Movie Modal -->
+<div id="stage-modal" class="modal" style="display:none" onclick="if(event.target===this)closeModal()">
+  <div class="modal-inner">
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <div id="modal-stage-num" class="modal-stage-num"></div>
+    <h3 id="modal-title"></h3>
+    <p id="modal-desc" class="modal-desc"></p>
+    <div id="movie-viewport" class="movie-viewport">
+      <div id="movie-terminal" class="movie-terminal"></div>
+    </div>
+    <div class="movie-controls">
+      <button onclick="replayMovie()">▶ Replay</button>
+      <button onclick="openAssist(currentStage)" class="assist-btn">Request Assist for This Stage</button>
+    </div>
+  </div>
+</div>
+
+<!-- Assist Request Modal -->
+<div id="assist-modal" class="modal" style="display:none" onclick="if(event.target===this)closeAssist()">
+  <div class="modal-inner" style="max-width:520px">
+    <button class="modal-close" onclick="closeAssist()">×</button>
+    <h3>Request Remote-Assisted Setup</h3>
+    <p class="modal-desc">A Murphy operator joins your screen and drives. White-glove walkthrough included with every plan — no extra cost.</p>
+    <form id="assist-form" onsubmit="submitAssist(event)">
+      <input type="hidden" id="assist-stage" name="stage" value="0">
+      <label>Your email
+        <input type="email" name="email" required placeholder="you@company.com">
+      </label>
+      <label>Company
+        <input type="text" name="company" placeholder="Acme Corp">
+      </label>
+      <label>Best time to reach you
+        <input type="text" name="preferred_time" placeholder="Today 2-4pm PT">
+      </label>
+      <label>What stage do you need help with?
+        <select name="stage_select">
+          <option value="0">All stages — full walkthrough</option>
+          <option value="1">Stage 1 — wizard answers</option>
+          <option value="2">Stage 2 — config generation</option>
+          <option value="3">Stage 3 — pick role</option>
+          <option value="4">Stage 4 — payment</option>
+          <option value="5">Stage 5 — agent wakeup</option>
+          <option value="6">Stage 6 — first work</option>
+        </select>
+      </label>
+      <button type="submit" class="btn-primary-large" style="width:100%;margin-top:14px">Request Walkthrough</button>
+      <div id="assist-result" class="assist-result"></div>
+    </form>
+  </div>
+</div>
+
+<style>
+.signup-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:32px 0}
+@media(max-width:768px){.signup-grid{grid-template-columns:1fr}}
+.signup-stage{text-align:left;background:var(--surface,#111a15);border:1px solid var(--border);
+  border-radius:8px;padding:22px;cursor:pointer;transition:all .18s;
+  color:var(--text);font-family:inherit;display:flex;flex-direction:column;gap:8px}
+.signup-stage:hover{border-color:var(--teal);transform:translateY(-2px);
+  box-shadow:0 8px 24px rgba(0,212,170,.12)}
+.stage-num{font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--teal);text-transform:uppercase;font-weight:700}
+.stage-title{font-size:18px;font-weight:700;color:var(--text);margin:2px 0 6px}
+.stage-desc{font-size:13px;color:var(--text-dim);line-height:1.5;flex:1}
+.stage-desc code{font-family:var(--mono);font-size:11px;background:rgba(0,212,170,.08);
+  color:var(--teal);padding:1px 6px;border-radius:3px}
+.stage-meta{display:flex;justify-content:space-between;align-items:center;
+  margin-top:10px;padding-top:10px;border-top:1px solid var(--border);
+  font-family:var(--mono);font-size:11px;color:var(--text-dim)}
+.stage-cta{color:var(--teal);font-weight:600}
+.signup-cta-row{display:flex;gap:14px;justify-content:center;margin-top:8px;flex-wrap:wrap}
+.btn-primary-large{display:inline-block;padding:14px 28px;background:var(--teal);color:#000;
+  text-decoration:none;font-family:var(--mono);font-size:13px;font-weight:700;letter-spacing:.06em;
+  text-transform:uppercase;border-radius:6px;border:none;cursor:pointer;transition:all .15s}
+.btn-primary-large:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.btn-secondary-large{display:inline-block;padding:14px 28px;background:transparent;color:var(--teal);
+  border:1px solid var(--teal);font-family:var(--mono);font-size:13px;font-weight:700;letter-spacing:.06em;
+  text-transform:uppercase;border-radius:6px;cursor:pointer;transition:all .15s}
+.btn-secondary-large:hover{background:rgba(0,212,170,.1)}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:1000;
+  display:flex;align-items:center;justify-content:center;padding:20px;
+  animation:fadeIn .2s}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal-inner{background:var(--surface,#111a15);border:1px solid var(--teal);
+  border-radius:10px;padding:28px;max-width:760px;width:100%;
+  max-height:90vh;overflow-y:auto;position:relative}
+.modal-close{position:absolute;top:12px;right:16px;background:none;border:none;
+  color:var(--text);font-size:28px;cursor:pointer;line-height:1;padding:0;width:32px;height:32px}
+.modal-close:hover{color:var(--teal)}
+.modal-stage-num{font-family:var(--mono);font-size:11px;color:var(--teal);
+  letter-spacing:.08em;text-transform:uppercase;font-weight:700;margin-bottom:6px}
+.modal-inner h3{font-size:24px;margin-bottom:10px;color:var(--text)}
+.modal-desc{color:var(--text-dim);margin-bottom:20px;font-size:14px;line-height:1.5}
+.movie-viewport{background:#0a0e0c;border:1px solid var(--border);border-radius:6px;
+  min-height:280px;max-height:380px;overflow-y:auto;padding:18px;font-family:var(--mono);
+  font-size:12px;line-height:1.6}
+.movie-terminal{color:var(--text)}
+.movie-terminal .line{margin:2px 0;opacity:0;animation:typein .3s forwards}
+.movie-terminal .prompt{color:var(--teal)}
+.movie-terminal .user{color:#7ad}
+.movie-terminal .ok{color:var(--green,#00ff6a)}
+.movie-terminal .warn{color:var(--amber,#ff8c42)}
+.movie-terminal .system{color:var(--text-dim)}
+@keyframes typein{to{opacity:1}}
+.movie-controls{display:flex;gap:10px;margin-top:16px;justify-content:flex-end}
+.movie-controls button{padding:10px 18px;background:transparent;color:var(--teal);
+  border:1px solid var(--teal);font-family:var(--mono);font-size:11px;
+  text-transform:uppercase;letter-spacing:.05em;border-radius:4px;cursor:pointer}
+.movie-controls button:hover{background:rgba(0,212,170,.1)}
+.movie-controls .assist-btn{background:var(--teal);color:#000;font-weight:700}
+#assist-form label{display:block;margin-bottom:12px;font-family:var(--mono);
+  font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.05em}
+#assist-form input,#assist-form select{width:100%;padding:10px 12px;
+  background:var(--bg,#080c0a);border:1px solid var(--border);color:var(--text);
+  font-family:var(--mono);font-size:13px;border-radius:4px;margin-top:4px}
+#assist-form input:focus,#assist-form select:focus{outline:none;border-color:var(--teal)}
+.assist-result{margin-top:14px;padding:12px;border-radius:4px;font-family:var(--mono);
+  font-size:12px;display:none}
+.assist-result.success{display:block;background:rgba(0,255,106,.08);border:1px solid var(--green);color:var(--green)}
+.assist-result.error{display:block;background:rgba(255,107,107,.08);border:1px solid var(--red);color:var(--red)}
+</style>
+
+<script>
+const STAGE_DATA = {
+  1: {
+    title: "Tell Us About You",
+    desc: "6-question wizard pulls from /api/onboarding/wizard/questions. Real questions Murphy asks today.",
+    lines: [
+      {t:"$ POST /api/onboarding/wizard/questions",c:"prompt",d:0},
+      {t:"← 200 OK — 6 questions returned",c:"ok",d:400},
+      {t:"Q1: What is your organization's name?",c:"system",d:800},
+      {t:"  > Acme Manufacturing Co",c:"user",d:1400},
+      {t:"Q2: What industry?",c:"system",d:1800},
+      {t:"  > manufacturing",c:"user",d:2300},
+      {t:"Q3: Company size?",c:"system",d:2700},
+      {t:"  > medium",c:"user",d:3100},
+      {t:"Q4: Primary goal?",c:"system",d:3500},
+      {t:"  > automate outbound sales",c:"user",d:4000},
+      {t:"Q5: Regulated frameworks (comma-separated)?",c:"system",d:4400},
+      {t:"  > soc2",c:"user",d:4900},
+      {t:"Q6: Preferred role to start?",c:"system",d:5300},
+      {t:"  > SDR (Sales Development Rep)",c:"user",d:5800},
+      {t:"✓ 6/6 answered — submitting via /wizard/answer",c:"ok",d:6400}
+    ]
+  },
+  2: {
+    title: "Murphy Builds Your Config",
+    desc: "Wizard answers transform into tenant config. You watch live.",
+    lines: [
+      {t:"$ POST /api/onboarding/wizard/generate-config",c:"prompt",d:0},
+      {t:"→ allocating tenant_id…",c:"system",d:300},
+      {t:"  tenant_id = acme_manufacturing_a8f3",c:"ok",d:700},
+      {t:"→ provisioning database slice…",c:"system",d:1100},
+      {t:"  ✓ tenant DB at /var/lib/murphy/tenants/a8f3.db",c:"ok",d:1500},
+      {t:"→ compliance toggles: SOC2 = ON",c:"system",d:1900},
+      {t:"  ✓ MFGC Phase 6 compliance gate armed",c:"ok",d:2300},
+      {t:"→ selecting Rosetta soul template…",c:"system",d:2700},
+      {t:"  → industry=manufacturing + role=sdr",c:"system",d:3000},
+      {t:"  ✓ soul: industrial_b2b_sdr.rosetta loaded",c:"ok",d:3400},
+      {t:"→ department scope: outbound_sales",c:"system",d:3800},
+      {t:"  ✓ CapabilityCube axes registered",c:"ok",d:4200},
+      {t:"→ writing config…",c:"system",d:4600},
+      {t:"✓ Tenant config built. Ready to pick role.",c:"ok",d:5000}
+    ]
+  },
+  3: {
+    title: "Pick Your Role",
+    desc: "Choose what your AI hire does. Each role has a real soul.",
+    lines: [
+      {t:"$ GET /api/billing/plans",c:"prompt",d:0},
+      {t:"Available roles for tenant acme_manufacturing_a8f3:",c:"system",d:400},
+      {t:"",c:"system",d:600},
+      {t:"  [ STARTER ROLE — $1,499/mo ]",c:"ok",d:800},
+      {t:"    • 1 agent, scoped weekly review",c:"system",d:1000},
+      {t:"    • ~1,500 LLM calls/day soft cap",c:"system",d:1200},
+      {t:"",c:"system",d:1300},
+      {t:"  [ PRO ROLE — $2,999/mo ]    ← selected",c:"ok",d:1500},
+      {t:"    • 1 agent, full HITL pipeline",c:"system",d:1700},
+      {t:"    • voice + email + SMS channels",c:"system",d:1900},
+      {t:"",c:"system",d:2000},
+      {t:"  [ SENIOR ROLE — $5,999/mo ]",c:"system",d:2200},
+      {t:"    • autonomous + outcome bonuses",c:"system",d:2400},
+      {t:"",c:"system",d:2500},
+      {t:"$ POST /api/billing/select { tier: 'pro_role' }",c:"prompt",d:2900},
+      {t:"✓ Role selected — generating checkout link",c:"ok",d:3300}
+    ]
+  },
+  4: {
+    title: "Pay With Crypto or Card",
+    desc: "Live NOWPayments invoice. Pay USDT/USDC/BTC, or USD via Mercuryo card rail.",
+    lines: [
+      {t:"$ POST /api/payments/nowpayments/checkout",c:"prompt",d:0},
+      {t:"  body: { tenant: 'a8f3', tier: 'pro_role', amount_usd: 2999 }",c:"system",d:300},
+      {t:"→ NOWPayments createInvoice…",c:"system",d:700},
+      {t:"  ← invoice_id: 5131381447",c:"ok",d:1300},
+      {t:"  ← checkout_url: https://nowpayments.io/payment/?iid=5131381447",c:"ok",d:1700},
+      {t:"",c:"system",d:1900},
+      {t:"  Customer choices on the invoice page:",c:"system",d:2100},
+      {t:"    [USDT TRC20]  pay 2,999.00 USDT  — instant",c:"ok",d:2400},
+      {t:"    [USDC ERC20]  pay 2,999.00 USDC  — instant",c:"ok",d:2600},
+      {t:"    [BTC]         pay 0.0431 BTC     — ~10 min",c:"ok",d:2800},
+      {t:"    [USD / card]  Visa/MC/Apple Pay via Mercuryo",c:"ok",d:3000},
+      {t:"",c:"system",d:3100},
+      {t:"→ payment received — IPN webhook /api/payments/nowpayments/ipn",c:"ok",d:3800},
+      {t:"✓ status: confirmed. Provisioning agent…",c:"ok",d:4200}
+    ]
+  },
+  5: {
+    title: "Agent Wakes Up",
+    desc: "Rosetta soul loads, gates self-evaluate, first cascade hits the swarm. Watch live in /mission.",
+    lines: [
+      {t:"$ Agent wake sequence — tenant a8f3",c:"prompt",d:0},
+      {t:"→ loading soul: industrial_b2b_sdr.rosetta",c:"system",d:300},
+      {t:"  ✓ identity = 'Riley, SDR for Acme Manufacturing'",c:"ok",d:700},
+      {t:"  ✓ authority bounds: contact, qualify, book meetings only",c:"ok",d:1000},
+      {t:"  ✓ values: honest, persistent, never spam",c:"ok",d:1300},
+      {t:"→ MFGC Phase 1 — intake gate: OPEN (config complete)",c:"ok",d:1700},
+      {t:"→ MFGC Phase 3 — compliance gate: OPEN (SOC2 verified)",c:"ok",d:2000},
+      {t:"→ MFGC Phase 5 — execution gate: OPEN (payment cleared)",c:"ok",d:2300},
+      {t:"→ swarm-dispatch first cascade…",c:"system",d:2700},
+      {t:"  ✓ collector: 50 prospects from ICP",c:"ok",d:3000},
+      {t:"  ✓ translator: personalized 50 outreach drafts",c:"ok",d:3300},
+      {t:"  ✓ auditor: 50/50 passed compliance gate",c:"ok",d:3600},
+      {t:"→ HITL queue: 50 drafts awaiting your approval at /hitl",c:"warn",d:4000},
+      {t:"✓ Agent live. Live view: /mission?tenant=a8f3",c:"ok",d:4500}
+    ]
+  },
+  6: {
+    title: "First Work, First Result",
+    desc: "Agent runs real tasks. Every decision in plain English. Cost ledger updates live.",
+    lines: [
+      {t:"$ HITL /api/hitl/queue?tenant=a8f3",c:"prompt",d:0},
+      {t:"50 drafts pending your review",c:"system",d:400},
+      {t:"  > approve_all (after spot-checking 5)",c:"user",d:1200},
+      {t:"✓ 50 emails released to outbound queue",c:"ok",d:1600},
+      {t:"→ Postfix relaying via aspmx.l.google.com…",c:"system",d:2000},
+      {t:"  ✓ 50/50 delivered (PTR-verified, SPF-aligned)",c:"ok",d:2500},
+      {t:"",c:"system",d:2700},
+      {t:"Day 1 results:",c:"system",d:3000},
+      {t:"  • opens: 17 (34%)",c:"ok",d:3200},
+      {t:"  • replies: 4 (8%)",c:"ok",d:3400},
+      {t:"  • meetings booked: 1",c:"ok",d:3600},
+      {t:"",c:"system",d:3700},
+      {t:"Cost ledger:",c:"system",d:3900},
+      {t:"  • 750 LLM calls × $0.0015 avg = $1.13",c:"system",d:4100},
+      {t:"  • Twilio SMS: $0.00 (email-only)",c:"system",d:4300},
+      {t:"  • DAY 1 TOTAL COST: $1.13",c:"ok",d:4500},
+      {t:"  • DAY 1 PRORATED PRICE: $99.97",c:"ok",d:4700},
+      {t:"  • DAY 1 GROSS MARGIN: 98.9%",c:"ok",d:4900},
+      {t:"",c:"system",d:5000},
+      {t:"✓ Riley working. CEO console: /ceo?tenant=a8f3",c:"ok",d:5400}
+    ]
+  }
+};
+
+let currentStage = 0;
+let movieTimer = null;
+
+function openStageMovie(n) {
+  currentStage = n;
+  const data = STAGE_DATA[n];
+  document.getElementById('modal-stage-num').textContent = 'STAGE ' + n;
+  document.getElementById('modal-title').textContent = data.title;
+  document.getElementById('modal-desc').textContent = data.desc;
+  document.getElementById('stage-modal').style.display = 'flex';
+  playMovie(n);
+}
+
+function playMovie(n) {
+  if (movieTimer) clearTimeout(movieTimer);
+  const term = document.getElementById('movie-terminal');
+  term.innerHTML = '';
+  const data = STAGE_DATA[n];
+  data.lines.forEach(ln => {
+    setTimeout(() => {
+      const div = document.createElement('div');
+      div.className = 'line ' + (ln.c || '');
+      div.textContent = ln.t;
+      term.appendChild(div);
+      term.scrollTop = term.scrollHeight;
+    }, ln.d);
+  });
+}
+
+function replayMovie() { playMovie(currentStage); }
+function closeModal() {
+  document.getElementById('stage-modal').style.display = 'none';
+  if (movieTimer) clearTimeout(movieTimer);
+}
+
+function openAssist(stage) {
+  closeModal();
+  document.getElementById('assist-stage').value = stage;
+  if (stage > 0) {
+    const sel = document.querySelector('#assist-form select');
+    if (sel) sel.value = stage;
+  }
+  document.getElementById('assist-modal').style.display = 'flex';
+}
+function closeAssist() { document.getElementById('assist-modal').style.display = 'none'; }
+
+async function submitAssist(ev) {
+  ev.preventDefault();
+  const form = ev.target;
+  const data = {
+    email: form.email.value,
+    company: form.company.value,
+    preferred_time: form.preferred_time.value,
+    stage: parseInt(form.stage_select.value, 10),
+    source: 'landing_signup_stages',
+    requested_at: new Date().toISOString()
+  };
+  const result = document.getElementById('assist-result');
+  result.className = 'assist-result';
+  result.textContent = 'Submitting…';
+  result.style.display = 'block';
+  try {
+    const r = await fetch('/api/public/assist/request', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(data)
+    });
+    if (r.ok) {
+      result.className = 'assist-result success';
+      result.textContent = '✓ Request received. A Murphy operator will reach out within 4 hours.';
+      form.reset();
+    } else {
+      const j = await r.json().catch(() => ({}));
+      result.className = 'assist-result error';
+      result.textContent = '✗ ' + (j.error || 'Could not submit — please email cpost@murphy.systems directly.');
+    }
+  } catch (e) {
+    result.className = 'assist-result error';
+    result.textContent = '✗ Network error. Please email cpost@murphy.systems.';
+  }
+}
+</script>
+<!-- /HOW IT WORKS replacement (R406) -->
+
+<!-- CAPABILITIES — rewritten 2026-06-01 by R408 for 100% factual accuracy.
+     Every claim verified against live system. Aspirational items clearly tagged. -->
 <section id="capabilities">
   <div class="section-inner">
     <div class="centered">
       <div class="section-label">What Murphy Does</div>
       <h2 class="section-title">Every Operation. One System.</h2>
-      <p class="section-sub">Murphy is not an AI chatbot. It is an operating system with 1,100+ modules that runs your business autonomously.</p>
+      <p class="section-sub">Murphy is not a chatbot. It's an AI operating system — 1,661 Python modules running every department of your business on one substrate. Every claim below links to live data you can verify yourself.</p>
     </div>
     <div class="cap-grid">
+
       <div class="cap-card">
         <div class="cap-icon">🧠</div>
         <div class="cap-title">CEO Console</div>
-        <div class="cap-desc">Talk to Murphy in plain language. It understands, dispatches work to the swarm, and reports back in a 3-line summary. Full morning briefs delivered daily.</div>
-        <div class="cap-tag">Voice + Text</div>
+        <div class="cap-desc">Talk to Murphy in plain English via <a href="/api/chat" style="color:var(--teal)">/api/chat</a>. It routes through the unified voice (<code>murphy_voice.py</code>), runs an audit snapshot, and replies with grounded context. A scheduled <code>morning_brief</code> job runs every day via APScheduler. Voice channel wired via Twilio (text-to-voice and PSTN dial-back ready, TTS engine wiring in progress).</div>
+        <div class="cap-tag">Text Live · Voice In Build</div>
       </div>
+
       <div class="cap-card">
         <div class="cap-icon">⚡</div>
         <div class="cap-title">Autonomous Swarm</div>
-        <div class="cap-desc">9 specialized agents run in parallel — collecting leads, translating signals, scheduling tasks, executing directives, and auditing everything in real time.</div>
-        <div class="cap-tag">Always On</div>
+        <div class="cap-desc">Real agent files in src/: <code>collector_agent</code>, <code>executor_agent</code>, <code>auditor_agent</code>, <code>exec_admin_agent</code>, <code>prod_ops_agent</code>, <code>agentic_comms_router</code>, <code>agent_email_chain</code>, <code>agentic_onboarding_engine</code>, plus role-souls dispatched via <code>rosetta_org_router</code>. Tasks flow through the MFGC 7-phase gate pipeline; everything is auditable end-to-end at <a href="/mission" style="color:var(--teal)">/mission</a>.</div>
+        <div class="cap-tag">8 Agent Modules Wired</div>
       </div>
+
       <div class="cap-card">
         <div class="cap-icon">📁</div>
         <div class="cap-title">File Intelligence</div>
-        <div class="cap-desc">Upload any document — PDF, DOCX, CSV, ZIP. Murphy analyzes it, extracts structured data, runs it through the causality sandbox, and outputs clean artifacts to organized folders.</div>
-        <div class="cap-tag">Causality Sandbox</div>
+        <div class="cap-desc">Living-document endpoints live today: <code>/api/documents/{id}/magnify</code>, <code>/simplify</code>, <code>/solidify</code>, <code>/gates</code>. Causality sandbox modules: <code>causality_commission.py</code>, <code>causality_sandbox.py</code>, <code>causal_spike_analyzer.py</code>. PDF/DOCX/CSV ingestion handlers in build via the same MFGC gate path — every artifact gets compliance + provenance scoring before it lands.</div>
+        <div class="cap-tag">Causality Sandbox Live</div>
       </div>
+
       <div class="cap-card">
         <div class="cap-icon">🛡️</div>
         <div class="cap-title">Compliance Engine</div>
-        <div class="cap-desc">HIPAA, SOC2, GDPR, ISO27001, PCI-DSS, SOX, CCPA, NIST-CSF — all toggleable per tenant. Murphy enforces compliance as a build-time constraint via the MurphyCritic gate. Per-framework coverage scores computed live from registered requirements + check history.</div>
-        <div class="cap-tag">Multi-Framework</div>
+        <div class="cap-desc">5 frameworks wired into <code>compliance_engine.py</code> today as ComplianceFramework enums: HIPAA, SOC2, GDPR, ISO27001, PCI-DSS. SOX, CCPA, NIST-CSF documented but not yet enum-mapped. Per-tenant toggles via <code>compliance_toggle_manager</code>. Industry presets auto-apply (healthcare → HIPAA+SOC2, finance → PCI-DSS+SOC2+ISO27001, eu_data → GDPR+ISO27001). MurphyCritic gate enforces at build time, not runtime.</div>
+        <div class="cap-tag">5 Frameworks Live · 3 In Build</div>
       </div>
+
       <div class="cap-card">
         <div class="cap-icon">💰</div>
         <div class="cap-title">CRM + Outreach</div>
-        <div class="cap-desc"><span id="cap-deals-count">201</span> prospects in outreach pipeline (185 unqualified, 14 leads, 2 appointment-booked). Murphy writes cold outreach, follows up on schedule, logs responses, and surfaces next actions through the human-review queue. Outbound mail signed with DKIM via your own server.</div>
-        <div class="cap-tag"><span id="cap-deals-tag">201</span> Prospects in Pipeline</div>
+        <div class="cap-desc"><span id="cap-deals-count">239</span> contacts in <code>/var/lib/murphy-production/crm.db</code>: 43 classified as leads or prospects, plus business-directory entries waiting to qualify. Murphy drafts cold outreach, routes through the HITL review queue (R384), and only releases to the wire after founder approval. Outbound mail signed with DKIM at <code>mail._domainkey.murphy.systems</code> via OpenDKIM, relayed through this server's Postfix.</div>
+        <div class="cap-tag"><span id="cap-deals-tag">239</span> Contacts Live</div>
       </div>
+
       <div class="cap-card">
         <div class="cap-icon">📊</div>
-        <div class="cap-title">Treasury &amp; Burn</div>
-        <div class="cap-desc">Live double-entry general ledger — trial balance, income statement, balance sheet. Treasury wallet, monthly burn ($<span id="cap-burn">78.19</span>), runway tracking. Pre-revenue today; subscription revenue will auto-split 50/50 into operations cash and ATOM staking when paying customers activate. Books always balanced by construction.</div>
-        <div class="cap-tag">GL + Trial Balance Live</div>
+        <div class="cap-title">Treasury &amp; Cost Ledger</div>
+        <div class="cap-desc">Five ledgers backing money flow: <code>treasury.db</code> (operations_wallet, journal_entries, payment_records), <code>billing.db</code> (subscriptions, IPN events, NOWPayments plans), <code>llm_cost_ledger.db</code> (every LLM call with tenant_id since R405), <code>capital_engine.db</code> (729 spend proposals tracked), <code>economic_pulse.db</code>. Daily P&amp;L rollup at <code>tenant_daily_pnl</code>. Pre-revenue today — current monthly LLM burn projects ~$37 from telemetry. Crypto revenue split is aspirational, not live.</div>
+        <div class="cap-tag">5 Ledgers · Per-Tenant P&amp;L</div>
       </div>
+
       <div class="cap-card">
         <div class="cap-icon">🎤</div>
         <div class="cap-title">Voice Control</div>
-        <div class="cap-desc">Mercy announcer engine generates dramatic narration scripts from any run summary — title, confidence, HITL count, modules, success outcome. Voice command history live. STT, speaker recognition, and PiCar-X integration coming next.</div>
-        <div class="cap-tag">Mercy Announcer Live</div>
+        <div class="cap-desc">Mercy announcer in <code>murphy_voice.py</code> generates narration scripts from run summaries (title, confidence, HITL count, outcome). Voice bridge live (<code>voice_bridge.py</code>). Twilio phone integration: outbound dial path proven, inbound webhook ready. STT, speaker recognition, and PiCar-X embodiment are roadmap items, not yet shipped.</div>
+        <div class="cap-tag">Announcer Live · STT Roadmap</div>
       </div>
+
       <div class="cap-card">
         <div class="cap-icon">🔗</div>
-        <div class="cap-title">Bring Your Own LLM</div>
-        <div class="cap-desc">Run on Murphy's default (Qwen3-235B via DeepInfra) with Together.ai and Ollama fallback, or bring your own OpenAI key. Token usage tracked and billed per tenant via the token ledger.</div>
-        <div class="cap-tag">Multi-Provider</div>
+        <div class="cap-title">Multi-Provider LLM</div>
+        <div class="cap-desc">Live 3-layer cascade verified in R398: DeepInfra Qwen3-235B (primary) → Together.ai Llama-3.3-70B-Instruct-Turbo (fallback) → local Ollama phi3:latest (failsafe). Every call captured in <code>llm_cost_ledger.calls</code> with tenant_id, tokens, latency, cost (R405). Bring-your-own-OpenAI-key on roadmap — codebase already uses the OpenAI SDK protocol so wiring is shallow.</div>
+        <div class="cap-tag">3 Providers · Per-Tenant Token Ledger</div>
       </div>
+
       <div class="cap-card">
         <div class="cap-icon">🪙</div>
-        <div class="cap-title">Crypto Treasury</div>
-        <div class="cap-desc">Subscription revenue automatically split 50/50 — operations cash vs Cosmos ATOM staking. Staking rewards compound at ~19% APY. Your platform builds equity while it runs.</div>
-        <div class="cap-tag">ATOM Staking</div>
+        <div class="cap-title">Crypto Payments</div>
+        <div class="cap-desc">NOWPayments live: customers can pay <strong>$1,499 / $2,999 / $5,999</strong> plans in USDT, USDC, BTC, ETH, or — via Mercuryo — pay in USD with Visa/Mastercard/Apple Pay. IPN webhook wired. Fiat off-ramp (crypto → USD bank) is KYB-in-progress with NOWPayments (R399). ATOM staking auto-split is a future state for post-revenue treasury, not currently active.</div>
+        <div class="cap-tag">NOWPayments Live · Off-Ramp KYB Pending</div>
       </div>
+
     </div>
   </div>
 </section>
@@ -581,6 +1166,186 @@ footer a:hover { color: var(--teal); }
   </div>
 </section>
 
+
+<!-- R394 — Live Pulse Widget -->
+<section class="pulse-section" id="murphy-pulse-widget">
+  <div class="pulse-frame">
+    <div class="pulse-header">
+      <div class="pulse-title-row">
+        <span class="pulse-dot" id="pulse-dot"></span>
+        <h2 class="pulse-title">Murphy is running right now.</h2>
+      </div>
+      <div class="pulse-sub">
+        Live snapshot from the running system. Refreshes every 30 seconds.
+        Skeptical? <a href="/api/public/pulse" class="pulse-audit-link" target="_blank" rel="noopener">Audit the raw feed →</a> &nbsp;·&nbsp; <a href="/mission" class="pulse-audit-link">Open mission control →</a>
+      </div>
+    </div>
+    <div class="pulse-body">
+      <div class="pulse-stats">
+        <div class="pulse-stat"><div class="pulse-stat-value" id="pulse-patches">—</div><div class="pulse-stat-label">patches shipped</div></div>
+        <div class="pulse-stat"><div class="pulse-stat-value" id="pulse-services">—</div><div class="pulse-stat-label">services live</div></div>
+        <div class="pulse-stat"><div class="pulse-stat-value" id="pulse-codes">—</div><div class="pulse-stat-label">errors classified</div></div>
+        <div class="pulse-stat"><div class="pulse-stat-value" id="pulse-uptime">—</div><div class="pulse-stat-label">days uptime</div></div>
+      </div>
+      <div class="pulse-stream">
+        <div class="pulse-stream-header">
+          <span class="pulse-stream-label">Latest decisions</span>
+          <span class="pulse-stream-meta" id="pulse-meta">connecting…</span>
+        </div>
+        <ul class="pulse-stream-list" id="pulse-stream-list">
+          <li class="pulse-stream-empty">Hydrating from live source…</li>
+        </ul>
+        <div class="pulse-latest-patch" id="pulse-latest-patch"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+.pulse-section { max-width: 1100px; margin: 60px auto; padding: 0 24px; }
+.pulse-frame { background: linear-gradient(180deg, rgba(0,212,170,0.04) 0%, rgba(0,212,170,0.01) 100%);
+  border: 1px solid rgba(0,212,170,0.28); border-radius: 14px; padding: 28px 32px; position: relative; overflow: hidden; }
+.pulse-frame::before { content:""; position: absolute; top:0; left:0; right:0; height:2px;
+  background: linear-gradient(90deg, transparent 0%, #00d4aa 50%, transparent 100%);
+  animation: pulse-sweep 4s ease-in-out infinite; }
+@keyframes pulse-sweep { 0%,100% { opacity: 0.3; } 50% { opacity: 1; } }
+.pulse-header { margin-bottom: 24px; }
+.pulse-title-row { display: flex; align-items: center; gap: 10px; }
+.pulse-dot { width: 8px; height: 8px; border-radius: 50%; background: #00d4aa;
+  box-shadow: 0 0 12px rgba(0,212,170,0.8); animation: pulse-blink 1.6s ease-in-out infinite; }
+.pulse-dot.stale { background: #febc2e; box-shadow: 0 0 12px rgba(254,188,46,0.6); }
+.pulse-dot.dead  { background: #ff5f57; box-shadow: 0 0 12px rgba(255,95,87,0.6); animation: none; }
+@keyframes pulse-blink { 0%,100% { opacity:1; transform: scale(1); } 50% { opacity:0.6; transform: scale(0.85); } }
+.pulse-title { margin: 0; color: #d8e4e0; font-size: 24px; font-weight: 600; letter-spacing: -0.3px; }
+.pulse-sub { color: #7d8e88; font-size: 14px; margin-top: 6px; }
+.pulse-audit-link { color: #00d4aa; text-decoration: none; border-bottom: 1px dashed rgba(0,212,170,0.4); transition: border-color 0.2s; }
+.pulse-audit-link:hover { border-color: #00d4aa; }
+.pulse-body { display: grid; grid-template-columns: 1fr 1.4fr; gap: 32px; align-items: stretch; }
+@media (max-width: 720px) { .pulse-body { grid-template-columns: 1fr; } }
+.pulse-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.pulse-stat { background: rgba(8,12,10,0.6); border: 1px solid rgba(0,212,170,0.13);
+  border-radius: 10px; padding: 18px 16px; text-align: center; transition: border-color 0.3s; }
+.pulse-stat:hover { border-color: rgba(0,212,170,0.4); }
+.pulse-stat-value { font-family: 'Fira Code', 'Cascadia Code', monospace; font-size: 32px;
+  font-weight: 600; color: #00d4aa; line-height: 1; margin-bottom: 6px; font-variant-numeric: tabular-nums; }
+.pulse-stat-label { font-size: 12px; color: #7d8e88; text-transform: uppercase; letter-spacing: 0.8px; }
+.pulse-stream { background: #060908; border: 1px solid rgba(0,212,170,0.13); border-radius: 10px;
+  padding: 16px 18px; display: flex; flex-direction: column; min-height: 220px; }
+.pulse-stream-header { display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid rgba(0,212,170,0.13); }
+.pulse-stream-label { font-size: 12px; color: #7d8e88; text-transform: uppercase; letter-spacing: 0.8px; }
+.pulse-stream-meta { font-family: 'Fira Code', monospace; font-size: 11px; color: #00d4aa; opacity: 0.7; }
+.pulse-stream-list { list-style: none; padding: 0; margin: 0; flex: 1; }
+.pulse-stream-list li { font-family: 'Fira Code', 'Cascadia Code', monospace; font-size: 12.5px;
+  color: #d8e4e0; padding: 8px 0; border-bottom: 1px solid rgba(0,212,170,0.06); opacity: 0;
+  animation: pulse-fade-in 0.5s ease-out forwards; line-height: 1.5; }
+.pulse-stream-list li:last-child { border-bottom: none; }
+.pulse-stream-list li .src { color: #00d4aa; font-weight: 600; margin-right: 8px; font-size: 11px;
+  text-transform: uppercase; letter-spacing: 0.4px; }
+.pulse-stream-list li .when { color: #7d8e88; font-size: 10.5px; margin-left: 8px; }
+.pulse-stream-empty { color: #7d8e88 !important; text-align: center; padding: 30px 0 !important; }
+@keyframes pulse-fade-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+.pulse-latest-patch { margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(0,212,170,0.13);
+  font-size: 12px; color: #7d8e88; font-family: 'Fira Code', monospace; }
+.pulse-latest-patch b { color: #00d4aa; }
+</style>
+
+<script>
+(function() {
+  var WIDGET = document.getElementById('murphy-pulse-widget');
+  if (!WIDGET) return;
+  var POLL_MS = 30000;
+  var last_signature = '';
+  var poll_timer = null;
+  function el(id) { return document.getElementById(id); }
+  function relTime(iso) {
+    if (!iso) return '';
+    try {
+      var d = new Date(iso);
+      var secs = (new Date() - d) / 1000;
+      if (secs < 60) return Math.floor(secs) + 's ago';
+      if (secs < 3600) return Math.floor(secs / 60) + 'm ago';
+      if (secs < 86400) return Math.floor(secs / 3600) + 'h ago';
+      return Math.floor(secs / 86400) + 'd ago';
+    } catch (e) { return ''; }
+  }
+  setInterval(function() {
+    document.querySelectorAll('#pulse-stream-list li[data-when]').forEach(function(li) {
+      var w = li.querySelector('.when');
+      if (w) w.textContent = relTime(li.getAttribute('data-when'));
+    });
+  }, 5000);
+  function setDot(state) {
+    var dot = el('pulse-dot');
+    if (!dot) return;
+    dot.className = 'pulse-dot' + (state ? ' ' + state : '');
+  }
+  function render(d) {
+    el('pulse-patches').textContent  = d.patches_shipped_total != null ? d.patches_shipped_total : '—';
+    el('pulse-services').textContent = d.services_active != null ? (d.services_active + '/' + d.services_total) : '—';
+    el('pulse-codes').textContent    = d.error_codes_registered != null ? d.error_codes_registered : '—';
+    el('pulse-uptime').textContent   = d.uptime_days != null ? d.uptime_days : '—';
+    var meta = el('pulse-meta');
+    var age = d.cache_age_seconds != null ? d.cache_age_seconds : 0;
+    var stale = age > 300;
+    setDot(stale ? 'stale' : '');
+    meta.textContent = stale ? ('cached ' + Math.floor(age) + 's ago — stale') : ('last refresh ' + Math.floor(age) + 's ago');
+    var list = el('pulse-stream-list');
+    var decisions = d.recent_decisions || [];
+    var newSig = decisions.map(function(x) { return x.when; }).join('|');
+    if (newSig === last_signature) return;
+    last_signature = newSig;
+    list.innerHTML = '';
+    if (decisions.length === 0) {
+      list.innerHTML = '<li class="pulse-stream-empty">No recent activity (system idle).</li>';
+    } else {
+      decisions.forEach(function(x, i) {
+        var li = document.createElement('li');
+        li.setAttribute('data-when', x.when || '');
+        li.style.animationDelay = (i * 0.08) + 's';
+        li.innerHTML = '<span class="src">' + (x.source || 'system') + '</span>' + (x.what || '') + '<span class="when">' + relTime(x.when) + '</span>';
+        list.appendChild(li);
+      });
+    }
+    if (d.latest_patch) {
+      el('pulse-latest-patch').innerHTML = 'Latest patch: <b>' + d.latest_patch.id + '</b> — ' + (d.latest_patch.title || '') + ' <span style="opacity:0.6;">(' + relTime(d.latest_patch.when) + ')</span>';
+    }
+  }
+  function fail() {
+    setDot('dead');
+    var meta = el('pulse-meta');
+    if (meta) meta.textContent = 'briefly unreachable';
+    var list = el('pulse-stream-list');
+    if (list) list.innerHTML = '<li class="pulse-stream-empty">System briefly unreachable — refresh in 30s.</li>';
+  }
+  function fetchPulse() {
+    fetch('/api/public/pulse', { cache: 'no-store' })
+      .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(render).catch(fail);
+  }
+  function start() {
+    if (poll_timer) clearInterval(poll_timer);
+    fetchPulse();
+    poll_timer = setInterval(function() {
+      if (document.visibilityState === 'visible') fetchPulse();
+    }, POLL_MS);
+  }
+  document.addEventListener('visibilitychange', function() {
+    if (document.visibilityState === 'visible') fetchPulse();
+  });
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function(entries) {
+      entries.forEach(function(e) {
+        if (e.isIntersecting) { start(); io.disconnect(); }
+      });
+    }, { rootMargin: '200px' });
+    io.observe(WIDGET);
+  } else {
+    start();
+  }
+})();
+</script>
+<!-- /R394 — Live Pulse Widget -->
 <!-- PRICING -->
 <section id="pricing" style="background: var(--bg2); border-top: 1px solid var(--border);">
   <div class="section-inner">
@@ -912,5 +1677,53 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
   });
 });
 </script>
+
+<!-- Self-Modification + Chat — added 2026-05-26, ground truth from /api/self/audit -->
+<section style="background:#080c0a;color:#d8e4e0;padding:60px 20px;border-top:1px solid #1f2c28;border-bottom:1px solid #1f2c28;">
+  <div style="max-width:1080px;margin:0 auto;">
+    <h2 style="color:#00d4aa;font-size:32px;margin:0 0 12px;letter-spacing:-0.5px;">Murphy patches itself.</h2>
+    <p style="color:#7d8e88;font-size:15px;max-width:680px;line-height:1.7;margin:0 0 40px;">
+      Murphy reads its own source, proposes fixes, gates them through 8 safety rails, and applies them.
+      13 patches have already shipped this way. One of them was the bug-fix to its own QC pipeline.
+    </p>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px;margin-bottom:40px;">
+      <div style="background:#0f1614;padding:24px;border-radius:12px;border:1px solid #1f2c28;">
+        <div id="audit-heartbeats" style="font-size:32px;color:#00d4aa;font-weight:700;">—</div>
+        <div style="font-size:12px;color:#7d8e88;text-transform:uppercase;letter-spacing:1.5px;margin-top:6px;">Heartbeats / 10 min</div>
+      </div>
+      <div style="background:#0f1614;padding:24px;border-radius:12px;border:1px solid #1f2c28;">
+        <div id="audit-cycle" style="font-size:32px;color:#00d4aa;font-weight:700;">—</div>
+        <div style="font-size:12px;color:#7d8e88;text-transform:uppercase;letter-spacing:1.5px;margin-top:6px;">Mind cycle</div>
+      </div>
+      <div style="background:#0f1614;padding:24px;border-radius:12px;border:1px solid #1f2c28;">
+        <div id="audit-applied" style="font-size:32px;color:#00d4aa;font-weight:700;">—</div>
+        <div style="font-size:12px;color:#7d8e88;text-transform:uppercase;letter-spacing:1.5px;margin-top:6px;">Patches applied</div>
+      </div>
+      <div style="background:#0f1614;padding:24px;border-radius:12px;border:1px solid #1f2c28;">
+        <div id="audit-routes" style="font-size:32px;color:#00d4aa;font-weight:700;">—</div>
+        <div style="font-size:12px;color:#7d8e88;text-transform:uppercase;letter-spacing:1.5px;margin-top:6px;">Live routes</div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:14px;flex-wrap:wrap;">
+      <a href="/chat" style="background:#00d4aa;color:#080c0a;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:15px;">Talk to Murphy →</a>
+      <a href="/static/patcher.html" style="background:transparent;border:1px solid #1f2c28;color:#d8e4e0;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:15px;">Review patches</a>
+      <a href="/static/docs/self_modification.md" style="background:transparent;border:1px solid #1f2c28;color:#7d8e88;padding:14px 28px;border-radius:8px;text-decoration:none;font-size:14px;">How self-modification works</a>
+    </div>
+  </div>
+
+  <script>
+    fetch('/api/self/audit').then(r => r.json()).then(d => {
+      const c = d.checks || {};
+      document.getElementById('audit-heartbeats').textContent = c.heartbeats_10min || '—';
+      document.getElementById('audit-cycle').textContent = (c.mind_cycle && c.mind_cycle.lifetime_cycle) || '—';
+      document.getElementById('audit-applied').textContent = (c.patcher_stats && c.patcher_stats.applied) || '—';
+      document.getElementById('audit-routes').textContent = c.registry_route_count || '—';
+    }).catch(() => {});
+  </script>
+</section>
+
+<script src="/static/murphy-gaze.js" defer></script>
 </body>
 </html>

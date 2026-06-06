@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title id="page-title">Loading…</title>
+<style>
+:root {
+  --bg:#080c0a; --surface:#111a15;
+  --border:rgba(0,212,170,.13); --border-hi:rgba(0,212,170,.32);
+  --text:#deeae4; --text-dim:#7a9a8a;
+  --teal:#00D4AA; --green:#00ff6a;
+  --font: 'Inter', system-ui, sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;line-height:1.5}
+.topbar{position:sticky;top:0;background:rgba(8,12,10,.92);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;justify-content:space-between;align-items:center;backdrop-filter:blur(10px);z-index:50}
+.topbar a.logo{color:var(--teal);text-decoration:none;font-weight:700;font-size:1.05rem}
+.topbar a.logo .by{color:var(--text-dim);font-weight:400;font-size:.85rem;margin-left:.4rem}
+.topbar .nav a{color:var(--text-dim);margin-left:1.4rem;font-size:.9rem;text-decoration:none}
+.topbar .nav a:hover{color:var(--teal)}
+
+.wrap{max-width:900px;margin:0 auto;padding:48px 24px}
+.tenant-card{background:var(--surface);border:1px solid var(--border-hi);border-radius:12px;padding:32px;margin-bottom:24px}
+.tenant-name{font-size:2rem;color:#fff;font-weight:700;letter-spacing:-.02em;margin-bottom:.5rem}
+.tenant-tagline{font-size:1.05rem;color:var(--text-dim);margin-bottom:1.5rem}
+.tenant-status{display:inline-block;background:rgba(0,255,106,.08);color:var(--green);padding:3px 10px;border-radius:14px;font-size:.78rem;font-weight:600;margin-left:.6rem;vertical-align:middle}
+
+.chat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px}
+.chat-card h3{color:var(--teal);font-size:.95rem;margin-bottom:1rem;letter-spacing:.02em}
+.chat-log{min-height:200px;max-height:400px;overflow-y:auto;margin-bottom:1rem;padding:.5rem 0}
+.msg{padding:10px 14px;border-radius:10px;margin-bottom:.6rem;max-width:85%;font-size:.92rem;line-height:1.55;word-wrap:break-word}
+.msg.u{background:var(--teal);color:#000;margin-left:auto;text-align:left}
+.msg.a{background:rgba(0,212,170,.05);border:1px solid var(--border);color:var(--text)}
+.msg.s{color:var(--text-dim);font-style:italic;font-size:.85rem;text-align:center;background:none}
+.chat-input{display:flex;gap:.5rem}
+.chat-input input{flex:1;background:#0d1210;border:1px solid var(--border);color:var(--text);padding:11px 14px;border-radius:8px;font-family:inherit;font-size:.95rem}
+.chat-input input:focus{outline:none;border-color:var(--border-hi)}
+.chat-input button{background:var(--teal);color:#000;border:none;padding:11px 20px;border-radius:8px;font-family:inherit;font-size:.95rem;font-weight:600;cursor:pointer}
+.chat-input button:disabled{opacity:.4;cursor:not-allowed}
+
+.signup-cta{background:rgba(0,212,170,.04);border:1px solid var(--border-hi);border-radius:10px;padding:14px 18px;margin-top:1rem;font-size:.88rem;color:var(--text-dim)}
+.signup-cta a{color:var(--teal);font-weight:600;text-decoration:none;margin-left:.4rem}
+
+.empty{text-align:center;padding:4rem 0}
+.empty h2{font-size:1.5rem;color:#fff;margin-bottom:.6rem}
+.empty p{color:var(--text-dim);margin-bottom:1.5rem}
+.empty a{display:inline-block;background:var(--teal);color:#000;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:600;margin:0 .3rem}
+.empty a.alt{background:transparent;color:var(--teal);border:1px solid var(--border-hi)}
+
+@media(max-width:600px){
+  .wrap{padding:24px 16px}
+  .tenant-card{padding:24px 20px}
+  .tenant-name{font-size:1.5rem}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a href="/" class="logo">Murphy <span class="by">tenant</span></a>
+  <div class="nav">
+    <a href="/marketplace">Marketplace</a>
+    <a href="/pricing">Pricing</a>
+    <a href="/login">Sign in</a>
+  </div>
+</div>
+
+<div class="wrap" id="root">
+  <div class="empty">
+    <h2>Loading…</h2>
+  </div>
+</div>
+
+<script>
+const SLUG = window.location.pathname.replace(/^\/+|\/+$/g, '');
+const THREAD_ID = (function(){
+  let t = localStorage.getItem('tenant_thread_' + SLUG);
+  if(!t){ t = 'web_' + Math.random().toString(36).slice(2,12); localStorage.setItem('tenant_thread_' + SLUG, t); }
+  return t;
+})();
+
+function escapeHtml(s){
+  return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function render404(){
+  document.getElementById('page-title').textContent = `Not found — Murphy`;
+  document.getElementById('root').innerHTML = `
+    <div class="empty">
+      <h2>That tenant doesn't exist</h2>
+      <p>"<strong>${escapeHtml(SLUG)}</strong>" isn't a registered Murphy tenant.</p>
+      <a href="/marketplace">Browse agents</a>
+      <a href="/signup" class="alt">Start your own</a>
+    </div>`;
+}
+
+function renderTenant(t){
+  document.getElementById('page-title').textContent = `${t.name} — Murphy`;
+  document.getElementById('root').innerHTML = `
+    <div class="tenant-card">
+      <div class="tenant-name">${escapeHtml(t.name)} <span class="tenant-status">${escapeHtml(t.status)}</span></div>
+      <div class="tenant-tagline">${escapeHtml(t.tagline || 'Powered by Murphy')}</div>
+    </div>
+    <div class="chat-card">
+      <h3>💬 Talk to ${escapeHtml(t.name)}'s Murphy</h3>
+      <div class="chat-log" id="log">
+        <div class="msg s">Ask anything. ${escapeHtml(t.name)}'s AI knows about their work.</div>
+      </div>
+      <div class="chat-input">
+        <input id="msg" placeholder="Type your message…" autofocus>
+        <button id="send" onclick="send()">Send</button>
+      </div>
+      <div class="signup-cta">
+        Want your own AI like this?
+        <a href="/signup?utm=tenant_${escapeHtml(SLUG)}">Start free →</a>
+      </div>
+    </div>`;
+  document.getElementById('msg').addEventListener('keydown', e => {
+    if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); send(); }
+  });
+}
+
+function appendMsg(role, text){
+  const log = document.getElementById('log');
+  const el = document.createElement('div');
+  el.className = 'msg ' + role;
+  el.textContent = text;
+  log.appendChild(el);
+  log.scrollTop = log.scrollHeight;
+}
+
+async function send(){
+  const inp = document.getElementById('msg');
+  const btn = document.getElementById('send');
+  const msg = inp.value.trim();
+  if(!msg) return;
+  inp.value = ''; btn.disabled = true;
+  appendMsg('u', msg);
+  appendMsg('s', '…thinking');
+  try {
+    const r = await fetch('/api/aionmind/chat', {
+      method:'POST', headers:{'Content-Type':'application/json','X-Tenant-Slug': SLUG},
+      body: JSON.stringify({message: msg, thread_id: THREAD_ID, tenant_id: SLUG, user_id: 'web_visitor'})
+    });
+    const d = await r.json();
+    // remove thinking placeholder
+    const log = document.getElementById('log');
+    const last = log.querySelector('.msg.s:last-child');
+    if(last && last.textContent === '…thinking') last.remove();
+    if(d.ok){
+      appendMsg('a', d.response || '(no response)');
+    } else {
+      appendMsg('s', 'Error: ' + (d.error?.message || d.error || 'unknown'));
+    }
+  } catch(e){
+    appendMsg('s', 'Network error');
+  }
+  btn.disabled = false;
+  inp.focus();
+}
+
+// Resolve tenant on load
+fetch(`/api/tenant/by-slug/${encodeURIComponent(SLUG)}`)
+  .then(r => r.json())
+  .then(d => {
+    if(d.ok) renderTenant(d.tenant); else render404();
+  })
+  .catch(() => render404());
+</script>
+</body>
+</html>

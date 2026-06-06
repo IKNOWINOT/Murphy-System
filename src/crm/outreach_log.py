@@ -1,0 +1,1 @@
+{"last_outreach_date": "2023-05-15", "campaign_status": "active", "engagement_rate": 0.02, "notes": "APC outreach requires copy refresh due to no inbound replies in 999 days. Recommend updating messaging and resending."}

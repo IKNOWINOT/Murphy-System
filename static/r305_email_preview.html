@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Re: R305 branded email test</title></head>
+<body style="margin:0;padding:0;background:#0a0a0a;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"
+       style="background:#0a0a0a;padding:24px 0;">
+  <tr><td align="center">
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0"
+           width="600" style="max-width:600px;background:#111111;
+           border:1px solid #1F3A35;border-radius:10px;overflow:hidden;
+           font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;">
+
+      <!-- Brand header -->
+      <tr><td style="background:linear-gradient(180deg,#0a0a0a 0%,#111111 100%);
+                     padding:18px 24px;border-bottom:1px solid #1F3A35;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+          <tr>
+            <td style="font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Courier New",monospace;font-size:13px;font-weight:800;
+                       color:#00D4AA;letter-spacing:.05em;">
+              <span style="display:inline-block;width:6px;height:6px;border-radius:50%;
+                           background:#00ff41;margin-right:8px;vertical-align:middle"></span>MURPHY
+            </td>
+            <td align="right" style="font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Courier New",monospace;font-size:10px;
+                       color:#6b8090;letter-spacing:.06em;text-transform:uppercase">
+              2026-05-30 17:24 UTC
+            </td>
+          </tr>
+        </table>
+      </td></tr>
+
+      <!-- Body -->
+      <tr><td style="padding:24px 28px 8px;">
+        <p style="margin:8px 0;color:#e0e6ea;font-size:14px;line-height:1.65">Quick status pull on the substrate.</p>
+<div style="font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Courier New",monospace;font-size:11px;color:#00D4AA;text-transform:uppercase;letter-spacing:.1em;margin:20px 0 8px;font-weight:600">CURRENT STATE</div>
+<ul style="margin:8px 0 8px 22px;padding:0;color:#e0e6ea;font-size:14px"><li style="margin:4px 0;color:#e0e6ea;line-height:1.6">Uptime: 3 hours</li><li style="margin:4px 0;color:#e0e6ea;line-height:1.6">Active jobs: 36  </li><li style="margin:4px 0;color:#e0e6ea;line-height:1.6">CRM deals: 227</li><li style="margin:4px 0;color:#e0e6ea;line-height:1.6">Recent BUILD requests: 4</li></ul>
+<p style="margin:8px 0;color:#e0e6ea;font-size:14px;line-height:1.65">The intent router classified your email as a BUILD task and routed it through <code style="background:#1a1a1a;color:#00D4AA;padding:1px 6px;border-radius:3px;font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Courier New",monospace;font-size:12.5px">/api/swarm/execute</code>. The orchestrator assembled 3 agents and produced the synthesis below.</p>
+<div style="margin:12px 0"><div style="font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Courier New",monospace;font-size:10px;color:#6b8090;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">python</div><pre style="background:#0a0a0a;border:1px solid #1F3A35;border-left:3px solid #00D4AA;border-radius:6px;padding:14px 16px;margin:0;font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Courier New",monospace;font-size:13px;line-height:1.55;color:#e0e6ea;overflow-x:auto;white-space:pre">import sqlite3
+con = sqlite3.connect(&quot;/var/lib/murphy-production/email_outbound.db&quot;)
+print(&quot;rows:&quot;, con.execute(&quot;SELECT COUNT(*) FROM email_log&quot;).fetchone()[0])</pre></div>
+<p style="margin:8px 0;color:#e0e6ea;font-size:14px;line-height:1.65">Result saved to /var/lib/murphy-production/artifacts/abc123/. Review and approve via the console.</p>
+<p style="margin:8px 0;color:#e0e6ea;font-size:14px;line-height:1.65">Full details at <a href="https://murphy.systems/ui/console." style="color:#00D4AA;text-decoration:none;border-bottom:1px solid rgba(0,212,170,0.18)">https://murphy.systems/ui/console.</a></p>
+      </td></tr>
+
+      <!-- Footer -->
+      <tr><td style="padding:16px 28px 22px;border-top:1px solid #1F3A35;
+                     background:#0a0a0a;">
+        <div style="margin-bottom:8px"><span style="display:inline-block;padding:2px 10px;border-radius:10px;background:#1a1a1a;color:#C28BDC;font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Courier New",monospace;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em">BUILD</span> &nbsp;·&nbsp; <span style="font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Courier New",monospace;font-size:11px;color:#6b8090">DAG <span style="color:#e0e6ea">r305_test_dag_abc123def</span></span> &nbsp;·&nbsp; <a href="https://murphy.systems/hitl?job=hitl_r305_test" style="color:#00D4AA;text-decoration:none;font-size:12px;font-weight:600;border-bottom:1px solid rgba(0,212,170,0.18)">Open in HITL →</a></div>
+        <div style="font-size:10.5px;color:#6b8090;line-height:1.5;
+                    font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif">
+          Sent by Murphy — Your AI Operating System.
+          Reply to this email to drive more work.
+          <a href="https://murphy.systems/ui/console"
+             style="color:#00D4AA;text-decoration:none">Open console</a>
+        </div>
+      </td></tr>
+
+    </table>
+  </td></tr>
+</table>
+</body></html>

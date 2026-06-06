@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Murphy — LLM Spend</title>
+<script src="/static/murphy-nav.js?v=r492"></script>
+<style>
+  :root {
+    --bg: #0a0e14;
+    --fg: #c9d1d9;
+    --muted: #6e7681;
+    --accent: #58a6ff;
+    --green: #3fb950;
+    --orange: #f0883e;
+    --red: #f85149;
+    --card: #161b22;
+    --border: #30363d;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--fg);
+    margin: 0;
+    padding: 80px 24px 24px;
+  }
+  h1 { font-size: 24px; font-weight: 600; margin-bottom: 4px; }
+  .sub { color: var(--muted); margin-bottom: 24px; font-size: 13px; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+  }
+  .card .label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .card .value { font-size: 28px; font-weight: 600; margin-top: 4px; }
+  .card .delta { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .green { color: var(--green); }
+  .orange { color: var(--orange); }
+  .red { color: var(--red); }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 24px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  th, td {
+    padding: 10px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  th {
+    background: #1c2128;
+    color: var(--muted);
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    font-weight: 500;
+  }
+  td.right { text-align: right; font-variant-numeric: tabular-nums; }
+  td.mono { font-family: ui-monospace, "SF Mono", Monaco, monospace; font-size: 12px; }
+  h2 { font-size: 16px; font-weight: 500; margin: 20px 0 10px; color: var(--fg); }
+  .ts { color: var(--muted); font-size: 11px; }
+  .loading { color: var(--muted); padding: 20px; text-align: center; }
+  .refresh { float: right; background: transparent; color: var(--accent); border: 1px solid var(--border); padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+</style>
+</head>
+<body>
+<div id="murphy-nav-mount"></div>
+
+<h1>LLM Spend <button class="refresh" onclick="loadSpend()">↻ refresh</button></h1>
+<div class="sub" id="ts">loading…</div>
+
+<div class="grid" id="topcards"></div>
+
+<h2>Last 24 hours by provider</h2>
+<table id="providers"><thead><tr><th>provider</th><th class="right">calls</th><th class="right">input tokens</th><th class="right">output tokens</th><th class="right">cost</th></tr></thead><tbody><tr><td colspan="5" class="loading">loading…</td></tr></tbody></table>
+
+<h2>Top callers (last 24h)</h2>
+<table id="callers"><thead><tr><th>caller</th><th class="right">calls</th><th class="right">cost</th></tr></thead><tbody></tbody></table>
+
+<h2>By model (all time)</h2>
+<table id="models"><thead><tr><th>model</th><th class="right">calls</th><th class="right">cost</th></tr></thead><tbody></tbody></table>
+
+<script>
+function fmt$(n) { return '$' + (n||0).toFixed(2); }
+function fmt$f(n) { return '$' + (n||0).toFixed(4); }
+function fmtN(n) { return (n||0).toLocaleString(); }
+function fmtT(n) {
+  if (n > 1e6) return (n/1e6).toFixed(1) + 'M';
+  if (n > 1e3) return (n/1e3).toFixed(1) + 'K';
+  return n.toString();
+}
+
+async function loadSpend() {
+  document.getElementById('ts').textContent = 'loading…';
+  try {
+    const r = await fetch('/api/llm/spend?cb=' + Date.now());
+    const d = await r.json();
+    if (!d.ok) {
+      document.getElementById('ts').innerHTML = '<span class="red">error: ' + (d.error||'unknown') + '</span>';
+      return;
+    }
+    const now = new Date().toISOString().substr(0,19) + 'Z';
+    document.getElementById('ts').textContent = 'as of ' + now + '  ·  data from llm_cost_ledger.db  ·  first call ' + (d.all_time.first_call||'?').substr(0,10);
+    
+    // Top cards
+    const cards = [
+      {label:'all-time spend',  v: fmt$(d.all_time.cost_usd), sub: fmtN(d.all_time.calls) + ' calls'},
+      {label:'last 24h',         v: fmt$(d.last_24h.total_cost_usd), sub: fmtN(d.last_24h.total_calls) + ' calls'},
+      {label:'last 7 days',      v: fmt$(d.last_7d.cost_usd), sub: fmtN(d.last_7d.calls) + ' calls'},
+      {label:'last 30 days',     v: fmt$(d.last_30d.cost_usd), sub: 'monthly run-rate'},
+      {label:'avg cost / call',  v: '$' + (d.all_time.calls > 0 ? (d.all_time.cost_usd/d.all_time.calls).toFixed(5) : '0'), sub: 'all-time'},
+      {label:'total tokens',     v: fmtT(d.all_time.input_tokens + d.all_time.output_tokens), sub: fmtT(d.all_time.input_tokens) + ' in · ' + fmtT(d.all_time.output_tokens) + ' out'},
+    ];
+    document.getElementById('topcards').innerHTML = cards.map(c =>
+      `<div class="card"><div class="label">${c.label}</div><div class="value">${c.v}</div><div class="delta">${c.sub}</div></div>`
+    ).join('');
+    
+    // Providers
+    const pbody = document.querySelector('#providers tbody');
+    if (d.last_24h.by_provider.length === 0) {
+      pbody.innerHTML = '<tr><td colspan="5" class="loading">no activity in last 24h</td></tr>';
+    } else {
+      pbody.innerHTML = d.last_24h.by_provider.map(p =>
+        `<tr><td class="mono">${p.provider}</td><td class="right">${fmtN(p.calls)}</td><td class="right">${fmtT(p.input_tokens)}</td><td class="right">${fmtT(p.output_tokens)}</td><td class="right">${fmt$f(p.cost_usd)}</td></tr>`
+      ).join('');
+    }
+    
+    // Callers
+    const cbody = document.querySelector('#callers tbody');
+    if (!d.top_callers_24h || d.top_callers_24h.length === 0) {
+      cbody.innerHTML = '<tr><td colspan="3" class="loading">no caller data</td></tr>';
+    } else {
+      cbody.innerHTML = d.top_callers_24h.map(c =>
+        `<tr><td class="mono">${c.caller}</td><td class="right">${fmtN(c.calls)}</td><td class="right">${fmt$f(c.cost_usd)}</td></tr>`
+      ).join('');
+    }
+    
+    // Models
+    const mbody = document.querySelector('#models tbody');
+    mbody.innerHTML = d.by_model_all_time.map(m =>
+      `<tr><td class="mono">${m.model}</td><td class="right">${fmtN(m.calls)}</td><td class="right">${fmt$f(m.cost_usd)}</td></tr>`
+    ).join('');
+    
+  } catch (e) {
+    document.getElementById('ts').innerHTML = '<span class="red">fetch failed: ' + e.message + '</span>';
+  }
+}
+
+loadSpend();
+setInterval(loadSpend, 60000);  // auto-refresh every 60s
+</script>
+</body>
+</html>

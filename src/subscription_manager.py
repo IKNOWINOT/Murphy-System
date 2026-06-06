@@ -184,7 +184,7 @@ PRICING_PLANS: Dict[SubscriptionTier, PricingPlan] = {
     ),
     SubscriptionTier.SOLO: PricingPlan(
         tier=SubscriptionTier.SOLO,
-        name="Solo",
+        name="Pilot",
         monthly_price=99.00,
         annual_price=79.00,
         max_users=1,
@@ -203,9 +203,9 @@ PRICING_PLANS: Dict[SubscriptionTier, PricingPlan] = {
     ),
     SubscriptionTier.BUSINESS: PricingPlan(
         tier=SubscriptionTier.BUSINESS,
-        name="Business",
-        monthly_price=299.00,
-        annual_price=249.00,
+        name="Growth",
+        monthly_price=499.00,
+        annual_price=399.00,
         max_users=10,
         max_automations=-1,
         stripe_price_id_monthly=os.environ.get("STRIPE_PRICE_BUSINESS_MONTHLY", ""),
@@ -223,9 +223,9 @@ PRICING_PLANS: Dict[SubscriptionTier, PricingPlan] = {
     ),
     SubscriptionTier.PROFESSIONAL: PricingPlan(
         tier=SubscriptionTier.PROFESSIONAL,
-        name="Professional",
-        monthly_price=599.00,
-        annual_price=479.00,
+        name="Scale",
+        monthly_price=1499.00,
+        annual_price=1199.00,
         max_users=-1,
         max_automations=-1,
         stripe_price_id_monthly=os.environ.get("STRIPE_PRICE_PRO_MONTHLY", ""),
@@ -245,8 +245,9 @@ PRICING_PLANS: Dict[SubscriptionTier, PricingPlan] = {
     SubscriptionTier.ENTERPRISE: PricingPlan(
         tier=SubscriptionTier.ENTERPRISE,
         name="Enterprise",
-        monthly_price=0.00,   # custom pricing
-        annual_price=0.00,
+        # _R442_ENTERPRISE_QUOTE_ONLY — sentinel -1 means "Contact us"
+        monthly_price=-1.0,
+        annual_price=-1.0,
         max_users=-1,
         max_automations=-1,
         features=[

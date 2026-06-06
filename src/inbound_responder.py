@@ -183,10 +183,16 @@ def process_pending_responses(limit: int = 5) -> Dict[str, Any]:
     """Find report_request rows with no autoresponse, send or stage."""
     _ensure_schema()
     conn = sqlite3.connect(_DB, timeout=5)
+    # _R472_BROADER_INTENT — respond to anything from allowlisted sender, not just report_request
+    # Excludes bounces (MAILER-DAEMON), internal/self (murphy@), and already-responded rows
     rows = conn.execute(
         "SELECT id, from_addr, subject FROM inbound_replies "
-        "WHERE intent_class = 'report_request' "
-        "AND (auto_response_status IS NULL OR auto_response_status = '') "
+        "WHERE (auto_response_status IS NULL OR auto_response_status = '') "
+        "  AND is_internal = 0 "
+        "  AND lower(from_addr) NOT LIKE 'mailer-daemon%' "
+        "  AND lower(from_addr) NOT LIKE 'postmaster%' "
+        "  AND lower(from_addr) NOT LIKE 'noreply%' "
+        "  AND lower(from_addr) NOT LIKE 'no-reply%' "
         "ORDER BY id DESC LIMIT ?", (limit,),
     ).fetchall()
     conn.close()
