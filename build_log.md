@@ -419,3 +419,41 @@ four layers (systemd unit + drop-ins, EnvironmentFile, secrets.env,
 
 **Snapshot:** /var/lib/murphy-production/state_snapshots/
 app_20260606T214034Z.r66g.before
+
+## R64c2 — Recent corrections visible on OS agent cards (2026-06-06)
+
+**Problem:** R64a + R64b + R64c + R64c1 built the full HITL → persona
+learning loop, but the only way to see what was accumulating was SQL
+queries against rosetta_learning.db. Corey couldn't see at a glance
+which personas were getting corrected and what for.
+
+**Fix:** static/murphy-os.html:loadAgents() now does a Promise.all to
+fetch /api/rosetta-learning/agent/{type}/corrections?limit=3 for every
+agent on the dashboard. If any come back, an "Recent lessons (N)" mini-
+panel is appended to that agent's card with verb glyphs (✗ rejected,
+✎ revised, ↻ regenerated, ✓ approved) and the truncated reason text.
+
+agent_type derivation: department → role → agent_id, lowercased and
+URL-encoded (same precedence rule as R64c1 persona builder).
+
+**Defensive:**
+- Per-agent fetch failure is silently swallowed (try/catch around each).
+  An agent with no corrections shows the normal card, no panel.
+- Promise.all keeps the dashboard load fast (~1 RTT for N agents in
+  parallel vs N serial RTTs).
+
+**Proof:**
+- Inserted test correction (agent_type='sales', "omit price in first
+  outreach email"). /api/rosetta-learning/agent/sales/corrections?limit=3
+  returned it correctly with ok=true, reason intact.
+- Patched HTML on disk verified (grep shows the new comment + code).
+- Test row deleted; no real metrics polluted.
+
+**Composes with:** R64a (DB), R64b (writes), R64c (selling-bridge inject),
+R64c1 (universal Rosetta inject). Now the loop is visible too.
+
+**Frontend-only — no restart needed; static HTML auto-served on next
+dashboard load.**
+
+**Snapshot:** /var/lib/murphy-production/state_snapshots/
+murphy-os_20260606T214732Z.r64c2.before

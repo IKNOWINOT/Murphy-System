@@ -2085,7 +2085,30 @@ async function loadAgents() {
     grid.innerHTML = '<div style="color:var(--text3);font-size:12px;grid-column:1/-1">No agents registered.</div>';
     return;
   }
-  grid.innerHTML = agents.map(a => `
+  // R64c2 — fetch recent corrections per agent in parallel
+  const correctionMap = {};
+  await Promise.all(agents.map(async a => {
+    const agentType = (a.department || a.role || a.agent_id || '').toLowerCase();
+    if (!agentType) return;
+    try {
+      const cd = await api('GET', `/api/rosetta-learning/agent/${encodeURIComponent(agentType)}/corrections?limit=3`);
+      if (cd && cd.ok && Array.isArray(cd.corrections) && cd.corrections.length) {
+        correctionMap[a.agent_id || a.name] = cd.corrections;
+      }
+    } catch (_) { /* learning DB unavailable = quiet */ }
+  }));
+
+  grid.innerHTML = agents.map(a => {
+    const key = a.agent_id || a.name;
+    const corrs = correctionMap[key] || [];
+    const verbIcon = { rejected: '✗', revised: '✎', regenerated: '↻', approved: '✓' };
+    const lessonsHtml = corrs.length
+      ? `<div class="arc-lessons" style="margin-top:6px;padding-top:6px;border-top:1px dashed var(--border);font-size:10px;color:var(--text2)">
+           <div style="color:var(--accent);font-weight:600;margin-bottom:3px">Recent lessons (${corrs.length})</div>
+           ${corrs.map(c => `<div style="margin-bottom:2px"><span style="opacity:0.7">${verbIcon[(c.decision||'').toLowerCase()] || '·'}</span> ${(c.reason||'(no note)').slice(0,80)}</div>`).join('')}
+         </div>`
+      : '';
+    return `
     <div class="agent-row-card">
       <div class="arc-top">
         <span class="arc-emoji">${a.emoji||'🤖'}</span>
@@ -2101,8 +2124,10 @@ async function loadAgents() {
         <span>Rpts→: <span class="arc-stat-val">${a.reports_to||'—'}</span></span>
       </div>
       <div class="arc-last">${a.last_outcome ? '✓ '+a.last_outcome : (a.last_trigger ? '⏱ '+a.last_trigger : 'Not yet run')}</div>
+      ${lessonsHtml}
     </div>
-  `).join('');
+  `;
+  }).join('');
 }
 
 // ─── PIPELINE ─────────────────────────────────────
