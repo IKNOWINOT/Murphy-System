@@ -259,3 +259,21 @@ test membership row was added; demo.html chip POST will include it.
 
 Composes with R66 (loader) + R66b (LLM prompt surface). Now end-to-end
 tenant-tuning works from chip click → loader → MSS → LLM prompt.
+
+## R66e — book_chapter_loop character extractor stopword expansion (2026-06-06)
+
+**Problem:** extract_characters caught "Her", "Just", "Detective", "Could" as
+"characters" because the original skip set only had ~30 entries. Real characters
+got crowded out of the top-N ledger; subsequent chapters had to hallucinate
+new ones because the ledger looked stale.
+
+**Fix:** stopword set expanded from ~30 to ~120 entries — articles, pronouns,
+possessives, conjunctions, modals, adverbs, generic titles (Detective, Officer,
+Doctor), narrative connectives, weekday/month names, structural words.
+
+**Proof:** Detective Ada Stein test passage with 4 real names (Ada, Hawthorne,
+Eliot, Stein) buried in 14 capitalized stopwords → extractor returns exactly
+['Ada', 'Hawthorne', 'Stein', 'Eliot'], zero leaks.
+
+NER would be more robust but heavier. This fix unblocks the immediate
+ledger-pollution problem at zero LLM cost.

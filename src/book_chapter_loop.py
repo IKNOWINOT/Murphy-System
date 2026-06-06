@@ -133,12 +133,55 @@ Format your response as JSON only (no other text). Use this exact shape:
 
 
 def extract_characters(text: str, min_occurrences: int = 2) -> List[str]:
-    """Pull capitalized proper nouns that appear ≥2 times — a character ledger."""
-    # Exclude common sentence-starters and stopwords
-    skip = {"The", "A", "An", "He", "She", "It", "They", "We", "I", "You",
-            "But", "And", "Or", "So", "When", "Then", "Now", "Here", "There",
-            "What", "Where", "Why", "How", "Yes", "No", "Chapter", "One", "Two",
-            "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten"}
+    """Pull capitalized proper nouns that appear ≥2 times — a character ledger.
+
+    R66d-post: broadened stopword set. NER would be better but heavier;
+    this catches the bulk of LLM-style narrative capitalizations that aren't
+    actual character names (sentence starters, possessives, generic titles,
+    discourse markers).
+    """
+    skip = {
+        # articles + pronouns + possessives
+        "The", "A", "An", "He", "She", "It", "They", "We", "I", "You",
+        "His", "Her", "Hers", "Him", "Their", "Theirs", "Them", "Our", "Ours",
+        "My", "Mine", "Your", "Yours", "Its", "Us",
+        # conjunctions + prepositions when capitalized at sentence start
+        "But", "And", "Or", "So", "If", "Yet", "Nor", "For", "With", "From",
+        "Into", "Onto", "Upon", "Over", "Under", "Above", "Below", "Between",
+        "About", "After", "Before", "During", "Through", "Across", "Around",
+        # question/discourse markers
+        "When", "Then", "Now", "Here", "There", "What", "Where", "Why", "How",
+        "Who", "Whom", "Whose", "Which", "That", "This", "These", "Those",
+        # affirmation/negation/quantifiers
+        "Yes", "No", "Not", "None", "All", "Every", "Each", "Any", "Some",
+        "Many", "Most", "Much", "More", "Less", "Few", "Several", "Both",
+        # modal/aux verbs
+        "Can", "Could", "Will", "Would", "Shall", "Should", "May", "Might",
+        "Must", "Do", "Does", "Did", "Have", "Has", "Had", "Been", "Being",
+        # common adverbs that often start LLM sentences
+        "Just", "Even", "Still", "Already", "Almost", "Maybe", "Perhaps",
+        "Suddenly", "Finally", "Eventually", "Quickly", "Slowly", "Surely",
+        "Indeed", "Rather", "Often", "Usually", "Always", "Never", "Sometimes",
+        "Today", "Tonight", "Yesterday", "Tomorrow", "Soon", "Later", "Once",
+        # directional/spatial
+        "Up", "Down", "Out", "Off", "Back", "Left", "Right", "Forward",
+        "Inside", "Outside", "Beyond", "Behind", "Beside", "Toward", "Away",
+        # generic titles often capitalized but not character names
+        "Detective", "Officer", "Doctor", "Professor", "Captain", "General",
+        "Mister", "Madam", "Sir", "Lord", "Lady", "Master", "Mistress",
+        # narrative connectives
+        "Like", "Such", "Very", "Quite", "Truly", "Really", "Actually",
+        "However", "Therefore", "Thus", "Hence", "Meanwhile", "Otherwise",
+        # numbers
+        "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine",
+        "Ten", "Eleven", "Twelve", "First", "Second", "Third", "Last",
+        # structural words
+        "Chapter", "Section", "Part", "Volume", "Book", "Page", "Title",
+        # weekdays + months (commonly capitalized but rarely character names)
+        "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday",
+        "January", "February", "March", "April", "May", "June", "July",
+        "August", "September", "October", "November", "December",
+    }
     candidates = re.findall(r"\b([A-Z][a-z]{2,15})\b", text)
     counts = Counter(c for c in candidates if c not in skip)
     return [name for name, n in counts.most_common(20) if n >= min_occurrences]
