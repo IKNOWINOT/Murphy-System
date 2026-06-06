@@ -2172,30 +2172,100 @@ async function loadSoul() {
 
 // ─── HITL ─────────────────────────────────────────
 async function loadHITL() {
-  const d = await api('GET', '/api/hitl/interventions/pending');
-  const stats = await api('GET', '/api/hitl/statistics');
-  const count = d.count || 0;
-  document.getElementById('sidebar-hitl').textContent = count;
+  // R64f: rewired to /api/hitl-v2/queue — the queue with real items, previews, and 6-action drill.
+  const v2 = await api('GET', '/api/hitl-v2/queue');
+  const stats = await api('GET', '/api/hitl/statistics').catch(()=>({}));
+  const items = v2.items || [];
+  const mail = v2.mail_pending || 0;
+  const form = v2.form_pending || 0;
+  const total = items.length;
+  document.getElementById('sidebar-hitl').textContent = total;
   const el = document.getElementById('hitl-content');
-  if (count === 0) {
-    el.innerHTML = `
-      <div style="color:var(--green);margin-bottom:12px">● No pending interventions</div>
-      <div class="metric-row"><span class="metric-label">Total interventions</span> <span class="metric-value">${stats.statistics?.total_interventions||0}</span></div>
-      <div class="metric-row"><span class="metric-label">Pending</span> <span class="metric-value">${stats.statistics?.pending_count||0}</span></div>
-    `;
-  } else {
-    el.innerHTML = (d.interventions||[]).map(i=>`
-      <div class="task-card" style="margin-bottom:8px">
-        <div class="task-header">
-          <div class="task-dot" style="background:var(--yellow)"></div>
-          <div class="task-name">${i.description||i.id||'Intervention required'}</div>
-        </div>
-        <div class="task-footer">
-          <span class="task-tag">${i.type||'hitl'}</span>
-          <span class="task-timer" style="color:var(--yellow)">${i.stake||'medium'} stake</span>
-        </div>
+
+  const head = `
+    <div style="display:flex;gap:14px;margin-bottom:14px;align-items:center">
+      <div style="color:${total>0?'var(--yellow)':'var(--green)'};font-weight:700">● ${total} pending</div>
+      <div style="color:var(--text2);font-size:11px">📧 ${mail} mail · 📝 ${form} forms</div>
+      <div style="margin-left:auto;color:var(--text2);font-size:11px">swept ${(v2.swept_at||'').slice(11,19)} UTC</div>
+    </div>`;
+
+  if (total === 0) {
+    el.innerHTML = head + `
+      <div style="color:var(--green);padding:14px;background:rgba(0,229,160,0.05);border:1px solid rgba(0,229,160,0.2);border-radius:8px">
+        ✓ No pending interventions. Murphy is handling everything autonomously.
       </div>
-    `).join('');
+      <div class="metric-row" style="margin-top:12px"><span class="metric-label">All-time interventions</span> <span class="metric-value">${stats.statistics?.total_interventions||0}</span></div>`;
+    return;
+  }
+
+  // Build the item cards with the 6 actions
+  el.innerHTML = head + items.map(it => {
+    const kindColor = it.kind === 'mail' ? 'var(--teal)' : 'var(--purple)';
+    const kindEmoji = it.kind === 'mail' ? '📧' : '📝';
+    const fromTo = it.kind === 'mail' ? `${escapeHtmlR64f(it.from||'')} → ${escapeHtmlR64f((it.to||'').replace(/[\[\]"]/g,'').slice(0,40))}` : (it.source||'');
+    const preview = (it.preview||'').slice(0, 220);
+    return `
+      <div class="task-card" data-hitl-id="${it.id}" style="margin-bottom:10px;border-left:3px solid ${kindColor}">
+        <div class="task-header" style="margin-bottom:6px">
+          <div class="task-name" style="font-weight:600">${kindEmoji} ${escapeHtmlR64f(it.subject||it.title||'(no subject)')}</div>
+        </div>
+        <div style="color:var(--text2);font-size:11px;margin-bottom:6px">${fromTo}</div>
+        ${preview ? `<div style="color:var(--text2);font-size:11px;padding:6px 8px;background:rgba(255,255,255,0.02);border-radius:4px;margin-bottom:8px;line-height:1.5;white-space:pre-wrap">${escapeHtmlR64f(preview)}${(it.preview||'').length>220?'…':''}</div>` : ''}
+        <div style="display:flex;gap:4px;flex-wrap:wrap">
+          <button class="hitl-act hitl-act-go"     onclick="hitlActR64f('${it.id}','approve',this)">✓ Approve</button>
+          <button class="hitl-act hitl-act-edit"   onclick="hitlActR64f('${it.id}','revise',this)">✎ Revise</button>
+          <button class="hitl-act hitl-act-regen"  onclick="hitlActR64f('${it.id}','regenerate',this)">↻ Regen</button>
+          <button class="hitl-act hitl-act-hold"   onclick="hitlActR64f('${it.id}','hold',this)">⏸ Hold</button>
+          <button class="hitl-act hitl-act-skip"   onclick="hitlActR64f('${it.id}','skip',this)">→ Skip</button>
+          <button class="hitl-act hitl-act-bad"    onclick="hitlActR64f('${it.id}','reject',this)">✗ Reject</button>
+        </div>
+      </div>`;
+  }).join('');
+
+  // Inject styles once
+  if (!document.getElementById('hitl-r64f-styles')) {
+    const s = document.createElement('style');
+    s.id = 'hitl-r64f-styles';
+    s.textContent = `
+      .hitl-act{font-size:11px;padding:4px 10px;border-radius:4px;border:1px solid var(--border);background:var(--bg2);color:var(--text);cursor:pointer;font-family:inherit}
+      .hitl-act:hover{filter:brightness(1.4)}
+      .hitl-act-go{background:rgba(0,229,160,0.15);border-color:var(--teal);color:var(--teal)}
+      .hitl-act-bad{background:rgba(255,90,90,0.12);border-color:#f55;color:#f55}
+      .hitl-act-edit{background:rgba(255,170,0,0.12);border-color:#fa0;color:#fa0}
+      .hitl-act-regen{background:rgba(140,80,255,0.12);border-color:#85f;color:#a5f}
+    `;
+    document.head.appendChild(s);
+  }
+}
+
+function escapeHtmlR64f(s) {
+  if (!s) return '';
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+}
+
+async function hitlActR64f(itemId, action, btn) {
+  const card = btn.closest('.task-card');
+  const original = btn.textContent;
+  btn.disabled = true; btn.textContent = '…';
+  try {
+    const r = await api('POST', `/api/hitl/${itemId}/decide`, { action, decided_by: 'cpost@murphy.systems' });
+    if (r.ok || r.success) {
+      // Fade out the card
+      card.style.transition = 'all 0.4s';
+      card.style.opacity = '0.3';
+      card.style.maxHeight = '0';
+      card.style.padding = '0';
+      card.style.margin = '0';
+      setTimeout(() => { card.remove(); loadHITL(); }, 500);
+    } else {
+      btn.textContent = '✗'; btn.disabled = false;
+      setTimeout(() => { btn.textContent = original; }, 1500);
+      console.warn('HITL decide returned:', r);
+    }
+  } catch (e) {
+    btn.textContent = 'err'; btn.disabled = false;
+    setTimeout(() => { btn.textContent = original; }, 1500);
+    console.error(e);
   }
 }
 
