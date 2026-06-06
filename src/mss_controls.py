@@ -244,13 +244,27 @@ class MSSController:
             validation = analogue.system_model.get("validation_methods", [])
 
             requirements: List[str] = []
+            # R66 — when signup industry is known, frame requirements for that vertical
+            _ctx_industry = (context or {}).get("industry", "").strip() if isinstance(context, dict) else ""
+            _ctx_audience = (context or {}).get("target_audience", "").strip() if isinstance(context, dict) else ""
+            if _ctx_industry:
+                requirements.append(f"deliver outcome tailored to a {_ctx_industry} operator")
+                if _ctx_audience:
+                    requirements.append(f"language and examples written for: {_ctx_audience}")
             for concept in analogue.extracted_concepts:
                 goal = concept.get("goal", "")
                 action = concept.get("action", "")
                 if goal:
                     requirements.append(f"{action} ? {goal}" if action else goal)
 
+            # R66 — merge ctx-derived regimes (from signup wizard) with CTE-derived
             compliance = list(analogue.regulatory_frameworks)
+            if isinstance(context, dict):
+                ctx_regimes = context.get("compliance_regimes") or []
+                if isinstance(ctx_regimes, (list, tuple)):
+                    for r in ctx_regimes:
+                        if r and r not in compliance:
+                            compliance.append(r)
 
             dep_count = len(components)
             cost_complexity = _estimate_cost_tier(
@@ -266,6 +280,12 @@ class MSSController:
                     for m in analogue.technical_mapping]
                 or ["general_component"],
                 "compliance_considerations": compliance or ["none_detected"],
+                # R66 — surface signup-derived audience + industry so downstream
+                # generators (cited_doc, solidify, deliverable composer) can
+                # tune language to the tenant's actual business.
+                "target_audience": (context or {}).get("target_audience", ""),
+                "industry": (context or {}).get("industry", ""),
+                "business_name": (context or {}).get("business_name", ""),
                 "cost_complexity_estimate": cost_complexity,
                 "architecture_mapping": {
                     "components": components,

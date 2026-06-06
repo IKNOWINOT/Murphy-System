@@ -71,10 +71,38 @@ _URL_PATTERNS = [
     re.compile(r'(?<![\(\[])(https?://[^\s\)\],]+)'),
 ]
 
+# URLs that are licenses, platform self-refs, or repo metadata — not real citations.
+# Per founder R65b-B4 directive: "Apache is for software it generates. Citations are
+# for books written." A bibliographic citation refers to source material the author
+# consulted — not the license under which the deliverable is published.
+_NON_CITATION_PATTERNS = [
+    re.compile(r"apache\.org/licenses?/", re.IGNORECASE),
+    re.compile(r"creativecommons\.org/licenses?/", re.IGNORECASE),
+    re.compile(r"opensource\.org/licenses?/", re.IGNORECASE),
+    re.compile(r"gnu\.org/licenses?/", re.IGNORECASE),
+    re.compile(r"mit-license\.org", re.IGNORECASE),
+    re.compile(r"github\.com/[^/]+/[^/]+/blob/[^/]+/LICENSE", re.IGNORECASE),
+    re.compile(r"github\.com/[^/]+/[^/]+/?$", re.IGNORECASE),  # bare repo link
+    re.compile(r"^https?://murphy\.systems/?", re.IGNORECASE),  # platform self-ref
+    re.compile(r"inoni\.(com|llc|systems)", re.IGNORECASE),  # publisher self-ref
+]
+
+def _is_real_citation(url: str) -> bool:
+    """Filter out license/platform/self-ref URLs that aren't bibliographic citations."""
+    for pat in _NON_CITATION_PATTERNS:
+        if pat.search(url):
+            return False
+    return True
+
 def extract_citations(text: str) -> List[Dict]:
-    """Find every cited URL in the text + capture surrounding context."""
+    """Find every cited URL in the text + capture surrounding context.
+
+    Excludes license URLs, platform self-references, and bare repo links —
+    those are attribution/metadata, not bibliographic citations.
+    """
     seen: Set[str] = set()
     cites: List[Dict] = []
+    skipped: List[str] = []
     for pat in _URL_PATTERNS:
         for m in pat.finditer(text):
             groups = m.groups()
@@ -83,6 +111,9 @@ def extract_citations(text: str) -> List[Dict]:
             if url in seen:
                 continue
             seen.add(url)
+            if not _is_real_citation(url):
+                skipped.append(url)
+                continue
             # Capture 200 chars of context around the match
             ctx_start = max(0, m.start() - 200)
             ctx_end   = min(len(text), m.end() + 200)
@@ -91,6 +122,9 @@ def extract_citations(text: str) -> List[Dict]:
                 "claim": text[ctx_start:ctx_end].strip(),
                 "anchor_text": groups[0] if len(groups) > 1 else None,
             })
+    if skipped:
+        logger.debug("Skipped %d non-citation URLs (licenses/platform): %s",
+                     len(skipped), skipped[:5])
     return cites
 
 # ── Verification ────────────────────────────────────────────────────────
@@ -245,6 +279,7 @@ def verify_deliverable(text: str, max_citations: int = 30, timeout_per_citation:
             "verified": verified_count,
             "broken": broken_count,
             "unmatched": len(verified) - verified_count - broken_count,
+            "note": "License/repo/platform URLs excluded — not bibliographic citations",
         },
         "plagiarism": plag,
         "verdict": verdict,

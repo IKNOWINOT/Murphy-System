@@ -278,6 +278,12 @@ class MFGCSystemState:
     # Audit trail
     events: List[Dict[str, Any]] = field(default_factory=list)
 
+    # R66 — Tenant-specific factor set populated from signup wizard.
+    # Keys: industry, compliance_regimes, required_gates, risk_tolerance,
+    #       audit_cadence, team_size_bucket. Empty dict when no tenant_id
+    #       was provided (preserves backward compatibility).
+    factors: Dict[str, Any] = field(default_factory=dict)
+
     # Feedback / learning loop (CFP-4)
     pending_feedback_signals: List[Any] = field(default_factory=list, repr=False)
     """Accumulated :class:`~feedback_integrator.FeedbackSignal` objects for

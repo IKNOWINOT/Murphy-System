@@ -112,7 +112,10 @@ class MFGCAdapter:
 
     def execute_with_mfgc(self, user_input: str,
                           request_type: str = "general",
-                          parameters: Optional[Dict] = None) -> MFGCExecutionResult:
+                          parameters: Optional[Dict] = None,
+                          tenant_id: Optional[str] = None) -> MFGCExecutionResult:
+        """R66: tenant_id now accepted; signup wizard factors are injected
+        into the execution context and the resulting MFGCSystemState.factors."""
         import time
         start_time = time.time()
 
@@ -120,10 +123,23 @@ class MFGCAdapter:
             "user_input": user_input,
             "request_type": request_type,
             "parameters": parameters or {},
-            "integrator": self.integrator
+            "integrator": self.integrator,
         }
+        if tenant_id:
+            try:
+                from src.signup_profile_loader import inject_into_mfgc_context
+                inject_into_mfgc_context(context, tenant_id)
+            except Exception as _exc:
+                logger.warning("R66 inject_into_mfgc_context failed for %s: %s", tenant_id, _exc)
 
         mfgc_state = self.controller.execute(user_input, context)
+        # Persist factors onto the final state so callers (gates, audit) see them.
+        if tenant_id and isinstance(context.get("factors"), dict):
+            try:
+                mfgc_state.factors = dict(context["factors"])
+                mfgc_state.factors["_tenant_id"] = tenant_id
+            except Exception:
+                pass
 
         integrator_response = None
         if mfgc_state.c_t >= mfgc_state.p_t.confidence_threshold:

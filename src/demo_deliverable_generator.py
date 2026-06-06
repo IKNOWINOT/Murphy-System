@@ -3603,7 +3603,7 @@ def generate_predefined_deliverable(
     template_content = template["content"]
 
     # Step 1 — always run MSS to enrich context (unchanged).
-    mss_result: Optional[Dict[str, Any]] = _run_mss_pipeline(query, {})
+    mss_result: Optional[Dict[str, Any]] = _run_mss_pipeline(query, {}, tenant_id=tenant_id)
 
     # Step 2 — try LLM-first rendering.  This restores the landing-page
     # promise that the Forge actually generates per-prompt content for
@@ -3790,6 +3790,7 @@ def _run_mss_pipeline(
     query: str,
     mfgc_result: Dict[str, Any],
     tracker: Optional[PipelineErrorTracker] = None,
+    tenant_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Run the query through MSS Magnify then Solidify.
 
@@ -3809,6 +3810,14 @@ def _run_mss_pipeline(
             "domain": "business_automation",
             "mfgc_confidence": mfgc_result.get("confidence", 0.5),
         }
+        # R66 — inject signup-derived factors so Magnify/Solidify see industry,
+        # compliance_regimes, target_audience instead of running blind.
+        if tenant_id:
+            try:
+                from src.signup_profile_loader import inject_into_mss_context
+                inject_into_mss_context(ctx, tenant_id)
+            except Exception as _exc:
+                logger.warning("R66 MSS ctx inject failed for %s: %s", tenant_id, _exc)
 
         # Magnify and Solidify are independent — run concurrently.
         # Track individual failures so we know exactly which operator failed.
@@ -3823,7 +3832,7 @@ def _run_mss_pipeline(
             sol_future = pool.submit(mss.solidify, query, ctx)
 
             try:
-                mag = mag_future.result(timeout=60)
+                mag = mag_future.result(timeout=180)  # SD-73 floor
                 if tracker:
                     tracker.record_path("mss_magnify_ok")
             except Exception as exc:  # MSS-MAGNIFY-ERR-001
@@ -3836,7 +3845,7 @@ def _run_mss_pipeline(
                     tracker.record_error("MSS-MAGNIFY-ERR-001", "mss_magnify", str(exc))
 
             try:
-                sol = sol_future.result(timeout=60)
+                sol = sol_future.result(timeout=180)  # SD-73 floor
                 if tracker:
                     tracker.record_path("mss_solidify_ok")
             except Exception as exc:  # MSS-SOLIDIFY-ERR-001
@@ -4484,6 +4493,33 @@ def _generate_llm_content(
         "matches what was actually requested."
     )
 
+    # R65b-B4: when the query is research/report style, demand REAL bibliographic citations.
+    # The "Apache license URL" anti-pattern came from the platform license footer being
+    # misread as a citation. Real cited deliverables need source-attributed claims.
+    _cite_keywords = ("cite", "citation", "research", "study", "studies", "paper",
+                      "papers", "report", "briefing", "white paper", "whitepaper",
+                      "analysis of", "review of", "literature", "scholarly",
+                      "journal", "bibliograph")
+    _is_cited_doc = any(kw in query.lower() for kw in _cite_keywords)
+    if _is_cited_doc:
+        system_prompt += (
+            "\n\n"
+            "■ CITATION REQUIREMENTS — THIS IS A RESEARCH DELIVERABLE\n"
+            "Every substantive claim MUST cite a real, verifiable source.\n"
+            "Use this exact format inline: [N] where N is a footnote number.\n"
+            "End the deliverable with a 'References' section listing each cite:\n"
+            "  [1] Author Last, First. \"Title of Work.\" Publisher, Year. URL\n"
+            "  [2] Author Last, First & Co-Author. \"Title.\" Journal, Vol(Issue), Year, Pages. URL\n"
+            "Minimum 5 real bibliographic citations to:\n"
+            "  • peer-reviewed papers (arxiv.org, doi.org, journals)\n"
+            "  • books with publisher + year\n"
+            "  • institutional reports (gov, edu, established orgs)\n"
+            "  • named primary sources (interviews, official documents)\n"
+            "DO NOT cite software licenses, GitHub repos, or platform URLs as references.\n"
+            "DO NOT fabricate URLs — if you don't know a real URL, give author + title + year + publisher only.\n"
+            "Citations are for the CONTENT (books, papers, reports). They are NOT software licenses."
+        )
+
     # ── User prompt with all context ──────────────────────────────────────
     user_prompt_parts = [f"Generate a complete, production-grade deliverable for:\n\n{query}\n"]
 
@@ -4588,7 +4624,7 @@ def _generate_llm_content(
                 import concurrent.futures
                 with concurrent.futures.ThreadPoolExecutor(max_workers=1) as exe:
                     future = exe.submit(asyncio.run, controller.query_llm(req))
-                    response = future.result(timeout=25)  # PATCH-105: 25s hard cap
+                    response = future.result(timeout=180)  # SD-73 floor (was 25, PATCH-105 superseded)
             else:
                 response = loop.run_until_complete(controller.query_llm(req))
         except RuntimeError:
@@ -6638,8 +6674,8 @@ def generate_code_project_deliverable(
     with _cf.ThreadPoolExecutor(max_workers=2) as _pool:
         _mss_future = _pool.submit(_run_mss_pipeline, query, mfgc_result)
         _expert_future = _pool.submit(_run_domain_expert_analysis, query)
-        mss_result = _mss_future.result(timeout=90)
-        expert_result = _expert_future.result(timeout=90)
+        mss_result = _mss_future.result(timeout=180)  # SD-73 floor
+        expert_result = _expert_future.result(timeout=180)  # SD-73 floor
     tracker.record_path("CODE-PROJ-001:mss")
 
     # Stage 3 — Generate plan prose (architectural step)
@@ -6741,6 +6777,7 @@ def generate_code_project_deliverable(
 def generate_custom_deliverable(
     query: str,
     librarian_context: Optional[str] = None,
+    tenant_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Generate a custom deliverable using the MFGC -> MSS -> Librarian -> LLM pipeline.
 
@@ -6798,8 +6835,8 @@ def generate_custom_deliverable(
         _mss_future = _pool.submit(_run_mss_pipeline, query, mfgc_result)
         # WIRE-EXPERT-001: Domain expert analysis runs alongside MSS
         _expert_future = _pool.submit(_run_domain_expert_analysis, query)
-        mss_result = _mss_future.result(timeout=90)
-        expert_result = _expert_future.result(timeout=90)
+        mss_result = _mss_future.result(timeout=180)  # SD-73 floor
+        expert_result = _expert_future.result(timeout=180)  # SD-73 floor
 
     # Stage 3 — Generate prose with all enriched context
     # FORGE-PROVIDER-002: clear the per-call provider tag so a stale
@@ -6861,6 +6898,7 @@ def generate_custom_deliverable(
 def generate_deliverable(
     query: str,
     librarian_context: Optional[str] = None,
+    tenant_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Main entry point: detect scenario and dispatch to appropriate generator."""
     scenario_key = _detect_scenario(query)
@@ -7039,7 +7077,7 @@ def generate_deliverable_with_progress(
     agent_tasks: List[Dict[str, str]] = []  # FORGE-SWARM-001: always initialised
     # Always run MSS and decompose into agent tasks
     mfgc_result_for_gen = mfgc_result
-    mss_result = _run_mss_pipeline(query, mfgc_result_for_gen, tracker=tracker)
+    mss_result = _run_mss_pipeline(query, mfgc_result_for_gen, tracker=tracker, tenant_id=tenant_id)
     mss_ok = not mss_result.get("fallback", True)
     mss_partial = mss_result.get("partial_failure", False)
     mss_status_detail = "mss"

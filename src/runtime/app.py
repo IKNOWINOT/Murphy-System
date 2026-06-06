@@ -22370,6 +22370,7 @@ def create_app() -> FastAPI:
             body = {}
 
         query = str(body.get("query", "")).strip()[:500]
+        tenant_id = str(body.get("tenant_id") or "").strip() or None  # R66
         if not query:
             return JSONResponse(
                 {"success": False, "error": "missing_query", "message": "query is required"},
@@ -22554,6 +22555,7 @@ def create_app() -> FastAPI:
             body = {}
 
         query = str(body.get("query", "")).strip()[:500]
+        tenant_id = str(body.get("tenant_id") or "").strip() or None  # R66
         if not query:
             return JSONResponse(
                 {"success": False, "error": "missing_query", "message": "query is required"},
@@ -22945,7 +22947,7 @@ def create_app() -> FastAPI:
                 yield f"data: {json.dumps({'phase': 3, 'status': 'Generating content (fallback)...', 'detail': 'mss'})}\n\n"
                 try:
                     from src.demo_deliverable_generator import generate_deliverable
-                    fb = generate_deliverable(query)
+                    fb = generate_deliverable(query, tenant_id=tenant_id)
                 except Exception:
                     fb = {"title": f"Deliverable: {query[:50]}", "content": "", "filename": "murphy-deliverable.txt"}
                 fb_content = fb.get("content", "")
@@ -22973,7 +22975,7 @@ def create_app() -> FastAPI:
                         logger.warning("Streaming generator returned empty content — substituting fallback")
                         try:
                             from src.demo_deliverable_generator import generate_deliverable
-                            event["deliverable"] = generate_deliverable(query)
+                            event["deliverable"] = generate_deliverable(query, tenant_id=tenant_id)
                         except Exception:  # PROD-HARD A2: fallback generator failed — stream original empty event
                             logger.warning("Fallback deliverable generation failed; streaming original event", exc_info=True)
                     event["run_id"] = run_id
@@ -27549,6 +27551,27 @@ def create_app() -> FastAPI:
             return JSONResponse({"error": "book not found"}, status_code=404)
         return _R65a4_FR(fp, media_type="text/markdown")
     # R65b_B3_DONE
+
+
+    @app.get("/api/_r65b_debug/llm_timeout", include_in_schema=False)
+    async def r65b_debug_timeout():
+        try:
+            import os as _os_dbg
+            from src.llm_provider import get_llm
+            p = get_llm()
+            return JSONResponse({
+                "deepinfra_timeout":      p.deepinfra_timeout,
+                "together_timeout":       p.together_timeout,
+                "timeout":                p.timeout,
+                "env_DEEPINFRA_TIMEOUT":  _os_dbg.environ.get("DEEPINFRA_TIMEOUT"),
+                "env_TOGETHER_TIMEOUT":   _os_dbg.environ.get("TOGETHER_TIMEOUT"),
+                "env_LLM_REQUEST_TIMEOUT": _os_dbg.environ.get("LLM_REQUEST_TIMEOUT"),
+                "provider_id":            id(p),
+                "provider_class":         type(p).__name__,
+                "provider_module":        type(p).__module__,
+            })
+        except Exception as exc:
+            return JSONResponse({"error": str(exc)}, status_code=500)
     # ═══════════════════════════════════════════════════════════════════
 
     # ═══════════════════════════════════════════════════════════════════

@@ -180,3 +180,35 @@ Rollback: copy demo.html.before back, no service restart needed
   designated source-of-truth (the unit file even comments "Environment is read
   from /etc/murphy-production/environment").
 
+
+## R66 — Signup → MFGC/MSS factor injection (2026-06-06)
+
+**Problem:** Deliverables were generic because MFGC + MSS ran with zero
+customer-specific factors. The signup wizard captured industry/stage/budget
+into tenant_profiles.profile_json but nothing on the runtime path read it.
+
+**Fix:**
+- src/signup_profile_loader.py — load_tenant_factors(tenant_id) → MFGCFactorSet.
+  Derives compliance_regimes, required_gates, risk_tolerance, audit_cadence,
+  team_size_bucket, target_audience from real signup fields.
+- src/mfgc_core.py — added `factors: Dict[str, Any]` slot to MFGCSystemState.
+- src/mfgc_adapter.py — execute_with_mfgc(tenant_id=...) now injects factors
+  into the execution context and the final MFGCSystemState.factors.
+- src/demo_deliverable_generator.py — _run_mss_pipeline(tenant_id=...) and
+  generate_deliverable(tenant_id=...) thread the id through.
+- src/mss_controls.py — magnify() now merges ctx compliance_regimes into
+  compliance_considerations, surfaces target_audience + industry + business_name
+  in output, and frames functional_requirements for the tenant's vertical.
+- src/runtime/app.py — /api/demo/generate-deliverable handler now extracts
+  body["tenant_id"] and passes it to generate_deliverable.
+
+**Proof:** identical query "Build me a customer-acquisition plan for next 30
+days" produces divergent MSS magnify output for t1 (Apex Plumbing) vs t2
+(Clean Kitchen). Diverges on: industry, compliance_considerations,
+functional_requirements, target_audience, business_name.
+
+**Snapshots:** /var/lib/murphy-production/state_snapshots/{mfgc_core,mfgc_adapter,
+demo_deliverable_gen,app,mss_controls}_20260606T*.before
+
+**Composes with:** R64a (rosetta-learning), R65a (demo chips). Future deliverables
+across all 5 archetypes now tune to the tenant's industry automatically.

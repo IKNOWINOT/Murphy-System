@@ -219,8 +219,14 @@ class _RetryBudget:
     def __init__(
         self,
         max_attempts: int = 3,
-        max_duration_seconds: float = 60.0,
+        max_duration_seconds: Optional[float] = None,
     ) -> None:
+        # R65b-B4 (BL-R58 fix): default to env LLM_REQUEST_TIMEOUT (or 180s)
+        # per SD-73 (all timeouts ≥120s). Previous hardcoded 60s killed any
+        # research-style deliverable that triggered a long LLM generation.
+        import os as _os_rb
+        if max_duration_seconds is None:
+            max_duration_seconds = float(_os_rb.getenv("LLM_REQUEST_TIMEOUT", "180"))
         self._max_attempts = max_attempts
         self._max_duration = max_duration_seconds
         self._attempts = 0
@@ -355,8 +361,26 @@ class MurphyLLMProvider:
         # routinely take 30-90s for code generation. Together fallback is
         # disabled (key expired), so a too-short DeepInfra timeout = "All
         # providers unavailable" rather than a slower-but-correct response.
-        self.deepinfra_timeout = float(os.getenv("DEEPINFRA_TIMEOUT", "120"))
-        self.together_timeout  = float(os.getenv("TOGETHER_TIMEOUT",  str(timeout)))
+        # SD-73 LOCKED FOREVER: no timeout below 120s.
+        # Whatever env says, whatever drop-in says, whatever stale .conf says —
+        # this floor wins. R65b-B4 found a phantom 60 surviving 3 layers of
+        # config; this clamp ends the chase.
+        _SD73_FLOOR = 120.0
+        _di_raw = float(os.getenv("DEEPINFRA_TIMEOUT", "120"))
+        _tog_raw = float(os.getenv("TOGETHER_TIMEOUT", str(timeout)))
+        self.deepinfra_timeout = max(_di_raw, _SD73_FLOOR)
+        self.together_timeout  = max(_tog_raw, _SD73_FLOOR)
+        if _di_raw < _SD73_FLOOR:
+            logger.warning(
+                "SD-73 FLOOR: DEEPINFRA_TIMEOUT was %.1fs (< 120s) — clamped to %.1fs. "
+                "Find the source: grep -rn 'DEEPINFRA_TIMEOUT' /etc /opt/Murphy-System",
+                _di_raw, _SD73_FLOOR,
+            )
+        if _tog_raw < _SD73_FLOOR:
+            logger.warning(
+                "SD-73 FLOOR: TOGETHER_TIMEOUT was %.1fs (< 120s) — clamped to %.1fs.",
+                _tog_raw, _SD73_FLOOR,
+            )
 
         self._di_circuit  = _CircuitBreaker()  # DeepInfra circuit
         self._tog_circuit = _CircuitBreaker()  # Together circuit
@@ -380,7 +404,7 @@ class MurphyLLMProvider:
         return cls(
             deepinfra_api_key=os.getenv("DEEPINFRA_API_KEY", ""),
             together_api_key= os.getenv("TOGETHER_API_KEY",  ""),
-            timeout=    float(os.getenv("LLM_TIMEOUT",    "120")),
+            timeout=    max(float(os.getenv("LLM_TIMEOUT", "120")), 120.0),  # SD-73 floor
             max_retries=int(  os.getenv("LLM_MAX_RETRIES", "2")),
         )
 
