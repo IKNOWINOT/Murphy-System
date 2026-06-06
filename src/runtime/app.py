@@ -27672,6 +27672,120 @@ def create_app() -> FastAPI:
     # ═══════════════════════════════════════════════════════════════════
     # END R66g
 
+    # ═══════════════════════════════════════════════════════════════════
+    # R64d — 4-view drill panel (2026-06-06)
+    # GET /api/drill/{event_key} → Timeline + Causality + Agents + ROI
+    # FME: E_DRILL_0001..0008
+    # ═══════════════════════════════════════════════════════════════════
+    @app.get("/api/drill/{event_key}", include_in_schema=False)
+    async def r64d_drill(event_key: str, request: "Request"):
+        """Aggregate 4 views for a single dispatch event.
+
+        event_key may be a signal_id or correlation_id from
+        rosetta_dispatch_log. Returns 404 if not found.
+        """
+        # ── E_DRILL_0007: auth ────────────────────────────────────────
+        _hdr = (request.headers.get("X-API-Key")
+                or request.headers.get("x-api-key")
+                or request.query_params.get("api_key", ""))
+        _exp = os.environ.get("MURPHY_API_KEY", "")
+        if not _exp or _hdr != _exp:
+            return JSONResponse(
+                {"ok": False, "error": {
+                    "code": "E_DRILL_0007", "what": "auth required",
+                    "where": "app.py:r64d_drill",
+                }},
+                status_code=401,
+            )
+
+        # ── E_DRILL_0001 ──────────────────────────────────────────────
+        if not event_key or len(event_key) > 200:
+            return JSONResponse(
+                {"ok": False, "error": {"code": "E_DRILL_0001",
+                 "what": "invalid event_key"}},
+                status_code=400,
+            )
+
+        # ── Aggregate ─────────────────────────────────────────────────
+        try:
+            from drill_aggregator import aggregate as _r64d_agg
+        except Exception:
+            try:
+                from src.drill_aggregator import aggregate as _r64d_agg  # type: ignore
+            except Exception as e:
+                return JSONResponse(
+                    {"ok": False, "error": {"code": "E_DRILL_0003",
+                     "what": f"aggregator unavailable: {e}"}},
+                    status_code=503,
+                )
+
+        try:
+            payload = _r64d_agg(event_key)
+        except Exception as e:
+            return JSONResponse(
+                {"ok": False, "error": {"code": "E_DRILL_0004",
+                 "what": str(e)[:120]}},
+                status_code=500,
+            )
+
+        if payload is None:
+            return JSONResponse(
+                {"ok": False, "error": {"code": "E_DRILL_0002",
+                 "what": "event not found",
+                 "hint": "use signal_id or correlation_id from rosetta_dispatch_log"}},
+                status_code=404,
+            )
+
+        return JSONResponse(payload)
+    # ═══════════════════════════════════════════════════════════════════
+
+    @app.get("/api/drill/recent_for_agent/{agent_id}", include_in_schema=False)
+    async def r64d_recent_for_agent(agent_id: str, request: "Request"):
+        """Return the most-recent dispatch event_key for the named agent."""
+        _hdr = (request.headers.get("X-API-Key") or
+                request.headers.get("x-api-key") or
+                request.query_params.get("api_key", ""))
+        _exp = os.environ.get("MURPHY_API_KEY", "")
+        if not _exp or _hdr != _exp:
+            return JSONResponse({"ok": False, "error": {"code": "E_DRILL_0007"}},
+                                status_code=401)
+        if not agent_id or len(agent_id) > 80:
+            return JSONResponse({"ok": False, "error": {"code": "E_DRILL_0001"}},
+                                status_code=400)
+        try:
+            import sqlite3 as _sqr64d
+            c = _sqr64d.connect("file:/var/lib/murphy-production/murphy_audit.db?mode=ro",
+                                uri=True, timeout=2.0)
+            try:
+                r = c.execute(
+                    "SELECT signal_id, correlation_id, ts, intent_hint "
+                    "FROM rosetta_dispatch_log "
+                    "WHERE lower(agent_id)=lower(?) OR lower(domain)=lower(?) "
+                    "ORDER BY ts DESC LIMIT 1",
+                    (agent_id, agent_id),
+                ).fetchone()
+            finally:
+                c.close()
+            if not r:
+                return JSONResponse({"ok": True, "event_key": None,
+                                     "note": "no events for this agent"})
+            return JSONResponse({
+                "ok": True,
+                "event_key": r[0] or r[1],
+                "signal_id": r[0],
+                "correlation_id": r[1],
+                "ts": r[2],
+                "intent_hint": (r[3] or "")[:100],
+            })
+        except Exception as e:
+            return JSONResponse(
+                {"ok": False, "error": {"code": "E_DRILL_0004", "what": str(e)[:120]}},
+                status_code=500,
+            )
+
+    # END R64d
+
+
 
 
     # ═══════════════════════════════════════════════════════════════════

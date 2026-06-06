@@ -457,3 +457,47 @@ dashboard load.**
 
 **Snapshot:** /var/lib/murphy-production/state_snapshots/
 murphy-os_20260606T214732Z.r64c2.before
+
+## R64d — 4-view drill panel (Timeline / Causality / Agents / ROI) (2026-06-06)
+
+**Problem:** Agent cards in /os surface name + stats + recent corrections
+(R64c2) but no way to drill into a specific dispatch event to see the full
+picture. Founder wanted: timeline, causality DAG, agent details, ROI
+projected-vs-actual — and a "re-dispatch" button.
+
+**Fix:**
+- NEW src/drill_aggregator.py (read-only):
+  - aggregate(event_key) returns a 4-view payload by joining:
+    - murphy_audit.db.rosetta_dispatch_log (timeline + causality via correlation_id chain)
+    - rosetta_learning.db.{agent_corrections,agent_success_map} (agent stats + last lesson)
+    - roi_ledger.db.{roi_entries,roi_targets} (actual + projected ROI)
+- NEW route GET /api/drill/{event_key} (founder-only, X-API-Key)
+- NEW route GET /api/drill/recent_for_agent/{agent_id}
+- NEW overlay in static/murphy-os.html — fixed-position modal with 4 tabs.
+  Agent cards now have onclick → fetches recent event_key → opens drill.
+  "Re-dispatch" button posts intent_hint back to /api/rosetta/dispatch.
+
+**FME documented:**
+- E_DRILL_0001 invalid event_key → 400
+- E_DRILL_0002 event not found → 404
+- E_DRILL_0003 aggregator import fails → 503
+- E_DRILL_0004 DB read fails → 500 with reason
+- E_DRILL_0007 missing/wrong API key → 401
+
+**Proof (live data):**
+- /api/drill/recent_for_agent/executor returned signal_id c9e9181b...
+- /api/drill/c9e9181b... returned: head agent=executor verdict=proceed,
+  timeline=1, causality nodes=1, agents=1 with success_rate, roi structure.
+- 401 unauth ✓, 404 bogus_key ✓, 200 happy path ✓.
+
+**Connects to dispatch:** Re-dispatch button calls /api/rosetta/dispatch
+with prompt=head.intent_hint, tenant_id, source=r64d_redispatch — the
+real PATCH-292 pipeline (soul→Rosetta→MFGC→MSS→swarm), not a stub.
+
+**Composes with:** R64a (DB), R64c+R64c1 (persona memory), R64c2 (card panel).
+The drill becomes the single visibility surface that R64e can reuse from
+HITL, Agents, Pipeline, Soul tabs.
+
+**Snapshots:** /var/lib/murphy-production/state_snapshots/
+app_20260606T223101Z.r64d.before
+murphy-os_20260606T223101Z.r64d.before

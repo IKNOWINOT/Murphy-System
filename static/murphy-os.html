@@ -2077,6 +2077,23 @@ async function runDispatch() {
 }
 
 // ─── AGENTS ───────────────────────────────────────
+// R64d helpers — escape + drill opener keyed off agent
+function esc1(s){ return (s==null?'':String(s)).replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
+window._r64dOpenForAgent = async function(agentId){
+  if (!agentId) return;
+  try {
+    // Fetch most-recent dispatch for this agent to get a signal_id
+    const list = await api('GET', '/api/drill/recent_for_agent/' + encodeURIComponent(agentId));
+    let sig = list && list.ok && list.event_key;
+    // Fallback — open with the agent id as event key; backend returns 404 cleanly
+    if (!sig) {
+      console.log('R64d: no recent event found for', agentId);
+      alert('No recent dispatch event found for ' + agentId);
+      return;
+    }
+    if (window.openR64dDrill) window.openR64dDrill(sig);
+  } catch(e) { console.error('R64d open failed', e); }
+};
 async function loadAgents() {
   const d = await api('GET', '/api/swarm/agents/status');
   const agents = d.agents || [];
@@ -2108,8 +2125,9 @@ async function loadAgents() {
            ${corrs.map(c => `<div style="margin-bottom:2px"><span style="opacity:0.7">${verbIcon[(c.decision||'').toLowerCase()] || '·'}</span> ${(c.reason||'(no note)').slice(0,80)}</div>`).join('')}
          </div>`
       : '';
+    const _agId = (a.department || a.role || a.agent_id || '').toLowerCase();
     return `
-    <div class="agent-row-card">
+    <div class="agent-row-card" style="cursor:pointer" onclick="window._r64dOpenForAgent && window._r64dOpenForAgent('${esc1(_agId)}')">
       <div class="arc-top">
         <span class="arc-emoji">${a.emoji||'🤖'}</span>
         <div>
@@ -3075,6 +3093,159 @@ async function r465BulkRejectAll() {
     status.style.color = '#ff8888';
   }
 }
+</script>
+
+<!-- R64d — 4-view drill overlay -->
+<div id="r64d-drill-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9000;backdrop-filter:blur(4px);align-items:center;justify-content:center;">
+  <div id="r64d-drill-panel" style="background:var(--bg2,#0e0e14);border:1px solid var(--border,#2a2a3e);border-radius:12px;width:90vw;max-width:1100px;max-height:88vh;display:flex;flex-direction:column;overflow:hidden;font-size:12px;">
+    <div style="display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--border,#2a2a3e);">
+      <div style="font-size:14px;font-weight:600;color:var(--accent,#00d4aa)">🔍 Drill</div>
+      <div id="r64d-drill-head" style="flex:1;color:var(--text2,#aaa);font-family:monospace;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
+      <button id="r64d-drill-redispatch" style="background:var(--accent,#00d4aa);color:#0a0a0a;border:none;padding:6px 12px;border-radius:6px;font-weight:600;cursor:pointer;font-size:11px">↻ Re-dispatch</button>
+      <button id="r64d-drill-close" style="background:transparent;color:var(--text3,#888);border:1px solid var(--border,#2a2a3e);padding:6px 10px;border-radius:6px;cursor:pointer">✕</button>
+    </div>
+    <div style="display:flex;gap:4px;padding:8px 18px 0;border-bottom:1px solid var(--border,#2a2a3e);">
+      <button class="r64d-tab active" data-tab="timeline" style="background:var(--accent,#00d4aa);color:#0a0a0a;border:none;padding:6px 14px;border-radius:6px 6px 0 0;cursor:pointer;font-weight:600">⏱ Timeline</button>
+      <button class="r64d-tab" data-tab="causality" style="background:transparent;color:var(--text2,#aaa);border:none;padding:6px 14px;border-radius:6px 6px 0 0;cursor:pointer">🕸 Causality</button>
+      <button class="r64d-tab" data-tab="agents" style="background:transparent;color:var(--text2,#aaa);border:none;padding:6px 14px;border-radius:6px 6px 0 0;cursor:pointer">🤖 Agents</button>
+      <button class="r64d-tab" data-tab="roi" style="background:transparent;color:var(--text2,#aaa);border:none;padding:6px 14px;border-radius:6px 6px 0 0;cursor:pointer">💰 ROI</button>
+    </div>
+    <div id="r64d-drill-body" style="flex:1;overflow-y:auto;padding:18px;"></div>
+    <div id="r64d-drill-status" style="padding:8px 18px;border-top:1px solid var(--border,#2a2a3e);color:var(--text3,#888);font-size:10px;font-family:monospace"></div>
+  </div>
+</div>
+<script>
+// R64d — 4-view drill panel client
+(function(){
+  let _drillData = null;
+  let _drillKey  = null;
+  const overlay = document.getElementById('r64d-drill-overlay');
+  const body    = document.getElementById('r64d-drill-body');
+  const head    = document.getElementById('r64d-drill-head');
+  const status  = document.getElementById('r64d-drill-status');
+
+  function setActive(tabName){
+    document.querySelectorAll('.r64d-tab').forEach(b => {
+      const on = b.dataset.tab === tabName;
+      b.style.background = on ? 'var(--accent,#00d4aa)' : 'transparent';
+      b.style.color      = on ? '#0a0a0a' : 'var(--text2,#aaa)';
+      b.style.fontWeight = on ? '600' : '400';
+      b.classList.toggle('active', on);
+    });
+    renderTab(tabName);
+  }
+
+  function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+  function renderTab(tab){
+    if (!_drillData) { body.innerHTML = '<div style="color:var(--text3,#888)">No data.</div>'; return; }
+    if (tab === 'timeline') {
+      const t = _drillData.timeline || [];
+      if (!t.length) { body.innerHTML = '<div style="color:var(--text3,#888)">No timeline entries.</div>'; return; }
+      body.innerHTML = '<div style="display:flex;flex-direction:column;gap:8px">' + t.map(e =>
+        `<div style="display:grid;grid-template-columns:140px 80px 1fr 70px;gap:10px;padding:8px 10px;background:var(--bg1,#16161f);border-radius:6px;border-left:3px solid var(--accent,#00d4aa)">
+           <span style="color:var(--text3,#888);font-family:monospace;font-size:10px">${esc((e.ts||'').slice(11,19))}</span>
+           <span style="color:var(--accent,#00d4aa);font-weight:600">${esc(e.actor)}</span>
+           <span style="color:var(--text1,#ddd)">${esc(e.summary||e.event_type)}</span>
+           <span style="color:var(--text3,#888);text-align:right">${e.latency_ms||0}ms</span>
+         </div>`).join('') + '</div>';
+    } else if (tab === 'causality') {
+      const c = _drillData.causality || {nodes:[], edges:[]};
+      if (!c.nodes.length) { body.innerHTML = '<div style="color:var(--text3,#888)">No causality graph yet.</div>'; return; }
+      body.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;gap:4px">' +
+        c.nodes.map((n,i) =>
+          `<div style="background:var(--bg1,#16161f);border:1px solid var(--accent,#00d4aa);padding:8px 14px;border-radius:8px;text-align:center">
+            <div style="font-weight:600;color:var(--accent,#00d4aa)">${esc(n.label)}</div>
+            <div style="font-size:10px;color:var(--text3,#888)">${esc(n.kind)}</div>
+          </div>` +
+          (i < c.nodes.length - 1 ? '<div style="color:var(--text3,#888);font-size:18px">↓</div>' : '')
+        ).join('') + '</div>';
+    } else if (tab === 'agents') {
+      const a = _drillData.agents || [];
+      if (!a.length) { body.innerHTML = '<div style="color:var(--text3,#888)">No agents touched.</div>'; return; }
+      body.innerHTML = '<div style="display:flex;flex-direction:column;gap:8px">' + a.map(ag =>
+        `<div style="padding:10px 12px;background:var(--bg1,#16161f);border-radius:6px">
+           <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+             <span style="font-weight:600;color:var(--accent,#00d4aa)">${esc(ag.agent_type)}</span>
+             <span style="color:var(--text3,#888);font-size:11px">runs:${ag.runs||0} · success:${ag.success_rate||0}%</span>
+           </div>
+           <div style="font-size:11px;color:var(--text2,#aaa)">✓ ${ag.applied||0} · ✗ ${ag.rejected||0} · ✎ ${ag.revised||0}</div>
+           ${ag.last_correction ? `<div style="margin-top:6px;padding:6px 8px;background:var(--bg2,#0e0e14);border-left:2px solid #ff9800;font-size:11px;color:var(--text2,#aaa)">Last lesson: ${esc(ag.last_correction.reason||'(no reason)')}</div>` : ''}
+         </div>`).join('') + '</div>';
+    } else if (tab === 'roi') {
+      const r = _drillData.roi || {};
+      const proj = r.projected;
+      const act  = r.actual || {};
+      body.innerHTML = `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div style="padding:14px;background:var(--bg1,#16161f);border-radius:6px;border-left:3px solid #6688ff">
+            <div style="color:#6688ff;font-weight:600;margin-bottom:8px">Projected</div>
+            ${proj ? `<div style="font-size:18px;color:var(--text1,#ddd)">$${(proj.money_usd||0).toLocaleString()}</div>
+                     <div style="color:var(--text3,#888);font-size:11px">${Math.round((proj.time_s||0)/60)} min target</div>`
+                  : '<div style="color:var(--text3,#888);font-style:italic">No target set</div>'}
+          </div>
+          <div style="padding:14px;background:var(--bg1,#16161f);border-radius:6px;border-left:3px solid var(--accent,#00d4aa)">
+            <div style="color:var(--accent,#00d4aa);font-weight:600;margin-bottom:8px">Actual</div>
+            <div style="font-size:18px;color:var(--text1,#ddd)">$${(act.money_usd||0).toLocaleString()}</div>
+            <div style="color:var(--text3,#888);font-size:11px">${Math.round((act.time_s||0)/60)} min · ${act.entry_count||0} entries</div>
+          </div>
+        </div>
+        ${r.delta_pct !== null && r.delta_pct !== undefined ? `<div style="margin-top:12px;padding:10px 14px;background:var(--bg1,#16161f);border-radius:6px;color:${r.delta_pct >= 0 ? 'var(--accent,#00d4aa)' : '#ff5050'};font-weight:600">Δ ${r.delta_pct > 0 ? '+' : ''}${r.delta_pct}%</div>` : ''}
+        ${r.note ? `<div style="margin-top:8px;color:var(--text3,#888);font-size:11px;font-style:italic">${esc(r.note)}</div>` : ''}
+        `;
+    }
+  }
+
+  window.openR64dDrill = async function(eventKey){
+    _drillKey = eventKey;
+    head.textContent = 'event: ' + eventKey;
+    body.innerHTML = '<div style="color:var(--text3,#888);text-align:center;padding:40px">Loading drill view...</div>';
+    status.textContent = 'GET /api/drill/' + eventKey;
+    overlay.style.display = 'flex';
+    try {
+      const d = await api('GET', '/api/drill/' + encodeURIComponent(eventKey));
+      if (!d || d.ok !== true) {
+        body.innerHTML = '<div style="color:#ff5050">Failed: ' + esc(JSON.stringify(d).slice(0,200)) + '</div>';
+        return;
+      }
+      _drillData = d;
+      head.textContent = `${d.head.agent_id||'?'} · ${d.head.domain||'?'} · ${d.head.verdict||'?'} · ${(d.head.intent_hint||'').slice(0,80)}`;
+      status.textContent = `OK · timeline:${d.timeline.length} · nodes:${d.causality.nodes.length} · agents:${d.agents.length} · roi:${d.roi.note||'data'}`;
+      setActive('timeline');
+    } catch (e) {
+      body.innerHTML = '<div style="color:#ff5050">Network error: ' + esc(String(e)) + '</div>';
+    }
+  };
+
+  // Tab clicks
+  document.querySelectorAll('.r64d-tab').forEach(b => {
+    b.addEventListener('click', () => setActive(b.dataset.tab));
+  });
+  document.getElementById('r64d-drill-close').addEventListener('click', () => {
+    overlay.style.display = 'none'; _drillData = null;
+  });
+  // Click outside panel to close
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) { overlay.style.display = 'none'; _drillData = null; } });
+
+  // ── R64d re-dispatch: call /api/rosetta/dispatch with the original intent ──
+  document.getElementById('r64d-drill-redispatch').addEventListener('click', async () => {
+    if (!_drillData) return;
+    const prompt = (_drillData.head.intent_hint || '').trim();
+    if (!prompt) { status.textContent = 'No intent_hint to re-dispatch.'; return; }
+    status.textContent = 'POST /api/rosetta/dispatch ...';
+    try {
+      const r = await api('POST', '/api/rosetta/dispatch', {
+        prompt: prompt,
+        tenant_id: _drillData.head.tenant_id || '',
+        source: 'r64d_redispatch',
+        original_event: _drillKey,
+      });
+      status.textContent = 'Re-dispatched: ' + JSON.stringify(r).slice(0, 140);
+    } catch (e) {
+      status.textContent = 'Re-dispatch failed: ' + String(e).slice(0,120);
+    }
+  });
+})();
 </script>
 </body>
 </html>
