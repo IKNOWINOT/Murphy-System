@@ -357,9 +357,27 @@ class RosettaSellingBridge:
                 knowledge_domains=persona.rosetta_fields.get("domain_keywords", []),
                 greeting_template=f"Hi, I'm {persona.name}. How can I help?",
             )
-            return self._injector.inject(base_prompt=enriched_base, avatar=avatar)
+            _final = self._injector.inject(base_prompt=enriched_base, avatar=avatar)
+            # R64c — prepend recent human corrections for this persona's agent_type
+            try:
+                from persona_memory_loop import prepend_to_prompt as _r64c_prepend
+                _agent_type = (persona.department or persona.agent_id or "").lower()
+                if _agent_type:
+                    _final = _r64c_prepend(_final, _agent_type, limit=5)
+            except Exception:
+                pass
+            return _final
 
-        return f"[{persona.name} — {persona.title}]\n\n{enriched_base}\n\n{base_prompt}"
+        _fallback = f"[{persona.name} — {persona.title}]\n\n{enriched_base}\n\n{base_prompt}"
+        # R64c — same memory injection on the fallback path
+        try:
+            from persona_memory_loop import prepend_to_prompt as _r64c_prepend
+            _agent_type = (persona.department or persona.agent_id or "").lower()
+            if _agent_type:
+                _fallback = _r64c_prepend(_fallback, _agent_type, limit=5)
+        except Exception:
+            pass
+        return _fallback
 
 
 # ---------------------------------------------------------------------------

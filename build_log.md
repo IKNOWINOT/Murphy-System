@@ -305,3 +305,40 @@ no longer has work to do.
 override layers: systemd Environment=, EnvironmentFile=, AND app-level
 load_dotenv(override=True). Last write wins. Add a "where's this value
 really coming from" debug endpoint someday.
+
+## R64c — Persona memory loop: HITL corrections → next persona prompt (2026-06-06)
+
+**Problem:** R64a built rosetta_learning.db with agent_corrections rows.
+R64b hooked the /decide endpoints so HITL decisions get recorded. But the
+loop was open — personas had no way to READ their corrections back. Each
+new run started from the same base prompt, repeating the same mistakes
+humans had just corrected.
+
+**Fix:**
+- NEW src/persona_memory_loop.py
+  - render_correction_block(agent_type, limit=5) → formatted prompt block
+    listing recent corrections by importance, with verb markers
+    (✗ rejected, ✎ revised, ↻ regenerated, ✓ approved-with-note)
+  - prepend_to_prompt(base, agent_type) → convenience wrapper
+  - Read-only; all writes still go through R64b /decide hooks
+  - Returns "" gracefully when DB is missing or empty (zero behavior change
+    for unaffected agent types)
+- src/rosetta_selling_bridge.py:inject_selling_persona — both return paths
+  (PersonaInjector-enabled and fallback) now prepend the correction block
+  using persona.department or persona.agent_id as the agent_type key
+
+**Proof:** Inserted 3 test corrections for agent_type='sales' (rejection,
+revision, rejection). render_correction_block('sales') produced a 462-char
+formatted block with all 3 lessons sorted by importance (0.90 → 0.85 → 0.65).
+render_correction_block('trial_intelligence') returned "" (no corrections =
+no block, no spam).
+
+**Composes with:** R64a (DB), R64b (writes), R66/R66b (tenant tuning is
+orthogonal — persona memory + tenant context both prepend to the prompt,
+both work).
+
+**Snapshots:** /var/lib/murphy-production/state_snapshots/
+rosetta_selling_bridge_20260606T213039Z.before
+
+**Future wiring:** R64c1 — extend to autonomous_engine.build_personality_for_role
+so non-selling personas also benefit. Cheap follow-up.
