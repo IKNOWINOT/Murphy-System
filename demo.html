@@ -516,7 +516,45 @@
       streamPhase('Automation blueprint attached', data.automation_spec.summary.slice(0, 300));
     }
 
-    streamPhase('Honesty', 'Citation verification + plagiarism gate ship in R65b (B1 + B2). Right now this is unverified prose.');
+    // R65b: Citation + plagiarism check (only for cited_doc — book/webapp don't have citations to verify)
+    if (kind === 'cited_doc' && content && content.length > 100) {
+      streamPhase('Verifying citations', 'Running R65b citation + plagiarism gate…');
+      try {
+        const verifyResp = await fetch('/api/citations/verify', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({text: content})
+        });
+        const v = await verifyResp.json();
+        if (v.ok !== false) {
+          const cs = v.citation_summary || {};
+          const plag = v.plagiarism || {};
+          const verdictColor = v.verdict === 'pass' ? 'var(--teal)' :
+                               v.verdict === 'fail' ? '#ff6b6b' : 'var(--amber)';
+          streamPhase('Citation gate', '');
+          streamTxt('• Citations found:   ' + (cs.total || 0));
+          streamTxt('• Verified live:     ' + (cs.verified || 0));
+          streamTxt('• Broken / 404:      ' + (cs.broken || 0));
+          streamTxt('• Unmatched snippet: ' + (cs.unmatched || 0));
+          streamTxt('• Plagiarism score:  ' + (plag.score || 0) + '  (1.0 = fully original)');
+          streamTxt('• Flagged paragraphs: ' + (plag.flagged || []).length);
+          const v_div = document.createElement('div');
+          v_div.style.cssText = 'margin-left:12px;margin-top:6px;padding:0.5rem 0.9rem;background:' + verdictColor + ';color:#000;border-radius:6px;font-weight:700;display:inline-block;font-size:0.78rem;letter-spacing:0.05em';
+          v_div.textContent = '  VERDICT: ' + (v.verdict || 'unknown').toUpperCase() + '  ';
+          stream.appendChild(v_div);
+        } else {
+          streamTxt('• Citation gate unavailable: ' + (v.error || 'unknown'));
+        }
+      } catch (e) {
+        streamTxt('• Citation gate skipped: ' + e.message);
+      }
+    } else {
+      streamPhase('Honesty', kind === 'book'
+        ? 'Book draft is unverified prose. Citation gate runs only on cited_doc.'
+        : kind === 'webapp'
+          ? 'Spec is draft. Forge build → live preview ships in R65c.'
+          : 'Unverified prose.');
+    }
   }
 
     // Desktop: stub until R65d ships the real download
