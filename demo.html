@@ -488,10 +488,19 @@
 
     let resp;
     try {
+      // R66c — pull tenant_id from session so deliverable auto-tunes by industry
+      let _tid = "";
+      try {
+        const _me = await fetch('/api/auth/me', {credentials: 'include'}).then(r => r.ok ? r.json() : null);
+        _tid = (_me && _me.user && _me.user.tenant_id) || "";
+      } catch (_e) { /* anonymous = no tenant context, fine */ }
+      const _body = {query: prompt, scenario_type: kind};
+      if (_tid) _body.tenant_id = _tid;
       resp = await fetch('/api/demo/generate-deliverable', {
         method: 'POST',
         headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({query: prompt, scenario_type: kind})
+        credentials: 'include',
+        body: JSON.stringify(_body)
       });
     } catch (e) {
       streamError('Network error reaching Murphy: ' + e.message);

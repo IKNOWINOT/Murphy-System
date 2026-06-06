@@ -14812,6 +14812,27 @@ def create_app() -> FastAPI:
                     logger.warning("auth/me API-key DB lookup failed: %s", _e_me)
         if not account:
             return JSONResponse({"success": False, "error": "Not authenticated"}, status_code=401)
+        # R66c — resolve primary tenant_id so /demo chips can auto-tune by industry.
+        # Lookup: tenant_members(user_id=email|account_id) → first owner row, else first member row.
+        primary_tenant_id = ""
+        try:
+            _email_lookup = account.get("email") or ""
+            _acct_lookup = account.get("account_id") or ""
+            _db_tn = _sq_me.connect("/var/lib/murphy-production/tenants.db", timeout=2)
+            for uid in (_email_lookup, _acct_lookup):
+                if not uid:
+                    continue
+                _row_tn = _db_tn.execute(
+                    "SELECT tenant_id FROM tenant_members "
+                    "WHERE user_id=? ORDER BY (role='owner') DESC, joined_at ASC LIMIT 1",
+                    (uid,),
+                ).fetchone()
+                if _row_tn:
+                    primary_tenant_id = _row_tn[0]
+                    break
+            _db_tn.close()
+        except Exception as _e_tn:
+            logger.debug("R66c tenant_id lookup failed: %s", _e_tn)
         return JSONResponse({
             "success": True,
             "user": {
@@ -14820,6 +14841,7 @@ def create_app() -> FastAPI:
                 "name": account.get("full_name") or account.get("name") or account.get("email", ""),
                 "role": account.get("role", "user"),
                 "tier": account.get("tier", "free"),
+                "tenant_id": primary_tenant_id,  # R66c
             }
         })
 

@@ -239,3 +239,23 @@ while t2 leads with:
 
 Composes with R66 (no behavior change when tenant_id is absent — block
 silently omitted).
+
+## R66c — /demo chips auto-attach tenant_id when signed in (2026-06-06)
+
+**Problem:** R66 + R66b made deliverable tunable by tenant_id, but the 5 /demo
+archetype chips never passed one. So logged-in tenants got the same generic
+output as anonymous visitors.
+
+**Fix:**
+- `src/runtime/app.py:/api/auth/me` now returns `user.tenant_id` (resolved via
+  `tenant_members` table, prefers owner role, then earliest member row).
+  Empty string when user has no tenant membership (cross-tenant founders,
+  unprovisioned accounts).
+- `demo.html` chip handler now calls `/api/auth/me` before POSTing and adds
+  `tenant_id` to the body when present. Anonymous flow unchanged.
+
+**Verified:** founder API key → /api/auth/me returns tenant_id='t1' after the
+test membership row was added; demo.html chip POST will include it.
+
+Composes with R66 (loader) + R66b (LLM prompt surface). Now end-to-end
+tenant-tuning works from chip click → loader → MSS → LLM prompt.
