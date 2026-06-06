@@ -332,6 +332,102 @@ def create_app() -> FastAPI:
                 try:
                     from src.murphy_critic import run_startup_route_scan
                     _scan_result = run_startup_route_scan()
+
+                    # PATCH-LEARN-LOOP-WIRE-R206 + R209 (2026-05-29): activate learning feedback loop.
+                    # R206 wired call at startup but it returned False (no backbone passed).
+                    # R209 PATCH-LEARN-LOOP-BACKBONE-R209: try to discover an EventBackbone instance
+                    # and a LearningEngine, then pass them in so the subscription actually fires.
+                    try:
+                        from src.learning_engine.feedback_loop_wiring import wire_feedback_loop
+                        _backbone = None
+                        _learning = None
+                        # Try several discovery paths — first hit wins.
+                        try:
+                            from src.event_backbone import EventBackbone as _EB
+                            _backbone = _EB()  # singleton-ish; safe to instantiate
+                        except Exception as _eb_exc:
+                            logger.debug("R209 backbone discovery failed: %s", _eb_exc)
+                        try:
+                            from src.learning_engine.learning_engine import LearningEngine as _LE
+                            _learning = _LE()
+                        except Exception:
+                            try:
+                                from src.learning_engine.learning_system import LearningEngine as _LE2
+                                _learning = _LE2()
+                            except Exception as _le_exc:
+                                logger.debug("R209 learning_engine discovery failed: %s", _le_exc)
+                        _wfl_ok = wire_feedback_loop(
+                            learning_engine=_learning,
+                            backbone=_backbone,
+                        )
+                        logger.info(
+                            "PATCH-LEARN-LOOP-WIRE-R206/R209: wire_feedback_loop()=%s "
+                            "(backbone=%s learning_engine=%s)",
+                            _wfl_ok,
+                            type(_backbone).__name__ if _backbone else None,
+                            type(_learning).__name__ if _learning else None,
+                        )
+                    except Exception as _wfl_exc:
+                        logger.warning("PATCH-LEARN-LOOP-WIRE-R206/R209: wire failed: %s", _wfl_exc)
+                    # PATCH-LEARN-LOOP-MANUAL-SUBSCRIBE-R213 (2026-05-29):
+                    # wire_feedback_loop() returns False because it passes string "task_completed"
+                    # to backbone.subscribe() which requires EventType enum (R210 finding).
+                    # Workaround: manually subscribe the handlers using EventType enum values.
+                    try:
+                        from src.event_backbone import EventType as _r213_EventType
+                        from src.event_backbone import EventBackbone as _r213_EventBackbone
+                        from src.event_backbone import get_event_backbone as _r261_get_bb  # PATCH-BACKBONE-SINGLETON-R261
+                        from src.learning_engine.learning_engine import LearningEngine as _r213_LE
+                        from src.learning_engine import feedback_loop_wiring as _r213_flw
+
+                        if not getattr(_r213_flw, "_wired", False):
+                            # PATCH-BACKBONE-SINGLETON-R261 (2026-05-29): R260 publishes via
+                            # get_event_backbone() lazy singleton. R213 here was constructing a
+                            # FRESH EventBackbone() — Murphy R261 named #4 process-wide singleton
+                            # as the disconnect. Audit found get_event_backbone has proper
+                            # double-checked-lock singleton (line 695-702). Use it so publishers
+                            # and subscribers share one backbone. Also register with
+                            # event_backbone_client so the third factory path resolves to the
+                            # same instance.
+                            _r213_bb = _r261_get_bb()
+                            try:
+                                from src.event_backbone_client import set_backbone as _r261_set_bb
+                                _r261_set_bb(_r213_bb)
+                                logger.info("PATCH-BACKBONE-SINGLETON-R261: event_backbone_client.set_backbone() registered canonical singleton")
+                            except Exception as _r261_set_exc:
+                                logger.debug("PATCH-BACKBONE-SINGLETON-R261: client set_backbone failed: %s", _r261_set_exc)
+                            _r213_le_inst = _r213_LE(enable_learning=True)
+                            _r213_flw._engine = _r213_le_inst
+                            _r213_sub_c = _r213_bb.subscribe(
+                                _r213_EventType.TASK_COMPLETED,
+                                _r213_flw._on_task_completed,
+                            )
+                            _r213_sub_f = _r213_bb.subscribe(
+                                _r213_EventType.TASK_FAILED,
+                                _r213_flw._on_task_failed,
+                            )
+                            _r213_flw._wired = True
+                            logger.info(
+                                "PATCH-LEARN-LOOP-MANUAL-SUBSCRIBE-R213: wired completed=%s failed=%s",
+                                _r213_sub_c, _r213_sub_f,
+                            )
+                            # PATCH-BACKBONE-START-R219 (2026-05-29): R218 status showed
+                            # background_loop_running=False — published events queue but never
+                            # dispatch. Call bb.start() to launch the dispatch loop.
+                            try:
+                                if hasattr(_r213_bb, "start"):
+                                    _r213_bb.start()
+                                    _r213_status = _r213_bb.get_status() if hasattr(_r213_bb, "get_status") else {}
+                                    logger.info(
+                                        "PATCH-BACKBONE-START-R219: bb.start() called, loop_running=%s",
+                                        _r213_status.get("background_loop_running"),
+                                    )
+                            except Exception as _r219_exc:
+                                logger.warning("PATCH-BACKBONE-START-R219: start failed: %s", _r219_exc)
+                        else:
+                            logger.debug("PATCH-LEARN-LOOP-MANUAL-SUBSCRIBE-R213: already wired")
+                    except Exception as _r213_exc:
+                        logger.warning("PATCH-LEARN-LOOP-MANUAL-SUBSCRIBE-R213: failed: %s", _r213_exc)
                     if _scan_result.get('findings', 0) > 0:
                         logger.warning(
                             "PATCH-ROUTE-DUP-SCAN: %d duplicate route(s) found — see murphy_audit.events",
@@ -515,6 +611,22 @@ def create_app() -> FastAPI:
     _STATIC_DIR_132 = _os_132.path.join(_PROJ_ROOT_132, "static")
 
     try:
+        # R410 (2026-06-01): block raw .md and /static/docs/* from public.
+        # Internal docs moved to /var/lib/murphy-production/internal_docs/.
+        _R410_BLOCK_STATIC_MD = True
+        try:
+            from fastapi.responses import PlainTextResponse as _R410_Plain
+
+            @app.middleware("http")
+            async def _r410_block_static_internals(request, call_next):
+                p = request.url.path
+                if p.startswith("/static/docs/") or (p.startswith("/static/") and p.endswith(".md")):
+                    return _R410_Plain("Not Found", status_code=404)
+                return await call_next(request)
+            logger.info("R410: static .md/docs blocker middleware registered")
+        except Exception as _r410_e:
+            logger.warning("R410: blocker middleware failed: %s", _r410_e)
+
         app.mount("/static", _StaticFiles132(directory=_STATIC_DIR_132), name="static")
         logger.info("PATCH-132a: /static → %s mounted", _STATIC_DIR_132)
     except Exception as _e132:
@@ -525,6 +637,7 @@ def create_app() -> FastAPI:
     _UI_PAGE_MAP_132 = {
         # Core product
         "start":                   "start.html",
+        "checkout":                "checkout.html",   # R429: revenue surface
         # "murphy-os" + "os" removed from this map 2026-05-27 so the dedicated
         # handler at _murphy_os_page() (below) wins and serves the modern
         # 96KB dashboard at /opt/Murphy-System/static/murphy-os.html instead
@@ -609,6 +722,7 @@ def create_app() -> FastAPI:
         "contact":                 "contact.html",
         "legal":                   "legal.html",
         "privacy":                 "privacy.html",
+        "terms":                   "terms.html",        # R430: terms of service
         # Aliases for removed/renamed pages (PATCH-153)
         "terminal-unified":        "dashboard.html",
         "terminal-worker":         "dashboard.html",
@@ -962,6 +1076,7 @@ def create_app() -> FastAPI:
             from fastapi.responses import JSONResponse as _JSR175cs
             return _JSR175cs({"success": False, "error": str(_e)}, status_code=500)
 
+
     @app.get("/ui/customers")
     @app.get("/customers")
     async def customers_dashboard():
@@ -1017,6 +1132,111 @@ def create_app() -> FastAPI:
                 return _cFR(cand, media_type="text/html")
         return _cRR("/")
 
+    # _R489C — /api/contact/submit — public form endpoint
+    # Sends contact-form submissions to cpost@murphy.systems (which forwards
+    # to corey.gfc@gmail.com via postfix alias). Rate-limited; no auth.
+    @app.post("/api/contact/submit", include_in_schema=False)
+    async def r489c_contact_submit(request: Request):
+        import json as _j489, re as _re489, smtplib as _sm489
+        import sqlite3 as _sq489, time as _t489, hashlib as _h489, os as _o489
+        from email.mime.text import MIMEText as _MT489
+        from email.mime.multipart import MIMEMultipart as _MM489
+
+        try:
+            body = await request.json()
+        except Exception:
+            return JSONResponse({"ok": False, "error": "invalid_json"}, status_code=400)
+
+        name = (body.get("name") or "").strip()[:200]
+        email = (body.get("email") or "").strip()[:200]
+        company = (body.get("company") or "").strip()[:200]
+        topic = (body.get("topic") or "general").strip()[:60]
+        message = (body.get("message") or "").strip()[:5000]
+        source_url = (body.get("source_url") or "").strip()[:500]
+        client_ip = (request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+                     or (request.client.host if request.client else "unknown"))
+
+        # Validation
+        if not name:
+            return JSONResponse({"ok": False, "error": "Name is required."}, status_code=400)
+        if not email or not _re489.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email):
+            return JSONResponse({"ok": False, "error": "Valid email is required."}, status_code=400)
+        if len(message) < 8:
+            return JSONResponse({"ok": False, "error": "Message is too short."}, status_code=400)
+
+        # Simple rate limit — same IP can submit max 5 in 10 minutes
+        try:
+            rl_db = "/var/lib/murphy-production/contact_submissions.db"
+            _o489.makedirs("/var/lib/murphy-production", exist_ok=True)
+            with _sq489.connect(rl_db, timeout=3) as c:
+                c.execute("""CREATE TABLE IF NOT EXISTS contact_submissions (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    received_at TEXT NOT NULL,
+                    client_ip TEXT, name TEXT, email TEXT, company TEXT,
+                    topic TEXT, message TEXT, source_url TEXT,
+                    smtp_status TEXT, message_id TEXT
+                )""")
+                cutoff = _t489.time() - 600
+                from datetime import datetime as _dt489, timezone as _tz489
+                recent = c.execute(
+                    "SELECT COUNT(*) FROM contact_submissions WHERE received_at > ? AND client_ip=?",
+                    (_dt489.fromtimestamp(cutoff, tz=_tz489.utc).isoformat(), client_ip)
+                ).fetchone()[0]
+                if recent >= 5:
+                    return JSONResponse({"ok": False, "error": "Too many submissions. Try again in a few minutes."}, status_code=429)
+        except Exception as _rl_exc:
+            logger.warning("R489c rate-limit check failed: %s", _rl_exc)
+
+        # Build email
+        subject = f"[Murphy contact] {topic}: {name}"
+        body_text = (
+            f"New contact form submission from murphy.systems/contact\n\n"
+            f"  Name:    {name}\n"
+            f"  Email:   {email}\n"
+            f"  Company: {company or '-'}\n"
+            f"  Topic:   {topic}\n"
+            f"  Source:  {source_url or '-'}\n"
+            f"  IP:      {client_ip}\n\n"
+            f"--- Message ---\n{message}\n---\n\n"
+            f"Reply directly to {email} to respond.\n"
+        )
+        msg = _MM489("alternative")
+        msg["Subject"] = subject
+        msg["From"] = "noreply@murphy.systems"
+        msg["To"] = "cpost@murphy.systems"
+        msg["Reply-To"] = email
+        msg.attach(_MT489(body_text, "plain"))
+
+        message_id = ""
+        smtp_status = "failed"
+        try:
+            with _sm489.SMTP("127.0.0.1", 25, timeout=10) as smtp:
+                smtp.send_message(msg)
+                message_id = msg.get("Message-ID", "")
+                smtp_status = "sent"
+        except Exception as _smtp_exc:
+            logger.error("R489c SMTP send failed: %s", _smtp_exc)
+            smtp_status = f"failed: {str(_smtp_exc)[:120]}"
+
+        # Persist record
+        try:
+            from datetime import datetime as _dt489b, timezone as _tz489b
+            with _sq489.connect("/var/lib/murphy-production/contact_submissions.db", timeout=3) as c:
+                c.execute(
+                    """INSERT INTO contact_submissions
+                       (received_at, client_ip, name, email, company, topic, message, source_url, smtp_status, message_id)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (_dt489b.now(_tz489b.utc).isoformat(), client_ip, name, email, company,
+                     topic, message, source_url, smtp_status, message_id)
+                )
+                c.commit()
+        except Exception as _p_exc:
+            logger.warning("R489c persist failed: %s", _p_exc)
+
+        if smtp_status == "sent":
+            return JSONResponse({"ok": True, "message_id": message_id})
+        return JSONResponse({"ok": False, "error": "Email delivery failed. Please email cpost@murphy.systems directly."}, status_code=502)
+
     # PATCH-453a — HITL founder page
     @app.get("/hitl", include_in_schema=False)
     async def hitl_page_top():
@@ -1037,11 +1257,14 @@ def create_app() -> FastAPI:
 
     @app.get("/tenant", include_in_schema=False)
     @app.get("/tenant/dashboard", include_in_schema=False)
+    @app.get("/tenant/control", include_in_schema=False)
     async def tenant_dashboard_shortcut():
-        from fastapi.responses import RedirectResponse as _tRR
-        # Until a dedicated tenant dashboard is built, redirect to the
-        # platform-wide cockpit at /os which already shows live tenant data.
-        return _tRR("/os", status_code=302)
+        """_R415_TENANT_CONTROL — tenant cockpit (R415 2026-06-01).
+        Mirrors /founder UX but scoped to caller's tenant. Platform mutations
+        are blocked client-side (PLATFORM_TRIGGERS) and server-side
+        (FOUNDER_ONLY_PATHS in tenant_scope_middleware)."""
+        from fastapi.responses import FileResponse as _tFR
+        return _tFR("/opt/Murphy-System/tenant_control.html", media_type="text/html")
 
     # PATCH-DLF-R-003 (2026-05-27): Phase 4 — DLF-R HTTP API + /dlfr browser.
     # Exposes packages produced by Phases 2-3 (incident_router + mind_cycle).
@@ -1103,6 +1326,50 @@ def create_app() -> FastAPI:
             return JSONResponse({"error": str(exc)}, status_code=500)
 
     # /api/hitl/queue?fresh=1 — unified fresh-only queue (PATCH-453a)
+    # ══════════════════════════════════════════════════════════════════════
+    # R439 — DLF-Lite export endpoint (Shogun-compatible wire format)
+    # Sentinel: _R439_DLF_LITE_EXPORT_WIRED
+    # ══════════════════════════════════════════════════════════════════════
+    _R439_DLF_LITE_EXPORT_WIRED = True
+
+    @app.get("/api/dlfr/{package_id}/export/lite", include_in_schema=False)
+    async def r439_export_lite(package_id: str):
+        """Export a DLF-R package as a .dlf-lite container (Shogun v0.1 SPEC).
+        Returns raw binary container bytes."""
+        from fastapi.responses import Response
+        try:
+            from src.dlf_lite_projector import export_dlf_r_package
+            blob = export_dlf_r_package(package_id)
+        except ValueError as e:
+            return JSONResponse({"ok": False, "error": str(e)}, status_code=404)
+        except Exception as e:
+            return JSONResponse({"ok": False, "error": f"export failed: {e!s}"},
+                                status_code=500)
+        return Response(
+            content=blob,
+            media_type="application/octet-stream",
+            headers={
+                "Content-Disposition": f'attachment; filename="{package_id}.dlf-lite"',
+                "X-DLF-Lite-Version": "0.1",
+                "X-Source-Format": "DLF-R",
+            }
+        )
+
+    @app.get("/api/dlfr/{package_id}/export/lite/preview", include_in_schema=False)
+    async def r439_export_lite_preview(package_id: str):
+        """Preview a DLF-Lite export as JSON (no binary container). Debug aid."""
+        try:
+            from src import dlf_r
+            from src.dlf_lite_projector import project_to_lite_payload
+            dlfr_body = dlf_r.load(package_id)
+            if not dlfr_body:
+                return JSONResponse({"ok": False, "error": "not found"}, status_code=404)
+            lite_payload = project_to_lite_payload(dlfr_body)
+            return {"ok": True, "package_id": package_id, "lite_payload": lite_payload}
+        except Exception as e:
+            return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
     @app.get("/api/hitl/queue", include_in_schema=False)
     async def hitl_queue_fresh(fresh: int = 0):
         import sqlite3 as _sq
@@ -1117,6 +1384,1592 @@ def create_app() -> FastAPI:
             return {"ok": True, "jobs": [dict(r) for r in rows], "count": len(rows)}
         except Exception as e:
             return {"ok": False, "error": str(e), "jobs": []}
+
+    # ══════════════════════════════════════════════════════════════════════
+    # R431 — HITL ENGAGEMENT CONTRACT LAYER (honors Terms §1B)
+    # Sentinel: _R431_HITL_ENGAGEMENT_WIRED
+    # ══════════════════════════════════════════════════════════════════════
+    _R431_HITL_ENGAGEMENT_WIRED = True
+    _R431_HITL_DB = "/var/lib/murphy-production/hitl_jobs.db"
+
+    def _r431_db():
+        import sqlite3 as _sq
+        c = _sq.connect(_R431_HITL_DB, timeout=10, isolation_level=None)
+        c.row_factory = _sq.Row
+        c.execute("PRAGMA busy_timeout=8000")
+        c.execute("PRAGMA journal_mode=WAL")
+        return c
+
+    def _r431_who(request):
+        """Return (account_id, email, credential_snapshot_dict)."""
+        import datetime as _dt_who
+        try:
+            acct = _get_account_from_session(request) or {}
+        except Exception:
+            acct = {}
+        account_id = acct.get("account_id") or "anonymous"
+        email = acct.get("email") or ""
+        cred = {
+            "account_id": account_id,
+            "email": email,
+            "role": acct.get("role", "user"),
+            "tier": acct.get("tier", "free"),
+            "captured_at": _dt_who.datetime.utcnow().isoformat() + "Z",
+        }
+        return account_id, email, cred
+
+    def _r431_active_engagement(account_id, action_class):
+        """Return engagement_id if a valid active engagement exists for (approver, class), else None."""
+        import datetime as _dt_e
+        now = _dt_e.datetime.utcnow().isoformat() + "Z"
+        with _r431_db() as conn:
+            row = conn.execute(
+                """SELECT engagement_id FROM hitl_engagements
+                   WHERE approver_account_id=? AND action_class=?
+                     AND status='active'
+                     AND valid_from <= ? AND valid_until >= ?
+                   ORDER BY created_at DESC LIMIT 1""",
+                (account_id, action_class, now, now)
+            ).fetchone()
+        return row["engagement_id"] if row else None
+
+    def _r431_log_event(engagement_id, item_id, action_type, approver_account_id,
+                        request, hash_presented=None, hash_approved=None,
+                        credential_snapshot=None, outcome=None, notes=None):
+        import uuid as _uu, json as _je, datetime as _dt_e
+        event_id = "evt_" + _uu.uuid4().hex[:24]
+        ip = request.client.host if getattr(request, "client", None) else ""
+        ua = request.headers.get("user-agent", "")[:300] if hasattr(request, "headers") else ""
+        with _r431_db() as conn:
+            conn.execute(
+                """INSERT INTO hitl_acceptance_events
+                   (event_id, engagement_id, item_id, action_type, approver_account_id,
+                    ts, ip, user_agent, hash_of_item_presented, hash_of_item_approved,
+                    credential_snapshot_at_event_json, execution_outcome, notes)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (event_id, engagement_id, item_id, action_type, approver_account_id,
+                 _dt_e.datetime.utcnow().isoformat() + "Z", ip, ua,
+                 hash_presented, hash_approved,
+                 _je.dumps(credential_snapshot or {}), outcome, notes)
+            )
+            conn.commit()
+        return event_id
+
+    def _r431_hash_text(text):
+        import hashlib as _h
+        return _h.sha256((text or "").encode("utf-8")).hexdigest()
+
+    # ── POST /api/hitl/engage ── (Terms §1B.0)
+    # ══════════════════════════════════════════════════════════════════════
+    # R442 — Audit retainer request endpoint
+    # Customer fills /book → quote drops into HITL queue → founder approves
+    # → finalized quote emailed → NOWPayments invoice sent on acceptance.
+    # Sentinel: _R442_AUDIT_REQUEST_WIRED
+    # ══════════════════════════════════════════════════════════════════════
+    _R442_AUDIT_REQUEST_WIRED = True
+
+    @app.post("/api/audit/request", include_in_schema=False)
+    async def r442_audit_request(request: Request):
+        """Accept an audit quote request from /book and queue for founder review.
+
+        Body fields:
+          fname, lname, email, phone, company, industry,
+          standard_count, mixed_count, specialist_count, total_employees,
+          pain, quote_total
+        """
+        import json as _j, sqlite3 as _sq, time as _t, hashlib as _h
+        try:
+            body = await request.json()
+        except Exception:
+            return JSONResponse({"ok": False, "error": "invalid json"}, status_code=400)
+
+        email = (body.get("email") or "").strip().lower()
+        if "@" not in email:
+            return JSONResponse({"ok": False, "error": "valid email required"}, status_code=400)
+
+        quote_total = int(body.get("quote_total") or 0)
+        if quote_total < 1000:
+            return JSONResponse({"ok": False, "error": "quote must be at least $1,000"}, status_code=400)
+
+        item_id = "audit_" + _h.sha256(
+            (email + str(_t.time())).encode()
+        ).hexdigest()[:14]
+        client_ip = request.headers.get("x-forwarded-for",
+            request.client.host if request.client else "?").split(",")[0].strip()
+
+        summary = (
+            f"AUDIT QUOTE REQUEST — {body.get('fname','?')} {body.get('lname','?')} "
+            f"({body.get('company','?')}) — ${quote_total:,} "
+            f"[{body.get('standard_count',0)}std/{body.get('mixed_count',0)}mix/"
+            f"{body.get('specialist_count',0)}spec]"
+        )
+
+        try:
+            with _sq.connect("/opt/Murphy-System/murphy.db", timeout=5) as c:
+                c.execute("""
+                    CREATE TABLE IF NOT EXISTS hitl_items(
+                        id TEXT PRIMARY KEY, action_class TEXT, summary TEXT,
+                        submitted_data TEXT, status TEXT DEFAULT 'pending',
+                        created_at TEXT DEFAULT (datetime('now'))
+                    )
+                """)
+                c.execute("""
+                    INSERT INTO hitl_items(id, action_class, summary, submitted_data, status)
+                    VALUES (?, 'audit_quote_request', ?, ?, 'pending')
+                """, (item_id, summary, _j.dumps({**body, "client_ip": client_ip}, default=str)))
+        except Exception as e:
+            return JSONResponse({"ok": False, "error": f"persist failed: {e!s}"},
+                                status_code=500)
+
+        try:
+            from src.cadence_emit import emit_heartbeat
+            emit_heartbeat("audit_request.received", success=True,
+                           duration_ms=0, error_text=None)
+        except Exception:
+            pass
+
+        return JSONResponse({
+            "ok": True,
+            "item_id": item_id,
+            "estimated_quote_usd": quote_total,
+            "next_step": "Murphy founder will review and email a finalized quote within 1 business day.",
+            "payment_methods_on_approval": ["NOWPayments crypto", "NOWPayments card", "invoice"],
+        })
+
+
+    # ══════════════════════════════════════════════════════════════════════
+    # R444 — Public Marketplace with Like/Dislike voting
+    # Sentinel: _R444_MARKETPLACE
+    # ══════════════════════════════════════════════════════════════════════
+    _R444_MARKETPLACE = True
+    _R444_MKT_DB = "/var/lib/murphy-production/marketplace.db"
+
+    def _r444_voter_identity(request):
+        """Return (voter_id, voter_email) for the caller. None if not authenticated."""
+        try:
+            ident = _r432_resolve_identity(request) or {}
+            email = ident.get("email") or ident.get("user_email")
+            account_id = ident.get("account_id") or ident.get("user_id")
+            if email and account_id:
+                return (account_id, email)
+        except Exception:
+            pass
+        return (None, None)
+
+    @app.get("/api/marketplace/agents", include_in_schema=False)
+    async def r444_marketplace_list(request: Request,
+                                    sort: str = "popular",
+                                    category: str = "",
+                                    limit: int = 50):
+        """Public: list published marketplace agents with vote counts.
+
+        sort: popular | newest | controversial
+        """
+        import sqlite3 as _sq
+        sort_clause = {
+            "popular": "net_votes DESC, use_count DESC, created_at DESC",
+            "newest": "created_at DESC",
+            "controversial": "(likes + dislikes) DESC, ABS(net_votes) ASC",
+        }.get(sort, "net_votes DESC")
+
+        voter_id, _ = _r444_voter_identity(request)
+        my_votes = {}
+        try:
+            with _sq.connect(_R444_MKT_DB, timeout=5) as c:
+                c.row_factory = _sq.Row
+                where = ["status = 'published'"]
+                params = []
+                if category:
+                    where.append("category = ?")
+                    params.append(category)
+                rows = c.execute(f"""
+                    SELECT * FROM v_marketplace_agents
+                    WHERE {' AND '.join(where)}
+                    ORDER BY {sort_clause}
+                    LIMIT ?
+                """, params + [min(int(limit), 200)]).fetchall()
+
+                if voter_id:
+                    vrows = c.execute(
+                        "SELECT agent_id, vote FROM marketplace_votes WHERE voter_id = ?",
+                        (voter_id,)).fetchall()
+                    my_votes = {r[0]: r[1] for r in vrows}
+
+                agents = []
+                for r in rows:
+                    agents.append({
+                        "agent_id": r["agent_id"],
+                        "name": r["name"],
+                        "tagline": r["tagline"],
+                        "description": r["description"],
+                        "category": r["category"],
+                        "creator_name": r["creator_name"],
+                        "creator_id": r["creator_id"],
+                        "finder_fee_pct": r["finder_fee_pct"],
+                        "cover_emoji": r["cover_emoji"],
+                        "likes": r["likes"],
+                        "dislikes": r["dislikes"],
+                        "net_votes": r["net_votes"],
+                        "use_count": r["use_count"],
+                        "created_at": r["created_at"],
+                        "my_vote": my_votes.get(r["agent_id"], 0),
+                    })
+                return JSONResponse({
+                    "ok": True,
+                    "count": len(agents),
+                    "sort": sort,
+                    "authenticated": voter_id is not None,
+                    "agents": agents,
+                })
+        except Exception as e:
+            return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+    @app.get("/api/marketplace/agents/{agent_id}", include_in_schema=False)
+    async def r444_marketplace_agent_detail(agent_id: str, request: Request):
+        """Public: get one agent's full detail with vote counts."""
+        import sqlite3 as _sq
+        voter_id, _ = _r444_voter_identity(request)
+        try:
+            with _sq.connect(_R444_MKT_DB, timeout=5) as c:
+                c.row_factory = _sq.Row
+                row = c.execute(
+                    "SELECT * FROM v_marketplace_agents WHERE agent_id = ?",
+                    (agent_id,)).fetchone()
+                if not row:
+                    return JSONResponse({"ok": False, "error": "agent not found"}, status_code=404)
+                my_vote = 0
+                if voter_id:
+                    v = c.execute(
+                        "SELECT vote FROM marketplace_votes WHERE agent_id=? AND voter_id=?",
+                        (agent_id, voter_id)).fetchone()
+                    my_vote = v["vote"] if v else 0
+                return JSONResponse({"ok": True, "agent": {**dict(row), "my_vote": my_vote}})
+        except Exception as e:
+            return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+    @app.post("/api/marketplace/vote", include_in_schema=False)
+    async def r444_marketplace_vote(request: Request):
+        """Authenticated: like/dislike an agent. One vote per user per agent (replaces).
+
+        Body: {agent_id: str, vote: -1 | 0 | 1}
+        vote=0 removes the user's vote.
+        """
+        import sqlite3 as _sq, json as _j
+        try:
+            body = await request.json()
+        except Exception:
+            return JSONResponse({"ok": False, "error": "invalid json"}, status_code=400)
+
+        agent_id = (body.get("agent_id") or "").strip()
+        vote = int(body.get("vote", 0))
+        if not agent_id:
+            return JSONResponse({"ok": False, "error": "agent_id required"}, status_code=400)
+        if vote not in (-1, 0, 1):
+            return JSONResponse({"ok": False, "error": "vote must be -1, 0, or 1"}, status_code=400)
+
+        voter_id, voter_email = _r444_voter_identity(request)
+        if not voter_id:
+            return JSONResponse({
+                "ok": False,
+                "error": "sign_in_required",
+                "message": "Sign in to vote on marketplace agents.",
+                "cta_url": "/login?return_to=/marketplace",
+            }, status_code=401)
+
+        try:
+            with _sq.connect(_R444_MKT_DB, timeout=5) as c:
+                exists = c.execute(
+                    "SELECT 1 FROM marketplace_agents WHERE agent_id = ?",
+                    (agent_id,)).fetchone()
+                if not exists:
+                    return JSONResponse({"ok": False, "error": "agent not found"}, status_code=404)
+
+                if vote == 0:
+                    c.execute(
+                        "DELETE FROM marketplace_votes WHERE agent_id=? AND voter_id=?",
+                        (agent_id, voter_id))
+                else:
+                    c.execute("""
+                        INSERT INTO marketplace_votes(agent_id, voter_id, voter_email, vote)
+                        VALUES (?, ?, ?, ?)
+                        ON CONFLICT(agent_id, voter_id) DO UPDATE SET
+                            vote=excluded.vote,
+                            voter_email=excluded.voter_email,
+                            updated_at=datetime('now')
+                    """, (agent_id, voter_id, voter_email, vote))
+
+                # Return fresh counts
+                r = c.execute(
+                    "SELECT likes, dislikes, net_votes FROM v_marketplace_agents WHERE agent_id=?",
+                    (agent_id,)).fetchone()
+                return JSONResponse({
+                    "ok": True,
+                    "agent_id": agent_id,
+                    "my_vote": vote,
+                    "likes": r[0] if r else 0,
+                    "dislikes": r[1] if r else 0,
+                    "net_votes": r[2] if r else 0,
+                })
+        except Exception as e:
+            return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+    @app.get("/api/marketplace/categories", include_in_schema=False)
+    async def r444_marketplace_categories():
+        """Public: list of distinct categories."""
+        import sqlite3 as _sq
+        try:
+            with _sq.connect(_R444_MKT_DB, timeout=5) as c:
+                rows = c.execute("""
+                    SELECT category, COUNT(*) AS n
+                    FROM marketplace_agents
+                    WHERE status='published' AND category IS NOT NULL
+                    GROUP BY category
+                    ORDER BY n DESC
+                """).fetchall()
+                return JSONResponse({"ok": True, "categories": [
+                    {"name": r[0], "count": r[1]} for r in rows
+                ]})
+        except Exception as e:
+            return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+    @app.get("/marketplace", include_in_schema=False)
+    async def r444_marketplace_page():
+        """Public: marketplace browser page."""
+        from fastapi.responses import FileResponse as _MKTFR
+        return _MKTFR("/opt/Murphy-System/marketplace.html", media_type="text/html")
+
+
+    # ══════════════════════════════════════════════════════════════════════
+    # R445 — Tenant URL Routing (murphy.systems/<slug>)
+    # Sentinel: _R445_TENANT_SLUG_ROUTING
+    # ══════════════════════════════════════════════════════════════════════
+    _R445_TENANT_SLUG_ROUTING = True
+
+    def _r445_normalize_slug(s):
+        """Lower-case, hyphen-sanitize, length-check. Returns None if invalid."""
+        import re as _re
+        if not s: return None
+        s = s.strip().lower()
+        s = _re.sub(r"[^a-z0-9-]+", "-", s)
+        s = _re.sub(r"-+", "-", s).strip("-")
+        if not (3 <= len(s) <= 30): return None
+        if not _re.match(r"^[a-z0-9][a-z0-9-]*[a-z0-9]$", s): return None
+        return s
+
+    def _r445_slug_reserved(slug):
+        """Check if slug is in reserved_slugs table. Returns reason or None."""
+        import sqlite3 as _sq
+        try:
+            with _sq.connect(_R432_MURPHY_DB, timeout=4) as c:
+                r = c.execute(
+                    "SELECT reason FROM reserved_slugs WHERE slug = ?",
+                    (slug,)).fetchone()
+                return r[0] if r else None
+        except Exception:
+            return None
+
+    def _r445_lookup_tenant_by_slug(slug):
+        """Return tenant org dict by slug, or None."""
+        import sqlite3 as _sq, json as _j
+        try:
+            with _sq.connect(_R432_MURPHY_DB, timeout=4) as c:
+                c.row_factory = _sq.Row
+                row = c.execute("""
+                    SELECT org_id, name, slug, status, metadata_json, owner_account_id
+                    FROM organizations
+                    WHERE slug = ? AND status = 'active'
+                """, (slug,)).fetchone()
+                if not row: return None
+                meta = {}
+                try: meta = _j.loads(row["metadata_json"] or "{}")
+                except Exception: pass
+                return {
+                    "org_id": row["org_id"],
+                    "name": row["name"],
+                    "slug": row["slug"],
+                    "status": row["status"],
+                    "tagline": meta.get("tagline", "Powered by Murphy"),
+                    "owner_account_id": row["owner_account_id"],
+                }
+        except Exception:
+            return None
+
+    @app.get("/api/tenant/check-slug", include_in_schema=False)
+    async def r445_check_slug(slug: str = ""):
+        """Public: check if a slug is available."""
+        norm = _r445_normalize_slug(slug)
+        if not norm:
+            return JSONResponse({
+                "ok": False, "available": False,
+                "reason": "Invalid slug — use 3-30 lowercase letters, numbers, hyphens.",
+                "suggested": None,
+            })
+        reserved = _r445_slug_reserved(norm)
+        if reserved:
+            return JSONResponse({
+                "ok": False, "available": False,
+                "reason": f"Reserved: {reserved}",
+                "suggested": norm + "-co",
+            })
+        existing = _r445_lookup_tenant_by_slug(norm)
+        if existing:
+            return JSONResponse({
+                "ok": False, "available": False,
+                "reason": "Already taken",
+                "suggested": norm + "-co",
+            })
+        return JSONResponse({
+            "ok": True, "available": True,
+            "slug": norm,
+            "preview_url": f"https://murphy.systems/{norm}",
+        })
+
+    @app.get("/api/tenant/by-slug/{slug}", include_in_schema=False)
+    async def r445_tenant_by_slug(slug: str):
+        """Public: resolve slug → tenant info (for the tenant_home page)."""
+        norm = _r445_normalize_slug(slug)
+        if not norm:
+            return JSONResponse({"ok": False, "error": "invalid slug"}, status_code=400)
+        t = _r445_lookup_tenant_by_slug(norm)
+        if not t:
+            return JSONResponse({"ok": False, "error": "tenant not found"}, status_code=404)
+        return JSONResponse({"ok": True, "tenant": t})
+
+    @app.post("/api/tenant/claim-slug", include_in_schema=False)
+    async def r445_claim_slug(request: Request):
+        """Authenticated: assign a slug to your tenant org.
+
+        Body: {slug: str, org_id?: str}
+        If org_id omitted, claims for the caller's primary tenant_owner org.
+        """
+        import sqlite3 as _sq
+        ident = _r432_resolve_identity(request)
+        if ident["account_id"] == "anonymous":
+            return JSONResponse({"ok": False, "error": "auth required"}, status_code=401)
+        body = await request.json()
+        slug = _r445_normalize_slug(body.get("slug", ""))
+        if not slug:
+            return JSONResponse({"ok": False, "error": "invalid slug"}, status_code=400)
+        if _r445_slug_reserved(slug):
+            return JSONResponse({"ok": False, "error": "slug is reserved"}, status_code=400)
+        if _r445_lookup_tenant_by_slug(slug):
+            return JSONResponse({"ok": False, "error": "slug already taken"}, status_code=409)
+
+        org_id = body.get("org_id", "").strip()
+        try:
+            with _sq.connect(_R432_MURPHY_DB, timeout=5) as c:
+                c.row_factory = _sq.Row
+                if not org_id:
+                    # find caller's primary tenant_owner org
+                    r = c.execute("""
+                        SELECT o.org_id FROM organizations o
+                        JOIN org_membership m ON m.org_id = o.org_id
+                        WHERE m.account_id = ? AND m.role = 'tenant_owner'
+                          AND o.status = 'active' AND o.org_type = 'tenant'
+                        ORDER BY o.created_at DESC LIMIT 1
+                    """, (ident["account_id"],)).fetchone()
+                    if not r:
+                        return JSONResponse({"ok": False, "error": "no tenant org found for caller"}, status_code=404)
+                    org_id = r["org_id"]
+                else:
+                    # verify caller owns this org or is founder
+                    if ident.get("role") != "founder":
+                        owner = c.execute(
+                            "SELECT 1 FROM org_membership WHERE org_id=? AND account_id=? AND role IN ('tenant_owner','platform_admin')",
+                            (org_id, ident["account_id"])).fetchone()
+                        if not owner:
+                            return JSONResponse({"ok": False, "error": "not authorized for this org"}, status_code=403)
+                c.execute("UPDATE organizations SET slug=?, updated_at=datetime('now') WHERE org_id=?",
+                          (slug, org_id))
+            return JSONResponse({
+                "ok": True,
+                "org_id": org_id,
+                "slug": slug,
+                "url": f"https://murphy.systems/{slug}",
+            })
+        except Exception as e:
+            return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
+    @app.post("/api/hitl/engage", include_in_schema=False)
+    async def r431_engage(request: Request):
+        import json as _j, uuid as _uu, datetime as _dt_e
+        try:
+            body = await request.json()
+        except Exception:
+            body = {}
+        action_classes = body.get("action_classes") or ([body["action_class"]] if body.get("action_class") else [])
+        if not action_classes:
+            return JSONResponse({"ok": False, "error": "action_class(es) required"}, status_code=400)
+        valid_days = int(body.get("valid_days", 90))
+        engagement_text = body.get("engagement_text",
+            "I, the named approver, accept the HITL Engagement Contract per murphy.systems Terms §1B.0, "
+            "under my professional credentials, for the action class(es) listed, with full responsibility "
+            "for each per-item acceptance under §1B.1-1B.8.")
+
+        account_id, email, cred = _r431_who(request)
+        if account_id == "anonymous":
+            return JSONResponse({"ok": False, "error": "auth required"}, status_code=401)
+
+        now = _dt_e.datetime.utcnow()
+        valid_from = now.isoformat() + "Z"
+        valid_until = (now + _dt_e.timedelta(days=valid_days)).isoformat() + "Z"
+        text_hash = _r431_hash_text(engagement_text + "|" + ",".join(sorted(action_classes)))
+        ip = request.client.host if request.client else ""
+        ua = request.headers.get("user-agent", "")[:300]
+
+        created = []
+        with _r431_db() as conn:
+            for ac in action_classes:
+                eid = "eng_" + _uu.uuid4().hex[:24]
+                conn.execute(
+                    """INSERT INTO hitl_engagements
+                       (engagement_id, approver_account_id, approver_email, action_class,
+                        credential_snapshot_json, hash_of_engagement_text,
+                        valid_from, valid_until, status, created_at, ip, user_agent)
+                       VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    (eid, account_id, email, ac, _j.dumps(cred), text_hash,
+                     valid_from, valid_until, "active", valid_from, ip, ua)
+                )
+                created.append({"engagement_id": eid, "action_class": ac})
+                # Log the engagement act itself as an event
+                _r431_log_event(eid, None, "engage", account_id, request,
+                                hash_presented=text_hash, hash_approved=text_hash,
+                                credential_snapshot=cred,
+                                notes=f"engagement created for {ac}, valid {valid_days} days")
+            conn.commit()
+        return JSONResponse({"ok": True, "engagements": created,
+                            "valid_from": valid_from, "valid_until": valid_until,
+                            "hash_of_engagement_text": text_hash})
+
+    # ── GET /api/hitl/engagements ── (list mine)
+    @app.get("/api/hitl/engagements", include_in_schema=False)
+    async def r431_list_engagements(request: Request):
+        account_id, _, _ = _r431_who(request)
+        if account_id == "anonymous":
+            return JSONResponse({"ok": False, "error": "auth required"}, status_code=401)
+
+        # Canonical engagement text (matches the one used at engage-time as default)
+        CANONICAL_TEXT = (
+            "I, the named approver, accept the HITL Engagement Contract per murphy.systems Terms §1B.0, "
+            "under my professional credentials, for the action class(es) listed, with full responsibility "
+            "for each per-item acceptance under §1B.1-1B.8."
+        )
+        # Plain-English meaning per action class for the wizard
+        ACTION_CLASS_MEANING = {
+            "outbound_email": "Murphy will draft outbound emails on your behalf. Each email is queued for your approval before it sends.",
+            "outbound_message": "Murphy will draft outbound messages (SMS, chat, etc.). Each one is queued for your approval before it sends.",
+            "sales_outreach": "Murphy will run the daily sales cadence — prospect discovery and follow-up emails. Each generated outreach item is held for your approval.",
+            "prospect_email": "Murphy will draft cold-outreach emails to prospects identified by the lead engine. Each one is queued for your approval before sending.",
+            "voice_call": "Murphy may place outbound voice calls on your behalf. Each call session requires your approval first.",
+            "payment_action": "Murphy may execute payment-related actions. Each transaction requires your approval first.",
+        }
+        with _r431_db() as conn:
+            rows = conn.execute(
+                """SELECT engagement_id, action_class, valid_from, valid_until, status,
+                          created_at, revoked_at, revoked_reason, hash_of_engagement_text
+                   FROM hitl_engagements
+                   WHERE approver_account_id=?
+                   ORDER BY created_at DESC""",
+                (account_id,)
+            ).fetchall()
+        out = []
+        for r in rows:
+            out.append({
+                "engagement_id": r["engagement_id"],
+                "action_class": r["action_class"],
+                "valid_from": r["valid_from"],
+                "valid_until": r["valid_until"],
+                "status": r["status"],
+                "created_at": r["created_at"],
+                "revoked_at": r["revoked_at"],
+                "revoked_reason": r["revoked_reason"],
+                "hash_of_engagement_text": r["hash_of_engagement_text"],
+                "engagement_text": CANONICAL_TEXT,
+                "plain_english": ACTION_CLASS_MEANING.get(r["action_class"],
+                    "Murphy will perform actions of this class on your behalf. Each item is queued for your approval first."),
+                "terms_section_url": "/terms#section-1b",
+            })
+        return {"ok": True, "count": len(out), "engagements": out,
+                "canonical_text": CANONICAL_TEXT,
+                "terms_url": "/terms#section-1b"}
+
+
+    @app.post("/api/hitl/revoke", include_in_schema=False)
+    async def r431_revoke(request: Request):
+        import datetime as _dt_e
+        try:
+            body = await request.json()
+        except Exception:
+            body = {}
+        engagement_id = body.get("engagement_id")
+        reason = body.get("reason", "revoked by approver")
+        if not engagement_id:
+            return JSONResponse({"ok": False, "error": "engagement_id required"}, status_code=400)
+        account_id, _, cred = _r431_who(request)
+        if account_id == "anonymous":
+            return JSONResponse({"ok": False, "error": "auth required"}, status_code=401)
+        now = _dt_e.datetime.utcnow().isoformat() + "Z"
+        with _r431_db() as conn:
+            row = conn.execute(
+                "SELECT approver_account_id, status FROM hitl_engagements WHERE engagement_id=?",
+                (engagement_id,)
+            ).fetchone()
+            if not row:
+                return JSONResponse({"ok": False, "error": "engagement not found"}, status_code=404)
+            if row["approver_account_id"] != account_id:
+                return JSONResponse({"ok": False, "error": "not your engagement"}, status_code=403)
+            if row["status"] != "active":
+                return JSONResponse({"ok": False, "error": f"already {row['status']}"}, status_code=409)
+            conn.execute(
+                "UPDATE hitl_engagements SET status='revoked', revoked_at=?, revoked_reason=? WHERE engagement_id=?",
+                (now, reason, engagement_id)
+            )
+            conn.commit()
+        _r431_log_event(engagement_id, None, "revoke", account_id, request,
+                       credential_snapshot=cred, notes=reason)
+        return {"ok": True, "engagement_id": engagement_id, "revoked_at": now}
+
+    # ── GET /api/hitl/items ── (items I can act on, filtered by my engagements)
+    @app.get("/api/hitl/items", include_in_schema=False)
+    async def r431_my_items(request: Request):
+        account_id, _, _ = _r431_who(request)
+        if account_id == "anonymous":
+            return JSONResponse({"ok": False, "error": "auth required"}, status_code=401)
+        import datetime as _dt_e
+        now = _dt_e.datetime.utcnow().isoformat() + "Z"
+        with _r431_db() as conn:
+            engaged_classes = [r["action_class"] for r in conn.execute(
+                """SELECT DISTINCT action_class FROM hitl_engagements
+                   WHERE approver_account_id=? AND status='active'
+                     AND valid_from <= ? AND valid_until >= ?""",
+                (account_id, now, now)
+            ).fetchall()]
+            if not engaged_classes:
+                return {"ok": True, "items": [], "count": 0,
+                       "note": "no active engagements — engage via POST /api/hitl/engage"}
+            # hitl_jobs.action field maps to action_class
+            placeholders = ",".join("?" * len(engaged_classes))
+            rows = conn.execute(
+                f"""SELECT * FROM hitl_jobs
+                    WHERE status='open' AND template_code IN ({placeholders})
+                    ORDER BY created_at DESC LIMIT 200""",
+                engaged_classes
+            ).fetchall()
+        return {"ok": True, "items": [dict(r) for r in rows], "count": len(rows),
+                "engaged_classes": engaged_classes}
+
+    # ── POST /api/hitl/items/{item_id}/decide ── (§1B.1, §1B.2, §1B.4)
+    @app.post("/api/hitl/items/{item_id}/decide", include_in_schema=False)
+    async def r431_decide(item_id: str, request: Request):
+        import json as _j, datetime as _dt_e
+        try:
+            body = await request.json()
+        except Exception:
+            body = {}
+        action_type = (body.get("action") or "").lower()
+        if action_type not in ("approve", "reject", "edit", "defer", "escalate"):
+            return JSONResponse({"ok": False,
+                "error": "action must be approve|reject|edit|defer|escalate"}, status_code=400)
+        edited_payload = body.get("edited_payload")  # for edit
+        notes = body.get("notes", "")
+
+        account_id, _, cred = _r431_who(request)
+        if account_id == "anonymous":
+            return JSONResponse({"ok": False, "error": "auth required"}, status_code=401)
+
+        # Fetch the item
+        with _r431_db() as conn:
+            item = conn.execute("SELECT * FROM hitl_jobs WHERE id=?", (item_id,)).fetchone()
+        if not item:
+            return JSONResponse({"ok": False, "error": "item not found"}, status_code=404)
+        if item["status"] != "open":
+            return JSONResponse({"ok": False, "error": f"item already {item['status']}"}, status_code=409)
+
+        item_action_class = item["template_code"] or "unknown"
+        engagement_id = _r431_active_engagement(account_id, item_action_class)
+        if not engagement_id:
+            # §1B.0 — refuse to route to unengaged approver
+            return JSONResponse({"ok": False,
+                "error": f"no active engagement for action_class={item_action_class}",
+                "remedy": "POST /api/hitl/engage with this action_class first"},
+                status_code=403)
+
+        # Hash presented + approved payloads (§1B.4)
+        presented_payload = item["submitted_data"] or "{}"
+        hash_presented = _r431_hash_text(presented_payload)
+        if action_type == "edit" and edited_payload is not None:
+            approved_payload = _j.dumps(edited_payload) if not isinstance(edited_payload, str) else edited_payload
+            hash_approved = _r431_hash_text(approved_payload)
+            final_status = "edited"
+        elif action_type == "approve":
+            approved_payload = presented_payload
+            hash_approved = hash_presented
+            final_status = "approved"
+        elif action_type == "reject":
+            approved_payload = None
+            hash_approved = None
+            final_status = "rejected"
+        elif action_type == "defer":
+            approved_payload = None
+            hash_approved = None
+            final_status = "deferred"
+        else:  # escalate
+            approved_payload = None
+            hash_approved = None
+            final_status = "escalated"
+
+        # Update item + log event atomically
+        now = _dt_e.datetime.utcnow().isoformat() + "Z"
+        with _r431_db() as conn:
+            conn.execute(
+                """UPDATE hitl_jobs
+                   SET status=?, validated_at=?, validated_by=?, notes=?, updated_at=?
+                   WHERE id=?""",
+                (final_status, now, account_id, notes or action_type, now, item_id)
+            )
+            conn.commit()
+
+        # _R454C_BRIDGE — mirror status to outbound_email_queue (murphy_mail.db)
+        # for items that originated from lead_prospector (queue_id == hitl_job_id).
+        try:
+            import sqlite3 as _sq454c
+            _mail_status = {
+                "approved": "approved",
+                "rejected": "rejected",
+                "edited":   "approved",
+                "deferred": "pending_review",
+                "escalated": "pending_review",
+            }.get(final_status, "pending_review")
+            with _sq454c.connect("/var/lib/murphy-production/murphy_mail.db", timeout=6) as _mdb:
+                _mdb.execute("PRAGMA busy_timeout=3000")
+                _mdb.execute(
+                    "UPDATE outbound_email_queue SET status=?, updated_at=?, "
+                    "approved_by=?, approved_at=?, reject_reason=? "
+                    "WHERE queue_id=?",
+                    (_mail_status, now,
+                     account_id if final_status in ("approved", "edited") else None,
+                     now if final_status in ("approved", "edited") else None,
+                     notes if final_status == "rejected" else None,
+                     item_id)
+                )
+                _mdb.commit()
+        except Exception as _bridge_err:
+            # Non-fatal — R431 audit trail is the source of truth
+            try:
+                logger.warning("R454c bridge (R431→mail) failed for %s: %s",
+                               item_id, _bridge_err)
+            except Exception:
+                pass
+
+        event_id = _r431_log_event(
+            engagement_id, item_id, action_type, account_id, request,
+            hash_presented=hash_presented, hash_approved=hash_approved,
+            credential_snapshot=cred, outcome=final_status, notes=notes
+        )
+        return {"ok": True, "event_id": event_id, "engagement_id": engagement_id,
+                "item_id": item_id, "action": action_type, "status": final_status,
+                "hash_of_item_presented": hash_presented,
+                "hash_of_item_approved": hash_approved}
+
+    # ── GET /api/hitl/events ── (audit trail, founder-only by convention)
+    @app.get("/api/hitl/events", include_in_schema=False)
+    async def r431_events(request: Request, engagement_id: str = "", item_id: str = "", limit: int = 100):
+        account_id, _, _ = _r431_who(request)
+        if account_id == "anonymous":
+            return JSONResponse({"ok": False, "error": "auth required"}, status_code=401)
+        clauses, params = [], []
+        if engagement_id:
+            clauses.append("engagement_id=?"); params.append(engagement_id)
+        if item_id:
+            clauses.append("item_id=?"); params.append(item_id)
+        where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
+        params.append(max(1, min(limit, 500)))
+        with _r431_db() as conn:
+            rows = conn.execute(
+                f"SELECT * FROM hitl_acceptance_events {where} ORDER BY ts DESC LIMIT ?",
+                params
+            ).fetchall()
+        return {"ok": True, "events": [dict(r) for r in rows], "count": len(rows)}
+
+    # ── END R431 ──
+    # ══════════════════════════════════════════════════════════════════════
+    # R432-R436 — IDENTITY HIERARCHY + MANAGEMENT ROSTER
+    # Sentinel: _R432_HIERARCHY_WIRED
+    # ══════════════════════════════════════════════════════════════════════
+    _R432_HIERARCHY_WIRED = True
+    _R432_MURPHY_DB = "/opt/Murphy-System/murphy.db"
+    _R432_ROLE_CATALOG = {
+        "founder":         {"level": 100, "scope": "platform", "appoints": ["platform_admin"]},
+        "platform_admin":  {"level": 90,  "scope": "platform", "appoints": ["platform_staff"]},
+        "platform_staff":  {"level": 80,  "scope": "platform", "appoints": []},
+        "family":          {"level": 70,  "scope": "platform", "appoints": []},
+        "tenant_owner":    {"level": 60,  "scope": "tenant",   "appoints": ["tenant_admin", "tenant_member"]},
+        "tenant_admin":    {"level": 50,  "scope": "tenant",   "appoints": ["tenant_member"]},
+        "tenant_member":   {"level": 40,  "scope": "tenant",   "appoints": []},
+        "user":            {"level": 10,  "scope": "self",     "appoints": []},
+    }
+
+    def _r432_db():
+        import sqlite3 as _sq
+        c = _sq.connect(_R432_MURPHY_DB, timeout=10, isolation_level=None)
+        c.row_factory = _sq.Row
+        c.execute("PRAGMA busy_timeout=8000")
+        c.execute("PRAGMA journal_mode=WAL")
+        return c
+
+    def _r432_resolve_identity(request):
+        """Return enriched identity: {account_id, email, role, org_id, env, scope}.
+
+        Resolution order:
+          1. Get base account from session/api-key/oidc
+          2. Look up org_membership for active role
+          3. Fall back to family_allowlist (env='family')
+          4. Fall back to flat 'user' in self-org
+        """
+        import datetime as _dt_r
+        try:
+            acct = _account_or_founder(request) or _get_account_from_session(request) or {}
+        except Exception:
+            acct = {}
+        # R432 fallback: direct X-API-Key check (auth_middleware may have exempted this route)
+        if not acct or not acct.get("account_id"):
+            import os as _os_r, sqlite3 as _sq_r
+            try:
+                api_key = (request.headers.get("X-API-Key") or
+                           request.headers.get("x-api-key") or "")
+                founder_key = (_os_r.environ.get("FOUNDER_API_KEY") or
+                              _os_r.environ.get("MURPHY_API_KEY", ""))
+                if api_key and founder_key and api_key == founder_key:
+                    femail = _os_r.environ.get("MURPHY_FOUNDER_EMAIL", "cpost@murphy.systems")
+                    c = _sq_r.connect(_R432_MURPHY_DB, timeout=2)
+                    row = c.execute(
+                        "SELECT account_id, email FROM user_accounts WHERE email=? LIMIT 1",
+                        (femail,)).fetchone()
+                    c.close()
+                    if row:
+                        acct = {"account_id": row[0], "email": row[1], "role": "founder"}
+            except Exception:
+                pass
+        if not acct or not acct.get("account_id"):
+            return {"account_id": "anonymous", "email": "", "role": "anonymous",
+                    "org_id": None, "env": "public", "scope": "none"}
+
+        account_id = acct["account_id"]
+        email = (acct.get("email") or "").lower()
+
+        with _r432_db() as conn:
+            # 1. Active org membership (highest level wins)
+            rows = conn.execute(
+                """SELECT m.org_id, m.role, o.name AS org_name, o.org_type
+                   FROM org_membership m JOIN organizations o ON m.org_id=o.org_id
+                   WHERE m.account_id=? AND m.revoked_at IS NULL AND o.status='active'""",
+                (account_id,)
+            ).fetchall()
+            if rows:
+                best = max(rows, key=lambda r: _R432_ROLE_CATALOG.get(r["role"], {}).get("level", 0))
+                role = best["role"]
+                org_id = best["org_id"]
+                org_type = best["org_type"]
+                env = "founder" if role == "founder" else                       "platform" if org_type == "platform" else                       "tenant"
+                return {"account_id": account_id, "email": email, "role": role,
+                        "org_id": org_id, "org_name": best["org_name"],
+                        "env": env, "scope": _R432_ROLE_CATALOG[role]["scope"]}
+
+            # 2. Family allowlist
+            fam = conn.execute(
+                "SELECT email, scope_json FROM family_allowlist WHERE email=? AND status='active'",
+                (email,)
+            ).fetchone()
+            if fam:
+                import json as _j_r
+                return {"account_id": account_id, "email": email, "role": "family",
+                        "org_id": "PLATFORM", "org_name": "Murphy Family",
+                        "env": "family", "scope": "platform",
+                        "family_scope": _j_r.loads(fam["scope_json"] or "[]")}
+
+        # 3. Default: plain user in their own self-scope
+        return {"account_id": account_id, "email": email, "role": "user",
+                "org_id": None, "env": "user", "scope": "self"}
+
+    def _r432_require_role(request, required_roles):
+        """Returns identity dict if role in required_roles, else raises HTTPException 403."""
+        from fastapi import HTTPException as _HX
+        ident = _r432_resolve_identity(request)
+        if ident["role"] not in required_roles:
+            raise _HX(status_code=403, detail={
+                "error": "insufficient_role",
+                "your_role": ident["role"],
+                "required": list(required_roles)
+            })
+        return ident
+
+    # ── GET /api/auth/whoami — enriched identity (R436) ──
+    @app.get("/api/auth/whoami", include_in_schema=False)
+    async def r432_whoami(request: Request):
+        ident = _r432_resolve_identity(request)
+        return {"ok": True, **ident}
+    # ── POST /api/founder/appoint — founder appoints platform_admin ──
+    @app.post("/api/founder/appoint", include_in_schema=False)
+    async def r432_founder_appoint(request: Request):
+        import json as _j_a, uuid as _uu_a
+        ident = _r432_require_role(request, {"founder"})
+        body = await request.json()
+        target_email = (body.get("target_email") or "").lower()
+        role = body.get("role", "platform_admin")
+        reason = body.get("reason", "")
+
+        if role not in _R432_ROLE_CATALOG[ident["role"]]["appoints"]:
+            return JSONResponse({"ok": False,
+                "error": f"founder cannot appoint role={role}",
+                "can_appoint": _R432_ROLE_CATALOG["founder"]["appoints"]},
+                status_code=400)
+
+        with _r432_db() as conn:
+            tgt = conn.execute(
+                "SELECT account_id FROM user_accounts WHERE email=?", (target_email,)
+            ).fetchone()
+            if not tgt:
+                return JSONResponse({"ok": False, "error": f"no user with email {target_email}"}, status_code=404)
+            target_id = tgt["account_id"]
+
+            # Check existing membership in PLATFORM
+            existing = conn.execute(
+                "SELECT role FROM org_membership WHERE account_id=? AND org_id='PLATFORM' AND revoked_at IS NULL",
+                (target_id,)
+            ).fetchone()
+            from_role = existing["role"] if existing else None
+
+            if existing:
+                conn.execute(
+                    "UPDATE org_membership SET role=?, appointed_by=?, appointed_at=datetime('now') WHERE account_id=? AND org_id='PLATFORM'",
+                    (role, ident["account_id"], target_id)
+                )
+            else:
+                conn.execute(
+                    """INSERT INTO org_membership (account_id, org_id, role, appointed_by)
+                       VALUES (?, 'PLATFORM', ?, ?)""",
+                    (target_id, role, ident["account_id"])
+                )
+
+            # Audit
+            audit_id = "apt_" + _uu_a.uuid4().hex[:24]
+            ip = request.client.host if request.client else ""
+            ua = request.headers.get("user-agent", "")[:300]
+            conn.execute(
+                """INSERT INTO appointments_audit
+                   (audit_id, actor_account_id, target_account_id, org_id, action, from_role, to_role, reason, ip, user_agent)
+                   VALUES (?,?,?,?,?,?,?,?,?,?)""",
+                (audit_id, ident["account_id"], target_id, "PLATFORM",
+                 "role_change" if from_role else "appoint", from_role, role, reason, ip, ua)
+            )
+            conn.commit()
+
+        return {"ok": True, "appointed": {"target_email": target_email, "account_id": target_id,
+                                          "org_id": "PLATFORM", "role": role,
+                                          "from_role": from_role, "audit_id": audit_id}}
+
+    # ── POST /api/founder/revoke — founder revokes platform role ──
+    @app.post("/api/founder/revoke", include_in_schema=False)
+    async def r432_founder_revoke(request: Request):
+        import uuid as _uu_r
+        ident = _r432_require_role(request, {"founder"})
+        body = await request.json()
+        target_email = (body.get("target_email") or "").lower()
+        reason = body.get("reason", "revoked by founder")
+        with _r432_db() as conn:
+            tgt = conn.execute(
+                "SELECT account_id FROM user_accounts WHERE email=?", (target_email,)
+            ).fetchone()
+            if not tgt:
+                return JSONResponse({"ok": False, "error": "user not found"}, status_code=404)
+            target_id = tgt["account_id"]
+            row = conn.execute(
+                "SELECT role FROM org_membership WHERE account_id=? AND org_id='PLATFORM' AND revoked_at IS NULL",
+                (target_id,)
+            ).fetchone()
+            if not row:
+                return JSONResponse({"ok": False, "error": "no active membership"}, status_code=404)
+            if row["role"] == "founder":
+                return JSONResponse({"ok": False, "error": "founder cannot revoke founder"}, status_code=403)
+            from_role = row["role"]
+            conn.execute(
+                "UPDATE org_membership SET revoked_at=datetime('now'), revoked_by=?, revoked_reason=? WHERE account_id=? AND org_id='PLATFORM'",
+                (ident["account_id"], reason, target_id)
+            )
+            audit_id = "apt_" + _uu_r.uuid4().hex[:24]
+            conn.execute(
+                """INSERT INTO appointments_audit
+                   (audit_id, actor_account_id, target_account_id, org_id, action, from_role, to_role, reason, ip)
+                   VALUES (?,?,?,?,?,?,?,?,?)""",
+                (audit_id, ident["account_id"], target_id, "PLATFORM",
+                 "revoke", from_role, None, reason,
+                 request.client.host if request.client else "")
+            )
+            conn.commit()
+        return {"ok": True, "revoked": {"target_email": target_email, "from_role": from_role,
+                                        "audit_id": audit_id}}
+
+    # ── POST /api/tenant/{org_id}/appoint — tenant_owner/admin appoints within their org ──
+    @app.post("/api/tenant/{org_id}/appoint", include_in_schema=False)
+    async def r432_tenant_appoint(org_id: str, request: Request):
+        import uuid as _uu_ta
+        ident = _r432_resolve_identity(request)
+        if ident["role"] not in ("tenant_owner", "tenant_admin"):
+            return JSONResponse({"ok": False, "error": "must be tenant_owner or tenant_admin"}, status_code=403)
+        if ident["org_id"] != org_id:
+            return JSONResponse({"ok": False, "error": "can only appoint within your own org"}, status_code=403)
+
+        body = await request.json()
+        target_email = (body.get("target_email") or "").lower()
+        role = body.get("role", "tenant_member")
+        reason = body.get("reason", "")
+
+        if role not in _R432_ROLE_CATALOG[ident["role"]]["appoints"]:
+            return JSONResponse({"ok": False,
+                "error": f"{ident['role']} cannot appoint role={role}",
+                "can_appoint": _R432_ROLE_CATALOG[ident["role"]]["appoints"]},
+                status_code=400)
+
+        with _r432_db() as conn:
+            tgt = conn.execute(
+                "SELECT account_id FROM user_accounts WHERE email=?", (target_email,)
+            ).fetchone()
+            if not tgt:
+                return JSONResponse({"ok": False, "error": "user not found — must signup first"}, status_code=404)
+            target_id = tgt["account_id"]
+
+            existing = conn.execute(
+                "SELECT role FROM org_membership WHERE account_id=? AND org_id=? AND revoked_at IS NULL",
+                (target_id, org_id)
+            ).fetchone()
+            from_role = existing["role"] if existing else None
+
+            if existing:
+                conn.execute(
+                    "UPDATE org_membership SET role=?, appointed_by=?, appointed_at=datetime('now') WHERE account_id=? AND org_id=?",
+                    (role, ident["account_id"], target_id, org_id)
+                )
+            else:
+                conn.execute(
+                    """INSERT INTO org_membership (account_id, org_id, role, appointed_by)
+                       VALUES (?, ?, ?, ?)""",
+                    (target_id, org_id, role, ident["account_id"])
+                )
+            audit_id = "apt_" + _uu_ta.uuid4().hex[:24]
+            conn.execute(
+                """INSERT INTO appointments_audit
+                   (audit_id, actor_account_id, target_account_id, org_id, action, from_role, to_role, reason)
+                   VALUES (?,?,?,?,?,?,?,?)""",
+                (audit_id, ident["account_id"], target_id, org_id,
+                 "role_change" if from_role else "appoint", from_role, role, reason)
+            )
+            conn.commit()
+        return {"ok": True, "appointed": {"target_email": target_email, "org_id": org_id,
+                                          "role": role, "from_role": from_role, "audit_id": audit_id}}
+
+    # ── POST /api/tenant/create — create a new tenant org (any user can create their own) ──
+    @app.post("/api/tenant/create", include_in_schema=False)
+    async def r432_create_tenant(request: Request):
+        import uuid as _uu_c, json as _j_c
+        ident = _r432_resolve_identity(request)
+        if ident["account_id"] == "anonymous":
+            return JSONResponse({"ok": False, "error": "auth required"}, status_code=401)
+        body = await request.json()
+        name = body.get("name", "").strip()
+        if not name:
+            return JSONResponse({"ok": False, "error": "name required"}, status_code=400)
+        org_id = "org_" + _uu_c.uuid4().hex[:20]
+        with _r432_db() as conn:
+            conn.execute(
+                """INSERT INTO organizations (org_id, name, org_type, owner_account_id, metadata_json)
+                   VALUES (?, ?, 'tenant', ?, ?)""",
+                (org_id, name, ident["account_id"], _j_c.dumps(body.get("metadata", {})))
+            )
+            conn.execute(
+                """INSERT INTO org_membership (account_id, org_id, role, appointed_by)
+                   VALUES (?, ?, 'tenant_owner', ?)""",
+                (ident["account_id"], org_id, ident["account_id"])
+            )
+            conn.commit()
+        return {"ok": True, "org_id": org_id, "name": name, "your_role": "tenant_owner"}
+
+    # ── POST /api/founder/family/add ──
+    @app.post("/api/founder/family/add", include_in_schema=False)
+    async def r432_family_add(request: Request):
+        import json as _j_f
+        ident = _r432_require_role(request, {"founder"})
+        body = await request.json()
+        email = (body.get("email") or "").lower()
+        if not email:
+            return JSONResponse({"ok": False, "error": "email required"}, status_code=400)
+        with _r432_db() as conn:
+            conn.execute(
+                """INSERT OR REPLACE INTO family_allowlist
+                   (email, display_name, scope_json, added_by, notes, status)
+                   VALUES (?, ?, ?, ?, ?, 'active')""",
+                (email, body.get("display_name", ""),
+                 _j_f.dumps(body.get("scope", [])), ident["account_id"],
+                 body.get("notes", ""))
+            )
+            conn.commit()
+        return {"ok": True, "added": email}
+
+    # ── DELETE /api/founder/family/{email} ──
+    @app.delete("/api/founder/family/{email}", include_in_schema=False)
+    async def r432_family_remove(email: str, request: Request):
+        ident = _r432_require_role(request, {"founder"})
+        with _r432_db() as conn:
+            conn.execute(
+                "UPDATE family_allowlist SET status='removed', removed_at=datetime('now') WHERE email=?",
+                (email.lower(),)
+            )
+            conn.commit()
+        return {"ok": True, "removed": email}
+
+    # ══════════════════════════════════════════════════════════════════════
+    # MANAGEMENT ROSTER — spreadsheet of accounts/users by tenant
+    # ══════════════════════════════════════════════════════════════════════
+    def _r432_build_roster(conn, scope_org_id=None):
+        """Return list of dicts: one row per account, with org context.
+        If scope_org_id given, restrict to that org. Otherwise all orgs (founder view)."""
+        if scope_org_id:
+            where = "WHERE m.org_id=? AND m.revoked_at IS NULL"
+            params = (scope_org_id,)
+        else:
+            where = "WHERE m.revoked_at IS NULL"
+            params = ()
+        rows = conn.execute(f"""
+            SELECT
+              u.account_id, u.email, u.created_at AS account_created,
+              m.org_id, o.name AS org_name, o.org_type, o.owner_account_id,
+              m.role, m.appointed_by, m.appointed_at,
+              json_extract(u.data,'$.tier') AS tier,
+              json_extract(u.data,'$.full_name') AS full_name
+            FROM org_membership m
+            JOIN user_accounts u ON m.account_id = u.account_id
+            JOIN organizations o ON m.org_id = o.org_id
+            {where}
+            ORDER BY o.org_type DESC, o.name, m.role, u.email
+        """, params).fetchall()
+
+        # Also include un-mem'd accounts (plain users) — only in founder scope
+        if not scope_org_id:
+            free = conn.execute("""
+                SELECT u.account_id, u.email, u.created_at AS account_created,
+                       NULL AS org_id, NULL AS org_name, 'none' AS org_type,
+                       NULL AS owner_account_id, 'user' AS role,
+                       NULL AS appointed_by, NULL AS appointed_at,
+                       json_extract(u.data,'$.tier') AS tier,
+                       json_extract(u.data,'$.full_name') AS full_name
+                FROM user_accounts u
+                WHERE u.account_id NOT IN (
+                    SELECT DISTINCT account_id FROM org_membership WHERE revoked_at IS NULL
+                )
+                ORDER BY u.created_at
+            """).fetchall()
+            return [dict(r) for r in rows] + [dict(r) for r in free]
+        return [dict(r) for r in rows]
+
+    # ── GET /api/admin/roster — JSON spreadsheet ──
+    @app.get("/api/admin/roster", include_in_schema=False)
+    async def r432_roster(request: Request, org_id: str = ""):
+        ident = _r432_resolve_identity(request)
+        if ident["role"] == "founder":
+            with _r432_db() as conn:
+                rows = _r432_build_roster(conn, scope_org_id=org_id or None)
+            return {"ok": True, "scope": "all" if not org_id else org_id, "count": len(rows), "rows": rows}
+        elif ident["role"] in ("tenant_owner", "tenant_admin"):
+            with _r432_db() as conn:
+                rows = _r432_build_roster(conn, scope_org_id=ident["org_id"])
+            return {"ok": True, "scope": ident["org_id"], "count": len(rows), "rows": rows}
+        elif ident["role"] in ("platform_admin",):
+            with _r432_db() as conn:
+                rows = _r432_build_roster(conn, scope_org_id="PLATFORM")
+            return {"ok": True, "scope": "PLATFORM", "count": len(rows), "rows": rows}
+        else:
+            return JSONResponse({"ok": False, "error": "insufficient role",
+                "your_role": ident["role"]}, status_code=403)
+
+    # ── GET /api/admin/roster.csv — downloadable spreadsheet ──
+    @app.get("/api/admin/roster.csv", include_in_schema=False)
+    async def r432_roster_csv(request: Request, org_id: str = ""):
+        import csv as _csv, io as _io
+        from fastapi.responses import StreamingResponse as _SR
+        ident = _r432_resolve_identity(request)
+        if ident["role"] == "founder":
+            scope = org_id or None
+        elif ident["role"] in ("tenant_owner", "tenant_admin"):
+            scope = ident["org_id"]
+        elif ident["role"] == "platform_admin":
+            scope = "PLATFORM"
+        else:
+            return JSONResponse({"ok": False, "error": "insufficient role"}, status_code=403)
+        with _r432_db() as conn:
+            rows = _r432_build_roster(conn, scope_org_id=scope)
+        buf = _io.StringIO()
+        w = _csv.writer(buf)
+        w.writerow(["account_id", "email", "full_name", "tier",
+                   "org_id", "org_name", "org_type", "role",
+                   "appointed_by", "appointed_at", "account_created"])
+        for r in rows:
+            w.writerow([r.get("account_id",""), r.get("email",""), r.get("full_name") or "",
+                       r.get("tier") or "free",
+                       r.get("org_id") or "", r.get("org_name") or "(no org)",
+                       r.get("org_type") or "none", r.get("role",""),
+                       r.get("appointed_by") or "", r.get("appointed_at") or "",
+                       r.get("account_created") or ""])
+        buf.seek(0)
+        fname = f"roster_{scope or 'all'}_{__import__('datetime').datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.csv"
+        return _SR(iter([buf.getvalue()]), media_type="text/csv",
+                  headers={"Content-Disposition": f"attachment; filename={fname}"})
+
+    # ── GET /api/admin/orgs — list orgs (founder sees all, tenant sees own) ──
+    @app.get("/api/admin/orgs", include_in_schema=False)
+    async def r432_list_orgs(request: Request):
+        ident = _r432_resolve_identity(request)
+        with _r432_db() as conn:
+            if ident["role"] == "founder":
+                rows = conn.execute(
+                    """SELECT o.org_id, o.name, o.org_type, o.owner_account_id, o.status, o.created_at,
+                              (SELECT COUNT(*) FROM org_membership WHERE org_id=o.org_id AND revoked_at IS NULL) AS member_count
+                       FROM organizations o ORDER BY o.org_type DESC, o.name"""
+                ).fetchall()
+            elif ident["role"] in ("tenant_owner", "tenant_admin", "tenant_member"):
+                rows = conn.execute(
+                    """SELECT o.org_id, o.name, o.org_type, o.owner_account_id, o.status, o.created_at,
+                              (SELECT COUNT(*) FROM org_membership WHERE org_id=o.org_id AND revoked_at IS NULL) AS member_count
+                       FROM organizations o WHERE o.org_id=?""",
+                    (ident["org_id"],)
+                ).fetchall()
+            else:
+                return JSONResponse({"ok": False, "error": "insufficient role"}, status_code=403)
+        return {"ok": True, "count": len(rows), "orgs": [dict(r) for r in rows]}
+
+    # ── GET /api/admin/appointments — audit trail ──
+    @app.get("/api/admin/appointments", include_in_schema=False)
+    async def r432_appointments_log(request: Request, limit: int = 200):
+        ident = _r432_resolve_identity(request)
+        with _r432_db() as conn:
+            if ident["role"] == "founder":
+                rows = conn.execute(
+                    "SELECT * FROM appointments_audit ORDER BY ts DESC LIMIT ?",
+                    (max(1, min(limit, 1000)),)
+                ).fetchall()
+            elif ident["role"] in ("tenant_owner", "tenant_admin"):
+                rows = conn.execute(
+                    "SELECT * FROM appointments_audit WHERE org_id=? ORDER BY ts DESC LIMIT ?",
+                    (ident["org_id"], max(1, min(limit, 1000)))
+                ).fetchall()
+            else:
+                return JSONResponse({"ok": False, "error": "insufficient role"}, status_code=403)
+        return {"ok": True, "count": len(rows), "events": [dict(r) for r in rows]}
+
+    # ── GET /api/founder/family — list family members ──
+    @app.get("/api/founder/family", include_in_schema=False)
+    async def r432_family_list(request: Request):
+        ident = _r432_require_role(request, {"founder"})
+        with _r432_db() as conn:
+            rows = conn.execute(
+                "SELECT email, display_name, scope_json, added_at, status, notes FROM family_allowlist ORDER BY added_at DESC"
+            ).fetchall()
+        return {"ok": True, "count": len(rows), "family": [dict(r) for r in rows]}
+
+    # ── END R432-R436 ──
+    # ══════════════════════════════════════════════════════════════════════
+    # R438 — GUIDED FLOWS (role-aware onboarding/orientation)
+    # Sentinel: _R438_GUIDED_FLOWS_WIRED
+    # ══════════════════════════════════════════════════════════════════════
+    _R438_GUIDED_FLOWS_WIRED = True
+
+    # Flow definitions. Each step: id, title, description, action (link|api|form|info),
+    # target (URL or endpoint), required (bool), category.
+    _R438_FLOWS = {
+        "founder": {
+            "title": "Founder operations",
+            "subtitle": "The 5 things to keep Murphy healthy",
+            "steps": [
+                {"id": "verify_engagements", "title": "Verify HITL engagements active",
+                 "description": "Confirm you have active engagements for the action classes the system uses.",
+                 "action": "api_check", "target": "/api/hitl/engagements",
+                 "check": "count_gte_1", "required": True, "category": "compliance"},
+                {"id": "review_roster", "title": "Review the user roster",
+                 "description": "See every user across every tenant. Spreadsheet view.",
+                 "action": "link", "target": "/admin/roster",
+                 "required": False, "category": "management"},
+                {"id": "add_family", "title": "Add a family allowlist member",
+                 "description": "Family can autorespond and read reports without an account.",
+                 "action": "link", "target": "/admin/family",
+                 "required": False, "category": "platform"},
+                {"id": "check_inbox", "title": "Review HITL inbox",
+                 "description": "Approve or reject the things Murphy is asking about.",
+                 "action": "link", "target": "/hitl/inbox",
+                 "required": False, "category": "daily"},
+                {"id": "review_cadence", "title": "Verify cadence pipeline",
+                 "description": "Confirm the sales cadence is producing drafts.",
+                 "action": "api_check", "target": "/api/hitl/items",
+                 "check": "count_gte_0", "required": False, "category": "monitoring"}
+            ]
+        },
+        "platform_admin": {
+            "title": "Platform admin orientation",
+            "subtitle": "You\u2019ve been appointed. Here\u2019s your scope.",
+            "steps": [
+                {"id": "accept_role", "title": "Acknowledge appointment",
+                 "description": "Read what platform_admin means and accept.",
+                 "action": "info", "target": "/welcome/scope/platform_admin",
+                 "required": True, "category": "compliance"},
+                {"id": "engage_hitl", "title": "Set up your HITL engagement",
+                 "description": "Engage for the action classes you\u2019re responsible for.",
+                 "action": "link", "target": "/hitl/engage",
+                 "required": True, "category": "compliance"},
+                {"id": "tour_dashboards", "title": "Tour the platform dashboards",
+                 "description": "Operations, billing, HITL queue, system health.",
+                 "action": "link", "target": "/op",
+                 "required": False, "category": "orientation"},
+                {"id": "notif_prefs", "title": "Set notification preferences",
+                 "description": "How Murphy reaches you.",
+                 "action": "link", "target": "/settings/notifications",
+                 "required": False, "category": "settings"}
+            ]
+        },
+        "platform_staff": {
+            "title": "Platform staff orientation",
+            "subtitle": "Welcome to the Murphy platform team.",
+            "steps": [
+                {"id": "accept_role", "title": "Acknowledge appointment",
+                 "action": "info", "target": "/welcome/scope/platform_staff",
+                 "required": True, "category": "compliance"},
+                {"id": "view_scope", "title": "View your assigned scope",
+                 "action": "link", "target": "/me/scope",
+                 "required": True, "category": "orientation"},
+                {"id": "tour_ticket_queue", "title": "Tour your ticket queue",
+                 "action": "link", "target": "/me/tickets",
+                 "required": False, "category": "orientation"},
+                {"id": "read_sops", "title": "Read the team SOPs",
+                 "action": "link", "target": "/docs/sops",
+                 "required": False, "category": "training"}
+            ]
+        },
+        "family": {
+            "title": "Hi! You\u2019re on Murphy\u2019s family allowlist.",
+            "subtitle": "Here\u2019s how this works.",
+            "steps": [
+                {"id": "see_scope", "title": "See what\u2019s allowed for you",
+                 "description": "Murphy can autorespond to your messages and share certain reports.",
+                 "action": "api_check", "target": "/api/auth/whoami",
+                 "check": "is_family", "required": True, "category": "info"},
+                {"id": "channel_prefs", "title": "Tell Murphy how to reach you",
+                 "description": "Email, SMS, voice. Pick what works.",
+                 "action": "form", "target": "/welcome/family/channels",
+                 "required": False, "category": "settings"}
+            ]
+        },
+        "tenant_owner": {
+            "title": "Set up your Murphy tenant",
+            "subtitle": "6 steps to a working org.",
+            "steps": [
+                {"id": "name_org", "title": "Name your organization",
+                 "description": "What\u2019s the company / team name?",
+                 "action": "form", "target": "/api/tenant/create",
+                 "required": True, "category": "setup"},
+                {"id": "claim_slug", "title": "Pick your URL",
+                 "description": "Your tenant lives at murphy.systems/<slug>. 3-30 lowercase letters, numbers, hyphens.",
+                 "action": "form", "target": "/api/tenant/claim-slug",
+                 "required": True, "category": "setup"},
+                {"id": "pick_plan", "title": "Choose a plan",
+                 "description": "Pilot ($99), Growth ($499), Scale ($1499), or trial.",
+                 "action": "link", "target": "/pricing",
+                 "required": True, "category": "billing"},
+                # _R448_INLINE
+                {"id": "engage_hitl", "title": "Set up HITL engagement",
+                 "description": "Tell Murphy which actions need your approval.",
+                 "action": "form", "target": "/api/hitl/engage",
+                 "required": True, "category": "compliance"},
+                {"id": "invite_first", "title": "Invite your first teammate",
+                 "description": "Add an admin or member to your org.",
+                 "action": "form", "target": "/api/tenant/{org_id}/appoint",
+                 "required": False, "category": "team"},
+                {"id": "connect_data", "title": "Connect a data source",
+                 "description": "Gmail, calendar, Slack, or upload a doc.",
+                 "action": "form", "target": "/api/integrations/add",
+                 "required": False, "category": "data"}
+            ]
+        },
+        "tenant_admin": {
+            "title": "Tenant admin orientation",
+            "subtitle": "You\u2019ve been appointed by the owner.",
+            "steps": [
+                {"id": "accept_role", "title": "Acknowledge appointment",
+                 "action": "info", "target": "/welcome/scope/tenant_admin",
+                 "required": True, "category": "compliance"},
+                {"id": "see_members", "title": "See your org members",
+                 "action": "link", "target": "/admin/roster",
+                 "required": True, "category": "management"},
+                {"id": "engage_hitl", "title": "Set up your HITL engagement",
+                 "action": "link", "target": "/hitl/engage",
+                 "required": True, "category": "compliance"},
+                {"id": "first_workflow", "title": "Set up your first workflow",
+                 "action": "link", "target": "/tenant/workflows",
+                 "required": False, "category": "operations"}
+            ]
+        },
+        "tenant_member": {
+            "title": "Welcome to the team",
+            "subtitle": "You\u2019ve been added to a Murphy tenant.",
+            "steps": [
+                {"id": "accept_role", "title": "Acknowledge membership",
+                 "action": "info", "target": "/welcome/scope/tenant_member",
+                 "required": True, "category": "compliance"},
+                {"id": "tour_dashboard", "title": "Tour your tenant dashboard",
+                 "action": "link", "target": "/tenant/dashboard",
+                 "required": False, "category": "orientation"},
+                {"id": "see_tasks", "title": "See your task queue",
+                 "action": "link", "target": "/me/tasks",
+                 "required": False, "category": "daily"}
+            ]
+        },
+        "user": {
+            "title": "Welcome to Murphy",
+            "subtitle": "How do you want to use it?",
+            "steps": [
+                {"id": "intro", "title": "Quick intro to Murphy",
+                 "description": "1-page overview of what Murphy can do for you.",
+                 "action": "info", "target": "/welcome/intro",
+                 "required": False, "category": "orientation"},
+                {"id": "pick_path", "title": "Pick your path",
+                 "description": "Personal AI \u00b7 Create an org \u00b7 Accept an invite",
+                 "action": "form", "target": "/welcome/pick-path",
+                 "required": True, "category": "setup"}
+            ]
+        }
+    }
+
+    def _r438_db():
+        import sqlite3 as _sq
+        c = _sq.connect("/opt/Murphy-System/murphy.db", timeout=10, isolation_level=None)
+        c.row_factory = _sq.Row
+        c.execute("PRAGMA busy_timeout=8000")
+        return c
+
+    def _r438_compute_progress(account_id, flow_id):
+        """Return dict of step_id → {completed_at, skipped, payload}."""
+        with _r438_db() as conn:
+            rows = conn.execute(
+                "SELECT step_id, completed_at, skipped, payload_json FROM flow_progress WHERE account_id=? AND flow_id=?",
+                (account_id, flow_id)
+            ).fetchall()
+        return {r["step_id"]: {"completed_at": r["completed_at"],
+                               "skipped": bool(r["skipped"]),
+                               "payload": r["payload_json"]} for r in rows}
+
+    def _r438_flow_for_role(role):
+        # Multiple roles share fallback flows
+        if role in _R438_FLOWS:
+            return role, _R438_FLOWS[role]
+        return "user", _R438_FLOWS["user"]
+
+    def _r438_compute_next_step(account_id, role):
+        """Return the next-incomplete step for this account, or None if done."""
+        flow_id, flow = _r438_flow_for_role(role)
+        progress = _r438_compute_progress(account_id, flow_id)
+        for step in flow["steps"]:
+            sid = step["id"]
+            if sid not in progress:
+                return {"flow_id": flow_id, **step,
+                        "total_steps": len(flow["steps"]),
+                        "completed_count": len(progress)}
+        return None  # all done
+
+    # ── GET /api/flows/me — flow + progress + next step ──
+    @app.get("/api/flows/me", include_in_schema=False)
+    async def r438_my_flow(request: Request):
+        ident = _r432_resolve_identity(request)
+        if ident["role"] == "anonymous":
+            return JSONResponse({"ok": False, "error": "auth required"}, status_code=401)
+        flow_id, flow = _r438_flow_for_role(ident["role"])
+        progress = _r438_compute_progress(ident["account_id"], flow_id)
+        steps_out = []
+        for step in flow["steps"]:
+            sid = step["id"]
+            done = progress.get(sid)
+            steps_out.append({
+                **step,
+                "completed": bool(done),
+                "completed_at": done["completed_at"] if done else None,
+                "skipped": done["skipped"] if done else False
+            })
+        next_step = _r438_compute_next_step(ident["account_id"], ident["role"])
+        return {
+            "ok": True,
+            "flow_id": flow_id,
+            "title": flow["title"],
+            "subtitle": flow["subtitle"],
+            "total_steps": len(flow["steps"]),
+            "completed_steps": len(progress),
+            "percent_complete": round(100 * len(progress) / max(1, len(flow["steps"]))),
+            "next_step": next_step,
+            "steps": steps_out,
+            "role": ident["role"],
+            "org_id": ident.get("org_id"),
+        }
+
+    # ── POST /api/flows/step-complete ──
+    @app.post("/api/flows/step-complete", include_in_schema=False)
+    async def r438_step_complete(request: Request):
+        import json as _j_s
+        ident = _r432_resolve_identity(request)
+        if ident["role"] == "anonymous":
+            return JSONResponse({"ok": False, "error": "auth required"}, status_code=401)
+        body = await request.json()
+        step_id = body.get("step_id", "")
+        skipped = bool(body.get("skipped", False))
+        payload = body.get("payload", {})
+        flow_id, flow = _r438_flow_for_role(ident["role"])
+        # Validate step exists in this flow
+        valid_ids = {s["id"] for s in flow["steps"]}
+        if step_id not in valid_ids:
+            return JSONResponse({"ok": False,
+                "error": f"step_id={step_id!r} not in flow={flow_id!r}",
+                "valid": list(valid_ids)}, status_code=400)
+        with _r438_db() as conn:
+            conn.execute(
+                """INSERT OR REPLACE INTO flow_progress
+                   (account_id, flow_id, step_id, completed_at, skipped, payload_json)
+                   VALUES (?, ?, ?, datetime('now'), ?, ?)""",
+                (ident["account_id"], flow_id, step_id, 1 if skipped else 0, _j_s.dumps(payload))
+            )
+            conn.commit()
+        next_step = _r438_compute_next_step(ident["account_id"], ident["role"])
+        return {"ok": True, "step_id": step_id, "skipped": skipped,
+                "next_step": next_step, "flow_complete": next_step is None}
+
+    # ── POST /api/flows/restart ──
+    @app.post("/api/flows/restart", include_in_schema=False)
+    async def r438_restart(request: Request):
+        ident = _r432_resolve_identity(request)
+        if ident["role"] == "anonymous":
+            return JSONResponse({"ok": False, "error": "auth required"}, status_code=401)
+        flow_id, _ = _r438_flow_for_role(ident["role"])
+        with _r438_db() as conn:
+            n = conn.execute(
+                "DELETE FROM flow_progress WHERE account_id=? AND flow_id=?",
+                (ident["account_id"], flow_id)
+            ).rowcount
+            conn.commit()
+        return {"ok": True, "flow_id": flow_id, "cleared_steps": n}
+
+
+    # R438 UI route
+    _R438_WELCOME_ROUTE = True
+    @app.get("/welcome", include_in_schema=False)
+    async def r438_welcome_page():
+        from fastapi.responses import FileResponse as _wFR
+        return _wFR("/opt/Murphy-System/welcome.html", media_type="text/html")
+
+    # ── END R438 ──
+
+
 
     # PATCH-450-logo-demo: live gaze demo
     @app.get("/logo-demo", include_in_schema=False)
@@ -1146,6 +2999,15 @@ def create_app() -> FastAPI:
 
     @app.get("/ui/{page_name:path}")
     async def serve_ui_page(page_name: str, request: Request):
+        # R401 (2026-06-01): vestigial slugs → /ui/ops chooser (chose canonical in R353)
+        _r401_redirects = {
+            "cockpit", "exec", "control", "panel", "operations",
+            "ops_panel", "exec_panel", "command",
+        }
+        _r401_slug = page_name.rstrip("/").split("?")[0].split("#")[0].lower()
+        if _r401_slug in _r401_redirects:
+            from starlette.responses import RedirectResponse
+            return RedirectResponse(url="/os", status_code=302)  # _R441_LOGIN_TO_OS
         """PATCH-132a: Serve Murphy UI pages from project root HTML files."""
         # Normalise: strip trailing slashes and fragment
         slug = page_name.rstrip("/").split("?")[0].split("#")[0].lower()
@@ -1256,12 +3118,12 @@ def create_app() -> FastAPI:
 
     # PATCH-155: bare public routes — serve same HTML as /ui/{page} for key slugs
     _BARE_PUBLIC_SLUGS_155 = [
-        "demo", "pricing", "docs", "blog", "careers", "legal", "privacy", "contact",
+        "demo", "pricing", "docs", "blog", "careers", "legal", "privacy", "terms", "contact",
         "forge", "signup", "login", "guest-portal", "guest_portal",
         "book", "how-we-work", "shadow-marketplace", "resume", "how_we_work",
         "forgot-password", "change-password", "reset-password",
         "chat", "voice", "swarm-command", "matrix-chat", "command",
-        "start", "founder", "download",  # "murphy-os" + "os" removed 2026-05-27 — handled by dedicated _murphy_os_page() at line 2904
+        "start", "founder", "download", "checkout",  # R429: /checkout added — "murphy-os" + "os" handled by dedicated _murphy_os_page()
     ]
     for _bslug in _BARE_PUBLIC_SLUGS_155:
         def _make_bare_route(slug=_bslug):
@@ -2907,9 +4769,8 @@ def create_app() -> FastAPI:
             out["system_status"] = "partial"
         return JSONResponse(out)
 
-    @app.get("/murphy-os", include_in_schema=False)
     @app.get("/os", include_in_schema=False)
-    async def _murphy_os_page():
+    async def _murphy_os_page(request: Request):
         """Murphy OS — serves the modern 96KB Autonomous Operations dashboard.
         2026-05-27: rewired from old 41KB Command Center to the static modern
         dashboard at /static/murphy-os.html (47 live API hooks vs 12 in old)."""
@@ -2924,6 +4785,14 @@ def create_app() -> FastAPI:
                 return _HR350(_f350.read())
         return _HR350("<h1>Murphy OS loading...</h1>")
 
+
+    @app.get("/murphy-os", include_in_schema=False)
+    async def murphy_os_alias(request: Request):
+        # _R441_MURPHYOS_CANONICALIZED — alias of /os
+        from fastapi.responses import RedirectResponse as _MOSRR
+        qs = request.url.query
+        return _MOSRR(("/os" + ("?" + qs if qs else "")), status_code=302)
+
     @app.get("/patcher", include_in_schema=False)
     async def _patcher_page_redirect():
         """Founder shortcut — /patcher serves the static patcher UI."""
@@ -2937,10 +4806,11 @@ def create_app() -> FastAPI:
         return _JRR(url="/os#jobs", status_code=302)
 
     @app.get("/ops", include_in_schema=False)
-    async def _ops_page_redirect():
-        """Founder shortcut — /ops serves the autonomous-operations dashboard."""
-        from fastapi.responses import FileResponse as _OPSFR
-        return _OPSFR("/opt/Murphy-System/static/murphy-os.html", media_type="text/html")
+    async def _ops_page_redirect(request: Request):
+        """_R441_OPS_CANONICALIZED — /ops is an alias of /os."""
+        from fastapi.responses import RedirectResponse as _OPSRR
+        qs = request.url.query
+        return _OPSRR(("/os" + ("?" + qs if qs else "")), status_code=302)
 
     @app.get("/start", include_in_schema=False)
     async def _start_page_top():
@@ -3022,15 +4892,12 @@ def create_app() -> FastAPI:
             "ready": True,
         })
 
-    @app.get("/dashboard")
-    async def customer_dashboard_page(request: Request):
-        """PATCH-447: Customer-facing dashboard.
-        Renders the static HTML; the page itself authenticates via /api/auth/me
-        and reads /api/account/subscription + /api/account/billing-history.
-        Unauthenticated visitors are bounced to /login by the page's JS.
-        """
-        from fastapi.responses import FileResponse as _FR447
-        return _FR447("/opt/Murphy-System/static/customer-dashboard.html")
+    @app.get("/dashboard", include_in_schema=False)
+    async def dashboard_alias(request: Request):
+        # _R441_DASHBOARD_CANONICALIZED — alias of /os
+        from fastapi.responses import RedirectResponse as _DSHRR
+        qs = request.url.query
+        return _DSHRR(("/os" + ("?" + qs if qs else "")), status_code=302)
 
     @app.get("/api/account/subscription")
     async def account_subscription(request: Request):
@@ -3173,23 +5040,14 @@ def create_app() -> FastAPI:
                 status_code=500
             )
 
-        # PATCH-QUICKWIN-3a (2026-05-27): /api/billing/products stub
+        # PATCH-QUICKWIN-3a (2026-05-27) — superseded by R401 (2026-06-01)
+    # Legacy stub had stale prices (49/199/999). Canonical is /api/billing/plans
+    # which reads from PRICING_PLANS in subscription_manager.py.
     @app.get("/api/billing/products")
     async def _billing_products():
-        """Return product catalog (NOWPayments-backed). Stubbed list for UI hydration."""
-        return JSONResponse({
-            "success": True,
-            "billing_provider": "nowpayments",
-            "products": [
-                {"id": "starter",    "name": "Starter",    "price_usd": 49,  "interval": "month",
-                 "features": ["1 tenant", "10K events/mo", "email support"]},
-                {"id": "growth",     "name": "Growth",     "price_usd": 199, "interval": "month",
-                 "features": ["5 tenants", "100K events/mo", "priority support"]},
-                {"id": "enterprise", "name": "Enterprise", "price_usd": 999, "interval": "month",
-                 "features": ["unlimited tenants", "1M events/mo", "dedicated support"]},
-            ],
-            "note": "Provision via NOWPayments IPN after invoice payment"
-        })
+        """Legacy. Redirects to canonical /api/billing/plans (R401)."""
+        from starlette.responses import RedirectResponse
+        return RedirectResponse(url="/api/billing/plans", status_code=301)
 
     # PATCH-QUICKWIN-3b (2026-05-27): /api/tenants/create stub
     @app.post("/api/tenants/create")
@@ -3209,6 +5067,42 @@ def create_app() -> FastAPI:
             },
             "next_step": "Complete payment via NOWPayments to provision the tenant.",
             "checkout_url": "/api/nowpayments/checkout"
+        })
+
+    # _R482_DOWNLOAD — honest "no binaries yet" response for /api/download/{platform}
+    # Murphy is web-first today. This route exists so the marketing surfaces
+    # don't return a confusing 401/404. Returns 200 with structured status.
+    @app.get("/api/download/{platform}")
+    async def download_status(platform: str):
+        platform = (platform or "").lower().strip()
+        SUPPORTED = {"macos", "windows", "linux", "ios", "android", "web"}
+        if platform not in SUPPORTED:
+            return JSONResponse(
+                {
+                    "ok": False,
+                    "error": "unknown_platform",
+                    "platform_requested": platform,
+                    "supported": sorted(SUPPORTED),
+                },
+                status_code=400,
+            )
+        # Web is the only one we actually have today
+        if platform == "web":
+            return JSONResponse({
+                "ok": True,
+                "platform": "web",
+                "available": True,
+                "url": "https://murphy.systems/welcome",
+                "note": "Murphy is web-native. Just open it.",
+            })
+        # Everything else is roadmap
+        return JSONResponse({
+            "ok": True,
+            "platform": platform,
+            "available": False,
+            "status": "roadmap",
+            "note": "Native client not yet shipped. Use https://murphy.systems for now.",
+            "notify_signup_url": "https://murphy.systems/welcome?notify=" + platform,
         })
 
     @app.get("/api/health")
@@ -3319,6 +5213,50 @@ def create_app() -> FastAPI:
         )
 
     # ── Deployment Readiness & Bootstrap Status ────────────────────
+
+    # PATCH-LEARN-VISIBILITY-R221 (2026-05-29): Shape-of-Complete gate (e) for
+    # learning feedback loop. Founders curl this to SEE the loop's live state.
+    @app.get("/api/learning/status")
+    def _r221_learning_status():
+        """Return live state of the learning feedback loop.
+        R561 (2026-06-04): also folds in self_learning_toggle status,
+        replacing the duplicate handler at the old line 14074 that was
+        silently winning via FastAPI last-wins."""
+        # R561 — toggle status, folded in
+        _r561_toggle = None
+        try:
+            from src.self_learning_toggle import get_self_learning_toggle as _r561_gst
+            _r561_toggle = _r561_gst().get_status()
+        except Exception as _r561_e:
+            _r561_toggle = {"error": f"{type(_r561_e).__name__}: {_r561_e}"}
+        try:
+            from src.learning_engine import feedback_loop_wiring as _r221_flw
+            threshold = int(getattr(_r221_flw, "_RETRAIN_THRESHOLD", 100))
+            count = int(getattr(_r221_flw, "_outcome_count", 0))
+            engine = getattr(_r221_flw, "_engine", None)
+            # PATCH-BACKBONE-STATS-R263 (2026-05-29): Murphy R263 chose (b) embed
+            # get_event_backbone().get_status() to diagnose where 443 publishes → 1
+            # receive vanish. Distinguishes (i) breaker open, (ii) DLQ full, (iii) cadence.
+            _r263_bb_stats = None
+            try:
+                from src.event_backbone import get_event_backbone as _r263_get_bb
+                _r263_bb_stats = _r263_get_bb().get_status()
+            except Exception as _r263_e:
+                _r263_bb_stats = {"error": f"{type(_r263_e).__name__}: {_r263_e}"}
+            return {
+                "ok": True,
+                "toggle": _r561_toggle,
+                "wired": bool(getattr(_r221_flw, "_wired", False)),
+                "outcome_count": count,
+                "retrain_threshold": threshold,
+                "outcomes_until_retrain": max(0, threshold - count),
+                "engine_attached": engine is not None,
+                "engine_class": type(engine).__name__ if engine is not None else None,
+                "backbone_stats": _r263_bb_stats,
+            }
+        except Exception as _exc:
+            return {"ok": False, "error": f"{type(_exc).__name__}: {_exc}"}
+
     @app.get("/api/readiness")
     async def readiness_check():
         """Pre-flight deployment readiness report."""
@@ -8482,6 +10420,109 @@ def create_app() -> FastAPI:
         by_project = _cost_kernel.get_costs_by_project()
         return JSONResponse({"success": True, "projects": list(by_project.values())})
 
+    # R493 — Desktop Brain API
+    try:
+        from src.brain_api import router as _r493_brain_router
+        app.include_router(_r493_brain_router)
+        logger.info("R493: /api/brain/* mounted")
+    except Exception as _r493_exc:
+        logger.warning("R493 mount failed: %s", _r493_exc)
+
+    @app.get("/api/llm/spend")
+    async def llm_spend():
+        """R492 — Actual LLM provider spend from llm_cost_ledger.db.
+        
+        Truth source for what Murphy spends on LLM providers (DeepInfra,
+        Together, Anthropic, etc.). Different from /api/costs/* which
+        tracks the in-app governance kernel budget.
+        """
+        import sqlite3 as _r492_sqlite3
+        from pathlib import Path as _r492_Path
+        DB = "/var/lib/murphy-production/llm_cost_ledger.db"
+        if not _r492_Path(DB).exists():
+            return JSONResponse({"ok": False, "error": "llm_cost_ledger.db missing"}, status_code=503)
+        try:
+            with _r492_sqlite3.connect(DB, timeout=3) as c:
+                # All-time totals
+                n_total, in_total, out_total, cost_total = c.execute(
+                    "SELECT COUNT(*), SUM(COALESCE(prompt_tokens,0)), "
+                    "SUM(COALESCE(completion_tokens,0)), SUM(COALESCE(cost_usd,0)) FROM calls"
+                ).fetchone()
+                first_ts, last_ts = c.execute("SELECT MIN(ts), MAX(ts) FROM calls").fetchone()
+                # Last 24h by provider
+                last_24h = []
+                for row in c.execute(
+                    "SELECT COALESCE(provider,'?') as p, COUNT(*), "
+                    "SUM(COALESCE(prompt_tokens,0)), SUM(COALESCE(completion_tokens,0)), "
+                    "SUM(COALESCE(cost_usd,0)) "
+                    "FROM calls WHERE ts > datetime('now','-1 day') "
+                    "GROUP BY p ORDER BY 5 DESC"
+                ).fetchall():
+                    last_24h.append({
+                        "provider": row[0], "calls": row[1],
+                        "input_tokens": row[2] or 0, "output_tokens": row[3] or 0,
+                        "cost_usd": round(row[4] or 0, 4),
+                    })
+                # Last 7d totals
+                wk = c.execute(
+                    "SELECT COUNT(*), SUM(COALESCE(cost_usd,0)) "
+                    "FROM calls WHERE ts > datetime('now','-7 days')"
+                ).fetchone()
+                # 30d projection
+                last_30 = c.execute(
+                    "SELECT COUNT(*), SUM(COALESCE(cost_usd,0)) "
+                    "FROM calls WHERE ts > datetime('now','-30 days')"
+                ).fetchone()
+                # Top callers last 24h
+                top_callers = []
+                try:
+                    for row in c.execute(
+                        "SELECT COALESCE(caller,'?'), COUNT(*), "
+                        "SUM(COALESCE(cost_usd,0)) "
+                        "FROM calls WHERE ts > datetime('now','-1 day') "
+                        "GROUP BY caller ORDER BY 3 DESC LIMIT 10"
+                    ).fetchall():
+                        top_callers.append({"caller": row[0], "calls": row[1], "cost_usd": round(row[2] or 0, 4)})
+                except Exception:
+                    pass
+                # By model all-time
+                by_model = []
+                for row in c.execute(
+                    "SELECT COALESCE(model,'?'), COUNT(*), "
+                    "SUM(COALESCE(cost_usd,0)) "
+                    "FROM calls GROUP BY model ORDER BY 3 DESC LIMIT 8"
+                ).fetchall():
+                    by_model.append({"model": row[0], "calls": row[1], "cost_usd": round(row[2] or 0, 4)})
+            return JSONResponse({
+                "ok": True,
+                "all_time": {
+                    "calls": n_total or 0,
+                    "input_tokens": in_total or 0,
+                    "output_tokens": out_total or 0,
+                    "cost_usd": round(cost_total or 0, 4),
+                    "first_call": first_ts,
+                    "last_call": last_ts,
+                },
+                "last_24h": {
+                    "by_provider": last_24h,
+                    "total_cost_usd": round(sum(p["cost_usd"] for p in last_24h), 4),
+                    "total_calls": sum(p["calls"] for p in last_24h),
+                },
+                "last_7d": {
+                    "calls": wk[0] or 0,
+                    "cost_usd": round(wk[1] or 0, 4),
+                },
+                "last_30d": {
+                    "calls": last_30[0] or 0,
+                    "cost_usd": round(last_30[1] or 0, 4),
+                },
+                "monthly_projection_usd": round((last_30[1] or 0), 2),
+                "top_callers_24h": top_callers,
+                "by_model_all_time": by_model,
+            })
+        except Exception as exc:
+            return JSONResponse({"ok": False, "error": str(exc)}, status_code=500)
+
     @app.get("/api/costs/by-bot")
     async def costs_by_bot():
         """Return per-bot/agent cost breakdown."""
@@ -10140,13 +12181,647 @@ def create_app() -> FastAPI:
 
     @app.get("/api/auth/permissions")
     async def auth_permissions(request: Request):
-        """Get permissions for the current user's role."""
-        role = request.headers.get("X-User-Role", "VIEWER")
-        if _gpe is not None:
-            perms = list(_gpe.get_permissions(role))
-        else:
-            perms = ["view_assigned"]
-        return JSONResponse({"role": role, "permissions": perms})
+        """_R449_PERMISSIONS — R432-resolved role + per-role permission set.
+
+        Replaces the legacy header-trust stub. The legacy stub trusted any
+        client-set X-User-Role header (security hole) and always returned
+        ["view_assigned"]. Now we use _r432_resolve_identity for the real
+        role and map each role to a canonical permission set.
+
+        Permission catalog (additive — higher roles include lower ones):
+          - public:      browse_public, signup
+          - self:        + view_own_data, edit_own_data, vote_marketplace, guest_checkout
+          - tenant_r:    + tenant_read, view_org_members, view_assigned
+          - tenant_w:    + tenant_write, decide_hitl, edit_org_data
+          - tenant_a:    + appoint_member, revoke_member, scope_admin
+          - tenant_o:    + appoint_admin, manage_billing, claim_slug, configure_org_hitl
+          - platform_r:  + platform_read, cross_tenant_read
+          - platform_w:  + platform_write, suspend_tenant, appoint_tenant_owner
+          - founder:     + founder_only, appoint_platform_admin, appoint_family, audit_all
+        """
+        ident = _r432_resolve_identity(request)
+        role = ident.get("role", "anonymous")
+
+        PUBLIC = ["browse_public", "signup"]
+        SELF = PUBLIC + ["view_own_data", "edit_own_data", "vote_marketplace",
+                        "guest_checkout"]
+        FAMILY = SELF + ["read_founder_shared"]
+        TENANT_R = SELF + ["tenant_read", "view_org_members", "view_assigned"]
+        TENANT_W = TENANT_R + ["tenant_write", "decide_hitl", "edit_org_data"]
+        TENANT_A = TENANT_W + ["appoint_member", "revoke_member", "scope_admin"]
+        TENANT_O = TENANT_A + ["appoint_admin", "manage_billing", "claim_slug",
+                              "configure_org_hitl"]
+        PLATFORM_R = SELF + ["platform_read", "cross_tenant_read"]
+        PLATFORM_W = PLATFORM_R + ["platform_write", "suspend_tenant",
+                                  "appoint_tenant_owner"]
+        FOUNDER = PLATFORM_W + ["founder_only", "appoint_platform_admin",
+                               "appoint_family", "audit_all", "*"]
+
+        PERMISSIONS_BY_ROLE = {
+            "anonymous":      PUBLIC,
+            "user":           SELF,
+            "family":         FAMILY,
+            "tenant_member":  TENANT_R,
+            "tenant_admin":   TENANT_A,
+            "tenant_owner":   TENANT_O,
+            "platform_staff": PLATFORM_R,
+            "platform_admin": PLATFORM_W,
+            "founder":        FOUNDER,
+        }
+
+        perms = PERMISSIONS_BY_ROLE.get(role, PUBLIC)
+        return JSONResponse({
+            "ok": True,
+            "role": role,
+            "permissions": perms,
+            "account_id": ident.get("account_id", "anonymous"),
+            "org_id": ident.get("org_id"),
+            "env": ident.get("env", "public"),
+            "scope": ident.get("scope", "none"),
+        })
+
+    # ══════════════════════════════════════════════════════════════════════
+    # R450 — /admin role-aware redirect
+    # Replaces the legacy meta-refresh redirect file that returned 28 bytes
+    # and pointed at /ui/admin-panel. Now uses R432 identity resolution to
+    # send each role to its appropriate landing.
+    # ══════════════════════════════════════════════════════════════════════
+    _R450_ADMIN = True
+
+    @app.get("/admin", include_in_schema=False)
+    async def r450_admin_redirect(request: Request):
+        """Route admins to their appropriate operator surface.
+
+        - founder, platform_admin, platform_staff → /os (canonical ops)
+        - tenant_owner, tenant_admin              → /welcome (their flow)
+        - everyone else                           → 403 with link to login
+        """
+        from fastapi.responses import RedirectResponse as _RR450, HTMLResponse as _HR450
+        ident = _r432_resolve_identity(request)
+        role = ident.get("role", "anonymous")
+
+        if role in ("founder", "owner", "platform_admin", "platform_staff"):
+            return _RR450(url="/os", status_code=302)
+        if role in ("tenant_owner", "tenant_admin"):
+            return _RR450(url="/welcome", status_code=302)
+        if role == "anonymous":
+            return _HR450(
+                """<!doctype html><meta charset=utf-8>
+<title>Sign in required</title>
+<body style="background:#080c0a;color:#deeae4;font-family:Inter,system-ui;
+             min-height:100vh;display:flex;align-items:center;justify-content:center;
+             flex-direction:column;gap:20px">
+  <h1 style="color:#00D4AA">Sign in to continue</h1>
+  <p>Admin surfaces require an authenticated session.</p>
+  <a href="/login?next=/admin" style="color:#00D4AA;padding:12px 24px;
+     border:1px solid #00D4AA;border-radius:8px;text-decoration:none">Sign in →</a>
+</body>""",
+                status_code=401,
+            )
+        # tenant_member, family, user → 403 with a path back
+        return _HR450(
+            f"""<!doctype html><meta charset=utf-8>
+<title>Not authorized</title>
+<body style="background:#080c0a;color:#deeae4;font-family:Inter,system-ui;
+             min-height:100vh;display:flex;align-items:center;justify-content:center;
+             flex-direction:column;gap:20px">
+  <h1 style="color:#FF6B6B">Not authorized</h1>
+  <p>Your role ({role}) doesn't have access to admin surfaces.</p>
+  <a href="/welcome" style="color:#00D4AA;padding:12px 24px;
+     border:1px solid #00D4AA;border-radius:8px;text-decoration:none">Go to your dashboard →</a>
+</body>""",
+            status_code=403,
+        )
+
+    # ══════════════════════════════════════════════════════════════════════
+    # R464 — Bulk approve/reject for HITL outbound queue
+    # Reuses the same single-item logic for each id, including R461 SMTP send.
+    # Founder + tenant_owner only. Cap at 50 per request to avoid timeouts.
+    # ══════════════════════════════════════════════════════════════════════
+    _R464_BULK = True
+
+    @app.post("/api/hitl/items/bulk-approve", include_in_schema=False)
+    async def r464_bulk_approve(request: Request):
+        """Approve and SEND multiple queued emails in one call.
+        Body: {"ids": [...]} or {"all_pending": true} or {"ids": [], "filter": "..."}
+        Returns per-id results with send status.
+        """
+        ident = _r432_resolve_identity(request)
+        role = ident.get("role", "anonymous")
+        if role not in ("founder", "owner", "platform_admin", "tenant_owner"):
+            return JSONResponse({"ok": False, "error": "insufficient_role",
+                                "role": role}, status_code=403)
+        try:
+            body = await request.json()
+        except Exception:
+            body = {}
+
+        ids = body.get("ids") or []
+        all_pending = bool(body.get("all_pending"))
+        if all_pending and not ids:
+            import sqlite3 as _sq464
+            with _sq464.connect("/var/lib/murphy-production/hitl_jobs.db",
+                                timeout=6) as c:
+                rows = c.execute(
+                    "SELECT id FROM hitl_jobs WHERE template_code='outbound_email' "
+                    "AND status='open' ORDER BY created_at ASC LIMIT 50"
+                ).fetchall()
+                ids = [r[0] for r in rows]
+
+        if len(ids) > 50:
+            return JSONResponse({"ok": False, "error": "too_many",
+                                "max_per_request": 50, "got": len(ids)},
+                                status_code=400)
+
+        # Send each via the existing single-item approve handler
+        import httpx as _httpx464
+        results = []
+        sent_count = 0; failed_count = 0
+        for item_id in ids:
+            try:
+                # Use in-process call by directly invoking the approve logic
+                # via /api/mail/outbound/{id}/approve through internal client.
+                # Simpler: replicate the SMTP send inline.
+                import sqlite3 as _sq, json as _j
+                from datetime import datetime as _dt, timezone as _tz
+                now = _dt.now(_tz.utc).isoformat()
+                approver_pid = ident.get("account_id", "founder")
+
+                with _sq.connect("/var/lib/murphy-production/murphy_mail.db",
+                                timeout=6) as conn:
+                    row = conn.execute("""
+                        SELECT from_address, to_addresses, subject, body, status
+                        FROM outbound_email_queue WHERE queue_id=?
+                    """, (item_id,)).fetchone()
+                    if not row:
+                        results.append({"id": item_id, "ok": False, "error": "not_found"})
+                        failed_count += 1
+                        continue
+                    if row[4] != "pending_review":
+                        results.append({"id": item_id, "ok": False,
+                                       "error": f"not_pending: {row[4]}"})
+                        failed_count += 1
+                        continue
+                    from_addr, to_json, subject, body_text = row[0], row[1], row[2], row[3]
+                    try: to_list = _j.loads(to_json)
+                    except Exception: to_list = [to_json]
+                    if isinstance(to_list, str): to_list = [to_list]
+
+                    # Mark approved
+                    conn.execute("""
+                        UPDATE outbound_email_queue
+                        SET status='approved', approved_by=?, approved_at=?, updated_at=?
+                        WHERE queue_id=?
+                    """, (approver_pid, now, now, item_id))
+                    conn.commit()
+
+                # Real SMTP via Postfix (R461 pattern)
+                send_ok = False; send_err = None
+                try:
+                    import smtplib as _smtp
+                    from email.mime.text import MIMEText as _MT
+                    m = _MT(body_text, _subtype="plain", _charset="utf-8")
+                    m["From"] = from_addr
+                    m["Subject"] = subject
+                    m["To"] = ", ".join(to_list)
+                    with _smtp.SMTP("localhost", 25, timeout=10) as _s:
+                        _s.send_message(m)
+                    send_ok = True
+                except Exception as e:
+                    send_err = str(e)
+
+                with _sq.connect("/var/lib/murphy-production/murphy_mail.db",
+                                timeout=6) as conn:
+                    if send_ok:
+                        conn.execute("UPDATE outbound_email_queue SET status='sent', "
+                                    "sent_at=?, sent_via=?, updated_at=? WHERE queue_id=?",
+                                    (now, "postfix_local_bulk", now, item_id))
+                    else:
+                        conn.execute("UPDATE outbound_email_queue SET status='failed', "
+                                    "failure_reason=?, updated_at=? WHERE queue_id=?",
+                                    (send_err, now, item_id))
+                    conn.commit()
+
+                # Mirror to hitl_jobs (R454c bridge)
+                with _sq.connect("/var/lib/murphy-production/hitl_jobs.db",
+                                timeout=6) as h:
+                    h.execute(
+                        "UPDATE hitl_jobs SET status=?, validated_at=?, "
+                        "validated_by=?, notes=?, updated_at=? WHERE id=? AND status='open'",
+                        ("approved" if send_ok else "failed", now, approver_pid,
+                         "bulk-approve via R464" + (f" err={send_err}" if send_err else ""),
+                         now, item_id)
+                    )
+                    h.commit()
+
+                if send_ok:
+                    sent_count += 1
+                    results.append({"id": item_id, "ok": True, "status": "sent",
+                                   "to": to_list})
+                else:
+                    failed_count += 1
+                    results.append({"id": item_id, "ok": False, "error": send_err})
+            except Exception as e:
+                failed_count += 1
+                results.append({"id": item_id, "ok": False, "error": str(e)})
+
+        return JSONResponse({
+            "ok": True,
+            "approver": ident.get("account_id"),
+            "requested": len(ids),
+            "sent": sent_count,
+            "failed": failed_count,
+            "results": results,
+        })
+
+    @app.post("/api/hitl/items/bulk-reject", include_in_schema=False)
+    async def r464_bulk_reject(request: Request):
+        """Reject multiple queued items. Body: {"ids": [...], "reason": "..."}"""
+        ident = _r432_resolve_identity(request)
+        role = ident.get("role", "anonymous")
+        if role not in ("founder", "owner", "platform_admin", "tenant_owner"):
+            return JSONResponse({"ok": False, "error": "insufficient_role",
+                                "role": role}, status_code=403)
+        try:
+            body = await request.json()
+        except Exception:
+            body = {}
+        ids = body.get("ids") or []
+        reason = body.get("reason", "bulk_reject")
+        if len(ids) > 100:
+            return JSONResponse({"ok": False, "error": "too_many",
+                                "max_per_request": 100, "got": len(ids)},
+                                status_code=400)
+
+        import sqlite3 as _sq
+        from datetime import datetime as _dt, timezone as _tz
+        now = _dt.now(_tz.utc).isoformat()
+        rejected_count = 0
+        for item_id in ids:
+            try:
+                with _sq.connect("/var/lib/murphy-production/murphy_mail.db",
+                                timeout=6) as conn:
+                    cur = conn.execute(
+                        "UPDATE outbound_email_queue SET status='rejected', "
+                        "reject_reason=?, updated_at=? WHERE queue_id=? AND status='pending_review'",
+                        (reason, now, item_id))
+                    conn.commit()
+                with _sq.connect("/var/lib/murphy-production/hitl_jobs.db",
+                                timeout=6) as h:
+                    h.execute(
+                        "UPDATE hitl_jobs SET status=?, validated_at=?, "
+                        "notes=?, updated_at=? WHERE id=? AND status='open'",
+                        ("rejected", now, f"bulk-reject: {reason}", now, item_id))
+                    h.commit()
+                rejected_count += 1
+            except Exception:
+                pass
+
+        return JSONResponse({
+            "ok": True, "requested": len(ids), "rejected": rejected_count,
+        })
+
+    # ══════════════════════════════════════════════════════════════════════
+    # R457 — HITL Drill-down
+    # GET /api/hitl/items/{item_id}/drill returns:
+    #   - the message (subject, body, to/from)
+    #   - source-doc snippet + URL the lead came from
+    #   - the parsed input fields (Excel-style flat key=value mapping)
+    #   - the template that was filled
+    #   - placeholder spans for inline highlighting (LLM-vs-input)
+    # Founder + tenant_owner authorised; rest 403.
+    # ══════════════════════════════════════════════════════════════════════
+    _R457_DRILL = True
+
+
+    # ═══ _R471_HITL_NOTIFY — invite, opt-in, item notification, email-action ═══
+
+    @app.post("/api/hitl/notify/invite", include_in_schema=False)
+
+    async def _r471_send_invite(request: Request):
+
+        try:
+
+            body = await request.json()
+
+        except Exception:
+
+            body = {}
+
+        email = (body.get("email") or "").strip().lower()
+
+        name = body.get("display_name") or ""
+
+        if not email or "@" not in email:
+
+            return JSONResponse({"ok": False, "error": "valid email required"}, status_code=400)
+
+        try:
+
+            from src.hitl_notify import send_invite
+
+            return JSONResponse(send_invite(email, name))
+
+        except Exception as exc:
+
+            return JSONResponse({"ok": False, "error": str(exc)}, status_code=500)
+
+
+    @app.get("/api/hitl/confirm-subscription", include_in_schema=False)
+
+    async def _r471_confirm_subscription(token: str):
+
+        from fastapi.responses import HTMLResponse
+
+        try:
+
+            from src.hitl_notify import confirm_opt_in
+
+        except Exception as exc:
+
+            return JSONResponse({"ok": False, "error": str(exc)}, status_code=500)
+
+        r = confirm_opt_in(token)
+
+        if not r.get("ok"):
+
+            return HTMLResponse("<html><body style='font-family:sans-serif;text-align:center;padding:60px'><h2 style='color:#FF6B6B'>Invalid or expired link</h2><p>Contact Corey if you need a new invite.</p></body></html>", status_code=400)
+
+        email = r.get("email","")
+
+        already = " (you were already opted in)" if r.get("already_active") else ""
+
+        return HTMLResponse(f"<html><body style='font-family:sans-serif;text-align:center;padding:60px;max-width:520px;margin:auto'><h2 style='color:#00D4AA'>You are in</h2><p><b>{email}</b> will now receive HITL review emails{already}.</p><p style='color:#666;font-size:13px'>Each email has one-click Approve / Reject buttons.</p><p style='margin-top:32px'><a href='https://murphy.systems/hitl' style='background:#00D4AA;color:#0a0f0d;padding:10px 20px;border-radius:6px;text-decoration:none'>Open Murphy</a></p></body></html>")
+
+
+    @app.get("/api/hitl/email-action", include_in_schema=False)
+
+    async def _r471_email_action(item: str, email: str, action: str, ts: str, sig: str):
+
+        from fastapi.responses import HTMLResponse
+
+        import sqlite3, json as _j, smtplib as _sm
+
+        from email.message import EmailMessage as _EM
+
+        try:
+
+            from src.hitl_notify import verify_action_token
+
+        except Exception as exc:
+
+            return JSONResponse({"ok": False, "error": str(exc)}, status_code=500)
+
+        if not verify_action_token(item, email, action, ts, sig):
+
+            return HTMLResponse("<html><body style='font-family:sans-serif;text-align:center;padding:60px'><h2 style='color:#FF6B6B'>Invalid or expired link</h2></body></html>", status_code=400)
+
+        if action not in ("approve","reject"):
+
+            return JSONResponse({"ok": False, "error": "invalid action"}, status_code=400)
+
+        try:
+
+            with sqlite3.connect("/opt/Murphy-System/murphy.db", timeout=5) as c:
+
+                c.row_factory = sqlite3.Row
+
+                row = c.execute("SELECT scope_json FROM family_allowlist WHERE email=? AND status='active'", (email,)).fetchone()
+
+                scopes = _j.loads(row["scope_json"]) if row else []
+
+                if "hitl_approve" not in scopes:
+
+                    return HTMLResponse("<html><body style='font-family:sans-serif;text-align:center;padding:60px'><h2 style='color:#FF6B6B'>Not authorized</h2></body></html>", status_code=403)
+
+        except Exception as exc:
+
+            return JSONResponse({"ok": False, "error": str(exc)}, status_code=500)
+
+        new_status = "approved" if action == "approve" else "rejected"
+
+        try:
+
+            with sqlite3.connect("/var/lib/murphy-production/hitl_jobs.db", timeout=10) as c:
+
+                c.row_factory = sqlite3.Row
+
+                r = c.execute("SELECT id, status, title FROM hitl_jobs WHERE id=?", (item,)).fetchone()
+
+                if not r:
+
+                    return HTMLResponse("<html><body style='font-family:sans-serif;text-align:center;padding:60px'><h2>Item not found</h2></body></html>", status_code=404)
+
+                if r["status"] != "open":
+
+                    return HTMLResponse(f"<html><body style='font-family:sans-serif;text-align:center;padding:60px'><h2>Already handled</h2><p>Item is currently {r['status']} — no change made.</p></body></html>")
+
+                c.execute("UPDATE hitl_jobs SET status=?, validated_by=?, validated_at=datetime('now') WHERE id=?", (new_status, f"email:{email}", item))
+
+        except Exception as exc:
+
+            return JSONResponse({"ok": False, "error": str(exc)}, status_code=500)
+
+        smtp_status = "n/a"
+
+        if action == "approve":
+
+            try:
+
+                with sqlite3.connect("/var/lib/murphy-production/murphy_mail.db", timeout=10) as mc:
+
+                    mc.row_factory = sqlite3.Row
+
+                    qrow = mc.execute("SELECT queue_id, to_addresses, subject, body_text FROM outbound_email_queue WHERE queue_id=?", (item,)).fetchone()
+
+                if qrow:
+
+                    tos = _j.loads(qrow["to_addresses"]) if isinstance(qrow["to_addresses"], str) else qrow["to_addresses"]
+
+                    msg = _EM()
+
+                    msg["From"] = "Murphy <murphy@murphy.systems>"
+
+                    msg["To"] = ", ".join(tos) if isinstance(tos, list) else str(tos)
+
+                    msg["Subject"] = qrow["subject"] or "Outreach"
+
+                    msg.set_content(qrow["body_text"] or "")
+
+                    with _sm.SMTP("127.0.0.1", 25, timeout=10) as s:
+
+                        s.send_message(msg)
+
+                    with sqlite3.connect("/var/lib/murphy-production/murphy_mail.db", timeout=10) as mc:
+
+                        mc.execute("UPDATE outbound_email_queue SET status='sent', approved_by=?, approved_at=datetime('now') WHERE queue_id=?", (f"email:{email}", item))
+
+                    smtp_status = "sent"
+
+                else:
+
+                    smtp_status = "no_mail_row"
+
+            except Exception as exc:
+
+                smtp_status = f"smtp_err: {exc}"
+
+        color = "#00D4AA" if action == "approve" else "#FF6B6B"
+
+        verb = "Approved & sent" if action == "approve" else "Rejected"
+
+        return HTMLResponse(f"<html><body style='font-family:sans-serif;text-align:center;padding:60px;max-width:520px;margin:auto'><h2 style='color:{color}'>{verb}</h2><p>Item <code>{item}</code> -> <b>{new_status}</b></p><p style='color:#666;font-size:13px'>SMTP: {smtp_status}</p><p style='margin-top:32px'><a href='https://murphy.systems/hitl' style='background:#00D4AA;color:#0a0f0d;padding:10px 20px;border-radius:6px;text-decoration:none'>Open Murphy</a></p></body></html>")
+
+
+    @app.get("/api/hitl/subscribers", include_in_schema=False)
+
+    async def _r471_list_subscribers():
+
+        try:
+
+            from src.hitl_notify import list_active_subscribers, list_pending_subscribers
+
+            return JSONResponse({"ok": True, "active": list_active_subscribers(), "pending": list_pending_subscribers()})
+
+        except Exception as exc:
+
+            return JSONResponse({"ok": False, "error": str(exc)}, status_code=500)
+
+
+    @app.post("/api/hitl/notify/item/{item_id}", include_in_schema=False)
+
+    async def _r471_notify_item(item_id: str):
+
+        import sqlite3 as _sq, json as _j
+
+        try:
+
+            from src.hitl_notify import send_item_notification
+
+        except Exception as exc:
+
+            return JSONResponse({"ok": False, "error": str(exc)}, status_code=500)
+
+        with _sq.connect("/var/lib/murphy-production/hitl_jobs.db", timeout=10) as c:
+
+            c.row_factory = _sq.Row
+
+            row = c.execute("SELECT id, title, discipline FROM hitl_jobs WHERE id=?", (item_id,)).fetchone()
+
+        if not row:
+
+            return JSONResponse({"ok": False, "error": "item not found"}, status_code=404)
+
+        body, tos, subj = "", [], row["title"]
+
+        try:
+
+            with _sq.connect("/var/lib/murphy-production/murphy_mail.db", timeout=5) as mc:
+
+                mc.row_factory = _sq.Row
+
+                mrow = mc.execute("SELECT to_addresses, subject, body_text FROM outbound_email_queue WHERE queue_id=?", (item_id,)).fetchone()
+
+                if mrow:
+
+                    body = mrow["body_text"] or ""
+
+                    subj = mrow["subject"] or subj
+
+                    tos = _j.loads(mrow["to_addresses"]) if isinstance(mrow["to_addresses"], str) else (mrow["to_addresses"] or [])
+
+        except Exception:
+
+            pass
+
+        return JSONResponse(send_item_notification({"id": item_id, "title": subj, "discipline": row["discipline"], "body": body, "to_addresses": tos}))
+
+
+    @app.get("/api/hitl/items/{item_id}/drill", include_in_schema=False)
+    async def r457_drill(item_id: str, request: Request):
+        """Lineage for one HITL item: source doc → input fields → template → body."""
+        import json as _j457, sqlite3 as _sq457
+        ident = _r432_resolve_identity(request)
+        role = ident.get("role", "anonymous")
+        if role not in ("founder", "owner", "platform_admin", "platform_staff",
+                        "tenant_owner", "tenant_admin"):
+            return JSONResponse({"ok": False, "error": "insufficient_role",
+                                "role": role}, status_code=403)
+
+        # 1) Fetch the hitl_job row
+        try:
+            with _sq457.connect("/var/lib/murphy-production/hitl_jobs.db",
+                               timeout=6) as conn:
+                conn.row_factory = _sq457.Row
+                row = conn.execute(
+                    "SELECT * FROM hitl_jobs WHERE id=?", (item_id,)
+                ).fetchone()
+        except Exception as e:
+            return JSONResponse({"ok": False, "error": f"db_error: {e}"}, status_code=500)
+        if not row:
+            return JSONResponse({"ok": False, "error": "not_found"}, status_code=404)
+        item = dict(row)
+
+        # 2) Parse submitted_data
+        try:
+            payload = _j457.loads(item.get("submitted_data") or "{}")
+        except Exception:
+            payload = {}
+
+        lineage = payload.get("lineage", {})
+
+        # 3) Build Excel-style flat input rows for the UI
+        excel_rows = []
+        for k, v in (lineage.get("input_fields") or {}).items():
+            excel_rows.append({
+                "field":  k,
+                "value":  v,
+                "source": "lead_raw." + k if k in (lineage.get("lead_raw") or {}) else "derived",
+            })
+        # Add raw lead fields not already in input_fields
+        for k, v in (lineage.get("lead_raw") or {}).items():
+            if k not in (lineage.get("input_fields") or {}):
+                excel_rows.append({
+                    "field": k, "value": v, "source": "lead_raw." + k
+                })
+
+        # 4) Annotate the body with placeholder spans for inline highlighting
+        body_text = payload.get("body", "")
+        subject_text = payload.get("subject", "")
+        full_text = subject_text + "\n\n" + body_text
+        # Sort spans by start so the UI can walk linearly
+        spans = sorted(lineage.get("placeholders_in_body") or [],
+                      key=lambda s: s.get("start", 0))
+
+        # 5) Compose the response — one stable shape the UI can render
+        return JSONResponse({
+            "ok": True,
+            "item": {
+                "id":         item["id"],
+                "title":      item["title"],
+                "status":     item["status"],
+                "created_at": item["created_at"],
+                "template_code": item["template_code"],
+            },
+            "message": {
+                "to":      payload.get("to"),
+                "from":    payload.get("from"),
+                "subject": subject_text,
+                "body":    body_text,
+                "full":    full_text,
+            },
+            "source_document": lineage.get("source", {}),
+            "input_fields_excel": excel_rows,
+            "template": {
+                "id":       lineage.get("template_id"),
+                "raw":      lineage.get("template_raw"),
+                "filled":   subject_text + "\n\n" + body_text,
+            },
+            "highlight_spans": spans,
+            "lineage_version": lineage.get("version", "none"),
+            "has_lineage": bool(lineage),
+        })
+
 
     # ── Information flow views ────────────────────────────────────────
     @app.get("/api/flows/inbound")
@@ -11407,16 +14082,7 @@ def create_app() -> FastAPI:
 
     # ==================== SELF-LEARNING TOGGLE ====================
 
-    @app.get("/api/learning/status")
-    async def learning_status():
-        """Return the current self-learning toggle status."""
-        try:
-            from src.self_learning_toggle import get_self_learning_toggle
-            slt = get_self_learning_toggle()
-            return JSONResponse(slt.get_status())
-        except Exception as exc:
-            logger.exception("Failed to get learning status")
-            return _safe_error_response(exc, 500)
+    # R561 (2026-06-04): duplicate /api/learning/status handler removed — fold into R221 above.
 
     @app.post("/api/learning/toggle")
     async def learning_toggle():
@@ -16716,19 +19382,22 @@ def create_app() -> FastAPI:
               _json.dumps(to_list), queue_id))
         conn.commit()
 
-        # Attempt send via existing /api/email/send mechanism
-        send_ok, send_err = False, None
+        # _R461_REAL_SMTP — actually send via local Postfix on :25
+        # Founder approved, contract is binding (§1B), so we deliver.
+        send_ok, send_err, sent_via = False, None, None
         try:
-            # Use the in-process function call rather than HTTP self-call
-            # to avoid auth complications. The existing email_send is a stub
-            # that records the send — fine for v1.
-            import uuid as _uuid
-            mid = _uuid.uuid4().hex[:12]
-            # In a richer future this would invoke real SMTP via Postfix
+            import smtplib as _smtp461
+            from email.mime.text import MIMEText as _MT461
+            m = _MT461(body_text, _subtype="plain", _charset="utf-8")
+            m["From"]    = from_addr
+            m["Subject"] = subject
+            m["To"]      = ", ".join(to_list) if isinstance(to_list, list) else str(to_list)
+            with _smtp461.SMTP("localhost", 25, timeout=10) as _s:
+                _s.send_message(m)
             send_ok = True
-            sent_via = "stub_v1"
+            sent_via = "postfix_local"
         except Exception as e:
-            send_err = str(e)
+            send_err = f"smtp: {e}"
             sent_via = None
 
         if send_ok:
@@ -16754,6 +19423,23 @@ def create_app() -> FastAPI:
             if send_ok:
                 _pub("mail.outbound.sent",
                      {"queue_id": queue_id, "sent_via": sent_via})
+        except Exception:
+            pass
+
+        # _R454C_REVERSE — mirror to hitl_jobs if queue_id matches a hitl_job
+        try:
+            import sqlite3 as _sq454cr
+            with _sq454cr.connect("/var/lib/murphy-production/hitl_jobs.db", timeout=6) as _hdb:
+                _hdb.execute("PRAGMA busy_timeout=3000")
+                _hdb.execute(
+                    "UPDATE hitl_jobs SET status=?, validated_at=?, "
+                    "validated_by=?, notes=?, updated_at=? "
+                    "WHERE id=? AND status='open'",
+                    ("approved" if send_ok else "failed", now, approver_pid,
+                     "approved via /os" + (f" send_err={send_err}" if send_err else ""),
+                     now, queue_id)
+                )
+                _hdb.commit()
         except Exception:
             pass
 
@@ -16785,6 +19471,21 @@ def create_app() -> FastAPI:
         """, (reason, now, queue_id))
         conn.commit()
         conn.close()
+
+        # _R454C_REVERSE — mirror reject to hitl_jobs if queue_id matches
+        try:
+            import sqlite3 as _sq454cr2
+            with _sq454cr2.connect("/var/lib/murphy-production/hitl_jobs.db", timeout=6) as _hdb:
+                _hdb.execute("PRAGMA busy_timeout=3000")
+                _hdb.execute(
+                    "UPDATE hitl_jobs SET status=?, validated_at=?, "
+                    "notes=?, updated_at=? WHERE id=? AND status='open'",
+                    ("rejected", now, f"rejected via /os: {reason}",
+                     now, queue_id)
+                )
+                _hdb.commit()
+        except Exception:
+            pass
         if cur.rowcount == 0:
             return JSONResponse({"ok": False, "error": "not_found_or_not_pending"},
                                 status_code=404)
@@ -19094,8 +21795,21 @@ def create_app() -> FastAPI:
                 "/api/growth/onboard", "/api/growth/investor-inquiry",
                 "/api/growth/partner-inquiry", "/api/growth/outreach",
                 "/api/health/capacity", "/api/oo/survey",
+                # _R444_OIDC_EXEMPT — public marketplace + audit endpoints
+                "/api/marketplace/agents",
+                "/api/marketplace/categories",
+                "/api/marketplace/vote",  # handler does its own 401 if anon
+                "/marketplace",
+                "/api/audit/request",
+                # _R445_OIDC_EXEMPT — public tenant slug endpoints
+                "/api/tenant/check-slug",
+                # _R489C_EXEMPT — public contact form
+                "/api/contact/submit",
             })
-            _pfx = ("/api/growth", "/api/oo/", "/api/health/capacity")
+            _pfx = ("/api/growth", "/api/oo/", "/api/health/capacity",
+                    "/api/marketplace/",
+                    "/api/tenant/by-slug/",
+                    "/api/download/")  # R482
             _OIDCMW.EXEMPT_PREFIXES = tuple(set(_OIDCMW.EXEMPT_PREFIXES)|set(_pfx))
         except Exception:
             pass
@@ -22988,7 +25702,30 @@ def create_app() -> FastAPI:
                     enriched.setdefault("domain", "exec_admin")
                 enriched.setdefault("signal_id", str(_swarm_uuid.uuid4()))
                 enriched.setdefault("intent_hint", str(enriched.get("question", ""))[:120])
-                dag_id = coord.dispatch(enriched)
+
+                # _R486E_DAG_PREGEN — pre-generate dag_id BEFORE dispatch so agents
+                # see it during _run() → Soul.record can close work_items by dag_id.
+                # Without this the endpoint generated dag_id AFTER dispatch returned,
+                # at which point the agent had already finished and lost the chance
+                # to record it. R484 + R486a were architecturally doomed without this.
+                if not enriched.get("dag_id"):
+                    enriched["dag_id"] = str(_swarm_uuid.uuid4())
+                _r486e_pregen_dag = enriched["dag_id"]
+                # PATCH-R289 (2026-05-30) — burst-load fix per R288 audit.
+                # R286 created/destroyed a ThreadPoolExecutor per call which
+                # caused pool churn under burst. asyncio.to_thread uses the
+                # default loop executor (singleton, ~32 workers in 3.9+) and
+                # awaits cleanly without blocking the event loop.
+                try:
+                    import asyncio as _r289_aio
+                    dag_id = await _r289_aio.wait_for(
+                        _r289_aio.to_thread(coord.dispatch, enriched),
+                        timeout=15,
+                    )
+                except Exception:
+                    # Last-resort fallback: direct sync call. Will block the
+                    # loop briefly if upstream is slow, but at least returns.
+                    dag_id = coord.dispatch(enriched)
                 _notify(f"Rosetta dispatched — dag_id={dag_id}")
                 # Determine assigned agents from coordinator
                 if hasattr(coord, 'agents'):
@@ -23076,9 +25813,15 @@ def create_app() -> FastAPI:
             try: _work_db_init363()
             except: pass
             if not dag_id:
-                import uuid as _uu363b
-                dag_id = str(_uu363b.uuid4())
-                _notify(f'Work item created — id={dag_id[:8]} (exec_admin pathway)')
+                # _R486E_DAG_PREGEN — prefer the pre-generated value if available
+                # so the agents who ran with that dag_id can complete it via Soul.record.
+                if '_r486e_pregen_dag' in dir() and _r486e_pregen_dag:
+                    dag_id = _r486e_pregen_dag
+                    _notify(f'Work item created — id={dag_id[:8]} (R486e pregen)')
+                else:
+                    import uuid as _uu363b
+                    dag_id = str(_uu363b.uuid4())
+                    _notify(f'Work item created — id={dag_id[:8]} (exec_admin pathway)')
             if not assigned_agents:
                 assigned_agents = ['exec_admin', 'executor', 'scheduler']
             try:
@@ -24586,6 +27329,90 @@ def create_app() -> FastAPI:
         except Exception as exc:
             return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
 
+    # ═══════════════════════════════════════════════════════════════════
+    # R64a — Rosetta Learning HTTP layer (added 2026-06-06)
+    # ═══════════════════════════════════════════════════════════════════
+    try:
+        import sys; sys.path.insert(0, "/opt/Murphy-System/src/runtime"); from rosetta_learning import (
+            get_agent_success_map as _rl_get_map,
+            list_all_agent_success_maps as _rl_list_all,
+            get_top_corrections as _rl_top_corr,
+            get_distilled_lessons as _rl_lessons,
+            capture_roi_actuals as _rl_roi_actuals,
+            health as _rl_health,
+            derive_agent_type as _rl_derive,
+            record_decision as _rl_record,
+        )
+        _RL_OK = True
+    except Exception as _rl_e:
+        _RL_OK = False
+        _rl_import_err = str(_rl_e)
+
+    @app.get("/api/rosetta-learning/health")
+    async def r64a_rl_health():
+        if not _RL_OK:
+            return JSONResponse(
+                {"ok": False, "error": f"rosetta_learning not importable: {_rl_import_err}"},
+                status_code=503,
+            )
+        return JSONResponse(_rl_health())
+
+    @app.get("/api/rosetta-learning/agents")
+    async def r64a_rl_list():
+        """All agent_types with their success_map row, ordered by fail_rate desc."""
+        if not _RL_OK:
+            return JSONResponse({"ok": False, "error": "rl_unavailable"}, status_code=503)
+        return JSONResponse({"ok": True, "agents": _rl_list_all()})
+
+    @app.get("/api/rosetta-learning/agent/{agent_type}")
+    async def r64a_rl_one(agent_type: str):
+        """Single agent_type's success_map + counts."""
+        if not _RL_OK:
+            return JSONResponse({"ok": False, "error": "rl_unavailable"}, status_code=503)
+        row = _rl_get_map(agent_type)
+        if not row:
+            return JSONResponse({"ok": False, "error": "not_seeded", "agent_type": agent_type},
+                                status_code=404)
+        return JSONResponse({"ok": True, "agent_type": agent_type, "map": row})
+
+    @app.get("/api/rosetta-learning/agent/{agent_type}/corrections")
+    async def r64a_rl_corrections(agent_type: str, limit: int = 10,
+                                   only_undistilled: bool = False):
+        """Top-N corrections for an agent_type — used by persona injection (R64c)."""
+        if not _RL_OK:
+            return JSONResponse({"ok": False, "error": "rl_unavailable"}, status_code=503)
+        return JSONResponse({
+            "ok": True, "agent_type": agent_type,
+            "corrections": _rl_top_corr(agent_type, limit=limit, only_undistilled=only_undistilled),
+        })
+
+    @app.get("/api/rosetta-learning/agent/{agent_type}/lessons")
+    async def r64a_rl_lessons(agent_type: str, limit: int = 5):
+        if not _RL_OK:
+            return JSONResponse({"ok": False, "error": "rl_unavailable"}, status_code=503)
+        return JSONResponse({
+            "ok": True, "agent_type": agent_type,
+            "lessons": _rl_lessons(agent_type, limit=limit),
+        })
+
+    @app.post("/api/rosetta-learning/roi/{event_id}/actuals")
+    async def r64a_rl_roi_actuals(event_id: str, request: Request):
+        """Capture actuals on a completed ROI event. Body: {human_cost_actual, ...}."""
+        if not _RL_OK:
+            return JSONResponse({"ok": False, "error": "rl_unavailable"}, status_code=503)
+        try:
+            body = await request.json()
+        except Exception:
+            body = {}
+        if not isinstance(body, dict) or not body:
+            return JSONResponse({"ok": False, "error": "empty_body"}, status_code=400)
+        ok = _rl_roi_actuals(event_id, body)
+        return JSONResponse({"ok": ok, "event_id": event_id})
+    # ═══════════════════════════════════════════════════════════════════
+    # END R64a
+    # ═══════════════════════════════════════════════════════════════════
+
+
 
 
 
@@ -25018,6 +27845,14 @@ def create_app() -> FastAPI:
         except Exception as e:
             return JSONResponse({"success": False, "error": str(e)}, status_code=500)
 
+    # _R443_AIONMIND_ROUTER_MOUNTED
+    try:
+        from src.aionmind.chat_router import router as _r443_aion_router
+        app.include_router(_r443_aion_router)
+        logger.info("R443: mounted AionMind router at /api/aionmind/*")
+    except Exception as _r443_e:
+        logger.warning("R443: AionMind router mount failed: %s", _r443_e)
+
     @app.post("/api/chat")
     async def _chat_unified(req: Request):
         """Direct chat with Murphy — unified voice across all channels (murphy_voice.py)."""
@@ -25028,6 +27863,58 @@ def create_app() -> FastAPI:
             session_id = body.get("session_id") or "default"
             if not message:
                 return JSONResponse({"success": False, "error": "message required"}, status_code=400)
+
+            # ═══════════════════════════════════════════════════════════════
+            # PATCH-R355 PROMPT-GUARD WITH FULL ERROR DISCIPLINE
+            # Founder R355 directive: "Every choice has only a certain number of
+            # things that can go wrong. Number them. Full error coding: who/what/
+            # when/where/how/why. Plan ancillary code changes."
+            #
+            # FME (Failure Modes Enumerated):
+            #   E_PROMPT_0001: message missing (handled above, line 25173)
+            #   E_PROMPT_0002: message > ceiling → truncate + WARN log
+            #   E_PROMPT_0003: JSON parse failed (handled by FastAPI middleware)
+            #
+            # SME (Success Modes Enumerated):
+            #   S1: message <= ceiling → pass unchanged
+            #   S2: message > ceiling → truncate, log audit, continue
+            #   S3: caller wants to see what was truncated → R355_truncated_chars
+            #       added to history + audit chain (transparent degradation)
+            #
+            # Ancillary changes for R355:
+            #   /var/lib/murphy-production/error_codes.json (R355 STREAM A)
+            #   .agents/rules/error_discipline.md (R355 standing rule)
+            #
+            # Rollback: restore app.py.pre-r355 + restart
+            # ═══════════════════════════════════════════════════════════════
+            _R355_CEILING = 1200            # ~300 tokens conservative
+            _R355_TAIL_KEEP = 1136          # CEILING - 64 (separator)
+            _R355_PREFIX_KEEP = 60
+            _R355_truncated_chars = 0       # exposed in history for transparency
+
+            if len(message) > _R355_CEILING:
+                _R355_truncated_chars = len(message) - _R355_CEILING
+                # Structured WARNING — WHO/WHAT/WHEN/WHERE/HOW/WHY
+                logger.warning(
+                    "[E_PROMPT_0002] who=%s what=%s when=%s where=%s how=%s why=%s",
+                    body.get("session_id") or "anon",                     # who
+                    "/api/chat",                                          # what
+                    _ct.strftime("%Y-%m-%dT%H:%M:%SZ", _ct.gmtime()),     # when
+                    "app.py:25184",                                       # where
+                    f"len={len(message)}>ceiling={_R355_CEILING}",        # how
+                    "Substrate LLM hallucinates past ~300 tokens; truncating tail-preserved",  # why
+                )
+                # Tail-preserving truncation (closing instruction usually carries the ask)
+                _suffix = message[-_R355_TAIL_KEEP:]
+                _prefix = message[:_R355_PREFIX_KEEP]
+                message = (
+                    _prefix
+                    + " [...E_PROMPT_0002 truncated "
+                    + str(_R355_truncated_chars)
+                    + " chars...] "
+                    + _suffix
+                )
+
 
             history = []
             try:
@@ -25041,12 +27928,27 @@ def create_app() -> FastAPI:
 
             from src.self_audit import snapshot as _snap
             audit = _snap()
-            from src.murphy_voice import reply_in_voice as _riv
-            reply = _riv(message, audit=audit, history=history, channel="chat")
+            # R405 Phase 2: set tenant_id for cost attribution
+            _r405_tenant = req.headers.get("X-Tenant-ID", "").strip() or session_id or "platform"
+            try:
+                from src.llm_cost_ledger import set_tenant as _r405_set, reset_tenant as _r405_reset
+                _r405_tok = _r405_set(_r405_tenant)
+            except Exception:
+                _r405_tok = None
+            try:
+                from src.murphy_voice import reply_in_voice as _riv
+                reply = _riv(message, audit=audit, history=history, channel="chat")
+            finally:
+                if _r405_tok is not None:
+                    try:
+                        from src.llm_cost_ledger import reset_tenant as _r405_reset
+                        _r405_reset(_r405_tok)
+                    except Exception:
+                        pass
             # PATCH-REFLECTION-001 — capture resolutions Murphy just emitted
             _last_res = getattr(_riv, "last_resolutions", [])
 
-            history.append({"u": message, "m": reply, "t": _ct.time(), "resolutions": _last_res})
+            history.append({"u": message, "m": reply, "t": _ct.time(), "resolutions": _last_res, "r355_truncated": _R355_truncated_chars})
             history = history[-16:]
             try:
                 _conn = _cs.connect("/var/lib/murphy-production/murphy_mind.db")
@@ -25115,34 +28017,98 @@ def create_app() -> FastAPI:
         })
 
     @app.get("/api/self/grep")
-    async def _self_grep(pattern: str = "", file: str = ""):
-        """
-        PATCH-159d: Murphy greps its own source before patching.
+    async def _self_grep(pattern: str = "", file: str = "", scope: str = "all"):
+        """_R455_SELFGREP — Murphy greps its own source before patching.
+
+        Upgrade rationale (R455): the prior implementation only scanned
+        src/**/*.py and root *.py, capped at first 50 files alphabetically.
+        That made it blind to: (1) lead_prospector.py if sort order pushed it
+        past file 50, (2) static/*.html UI files, (3) scripts/*.sh, (4) sql
+        schemas, (5) anything in subdirs other than src/.
+
+        New scopes:
+          - py:    *.py in src/, scripts/, root
+          - html:  *.html files in static/ and root
+          - sql:   *.sql in src/ and migrations/
+          - sh:    *.sh in scripts/
+          - all:   union of the above
+          - <subdir>: anything matching root/<subdir>/**
+
+        File cap raised to 500 (still cheap on 8GB box).
+        Per-match cap raised to 500.
+
+        ?pattern=panel-check_inbox&scope=html
         ?pattern=def write_patch&file=src/self_modification.py
-        Returns matching lines with line numbers for precision patching.
         """
         import pathlib, re
         if not pattern:
             return JSONResponse({"success": False, "error": "pattern required"}, status_code=400)
         root = pathlib.Path("/opt/Murphy-System")
+
+        def _list_scope(s: str):
+            if s == "py":
+                return (list(root.glob("src/**/*.py")) +
+                        list(root.glob("scripts/**/*.py")) +
+                        list(root.glob("*.py")))
+            if s == "html":
+                return (list(root.glob("static/**/*.html")) +
+                        list(root.glob("*.html")))
+            if s == "sql":
+                return (list(root.glob("src/**/*.sql")) +
+                        list(root.glob("migrations/**/*.sql")) +
+                        list(root.glob("*.sql")))
+            if s == "sh":
+                return (list(root.glob("scripts/**/*.sh")) +
+                        list(root.glob("*.sh")))
+            if s == "all":
+                return (_list_scope("py") + _list_scope("html") +
+                        _list_scope("sql") + _list_scope("sh"))
+            # Custom subdir
+            return list(root.glob(f"{s}/**/*"))
+
         if file:
             files = [root / file]
         else:
-            files = list(root.glob("src/**/*.py")) + list(root.glob("*.py"))
+            files = _list_scope(scope)
+
         matches = []
         try:
             rx = re.compile(pattern, re.IGNORECASE)
         except re.error as e:
             return JSONResponse({"success": False, "error": f"Invalid regex: {e}"}, status_code=400)
-        for fp in files[:50]:
-            if not fp.exists():
+
+        # _R455B_DEEPER — sort big interesting files first, then alphabetical
+        # Priority: runtime/app.py, lead_prospector.py, then rest of src/
+        def _prio(fp):
+            s = str(fp)
+            if "runtime/app.py" in s: return (0, s)
+            if "lead_prospector.py" in s: return (1, s)
+            if "/src/" in s and s.endswith(".py"): return (2, s)
+            if s.endswith(".html"): return (3, s)
+            return (4, s)
+        files = sorted(files, key=_prio)
+
+        for fp in files[:1500]:
+            if not fp.exists() or not fp.is_file():
                 continue
-            for i, line in enumerate(fp.read_text(errors="ignore").splitlines(), 1):
-                if rx.search(line):
-                    matches.append({"file": str(fp.relative_to(root)), "line": i, "text": line.rstrip()})
-                    if len(matches) >= 200:
-                        break
-        return JSONResponse({"success": True, "pattern": pattern, "matches": matches, "total": len(matches)})
+            try:
+                for i, line in enumerate(fp.read_text(errors="ignore").splitlines(), 1):
+                    if rx.search(line):
+                        matches.append({"file": str(fp.relative_to(root)),
+                                        "line": i,
+                                        "text": line.rstrip()[:300]})
+                        if len(matches) >= 500:
+                            break
+            except Exception:
+                continue
+            if len(matches) >= 500:
+                break
+
+        return JSONResponse({
+            "success": True, "pattern": pattern, "scope": scope,
+            "files_scanned": min(len(files), 1500), "files_available": len(files),
+            "matches": matches, "total": len(matches),
+        })
 
     @app.get("/api/self/backups")
     async def _self_backups():
@@ -27226,16 +30192,24 @@ def create_app() -> FastAPI:
         if add_on in ADD_ON_PRICES:
             amount += ADD_ON_PRICES[add_on]
 
+        # _R447_PREFER_CARD — apply 3% processing surcharge for card payments
+        prefer_card = bool(body.get('prefer_card', False))
+        if prefer_card:
+            amount = round(amount * 1.03, 2)
+
         api_key = os.environ.get('NOWPAYMENTS_API_KEY', '')
         if not api_key:
             return JSONResponse({'ok': False, 'error': 'NOWPAYMENTS_API_KEY not set'}, status_code=500)
 
-        order_id = f'{email}|{tier}|{interval}|{add_on}|{int(_dt441.now(_tz441.utc).timestamp())}'
+        order_id = f'{email}|{tier}|{interval}|{add_on}|{int(_dt441.now(_tz441.utc).timestamp())}' + ('|card' if prefer_card else '|crypto')
+        _r447_desc = f'Murphy Systems — {tier.title()} ({interval})' + (f' + {add_on}' if add_on else '')
+        if prefer_card:
+            _r447_desc += ' [card]'
         payload = _json441.dumps({
             'price_amount': amount,
             'price_currency': 'usd',
             'order_id': order_id,
-            'order_description': f'Murphy Systems — {tier.title()} ({interval})' + (f' + {add_on}' if add_on else ''),
+            'order_description': _r447_desc,
             'ipn_callback_url': 'https://murphy.systems/api/payments/nowpayments/webhook',
             'success_url': 'https://murphy.systems/pricing?payment=success',
             'cancel_url': 'https://murphy.systems/pricing?payment=cancelled',
@@ -27283,6 +30257,7 @@ def create_app() -> FastAPI:
             'tier': tier,
             'interval': interval,
             'provider': 'nowpayments',
+            'method': 'card' if prefer_card else 'crypto',  # _R447
         })
 
     @app.post("/api/payments/nowpayments/webhook")
@@ -27900,21 +30875,32 @@ def create_app() -> FastAPI:
         except Exception:
             return False
 
+    # PATCH-SELF-HEAL-R163 (2026-05-29) — raise restart threshold and add cooldown
+    # R150-R162 traced: this self-heal restarts the monolith ~every 10-15 min
+    # when any route fails probes 5x. That's too aggressive — kills work in flight.
+    # Fix: threshold 5→20, plus 30-min cooldown so restarts can't fire repeatedly.
+    _last_restart_attempt = [0.0]  # mutable singleton for cooldown tracking
+    _RESTART_COOLDOWN_SEC = 1800  # 30 min
     def _attempt_repair(route: str):
-        """Graduated repair: warm → reload → restart."""
+        """Graduated repair: warm → reload → restart (R163: tolerant)."""
         fails = _consecutive_fails.get(route, 0)
         if fails == 2:
             _heal_event("WARN", f"{route} failed twice — sending warm notification")
-            # TODO: wire to SMS/email alert when Twilio is set up
-        elif fails == 3:
-            _heal_event("WARN", f"{route} failed 3x — attempting SIGHUP reload")
+        elif fails == 5:
+            _heal_event("WARN", f"{route} failed 5x — attempting SIGHUP reload")
             try:
                 subprocess.run(["systemctl", "reload", "murphy-production"],
                                timeout=15, capture_output=True)
             except Exception as e:
                 _heal_event("ERROR", f"SIGHUP failed: {e}")
-        elif fails >= 5:
-            _heal_event("CRITICAL", f"{route} failed {fails}x — restarting service")
+        elif fails >= 20:
+            # R163: cooldown gate
+            now = time.time()
+            if now - _last_restart_attempt[0] < _RESTART_COOLDOWN_SEC:
+                _heal_event("WARN", f"{route} failed {fails}x but in cooldown window — skipping restart")
+                return
+            _last_restart_attempt[0] = now
+            _heal_event("CRITICAL", f"{route} failed {fails}x — restarting service (cooldown reset)")
             try:
                 subprocess.run(["systemctl", "restart", "murphy-production"],
                                timeout=30, capture_output=True)
@@ -33648,6 +36634,362 @@ def create_app() -> FastAPI:
     except Exception as _e434:
         import logging as _log434
         _log434.getLogger(__name__).warning(f'PATCH-434 routes failed: {_e434}')
+
+    # ── R404d (2026-06-01): demo sub-app mount (bypasses parent middleware for SSE) ──
+    try:
+        from fastapi import FastAPI as _FastAPI_R404
+        from starlette.responses import StreamingResponse as _SR_R404
+        _demo_app = _FastAPI_R404(docs_url=None, redoc_url=None, openapi_url=None)
+
+        @_demo_app.post("/build")
+        async def _r404_build(request: Request):
+            """R404 — SSE stream of the 60s build for a prospect's named business."""
+            try:
+                body = await request.json()
+            except Exception:
+                body = {}
+            company = (body.get("company_name") or body.get("name") or "").strip()
+            if not company or len(company) > 80:
+                from starlette.responses import JSONResponse as _JR
+                return _JR({"error": "company_name required (1-80 chars)"}, status_code=400)
+            try:
+                from src.r404_demo_orchestrator import build_stream
+            except Exception:
+                from r404_demo_orchestrator import build_stream
+            ip = request.client.host if request.client else ""
+            ua = request.headers.get("user-agent", "")[:200]
+            return _SR_R404(build_stream(company, ip, ua), media_type="text/event-stream")
+
+        @_demo_app.get("/tenants/{slug}")
+        async def _r404_get_artifact(slug: str):
+            """R404 — read the full artifact for a built tenant."""
+            from starlette.responses import JSONResponse as _JR
+            try:
+                from src.r404_demo_orchestrator import get_tenant_artifact
+            except Exception:
+                from r404_demo_orchestrator import get_tenant_artifact
+            artifact = get_tenant_artifact(slug)
+            if not artifact:
+                return _JR({"error": "not found", "slug": slug}, status_code=404)
+            return _JR(artifact)
+
+        @_demo_app.get("/health")
+        async def _r404_health():
+            """R404 — is the demo subsystem alive."""
+            from starlette.responses import JSONResponse as _JR
+            import sqlite3 as _sql
+            try:
+                con = _sql.connect("/var/lib/murphy-production/demo_tenants.db", timeout=1.0)
+                n = con.execute("SELECT COUNT(*) FROM demo_tenants").fetchone()[0]
+                con.close()
+                return _JR({"ok": True, "demo_count": n, "subsystem": "r404"})
+            except Exception as e:
+                return _JR({"ok": False, "error": str(e)}, status_code=500)
+
+        app.mount("/api/demo", _demo_app)
+        import logging as _lg_r404
+        _lg_r404.getLogger("murphy.r404").info("R404d: demo sub-app mounted at /api/demo")
+    except Exception as _r404_e:
+        import logging as _lg_r404
+        _lg_r404.getLogger("murphy.r404").error("R404d mount failed: %s", _r404_e)
+    # ── end R404d ──────────────────────────────────────────────────────────
+
+
+    # ── R405 (2026-06-01): LLM cost ledger — capture EVERY call ────────────
+    try:
+        from src.llm_cost_ledger import LLMCostLedger as _R405_Ledger, patch_llm_provider as _r405_patch, cost_router as _r405_router
+        _r405_ledger_obj = _R405_Ledger()
+        _r405_patch(_r405_ledger_obj)
+        app.state.llm_cost_ledger = _r405_ledger_obj
+        app.include_router(_r405_router)
+        import logging as _lg_r405
+        _lg_r405.getLogger("murphy.r405").info("R405: LLM cost ledger active — /api/llm-cost/* live")
+    except Exception as _r405_e:
+        import logging as _lg_r405
+        _lg_r405.getLogger("murphy.r405").error("R405: ledger wiring failed: %s", _r405_e)
+    # ── end R405 ───────────────────────────────────────────────────────────
+
+
+    # ── R406 (2026-06-01): Public assist-request endpoint ──────────────────
+    try:
+        from fastapi import Request as _R406_Request
+        import sqlite3 as _r406_sqlite, json as _r406_json
+        from datetime import datetime as _r406_dt
+        _R406_DB = "/var/lib/murphy-production/assist_requests.db"
+
+        def _r406_init():
+            c = _r406_sqlite.connect(_R406_DB)
+            c.execute("""CREATE TABLE IF NOT EXISTS requests(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ts TEXT, email TEXT, company TEXT, preferred_time TEXT,
+                stage INTEGER, source TEXT, ip TEXT, user_agent TEXT,
+                status TEXT DEFAULT 'new', notes TEXT)""")
+            c.commit()
+            c.close()
+        _r406_init()
+
+        @app.post("/api/public/assist/request")
+        async def _r406_assist_request(request: _R406_Request):
+            try:
+                body = await request.json()
+                ip = request.client.host if request.client else "?"
+                ua = request.headers.get("user-agent", "")[:200]
+                c = _r406_sqlite.connect(_R406_DB)
+                cur = c.execute("INSERT INTO requests(ts,email,company,preferred_time,stage,source,ip,user_agent) VALUES(?,?,?,?,?,?,?,?)",
+                    (_r406_dt.utcnow().isoformat()+"Z",
+                     (body.get("email") or "")[:200],
+                     (body.get("company") or "")[:200],
+                     (body.get("preferred_time") or "")[:200],
+                     int(body.get("stage") or 0),
+                     (body.get("source") or "landing")[:80],
+                     ip, ua))
+                c.commit()
+                rid = cur.lastrowid
+                c.close()
+                import logging as _lg
+                _lg.getLogger("murphy.r406").info(
+                    "R406 assist request id=%s email=%s stage=%s source=%s",
+                    rid, body.get("email"), body.get("stage"), body.get("source"))
+                return JSONResponse({"success": True, "request_id": rid,
+                    "message": "Request received. A Murphy operator will reach out within 4 hours."})
+            except Exception as e:
+                return JSONResponse({"success": False, "error": str(e)}, status_code=500)
+
+        @app.get("/api/public/assist/list")
+        async def _r406_assist_list():
+            """Admin view of pending assist requests (no auth — TODO: gate behind founder key)."""
+            try:
+                c = _r406_sqlite.connect(_R406_DB)
+                c.row_factory = _r406_sqlite.Row
+                rows = c.execute("SELECT id,ts,email,company,preferred_time,stage,status FROM requests ORDER BY id DESC LIMIT 100").fetchall()
+                c.close()
+                return JSONResponse({"requests": [dict(r) for r in rows], "count": len(rows)})
+            except Exception as e:
+                return JSONResponse({"success": False, "error": str(e)}, status_code=500)
+
+        import logging as _r406_lg
+        _r406_lg.getLogger("murphy.r406").info("R406: assist-request endpoint registered at /api/public/assist/request")
+    except Exception as _r406_e:
+        import logging as _r406_lg
+        _r406_lg.getLogger("murphy.r406").error("R406 wiring failed: %s", _r406_e)
+    # ── end R406 ───────────────────────────────────────────────────────────
+
+
+    # ── R412 (2026-06-01): clean /deck and /pitch shortcuts ─────────────
+    _R412_DECK_ROUTE = True
+    try:
+        from fastapi.responses import RedirectResponse as _R412_Redirect, FileResponse as _R412_File
+
+        _R412_DECK_PATH = "/opt/Murphy-System/static/uploads/pitch_deck_32c1fb77.html"
+
+        @app.get("/deck", include_in_schema=False)
+        async def _r412_deck():
+            return _R412_File(_R412_DECK_PATH, media_type="text/html")
+
+        @app.get("/pitch", include_in_schema=False)
+        async def _r412_pitch():
+            return _R412_Redirect("/deck", status_code=302)
+
+        logger.info("R412: /deck and /pitch routes registered")
+    except Exception as _r412_e:
+        logger.warning("R412: deck routes failed: %s", _r412_e)
+    # ── end R412 ────────────────────────────────────────────────────────
+
+
+    # R414 block removed in R414b — /founder now served via override above; /control alias preserved separately
+    try:
+        from fastapi.responses import RedirectResponse as _R414C_R
+        @app.get("/control", include_in_schema=False)
+        async def _r414c_ctrl():
+            return _R414C_R("/founder", status_code=302)
+    except Exception:
+        pass
+
+
+    # ── R418 (2026-06-01): Unified Feature Inventory ───────────────────
+    _R418_INVENTORY = True
+    try:
+        from fastapi.responses import FileResponse as _R418_File
+        from src.feature_inventory import (
+            load_inventory as _r418_load,
+            persist as _r418_persist,
+            build_ui_map as _r418_uimap,
+        )
+
+        @app.get("/api/inventory", include_in_schema=False)
+        async def _r418_inventory():
+            """Full unified feature inventory."""
+            return _r418_load() or {"error": "inventory not yet generated"}
+
+        @app.get("/api/inventory/feature/{feature_id}", include_in_schema=False)
+        async def _r418_feature(feature_id: str):
+            inv = _r418_load() or {}
+            for f in inv.get("features", []):
+                if f["id"] == feature_id:
+                    return f
+            return JSONResponse({"error": "feature not found"}, status_code=404)
+
+        @app.get("/api/inventory/orphans", include_in_schema=False)
+        async def _r418_orphans():
+            inv = _r418_load() or {}
+            return {
+                "count": inv.get("orphan_api_count", 0),
+                "by_group": inv.get("orphans_by_group", {}),
+                "sample": inv.get("orphans_sample", []),
+            }
+
+        @app.get("/api/inventory/ui-map", include_in_schema=False)
+        async def _r418_uimap_endpoint():
+            return _r418_uimap()
+
+        @app.post("/api/inventory/rebuild", include_in_schema=False)
+        async def _r418_rebuild():
+            """Regenerate inventory from live route registry."""
+            return _r418_persist()
+
+        @app.get("/inventory", include_in_schema=False)
+        async def _r418_inventory_page():
+            return _R418_File("/opt/Murphy-System/feature_inventory.html", media_type="text/html")
+
+        logger.info("R418: feature inventory routes registered (5 API + 1 page)")
+    except Exception as _r418_e:
+        logger.warning("R418: inventory routes failed: %s", _r418_e)
+    # ── end R418 ──────────────────────────────────────────────────────
+
+
+    # ── R419 (2026-06-01): Universal API Console ──────────────────────
+    _R419_API_CONSOLE = True
+    try:
+        from fastapi.responses import FileResponse as _R419_File
+        import json as _r419_json, time as _r419_time
+
+        @app.get("/api-console", include_in_schema=False)
+        async def _r419_console_page():
+            return _R419_File("/opt/Murphy-System/api_console.html", media_type="text/html")
+
+        @app.get("/api/inventory/all-routes", include_in_schema=False)
+        async def _r419_all_routes():
+            """Full live route table for the console to render."""
+            try:
+                with open("/var/lib/murphy-production/route_registry.json") as _f:
+                    return _r419_json.load(_f)
+            except Exception as _e:
+                return {"error": str(_e), "routes": []}
+
+        @app.get("/api/inventory/api-health", include_in_schema=False)
+        async def _r419_api_health():
+            """Latest health probe map."""
+            try:
+                with open("/var/lib/murphy-production/api_health_map.json") as _f:
+                    return _r419_json.load(_f)
+            except FileNotFoundError:
+                return {"error": "health map not yet generated — POST /api/inventory/rebuild-probe"}
+            except Exception as _e:
+                return {"error": str(_e)}
+
+        @app.post("/api/inventory/rebuild-probe", include_in_schema=False)
+        async def _r419_rebuild_probe():
+            """Re-probe sample endpoints and regenerate health map."""
+            import subprocess
+            try:
+                out = subprocess.check_output(
+                    ["python3", "/tmp/r419_probe.py"],
+                    stderr=subprocess.STDOUT, timeout=120
+                ).decode()
+                return {"success": True, "output": out[-2000:]}
+            except subprocess.CalledProcessError as _e:
+                return {"success": False, "error": _e.output.decode()[-2000:]}
+            except Exception as _e:
+                return {"success": False, "error": str(_e)}
+
+        logger.info("R419: API console registered (1 page + 3 endpoints)")
+    except Exception as _r419_e:
+        logger.warning("R419: API console failed: %s", _r419_e)
+    # ── end R419 ──────────────────────────────────────────────────────
+
+
+    # ── R420 (2026-06-01): every API endpoint becomes a tool for natural-language chat ──
+    _R420_ENDPOINT_TOOLS = True
+    try:
+        from src.endpoint_tools import register_endpoint_tools, stats as _r420_stats
+
+        # Register immediately during app construction — not via deprecated on_event
+        try:
+            _r420_result = register_endpoint_tools()
+            logger.info("R420 immediate: %s", _r420_result)
+        except Exception as _r420_imm_e:
+            logger.warning("R420 immediate failed: %s", _r420_imm_e)
+
+        @app.post("/api/tools/rebuild", include_in_schema=False)
+        async def _r420_rebuild():
+            try:
+                # Force-reset and re-run
+                import src.endpoint_tools as _et
+                _et._REGISTERED = False
+                return register_endpoint_tools()
+            except Exception as _e:
+                return {"ok": False, "error": str(_e)}
+
+        @app.get("/api/tools/registered", include_in_schema=False)
+        async def _r420_tools_registered():
+            """Stats about how many endpoints are wired as tools."""
+            return _r420_stats()
+
+        @app.get("/api/tools/search", include_in_schema=False)
+        async def _r420_tools_search(q: str = "", limit: int = 20):
+            """Search registered tools by tag/description/path."""
+            from src.aionmind.tool_executor import _get_registry
+            reg = _get_registry()
+            all_tools = reg.list_all() if hasattr(reg, "list_all") else []
+            q_low = q.lower()
+            matches = []
+            for t in all_tools:
+                hay = (t.name + " " + t.description + " " + " ".join(t.tags) + " " +
+                       t.metadata.get("_path", "")).lower()
+                if not q_low or q_low in hay:
+                    matches.append({
+                        "tool_id": t.tool_id,
+                        "name": t.name,
+                        "description": t.description,
+                        "path": t.metadata.get("_path"),
+                        "method": t.metadata.get("_method"),
+                        "permission": t.permission_level.value if hasattr(t.permission_level, "value") else str(t.permission_level),
+                        "tags": t.tags,
+                    })
+                if len(matches) >= limit:
+                    break
+            return {"query": q, "count": len(matches), "results": matches}
+
+        logger.info("R420: endpoint-tool registration hook installed")
+    except Exception as _r420_e:
+        logger.warning("R420: wire failed: %s", _r420_e)
+    # ── end R420 ──────────────────────────────────────────────────────
+
+
+    # ══════════════════════════════════════════════════════════════════════
+    # R445 — Root-level tenant catchall: murphy.systems/<slug> → tenant page
+    # MUST be the last route registered so it doesn't shadow specific routes.
+    # Sentinel: _R445_ROOT_CATCHALL
+    # ══════════════════════════════════════════════════════════════════════
+    _R445_ROOT_CATCHALL = True
+
+    @app.get("/{slug:str}", include_in_schema=False)
+    async def r445_root_catchall(slug: str, request: Request):
+        """Last-resort: bare /<slug> at the root. If it's an active tenant slug,
+        serve tenant_home.html. Otherwise 404."""
+        from fastapi.responses import FileResponse as _R445FR, HTMLResponse as _R445HR
+        # Don't intercept anything with a dot (favicon.ico, robots.txt, .well-known, etc.)
+        if "." in slug or "/" in slug:
+            return _R445HR("<h1>404</h1>", status_code=404)
+        norm = _r445_normalize_slug(slug)
+        if not norm or _r445_slug_reserved(norm):
+            return _R445HR(f"<h1>404 — {slug}</h1>", status_code=404)
+        tenant = _r445_lookup_tenant_by_slug(norm)
+        if tenant:
+            return _R445FR("/opt/Murphy-System/tenant_home.html", media_type="text/html")
+        # Show a "this tenant doesn't exist" page instead of bare 404
+        return _R445FR("/opt/Murphy-System/tenant_home.html", media_type="text/html",
+                       status_code=404)
 
     return app
 
