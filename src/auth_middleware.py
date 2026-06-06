@@ -103,6 +103,9 @@ _DEFAULT_EXEMPT: Set[str] = {
 }
 
 _EXEMPT_PREFIXES = (
+    "/api/books/",  # R65b-B3 — public book writer + downloads
+    "/api/citations/",  # R65b-B1+B2 — public citation gate
+    "/api/demo/generate-deliverable",  # R65a-b — public demo deliverable (covers /stream too)
     "/api/brain/",  # R493 — Desktop Brain API
     "/api/marketplace/",  # _R444: all marketplace routes public (vote handler does its own 401)
     "/static",
@@ -151,6 +154,11 @@ _EXEMPT_PREFIXES = (
     "/pitch",  # R412: pitch alias
     "/api/public/assist/request",
     "/api/demo/build",  # R404 — public demo SSE
+    "/api/demo/generate-deliverable",  # R65a-b public demo deliverable
+    "/api/citations/verify",  # R65b-B1+B2 — public citation gate
+    "/api/books/write",  # R65b-B3 — public book writer
+    "/api/books/",  # R65b-B3 — prefix for download routes
+    # Note: /api/books/*/download is checked separately via prefix below
     "/api/demo/tenants",  # R404 — public artifact read
     "/api/demo/health",  # R404 — public health
     "/api/billing/products",  # R401b — redirects to /api/billing/plans
