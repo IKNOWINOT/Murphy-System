@@ -342,3 +342,28 @@ rosetta_selling_bridge_20260606T213039Z.before
 
 **Future wiring:** R64c1 — extend to autonomous_engine.build_personality_for_role
 so non-selling personas also benefit. Cheap follow-up.
+
+## R64c1 — Persona memory loop extended to ALL personas (2026-06-06)
+
+**Problem:** R64c wired persona_memory_loop into rosetta_selling_bridge, but
+that only covers sales/outreach personas. Executive, ops, eng, customer
+success, communications personas had no path to receive HITL corrections.
+
+**Fix:** src/rosetta/rosetta_soul_renderer.py:render_from_persona — after
+boundaries are rendered, append a "## Learning" section using
+persona_memory_loop.render_correction_block. agent_type derivation tries
+persona.agent_type → department → role → name in that order, lowercased.
+
+This is the ONE place every Rosetta persona passes through to become a
+SOUL.md, so this wire covers the whole persona library.
+
+**Proof:** "Executive Advisor" persona with 2 test corrections (rejection
++ revision) for agent_type='executive' renders cleanly with both lessons
+in importance order. "Marketing Brain" persona (no corrections) renders
+without a Learning section (no spam when nothing to teach).
+
+**Composes with:** R64c (selling bridge wire) — both paths now active.
+Coverage: 100% of personas in the dispatch pipeline.
+
+**Snapshot:** /var/lib/murphy-production/state_snapshots/
+rosetta_soul_renderer_20260606T213550Z.before

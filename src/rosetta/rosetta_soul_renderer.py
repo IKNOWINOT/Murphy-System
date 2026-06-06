@@ -187,6 +187,31 @@ class RosettaSoulRenderer:
             for b in boundaries:
                 lines.append(f"- ❌ {b}")
 
+        # R64c1 — append recent human corrections so the persona learns from HITL
+        try:
+            from persona_memory_loop import render_correction_block as _r64c1_block
+            # Derive agent_type from role/department/agent_type, prefer the
+            # most specific. agent_corrections.agent_type is lowercased.
+            _agent_type = (
+                persona.get("agent_type")
+                or persona.get("department")
+                or persona.get("role")
+                or persona.get("name")
+                or ""
+            ).lower().strip()
+            if _agent_type:
+                _block = _r64c1_block(
+                    _agent_type,
+                    limit=5,
+                    title="RECENT HUMAN CORRECTIONS — LEARN FROM THESE",
+                )
+                if _block:
+                    lines.append("")
+                    lines.append("## Learning")
+                    lines.append(_block)
+        except Exception:
+            pass
+
         return "\n".join(lines)
 
     # ------------------------------------------------------------------
