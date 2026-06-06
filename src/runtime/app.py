@@ -27480,6 +27480,35 @@ def create_app() -> FastAPI:
         media = "text/x-python" if filename.endswith(".py") else ("application/octet-stream" if filename.endswith(".bat") else "text/html")
         return _R65a4_FR(fp, media_type=media)
     # R65a4_DESKTOP_DONE
+
+
+    # ═══════════════════════════════════════════════════════════════════
+    # R65b-B1+B2 — Citation verifier + Plagiarism gate (2026-06-06)
+    # ═══════════════════════════════════════════════════════════════════
+    @app.post("/api/citations/verify", include_in_schema=False)
+    async def r65b_verify_citations(request: Request):
+        """Verify citations in a body of text + run plagiarism gate.
+
+        Body: {"text": "..."} OR {"deliverable_content": "..."}
+        Returns: {ok, citations[], citation_summary, plagiarism, verdict, elapsed_ms}
+        """
+        try:
+            body = await request.json()
+        except Exception:
+            body = {}
+        text = body.get("text") or body.get("deliverable_content") or body.get("content") or ""
+        if not text or len(text) < 20:
+            return JSONResponse({"ok": False, "error": "text required (min 20 chars)"}, status_code=400)
+        try:
+            from src.citation_verifier import verify_deliverable
+            result = verify_deliverable(text, max_citations=20, timeout_per_citation=8.0)
+            return JSONResponse(result)
+        except Exception as exc:
+            import traceback
+            return JSONResponse({"ok": False, "error": str(exc), "trace": traceback.format_exc()[-500:]}, status_code=500)
+    # R65b_B1B2_DONE
+    # ═══════════════════════════════════════════════════════════════════
+
     # ═══════════════════════════════════════════════════════════════════
 
     # ═══════════════════════════════════════════════════════════════════
