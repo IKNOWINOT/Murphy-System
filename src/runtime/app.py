@@ -22393,6 +22393,7 @@ def create_app() -> FastAPI:
 
         query = str(body.get("query", "")).strip()[:500]
         tenant_id = str(body.get("tenant_id") or "").strip() or None  # R66
+        archetype = str(body.get("archetype") or "").strip().lower() or None  # R69-B
         if not query:
             return JSONResponse(
                 {"success": False, "error": "missing_query", "message": "query is required"},
@@ -22578,6 +22579,7 @@ def create_app() -> FastAPI:
 
         query = str(body.get("query", "")).strip()[:500]
         tenant_id = str(body.get("tenant_id") or "").strip() or None  # R66
+        archetype = str(body.get("archetype") or "").strip().lower() or None  # R69-B
         if not query:
             return JSONResponse(
                 {"success": False, "error": "missing_query", "message": "query is required"},
@@ -22712,7 +22714,7 @@ def create_app() -> FastAPI:
         _fk_actor = (_fk_caller or {}).get("email") or "anonymous"
         try:
             from src.demo_deliverable_generator import generate_deliverable
-            deliverable = generate_deliverable(query, librarian_context=librarian_context or None)
+            deliverable = generate_deliverable(query, librarian_context=librarian_context or None, tenant_id=tenant_id, archetype=archetype)  # R69-B
         except Exception as exc:
             logger.warning("Deliverable generation failed: %s", exc)
             # P1b: record the failure against the kernel so the

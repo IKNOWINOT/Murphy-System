@@ -501,3 +501,51 @@ HITL, Agents, Pipeline, Soul tabs.
 **Snapshots:** /var/lib/murphy-production/state_snapshots/
 app_20260606T223101Z.r64d.before
 murphy-os_20260606T223101Z.r64d.before
+
+## R69 — archetype POST field wired into deliverable generator (2026-06-07)
+
+### R69-A diagnosis
+The cited_doc archetype test from R68 produced real LLM output (190s, 21KB)
+but ZERO citations. Forensic read of /var/lib/murphy-production/state_snapshots/cited_r68.json showed:
+- The output rendered the generic engineering-PRD template (FUNCTIONAL REQUIREMENTS,
+  STAKEHOLDER ANALYSIS, RACI MATRIX) — not the cited-research template
+- Tail had two Librarian-onboarding sections ("5U-Identity", "tell me a bit about")
+- `grep archetype demo_deliverable_generator.py` → zero hits
+- The _is_cited_doc detection at line 4530 fires only on natural-language keyword
+  match. Query "generative AI in 2026 with real sources" → zero keyword matches
+  ("sources" was not in the keyword list)
+
+### R69-B fix
+Three-file surgical patch (Murphy approved with dict-mapping suggestion):
+
+1. `src/demo_deliverable_generator.py`
+   - `_generate_llm_content` gains optional `archetype` kwarg
+   - `_is_cited_doc` detection now combines explicit-archetype dict-lookup OR keyword backstop
+   - Added _ARCHETYPE_FLAGS dict — single point of extension for future archetypes
+   - Added "sources", "evidence-based", "footnote" to keyword backstop
+   - `generate_custom_deliverable` and `generate_deliverable` both thread `archetype` through
+
+2. `src/runtime/app.py`
+   - Both POST `/api/demo/generate-deliverable` handlers (line 22381 `demo_run`
+     and line 22565 `demo_generate_deliverable`) now extract `archetype` from
+     the JSON body and forward it
+   - First attempt patched only the wrong handler — caught by HTTP 500
+     "name 'archetype' is not defined", fixed in iteration
+
+### Verification
+Snapshot: /var/lib/murphy-production/state_snapshots/cited_r69b_v2.json
+- HTTP 200 in 94s (vs 190s on R68 — faster because no off-archetype padding)
+- 10,944 chars of cited content
+- 6 numbered references with real arXiv IDs (Goodfellow GAN, Vaswani Attention,
+  Kingma VAE, Zhang Colorization, Bowman Continuous-Space, Dosovitskiy ViT)
+- Inline [1]..[5] citations embedded in body text
+- Provider: llm-remote:deepinfra (real, not stub)
+- Quality: 96/100 (honest — stub never fired)
+- Zero "Librarian" / "5U-Identity" / "business name" — persona drift eliminated
+
+### Lesson learned
+When grepping for a duplicate code pattern (here: `tenant_id = ... # R66`
+appears in 2 handlers), VERIFY which handler the line numbers fall in
+before patching. I assumed the first match was the right one; it wasn't.
+Always: `awk 'NR<=LINE && /async def/{lastdef=$0} END{print lastdef}'`
+to confirm the enclosing function.

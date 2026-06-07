@@ -4449,6 +4449,7 @@ def _generate_llm_content(
     librarian_context: Optional[str] = None,
     expert_result: Optional[Dict[str, Any]] = None,
     tracker: Optional[PipelineErrorTracker] = None,
+    archetype: Optional[str] = None,  # R69-B: explicit archetype signal
 ) -> str:
     """Generate deliverable content using the MFGC → MSS → LLM pipeline.
 
@@ -4523,11 +4524,29 @@ def _generate_llm_content(
     # R65b-B4: when the query is research/report style, demand REAL bibliographic citations.
     # The "Apache license URL" anti-pattern came from the platform license footer being
     # misread as a citation. Real cited deliverables need source-attributed claims.
+    # R69-B (2026-06-07): Murphy-approved dict-mapped archetype detection.
+    # The explicit POST `archetype` field is authoritative; natural-language
+    # keyword match is a best-effort backstop for callers that omit it.
+    # Adding new archetypes here is the single point of extension.
     _cite_keywords = ("cite", "citation", "research", "study", "studies", "paper",
                       "papers", "report", "briefing", "white paper", "whitepaper",
                       "analysis of", "review of", "literature", "scholarly",
-                      "journal", "bibliograph")
-    _is_cited_doc = any(kw in query.lower() for kw in _cite_keywords)
+                      "journal", "bibliograph", "sources", "with sources",
+                      "real sources", "evidence-based", "footnote")
+    _ARCHETYPE_FLAGS = {
+        # archetype slug   →  (is_cited_doc, future_flags...)
+        "cited_doc":       {"is_cited_doc": True},
+        "research_brief":  {"is_cited_doc": True},
+        "white_paper":     {"is_cited_doc": True},
+        # generic / code archetypes do not force citation
+        "custom":          {"is_cited_doc": False},
+        "code_project":   {"is_cited_doc": False},
+    }
+    _archetype_flags = _ARCHETYPE_FLAGS.get((archetype or "").strip().lower(), {})
+    _is_cited_doc = (
+        bool(_archetype_flags.get("is_cited_doc"))
+        or any(kw in query.lower() for kw in _cite_keywords)
+    )
     if _is_cited_doc:
         system_prompt += (
             "\n\n"
@@ -6805,6 +6824,7 @@ def generate_custom_deliverable(
     query: str,
     librarian_context: Optional[str] = None,
     tenant_id: Optional[str] = None,
+    archetype: Optional[str] = None,  # R69-B: pass through to LLM prompt
 ) -> Dict[str, Any]:
     """Generate a custom deliverable using the MFGC -> MSS -> Librarian -> LLM pipeline.
 
@@ -6875,6 +6895,7 @@ def generate_custom_deliverable(
         mss_result=mss_result,
         librarian_context=librarian_context,
         expert_result=expert_result,
+        archetype=archetype,  # R69-B
     )
 
     # Stage 4 — Append librarian context section (always rendered when present)
@@ -6926,12 +6947,13 @@ def generate_deliverable(
     query: str,
     librarian_context: Optional[str] = None,
     tenant_id: Optional[str] = None,
+    archetype: Optional[str] = None,  # R69-B: explicit archetype from POST body
 ) -> Dict[str, Any]:
     """Main entry point: detect scenario and dispatch to appropriate generator."""
     scenario_key = _detect_scenario(query)
     if scenario_key and scenario_key in _SCENARIO_TEMPLATES:
         return generate_predefined_deliverable(scenario_key, query, librarian_context=librarian_context)
-    return generate_custom_deliverable(query, librarian_context=librarian_context)
+    return generate_custom_deliverable(query, librarian_context=librarian_context, archetype=archetype)
 
 
 def generate_deliverable_with_progress(
