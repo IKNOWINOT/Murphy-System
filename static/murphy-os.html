@@ -1702,7 +1702,7 @@ body {
       <div class="page-header" id="hdr-agents">
         <div class="page-header-title">Swarm Agents</div>
         <div class="sub-tabs"><button class="sub-tab active" data-page="agents" data-filter="all" onclick="subTab(event,'agents','all')">All</button><button class="sub-tab" data-page="agents" data-filter="active" onclick="subTab(event,'agents','active')">Active</button><button class="sub-tab" data-page="agents" data-filter="idle" onclick="subTab(event,'agents','idle')">Idle</button><button class="sub-tab" data-page="agents" data-filter="failed" onclick="subTab(event,'agents','failed')">Failed</button></div>
-        <div class="page-actions"><button class="page-action-btn" onclick="qaAction(event,'swarm_status'); loadAgents()">↻ Refresh</button><button class="page-action-btn" onclick="qaAction(event,'audit')">🩺 Health Check</button><button class="page-action-btn primary" onclick="r78AgentRestartIdle()">🔄 Restart Idle</button></div>
+        <div class="page-actions"><button class="page-action-btn" onclick="qaAction(event,'swarm_status'); loadAgents()">↻ Refresh</button><button class="page-action-btn" onclick="qaAction(event,'audit')">🩺 Health Check</button><button class="page-action-btn primary" onclick="tellMurphy('Check swarm agents and restart any that are idle. Report which were restarted and which were already running.', {priority:'high'})">🔄 Restart Idle</button></div>
       </div>
       <div style="padding:16px">
         <div class="section-title" style="margin-bottom:12px">Swarm Agents — Soul-Aware</div>
@@ -1735,7 +1735,7 @@ body {
       <div class="page-header" id="hdr-soul">
         <div class="page-header-title">Murphy Soul</div>
         <div class="sub-tabs"><button class="sub-tab active" data-page="soul" data-filter="northstar" onclick="subTab(event,'soul','northstar')">North Star</button><button class="sub-tab" data-page="soul" data-filter="covenant" onclick="subTab(event,'soul','covenant')">Covenant</button><button class="sub-tab" data-page="soul" data-filter="harm" onclick="subTab(event,'soul','harm')">Harm Thresholds</button><button class="sub-tab" data-page="soul" data-filter="world" onclick="subTab(event,'soul','world')">World Context</button></div>
-        <div class="page-actions"><button class="page-action-btn" onclick="loadSoul()">↻ Refresh</button><button class="page-action-btn" onclick="r78SoulHistory()">📜 View History</button><button class="page-action-btn primary" onclick="r78SoulEdit()">✏️ Edit Soul</button></div>
+        <div class="page-actions"><button class="page-action-btn" onclick="loadSoul()">↻ Refresh</button><button class="page-action-btn" onclick="tellMurphy('Show me my recent soul and identity changes — the last 10 if available, with timestamps and what changed.', {})">📜 View History</button><button class="page-action-btn primary" onclick="r78SoulEdit()">✏️ Edit Soul</button></div>
       </div>
       <div class="soul-page">
         <div class="section-title" style="margin-bottom:16px">Murphy Soul</div>
@@ -1769,7 +1769,7 @@ body {
       <div class="page-header" id="hdr-shield">
         <div class="page-header-title">Shield Wall</div>
         <div class="sub-tabs"><button class="sub-tab active" data-page="shield" data-filter="status" onclick="subTab(event,'shield','status')">Status</button><button class="sub-tab" data-page="shield" data-filter="vault" onclick="subTab(event,'shield','vault')">Vault</button><button class="sub-tab" data-page="shield" data-filter="tripwires" onclick="subTab(event,'shield','tripwires')">Tripwires</button><button class="sub-tab" data-page="shield" data-filter="sandbox" onclick="subTab(event,'shield','sandbox')">Sandbox</button></div>
-        <div class="page-actions"><button class="page-action-btn" onclick="loadShield()">↻ Refresh</button><button class="page-action-btn" onclick="qaAction(event,'audit')">🛡️ Run Audit</button><button class="page-action-btn primary" onclick="r78ShieldTripwireLog()">📋 Tripwire Log</button></div>
+        <div class="page-actions"><button class="page-action-btn" onclick="loadShield()">↻ Refresh</button><button class="page-action-btn" onclick="qaAction(event,'audit')">🛡️ Run Audit</button><button class="page-action-btn primary" onclick="tellMurphy('Any tripwire events in the last hour? If yes, summarize each one with timestamp, file affected, and severity.', {})">📋 Tripwire Log</button></div>
       </div>
       <div style="padding:16px">
         <div class="section-title" style="margin-bottom:12px">Shield Wall</div>
@@ -3736,7 +3736,39 @@ async function r465BulkRejectAll() {
 </script>
 
 <script>
-// R78 — Sub-tab routing + per-page action handlers
+// R80.P1 — tellMurphy(): funnel a prompt into chat.
+// Strategy: write the prompt into the dispatch commission form,
+// switch to the dispatch page so the user sees the commission about
+// to fire (and can edit it), and execute. Result lands in the same
+// result-box that the rest of dispatch uses — single source of truth.
+window.tellMurphy = function (prompt, opts) {
+  opts = opts || {};
+  try {
+    // Make sure the dispatch page is visible
+    if (typeof switchPage === 'function') switchPage('dispatch');
+  } catch (_) {}
+  // Prefill the commission form via R79 if it exists, else fall back
+  const promptEl = document.getElementById('cmd-input');
+  if (promptEl) promptEl.value = prompt;
+  if (opts.archetype) {
+    const a = document.getElementById('r79-archetype');
+    if (a) a.value = opts.archetype;
+  }
+  if (opts.priority) {
+    const p = document.getElementById('r79-priority');
+    if (p) p.value = opts.priority;
+  }
+  // Fire dispatch
+  setTimeout(() => {
+    try {
+      if (typeof runDispatch === 'function') runDispatch();
+    } catch (e) {
+      console.error('[tellMurphy]', e);
+    }
+  }, 80);
+};
+
+// R78 + R80.P1 (2026-06-07) — sub-tabs + fakes routed to chat
 (function () {
   // Sub-tab → set [data-active-sub] on the page div so CSS filters rows
   window.subTab = function (ev, pageId, filter) {
@@ -3780,19 +3812,9 @@ async function r465BulkRejectAll() {
     out.scrollTop = out.scrollHeight;
   }
 
-  // AGENTS — restart idle agents (best-effort via dispatch)
-  window.r78AgentRestartIdle = async function () {
-    _log('info', '→ POST /api/swarm/agents/restart-idle');
-    try {
-      const r = await fetch('/api/swarm/agents/restart-idle', {
-        method: 'POST', headers: {'Content-Type':'application/json'},
-        credentials: 'include', body: JSON.stringify({})
-      });
-      const d = await r.json().catch(() => ({}));
-      _log(r.ok ? 'ok' : 'err',
-        `← ${r.status} ${(d.message || d.detail || d.error || (r.ok ? 'queued' : 'failed')).toString().slice(0,180)}`);
-      if (typeof loadAgents === 'function') loadAgents();
-    } catch (e) { _log('err', `× ${e.message}`); }
+  // R80.P1 — was 404 (/api/swarm/agents/restart-idle didn't exist). Routes to chat.
+  window.r78AgentRestartIdle = function () {
+    window.tellMurphy('Check swarm agents and restart any that are idle.', {priority:'high'});
   };
 
   // PIPELINE — export visible deals as CSV (client-side, current view only)
@@ -3813,16 +3835,9 @@ async function r465BulkRejectAll() {
     _log('ok', `exported ${rows.length-1} deals to CSV`);
   };
 
-  // SOUL — view recent identity history (read-only)
-  window.r78SoulHistory = async function () {
-    _log('info', '→ GET /api/self/identity/history');
-    try {
-      const r = await fetch('/api/self/identity/history?limit=10', {credentials:'include'});
-      const d = await r.json().catch(() => ({}));
-      const n = (d.events || d.history || []).length;
-      _log(r.ok ? 'ok' : 'err',
-        `← ${r.status} ${n} recent identity events`);
-    } catch (e) { _log('err', `× ${e.message}`); }
+  // R80.P1 — was 404 (/api/self/identity/history didn't exist). Routes to chat.
+  window.r78SoulHistory = function () {
+    window.tellMurphy('Show me my recent soul and identity changes.', {});
   };
 
   // SOUL — open identity editor in a new tab (no inline edit risk)
@@ -3851,16 +3866,9 @@ async function r465BulkRejectAll() {
     } catch (e) { _log('err', `× ${e.message}`); }
   };
 
-  // SHIELD — fetch recent tripwire entries
-  window.r78ShieldTripwireLog = async function () {
-    _log('info', '→ GET /api/security/tripwire/log?limit=20');
-    try {
-      const r = await fetch('/api/security/tripwire/log?limit=20', {credentials:'include'});
-      const d = await r.json().catch(() => ({}));
-      const evs = d.events || d.entries || [];
-      _log(r.ok ? 'ok' : 'err',
-        `← ${r.status} ${evs.length} tripwire events; last: ${(evs[0]?.ts || evs[0]?.timestamp || '—')}`);
-    } catch (e) { _log('err', `× ${e.message}`); }
+  // R80.P1 — was 404 (/api/security/tripwire/log didn't exist). Routes to chat.
+  window.r78ShieldTripwireLog = function () {
+    window.tellMurphy('Any tripwire events in the last hour?', {});
   };
 })();
 </script>

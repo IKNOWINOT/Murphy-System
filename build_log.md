@@ -1252,3 +1252,73 @@ exactly what was sent.
 ### Snapshot
   /var/lib/murphy-production/state_snapshots/murphy-os.html.<TS>.before
 
+
+## R80.P1 — Kill the 3 fake R78 buttons + chat funnel (2026-06-07)
+
+### Founder ask
+"Check all the buttons on every page and make the CTAs reflect our
+capabilities and keep in mind 90 percent of them are suppose to come
+through the chat."
+
+### Honest audit finding
+3 of the 5 R78 page-action buttons were 404 — I had wired them to
+endpoints I assumed existed without probing first:
+  - POST /api/swarm/agents/restart-idle  → 404
+  - GET  /api/self/identity/history      → 404
+  - GET  /api/security/tripwire/log      → 404
+Violated my own L15 rule. Owed Corey an admission and a fix.
+
+### What ships in R80.P1
+1) New helper window.tellMurphy(prompt, opts):
+     - prefills the R79 dispatch commission form with the prompt
+     - switches to the dispatch page so the user sees what's about
+       to fire (and can edit before submit)
+     - runs dispatch — result lands in the existing result-box,
+       single source of truth
+   Opts: {archetype, priority} flow into the commission fields.
+
+2) The 3 fake onclicks now call tellMurphy() with a natural-language
+   chat-style request:
+     - "Check swarm agents and restart any that are idle…"
+     - "Show me my recent soul and identity changes…"
+     - "Any tripwire events in the last hour?…"
+   The handler bodies are kept (now as thin shims to tellMurphy) so
+   any other UI bind continues to work.
+
+3) Zero live calls to the 404 endpoints remain. Only //-comments
+   document what was killed and why.
+
+### Why chat-first
+Founder principle: ~90% of OS actions should funnel through chat
+because /api/chat is already wired to the LLM that knows how to
+route intent, query state, and call internal tools. Standalone API
+tiles for "show me X" / "do Y" duplicate that and fragment where the
+founder looks for things. Tiles that survive are limited to:
+  - Direct UI ops (Refresh, Reset, collapse toggles)
+  - Form submits that can't be bypassed (Commission Request)
+  - Dangerous idempotent actions with explicit confirm
+    (HITL Bulk Approve/Reject)
+
+### Verified on edge
+  https://murphy.systems/os → 200
+  5 R80.P1 markers served
+  9 tellMurphy refs (helper + handlers + onclicks)
+  0 live fake-endpoint calls (3 remaining refs are in //-comments)
+  tripwire clean
+
+### Files
+  static/murphy-os.html (~166KB)
+
+### Snapshot
+  /var/lib/murphy-production/state_snapshots/murphy-os.html.<TS>.before
+
+### Followups (R80.P2-P4) — not in this commit
+  P2: re-route most R77.P3 Quick Actions tiles through chat
+  P3: persistent chat drawer in OS so chat is always reachable
+  P4: wire Commission → chat thread + deliverable links
+
+### Lessons added to canon
+  L16: Never wire a button to an endpoint without probing first.
+  L17: Chat layer already handles intent; standalone tiles for
+       "show me X" duplicate it.
+
