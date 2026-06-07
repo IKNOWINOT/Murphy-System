@@ -3546,7 +3546,13 @@ def build_branded_txt(
     scenario_type: str = "custom",
     quality_score: int = 94,
     generated_at: Optional[str] = None,
+    _r67_force_zero: bool = False,
 ) -> str:
+    # R67 (2026-06-06): integrity gate. If content carries a stub marker OR caller
+    # explicitly asks, surface quality=0 instead of lying about 94. Stub responses
+    # must never claim quality scores they didn't earn.
+    if _r67_force_zero or "[Murphy Onboard STUB]" in (content or ""):
+        quality_score = 0
     """Wrap content in the full Murphy System branded .txt format."""
     if generated_at is None:
         generated_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")

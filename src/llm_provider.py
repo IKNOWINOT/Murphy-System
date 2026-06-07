@@ -49,7 +49,12 @@ TOGETHER_BASE_URL  = "https://api.together.xyz/v1"
 # FALLBACK: Llama-3.3-70B-Turbo (Together) — used only if DeepInfra circuit opens
 #
 # model_hint is a no-op alias — one model does everything well.
-DEEPINFRA_PRIMARY_MODEL = "Qwen/Qwen3-235B-A22B-Instruct-2507"
+# R67 (2026-06-06): swapped primary from Qwen/Qwen3-235B-A22B-Instruct-2507
+# (17s avg @ 150 tok) to Llama-3.3-70B-Turbo (8.3s, FP8-quantized, 70B-class
+# quality at fraction of cost). Together's same model is 0.8s — used as
+# fallback so DeepInfra timeout = Together rescue, not retry-budget exhaust.
+DEEPINFRA_PRIMARY_MODEL = "meta-llama/Llama-3.3-70B-Instruct-Turbo"
+DEEPINFRA_FAST_MODEL    = "meta-llama/Meta-Llama-3.1-8B-Instruct"  # for short/heartbeat tasks
 
 DEEPINFRA_CHAT_MODEL   = DEEPINFRA_PRIMARY_MODEL
 DEEPINFRA_FAST_MODEL   = DEEPINFRA_PRIMARY_MODEL
@@ -59,7 +64,7 @@ TOGETHER_CHAT_MODEL    = "meta-llama/Llama-3.3-70B-Instruct-Turbo"
 TOGETHER_FAST_MODEL    = "meta-llama/Llama-3.3-70B-Instruct-Turbo"
 TOGETHER_CODE_MODEL    = "meta-llama/Llama-3.3-70B-Instruct-Turbo"
 
-DEEPINFRA_MODEL_CONTEXT = 262144   # Qwen3-235B full context window
+DEEPINFRA_MODEL_CONTEXT = 131072   # R67: Llama-3.3-70B Turbo (128k ctx, 16k max output)
 DEEPINFRA_MAX_OUTPUT    = 32768    # PATCH-106b: generous output room — distill, don't cap
 
 # ---------------------------------------------------------------------------
@@ -405,7 +410,7 @@ class MurphyLLMProvider:
             deepinfra_api_key=os.getenv("DEEPINFRA_API_KEY", ""),
             together_api_key= os.getenv("TOGETHER_API_KEY",  ""),
             timeout=    max(float(os.getenv("LLM_TIMEOUT", "120")), 120.0),  # SD-73 floor
-            max_retries=int(  os.getenv("LLM_MAX_RETRIES", "2")),
+            max_retries=int(  os.getenv("LLM_MAX_RETRIES", "3")),  # R67: 2→3 so DI→Together→Ollama all get a turn
         )
 
     # ------------------------------------------------------------------
@@ -427,6 +432,106 @@ class MurphyLLMProvider:
     # ------------------------------------------------------------------
     # HTTP helpers (sync — used by llm_integration_layer compatibility)
     # ------------------------------------------------------------------
+
+    # ── R68 (2026-06-07): streaming companion to _post_openai_compat ──
+    # WHY: DeepInfra's HTTP layer has a hard 120s read-timeout on /chat/completions.
+    # For long generations (final deliverable rendering, big-context cited_doc) the
+    # model is still producing tokens when the socket closes → onboard_stub fires.
+    # Streaming defeats this: the socket stays alive as long as tokens are being
+    # emitted. We only watchdog on "no tokens received for N seconds" (idle gap),
+    # not on total wall-clock time. Murphy and the founder both approved this
+    # architecture (2026-06-07). Gate: LLM_USE_STREAMING=1 (default off — preserves
+    # legacy behaviour for callers we have not yet vetted).
+    def _post_openai_compat_streaming(
+        self,
+        base_url:    str,
+        api_key:     str,
+        model:       str,
+        messages:    List[Dict[str, str]],
+        temperature: float = 0.7,
+        max_tokens:  int   = DEEPINFRA_MAX_OUTPUT,
+        seed:        Optional[int] = None,
+        idle_timeout: float = 30.0,
+    ) -> Dict[str, Any]:
+        """Stream tokens from an OpenAI-compatible chat-completions endpoint.
+
+        Returns the same dict shape as ``_post_openai_compat`` so callers do
+        not need to branch on response handling.  Token accumulation happens
+        here; total wall-clock is NOT bounded — only the idle gap is.
+        """
+        import json as _json
+        _safe_max = min(max_tokens, DEEPINFRA_MAX_OUTPUT) if base_url == DEEPINFRA_BASE_URL else max_tokens
+        payload: Dict[str, Any] = {
+            "model":       model,
+            "messages":    messages,
+            "temperature": temperature,
+            "max_tokens":  _safe_max,
+            "stream":      True,   # ← R68 the whole point
+        }
+        if seed is not None:
+            payload["seed"] = seed
+
+        accumulated = []
+        usage = {}
+        finish_reason = None
+        # Use a generous socket-level (connect, read) tuple — read=idle_timeout
+        # so we abort if upstream truly hangs for N seconds with zero tokens.
+        with requests.post(
+            f"{base_url}/chat/completions",
+            json=payload,
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type":  "application/json",
+                "Accept":        "text/event-stream",
+            },
+            stream=True,
+            timeout=(15.0, idle_timeout),
+        ) as resp:
+            resp.raise_for_status()
+            for raw_line in resp.iter_lines(decode_unicode=True):
+                if not raw_line:
+                    continue
+                if raw_line.startswith("data: "):
+                    raw_line = raw_line[6:]
+                if raw_line.strip() == "[DONE]":
+                    break
+                try:
+                    chunk = _json.loads(raw_line)
+                except Exception:
+                    continue
+                choices = chunk.get("choices") or []
+                if not choices:
+                    # Some providers send usage in a trailing chunk
+                    if chunk.get("usage"):
+                        usage = chunk["usage"]
+                    continue
+                delta = choices[0].get("delta") or {}
+                token = delta.get("content")
+                if token:
+                    accumulated.append(token)
+                if choices[0].get("finish_reason"):
+                    finish_reason = choices[0]["finish_reason"]
+                if chunk.get("usage"):
+                    usage = chunk["usage"]
+
+        full_content = "".join(accumulated)
+        # Shape exactly like the non-streaming JSON for caller compatibility
+        return {
+            "id":      "stream-" + str(uuid.uuid4())[:8],
+            "object":  "chat.completion",
+            "model":   model,
+            "choices": [{
+                "index": 0,
+                "message": {"role": "assistant", "content": full_content},
+                "finish_reason": finish_reason or "stop",
+            }],
+            "usage": usage or {
+                "prompt_tokens":     0,
+                "completion_tokens": len(full_content) // 4,
+                "total_tokens":      len(full_content) // 4,
+            },
+            "_r68_streamed": True,
+        }
 
     def _post_openai_compat(
         self,
@@ -609,11 +714,22 @@ class MurphyLLMProvider:
             model = self._resolve_model("deepinfra", model_hint)
             start = time.monotonic()
             try:
-                data = self._post_openai_compat(
-                    DEEPINFRA_BASE_URL, self.deepinfra_api_key,
-                    model, messages, temperature, max_tokens, seed=seed,
-                    timeout=self.deepinfra_timeout,  # PATCH-070c: fast-fail
-                )
+                # R68 (2026-06-07): streaming gate. LLM_USE_STREAMING=1 routes the
+                # DeepInfra leg through stream=True so the 120s socket wall does not
+                # truncate long generations. Approved by Murphy + founder 2026-06-07.
+                _r68_use_streaming = os.environ.get("LLM_USE_STREAMING", "0").strip() in ("1","true","yes","on")
+                if _r68_use_streaming:
+                    data = self._post_openai_compat_streaming(
+                        DEEPINFRA_BASE_URL, self.deepinfra_api_key,
+                        model, messages, temperature, max_tokens, seed=seed,
+                        idle_timeout=float(os.environ.get("LLM_STREAM_IDLE_TIMEOUT","30")),
+                    )
+                else:
+                    data = self._post_openai_compat(
+                        DEEPINFRA_BASE_URL, self.deepinfra_api_key,
+                        model, messages, temperature, max_tokens, seed=seed,
+                        timeout=self.deepinfra_timeout,  # PATCH-070c: fast-fail
+                    )
                 elapsed = time.monotonic() - start
                 self._di_circuit.record_success()
                 # Guard against "Model busy" soft-error returned as 200
@@ -651,11 +767,20 @@ class MurphyLLMProvider:
             model = self._resolve_model("together", model_hint)
             start = time.monotonic()
             try:
-                data = self._post_openai_compat(
-                    TOGETHER_BASE_URL, self.together_api_key,
-                    model, messages, temperature, max_tokens, seed=seed,
-                    timeout=self.together_timeout,  # PATCH-070c: full window
-                )
+                # R68: same streaming gate on Together fallback
+                _r68_use_streaming = os.environ.get("LLM_USE_STREAMING", "0").strip() in ("1","true","yes","on")
+                if _r68_use_streaming:
+                    data = self._post_openai_compat_streaming(
+                        TOGETHER_BASE_URL, self.together_api_key,
+                        model, messages, temperature, max_tokens, seed=seed,
+                        idle_timeout=float(os.environ.get("LLM_STREAM_IDLE_TIMEOUT","30")),
+                    )
+                else:
+                    data = self._post_openai_compat(
+                        TOGETHER_BASE_URL, self.together_api_key,
+                        model, messages, temperature, max_tokens, seed=seed,
+                        timeout=self.together_timeout,  # PATCH-070c: full window
+                    )
                 elapsed = time.monotonic() - start
                 self._tog_circuit.record_success()
                 content = data["choices"][0]["message"]["content"]
