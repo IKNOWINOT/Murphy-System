@@ -12279,7 +12279,11 @@ class MurphySystem:
         try:
             from src.llm_provider import get_llm
             llm = get_llm()
-            result = llm.complete_messages(messages, model_hint="fast")
+            # R70-D (2026-06-07): right-size max_tokens. The 8B fast model is
+            # producing short JSON gate-factor output; 32768 default ceiling
+            # encourages the model to keep generating. 2048 is generous for
+            # a structured gate response and lets DeepInfra return sooner.
+            result = llm.complete_messages(messages, model_hint="fast", max_tokens=2048)
 
             # Only surface responses from real external providers.
             # "onboard" / "fallback" results are discarded so the richer

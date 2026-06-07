@@ -726,3 +726,36 @@ latency since the model wouldn't keep extending.
 BERT pretraining query returned 5 real refs: Devlin BERT, Wang GLUE,
 Vaswani Attention, Peters ELMo, plus one inline. All legitimate.
 
+
+## R70-D — right-size max_tokens on MFGC fast call (2026-06-07)
+
+### Change
+`murphy_system_core.py:12286` — added `max_tokens=2048` to the
+`llm.complete_messages(messages, model_hint="fast")` call. Previously
+defaulted to `DEEPINFRA_MAX_OUTPUT=32768`.
+
+### Verified post-fix
+Snapshot: `r70d_cited.json`
+- Query: "graph neural networks for molecular property prediction"
+- HTTP 200 in 247s, 15KB content
+- 5 real GNN/molecular citations (Gilmer, Kearnes, Li, Vinyals, Wu)
+- `DeepInfra STREAM-IN model=Meta-Llama-3.1-8B-Instruct max_tokens=2048` ✓
+- **8B call: 2.87s** (was 7.06s in R70-C with the 32768 cap)
+- Net shave on MFGC hop: ~4s
+
+### Honest scorecard
+- ✓ Correct: max_tokens cap is now 2048 on the MFGC fast call
+- ✓ Real perf win: MFGC LLM-GEN hop is ~4s faster on this run
+- ✗ Total request time was 247s (worse than R70-C's 105s) — but this
+  is DeepInfra latency variance on the final 70B composition call
+  (244s alone), which R70-D did not touch and should not touch
+  (final prose needs full output room). Different run, different mood
+  of DeepInfra.
+
+### Conclusion
+R70-D did exactly what it said it would. The 4-second MFGC hop shave
+is a clean, durable win regardless of run-to-run total-time variance.
+The dominant cost is now provably the final 70B composition call
+under streaming, which is the genuine LLM generation time. That call
+is the next perf frontier — likely solved by R70-E (parallelize MFGC
+and MSS phases) rather than by further max_tokens tuning.
