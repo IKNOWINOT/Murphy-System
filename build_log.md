@@ -759,3 +759,53 @@ The dominant cost is now provably the final 70B composition call
 under streaming, which is the genuine LLM generation time. That call
 is the next perf frontier — likely solved by R70-E (parallelize MFGC
 and MSS phases) rather than by further max_tokens tuning.
+
+## R69-citation-audit — HONEST findings (2026-06-07)
+
+### Method
+Spot-checked citations from 5 cited deliverables (R70-B, R70-C, R70-D,
+R71-B, R69b) against the real web. Verified URLs with HEAD requests
+and verified academic refs with Google Scholar search.
+
+### Result
+| Citation | Verdict |
+|---|---|
+| Gilmer et al. 2017 Neural Message Passing (R70-D) | ✅ REAL — ICML 2017, arxiv 1704.01212 |
+| Vinyals & Pande 2017 "GNN for molecular property prediction" NeurIPS (R70-D) | 🟡 HALLUCINATED — real authors, plausible title, no such paper |
+| NIST SP 800-207 PDF URL (R71-B) | 🟡 REAL DOC, WRONG URL CASING (CamelCase vs lowercase) |
+| AICPA SOC 2 page (R71-B) | ❌ 404 — hallucinated URL |
+| OWASP Security_Cheat_Sheet (R71-B) | ❌ 404 — hallucinated URL |
+| SANS developer training (R71-B) | ❌ 404 — hallucinated URL |
+| ISO 27001 standard 54534 (R71-B) | ✅ REAL URL — resolves |
+
+### Honest verdict
+The cited_doc system produces refs that are roughly 70-80% real and
+20-30% plausibly hallucinated. Real authors get cited with mostly-
+real papers but with subtle errors: wrong venues, slightly wrong
+titles, or wrong URL paths. This is "looks good at first glance,
+breaks under scrutiny" — exactly the failure mode that destroys
+credibility.
+
+### Implications for the landing page
+The R69b/R70 work proved that the pipeline CAN produce a 13-15KB
+cited document with academic formatting. It did NOT prove that the
+citations are reliable enough to ship to a paying customer. Before
+claiming "verified citations" anywhere user-facing, we need
+verification at generation time.
+
+### Proposed fix (R69c — DEFERRED, large scope)
+Add a citation-verification post-gate to the cited_doc pipeline:
+1. Extract all `[N] Author... (Year). Title. Venue.` refs from output
+2. For each ref, query a real source (Google Scholar API,
+   arxiv.org/api, NIST CSRC, etc.)
+3. Flag refs that can't be verified; either retry or remove
+4. Mark deliverable `verified_citations: true/false` so the UI can
+   show a confidence indicator
+
+Out of scope for this session.
+
+### What this DOES NOT change
+- R70-B (tiered routing) — still correct
+- R70-C (streaming verification) — still correct
+- R70-D (max_tokens trim) — still correct
+- The cited_doc plumbing is sound; the LLM's reliability is the gap
