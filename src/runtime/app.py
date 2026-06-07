@@ -4057,6 +4057,13 @@ def create_app() -> FastAPI:
         # Mount Murphy Intelligence 2.0 endpoints at /api/aionmind/*
         # (status, context, orchestrate, execute, proposals, memory)
         app.include_router(aionmind_api.router)
+        # R77.P1 (2026-06-07) — Murphy-Conductor HTTP surface
+        try:
+            from src.conductor import routes as _conductor_routes
+            app.include_router(_conductor_routes.router)
+            logger.info("R77.P1: Conductor HTTP surface registered at /api/conductor/*")
+        except Exception as _exc:
+            logger.warning("R77.P1: conductor routes failed to register: %s", _exc)
         # ── BLOCK-A.2.8: Registry read endpoints ──────────────────
         try:
             from registry_router import router as _registry_router

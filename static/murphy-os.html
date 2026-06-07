@@ -924,6 +924,69 @@ body {
 /* Pad main content above ask bar */
 .main { padding-bottom: 48px; }
 
+/* ── R77.P3 — Quick Actions strip (always visible across pages) ── */
+.qa-strip {
+  position: sticky; top: 0; z-index: 50;
+  background: linear-gradient(180deg, var(--bg2, #131920), var(--bg, #0d1117));
+  border-bottom: 1px solid var(--border, #21262d);
+  padding: 12px 16px 14px;
+  margin-bottom: 12px;
+}
+.qa-strip-label {
+  display: flex; align-items: center; gap: 12px;
+  font-size: 10px; color: var(--text, #e6edf3); font-weight: 700;
+  letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 10px;
+}
+.qa-strip-label > span:first-child { color: #00d4aa; }
+.qa-strip-hint { color: #788079; font-weight: 500; text-transform: none; letter-spacing: 0; font-size: 11px; }
+.qa-strip-toggle {
+  margin-left: auto; background: transparent; border: 1px solid var(--border, #21262d);
+  color: #00d4aa; cursor: pointer; padding: 3px 9px; border-radius: 4px;
+  font-size: 11px; line-height: 1; transition: background .15s;
+}
+.qa-strip-toggle:hover { background: rgba(0,212,170,0.1); }
+.qa-strip-grid {
+  display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px;
+}
+@media (max-width: 1400px) { .qa-strip-grid { grid-template-columns: repeat(4, 1fr); } }
+@media (max-width: 1000px) { .qa-strip-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 700px)  { .qa-strip-grid { grid-template-columns: repeat(2, 1fr); } }
+.qa-strip.collapsed .qa-strip-grid,
+.qa-strip.collapsed .qa-log { display: none; }
+.qa-tile {
+  background: var(--bg3, #161b22); border: 1px solid var(--border, #21262d);
+  border-radius: 6px; padding: 9px 10px; cursor: pointer;
+  transition: border-color .15s, background .15s, transform .1s;
+  display: flex; flex-direction: column; gap: 2px; min-height: 64px;
+}
+.qa-tile:hover {
+  border-color: #00d4aa; background: var(--bg4, #1c2128);
+  transform: translateY(-1px);
+}
+.qa-tile:active { transform: translateY(0); }
+.qa-tile.busy { opacity: 0.55; pointer-events: none; }
+.qa-tile.busy .qa-name::after { content: ' …'; color: #00d4aa; }
+.qa-ico { font-size: 16px; line-height: 1; }
+.qa-name { font-size: 11.5px; font-weight: 700; color: var(--text, #e6edf3); }
+.qa-desc { font-size: 10px; color: #788079; line-height: 1.25; }
+.qa-log {
+  max-height: 132px; overflow-y: auto; margin-top: 10px;
+  background: rgba(0,0,0,0.25); border: 1px solid var(--border, #21262d);
+  border-radius: 4px; padding: 7px 10px;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 10.5px;
+  color: #cde; line-height: 1.55;
+}
+.qa-log:empty::before {
+  content: 'Click a tile above to fire a real API call. Result lands here.';
+  color: #788079; font-style: italic;
+}
+.qa-log .qa-line { padding: 1px 0; }
+.qa-log .qa-line .ts { color: #788079; margin-right: 8px; }
+.qa-log .qa-line.ok { color: #39d353; }
+.qa-log .qa-line.err { color: #f05252; }
+.qa-log .qa-line.info { color: #00d4aa; }
+
+
 /* ── SECTION WRAPPER ── */
 .section {
   margin-bottom: 20px;
@@ -1043,6 +1106,30 @@ body {
 
   <!-- MAIN -->
   <main class="main">
+
+    <!-- R77.P3 (2026-06-07) — QUICK ACTIONS STRIP (visible across ALL pages) -->
+    <div id="qa-strip" class="qa-strip">
+      <div class="qa-strip-label">
+        <span>Quick Actions</span>
+        <span class="qa-strip-hint">One click → real API → result in dispatch log below</span>
+        <button class="qa-strip-toggle" onclick="qaToggle()" id="qa-toggle-btn" title="Collapse">▾</button>
+      </div>
+      <div class="qa-strip-grid" id="qa-strip-grid">
+        <div class="qa-tile" onclick="qaAction(event,'research_brief')"><div class="qa-ico">📝</div><div class="qa-name">Research Brief</div><div class="qa-desc">Cited deliverable + verify gate</div></div>
+        <div class="qa-tile" onclick="qaAction(event,'verify_citations')"><div class="qa-ico">🔍</div><div class="qa-name">Verify Citations</div><div class="qa-desc">Live-check URLs + plagiarism</div></div>
+        <div class="qa-tile" onclick="qaAction(event,'start_workflow')"><div class="qa-ico">🎼</div><div class="qa-name">Start Workflow</div><div class="qa-desc">Spin up a conductor demo</div></div>
+        <div class="qa-tile" onclick="qaAction(event,'list_workflows')"><div class="qa-ico">📋</div><div class="qa-name">Live Workflows</div><div class="qa-desc">List active conductor runs</div></div>
+        <div class="qa-tile" onclick="qaAction(event,'swarm_status')"><div class="qa-ico">🤖</div><div class="qa-name">Swarm Status</div><div class="qa-desc">All agents + state</div></div>
+        <div class="qa-tile" onclick="qaAction(event,'hitl_queue')"><div class="qa-ico">✅</div><div class="qa-name">HITL Queue</div><div class="qa-desc">Items awaiting approval</div></div>
+        <div class="qa-tile" onclick="qaAction(event,'ledger')"><div class="qa-ico">⛓️</div><div class="qa-name">Self-Mod Ledger</div><div class="qa-desc">Hash-chained changes</div></div>
+        <div class="qa-tile" onclick="qaAction(event,'public_stats')"><div class="qa-ico">📊</div><div class="qa-name">Public Stats</div><div class="qa-desc">Mind, HITL, ledger, deals</div></div>
+        <div class="qa-tile" onclick="qaAction(event,'registry')"><div class="qa-ico">🗺️</div><div class="qa-name">Route Registry</div><div class="qa-desc">Browse 1000+ endpoints</div></div>
+        <div class="qa-tile" onclick="qaAction(event,'mind')"><div class="qa-ico">🧠</div><div class="qa-name">Mind Status</div><div class="qa-desc">Cycle + avg confidence</div></div>
+        <div class="qa-tile" onclick="qaAction(event,'audit')"><div class="qa-ico">🛡️</div><div class="qa-name">Run Audit</div><div class="qa-desc">Live system snapshot</div></div>
+        <div class="qa-tile" onclick="qaAction(event,'chat')"><div class="qa-ico">💬</div><div class="qa-name">Ask Murphy</div><div class="qa-desc">Send input as chat</div></div>
+      </div>
+      <div id="qa-log" class="qa-log" aria-live="polite"></div>
+    </div>
 
     <!-- ═══ OVERVIEW ═══ -->
     <div class="page active" id="page-overview">
@@ -3244,6 +3331,126 @@ async function r465BulkRejectAll() {
     } catch (e) {
       status.textContent = 'Re-dispatch failed: ' + String(e).slice(0,120);
     }
+  });
+})();
+</script>
+
+<script>
+// R77.P3 — Quick Actions strip handlers. Each tile fires a real API call.
+(function () {
+  const ENDPOINTS = {
+    research_brief:   { method:'POST', url:'/api/demo/generate-deliverable',
+                        body:() => ({query:'Brief on the state of LLM efficiency benchmarks',archetype:'cited_doc'}),
+                        timeout: 180000,
+                        summarize: d => {
+                          const deliv = d.deliverable || {};
+                          const ca = deliv.citation_audit || {};
+                          const cs = ca.citation_summary || {};
+                          return `deliverable: "${(deliv.title||'').slice(0,42)}" | ${(deliv.content||'').length} chars | audit: ${ca.verdict||'?'} (verified=${cs.verified||0} broken=${cs.broken||0})`;
+                        }},
+    verify_citations: { method:'POST', url:'/api/citations/verify',
+                        body:() => ({text:'Recent work [1] shows transformers excel. [1] Vaswani et al. "Attention Is All You Need." NeurIPS 2017. https://arxiv.org/abs/1706.03762'}),
+                        timeout: 30000,
+                        summarize: d => `verdict=${d.verdict} verified=${d.citation_summary?.verified||0} broken=${d.citation_summary?.broken||0} elapsed_ms=${d.elapsed_ms}`},
+    start_workflow:   { method:'POST', url:'/api/conductor/workflow?demo=1',
+                        body:() => ({}), timeout: 5000,
+                        summarize: d => `created ${d.workflow_id} state=${d.runtime?.state} steps=${(d.definition?.steps||[]).length}`},
+    list_workflows:   { method:'GET', url:'/api/conductor/workflows',
+                        timeout: 5000, summarize: d => `${d.count} workflows alive`},
+    swarm_status:     { method:'GET', url:'/api/swarm/agents/status',
+                        timeout: 5000,
+                        summarize: d => {
+                          const a = d.agents || d.data?.agents || [];
+                          return `agents=${a.length} ok=${d.ok ?? d.success}`;
+                        }},
+    hitl_queue:       { method:'GET', url:'/api/swarm/hitl/pending',
+                        timeout: 5000,
+                        summarize: d => `pending=${(d.pending||[]).length}${d.stats ? ' stats='+JSON.stringify(d.stats):''}`},
+    ledger:           { method:'GET', url:'/api/platform/self-modification/ledger',
+                        timeout: 5000,
+                        summarize: d => `count=${d.count} chain_verified=${d.chain_verified}`},
+    audit:            { method:'GET', url:'/api/self/audit',
+                        timeout: 5000,
+                        summarize: d => `checks=${Object.keys(d.checks||{}).length} (note: may be empty if /self/audit is degraded)`},
+    public_stats:     { method:'GET', url:'/api/public/stats',
+                        timeout: 5000,
+                        summarize: d => `mind=${d.mind_cycle} hitl=${d.hitl_pending} ledger=${d.ledger_entries} deals=${d.crm_deals} status=${d.system_status}`},
+    registry:         { method:'GET', url:'/api/registry/summary',
+                        timeout: 5000,
+                        summarize: d => `routes=${d.data?.routes?.total||'?'} pages=${d.data?.pages?.total||'?'}`},
+    mind:             { method:'GET', url:'/api/swarm/mind/status',
+                        timeout: 5000,
+                        summarize: d => `cycle=${d.cycle ?? d.data?.cycle} confidence=${d.confidence ?? d.data?.confidence}`},
+    chat:             { method:'POST', url:'/api/chat',
+                        body:() => {
+                          const el = document.getElementById('cmd-input');
+                          const v = (el && el.value && el.value.trim()) || 'What should I work on next?';
+                          return {message: v};
+                        },
+                        timeout: 30000,
+                        summarize: d => (d.reply || d.error || '').toString().slice(0,220)},
+  };
+
+  function logLine(kind, msg) {
+    const out = document.getElementById('qa-log');
+    if (!out) return;
+    const ts = new Date().toISOString().slice(11,19);
+    const cls = 'qa-line ' + (kind || 'info');
+    out.insertAdjacentHTML('beforeend',
+      `<div class="${cls}"><span class="ts">${ts}</span>${msg.replace(/</g,'&lt;')}</div>`);
+    out.scrollTop = out.scrollHeight;
+  }
+
+  window.qaAction = async function(ev, action) {
+    const cfg = ENDPOINTS[action];
+    if (!cfg) { logLine('err', `unknown action ${action}`); return; }
+    const tile = ev && ev.currentTarget;
+    if (tile) tile.classList.add('busy');
+    logLine('info', `→ ${cfg.method} ${cfg.url}`);
+    const t0 = Date.now();
+    try {
+      const init = { method: cfg.method, headers: {'Content-Type':'application/json'}, credentials: 'include' };
+      if (cfg.method !== 'GET') init.body = JSON.stringify(cfg.body ? cfg.body() : {});
+      const controller = new AbortController();
+      const to = setTimeout(() => controller.abort(), cfg.timeout || 10000);
+      init.signal = controller.signal;
+      const r = await fetch(cfg.url, init);
+      clearTimeout(to);
+      const elapsed = Date.now() - t0;
+      let d = {};
+      try { d = await r.json(); } catch (_) { d = {}; }
+      if (!r.ok) {
+        logLine('err', `← ${r.status} ${cfg.url} (${elapsed}ms) ${(d.detail||d.error?.message||d.error||'').toString().slice(0,140)}`);
+      } else {
+        const summary = (cfg.summarize ? cfg.summarize(d) : 'ok');
+        logLine('ok', `← ${r.status} (${elapsed}ms) ${summary}`);
+      }
+    } catch (e) {
+      logLine('err', `× ${cfg.url} ${e.name === 'AbortError' ? 'timeout' : e.message}`);
+    } finally {
+      if (tile) tile.classList.remove('busy');
+    }
+  };
+
+  window.qaToggle = function() {
+    const strip = document.getElementById('qa-strip');
+    const btn = document.getElementById('qa-toggle-btn');
+    if (!strip) return;
+    strip.classList.toggle('collapsed');
+    if (btn) btn.textContent = strip.classList.contains('collapsed') ? '▸' : '▾';
+    try { localStorage.setItem('qa-strip-collapsed', strip.classList.contains('collapsed') ? '1' : '0'); } catch(_){}
+  };
+
+  // Restore previous state
+  document.addEventListener('DOMContentLoaded', () => {
+    try {
+      if (localStorage.getItem('qa-strip-collapsed') === '1') {
+        const strip = document.getElementById('qa-strip');
+        const btn = document.getElementById('qa-toggle-btn');
+        if (strip) strip.classList.add('collapsed');
+        if (btn) btn.textContent = '▸';
+      }
+    } catch(_){}
   });
 })();
 </script>

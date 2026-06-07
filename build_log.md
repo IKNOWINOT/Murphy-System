@@ -1059,3 +1059,79 @@ src/citation_verifier.verify_deliverable() — same code already
 exposed at /api/citations/verify. ~10 lines of wiring, not a new
 module.
 
+
+## R77 — Conductor wiring + OS Dashboard CTAs (2026-06-07)
+
+### Strategic ask (founder)
+"Establish the wiring plan for the full architectural system wired to
+the UI and webpage. Every aspect needs a call through the webpage.
+Finish implementation of our Netflix conductor."
+"OS is the main dashboard and needs CTAs across its pages."
+
+### R77.P1 — Murphy-Conductor HTTP surface (LIVE)
+src/conductor/state_machine.py (20KB, written R51, UNWIRED) now has
+a complete HTTP face at src/conductor/routes.py (16KB, 10 endpoints):
+  GET    /api/conductor/healthz
+  POST   /api/conductor/workflow              create (or ?demo=1)
+  GET    /api/conductor/workflow/{wf_id}
+  POST   /api/conductor/workflow/{wf_id}/evaluate
+  POST   /api/conductor/workflow/{wf_id}/advance
+  POST   /api/conductor/workflow/{wf_id}/task/{tid}/schedule
+  POST   /api/conductor/workflow/{wf_id}/task/{tid}/start
+  POST   /api/conductor/workflow/{wf_id}/task/{tid}/complete
+  POST   /api/conductor/workflow/{wf_id}/task/{tid}/fail
+  GET    /api/conductor/workflows             list active
+
+Backing: in-process thread-safe singleton (Phase 1). Phase 2 will
+add sqlite persistence. Phase 2 also wires conductor.evaluate() as
+the scheduler for durable_swarm_orchestrator, replacing the R611
+polling stall (BL-002) per the original state_machine.py design.
+
+Verified end-to-end via curl:
+  create demo → evaluate → schedule t1 → start t1 → complete t1
+  → advance → evaluate → step 2 returns parallel schedule
+External /api/conductor/healthz returns 200, version R77.P1.
+
+### R77.P3 — OS Dashboard Quick Actions strip (LIVE)
+static/murphy-os.html (126KB, the modern /os Command Center) gained
+a sticky Quick Actions strip at the top of <main>, ABOVE all .page
+divs — so it's visible across ALL 8 SPA pages (overview, dispatch,
+agents, pipeline, soul, hitl, shield, mail).
+
+12 one-click action tiles:
+  📝 Research Brief        → /api/demo/generate-deliverable (cited_doc)
+  🔍 Verify Citations      → /api/citations/verify
+  🎼 Start Workflow        → /api/conductor/workflow?demo=1
+  📋 Live Workflows        → /api/conductor/workflows
+  🤖 Swarm Status          → /api/swarm/agents/status
+  ✅ HITL Queue            → /api/swarm/hitl/pending
+  ⛓️  Self-Mod Ledger       → /api/platform/self-modification/ledger
+  📊 Public Stats          → /api/public/stats
+  🗺️ Route Registry        → /api/registry/summary
+  🧠 Mind Status           → /api/swarm/mind/status
+  🛡️ Run Audit             → /api/self/audit
+  💬 Ask Murphy            → /api/chat (uses input box if filled)
+
+Each tile fires a real API call, captures the response, and renders
+a 1-line summary into the inline qa-log panel below the grid.
+Collapsible (▾/▸) with localStorage persistence.
+
+This closes the gap: previously the OS had ~7 reachable user
+actions; now the user can hit the 12 highest-value APIs directly
+from the front door, with live result rendering — no DevTools needed.
+
+### Architecture spine (canon)
+Murphy-Conductor (state_machine.py) is now the canonical scheduling
+spine. Other orchestrators (durable_swarm_orchestrator,
+collaborative_task_orchestrator, workflow_executor) become consumers
+of conductor decisions. No existing orchestrator was deleted — they
+are re-fronted, not replaced.
+
+Phase 4 plan filed at .agents/memory/R77_conductor_wiring_plan.md
+covers Phases 2 (swarm scheduler integration) and 4 (/mission live
+view) for tomorrow.
+
+### Snapshots
+- /var/lib/murphy-production/state_snapshots/app.py.<TS>.before
+- /var/lib/murphy-production/state_snapshots/murphy-os.html.<TS>.before
+
