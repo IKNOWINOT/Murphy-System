@@ -589,3 +589,47 @@ not the LLM — citations were absent. This is a separate issue
 (rate-limit fallback path) tracked as R71. R70-A fixes the
 service-killing-itself bug; it doesn't fix LLM rate-limit handling.
 
+
+## R71-B — explicit archetype wins over keyword detection (2026-06-07)
+
+### Root cause (found during R70-A verification)
+The R70-A white_paper test returned `provider=local` with zero
+citations. Forensic trace showed the pipeline emitted
+`FORGE-PIPELINE-SUMMARY path=[CODE-PROJ-001:start → ... → zip-built]` —
+the code-project assembly pipeline, not the cited-research pipeline.
+
+The query was "zero-trust network architecture for enterprise SaaS".
+The substring "saas" is in `_CODE_PROJECT_KEYWORDS`. The keyword check
+on `demo_deliverable_generator.py:6841` ran BEFORE archetype was
+consulted, routed to `generate_code_project_deliverable()`, which
+silently drops the `archetype` and `tenant_id` kwargs and tags output
+as `provider=local`. So the request was technically successful (115s,
+real DeepInfra calls under the hood) but produced the wrong product.
+
+### R71-B fix
+Two-line guard at the top of `generate_custom_deliverable`:
+- if explicit archetype is one of {cited_doc, research_brief, white_paper},
+  SKIP the keyword check and stay on the prose/cited pipeline
+- if explicit archetype is "code_project", FORCE the code-project path
+  even without a keyword match
+- otherwise (no explicit archetype), preserve existing keyword behavior
+
+### Verified post-fix
+Snapshot: /var/lib/murphy-production/state_snapshots/r71b_white.json
+- Query unchanged: "zero-trust network architecture for enterprise SaaS"
+- HTTP 200 in 154s (longer because cited pipeline does more LLM work)
+- provider=llm-remote:deepinfra (real LLM, NOT stub)
+- deliverable_type=(none) — not code_project
+- 5 real industry-standard citations:
+  [1] NIST SP 800-207 Zero Trust Architecture
+  [2] ISO/IEC 27001:2013
+  [3] AICPA SOC 2 Trust Services Criteria
+  [4] OWASP Security Cheat Sheet
+  [5] SANS Institute Cyber Security Awareness
+- Zero CODE-PROJ-001 markers in output
+
+### Lesson learned (added to canon)
+A keyword detector is a heuristic, not a contract. When a caller
+provides explicit intent (an archetype parameter), explicit intent
+must win over the heuristic. Same rule applies to any future
+auto-detection: explicit > inferred.

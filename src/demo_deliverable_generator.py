@@ -6837,8 +6837,17 @@ def generate_custom_deliverable(
 
     Label: CODE-PROJ-001
     """
+    # R71-B (2026-06-07): explicit archetype wins over keyword detection.
+    # The keyword "saas" matched _CODE_PROJECT_KEYWORDS and was overriding
+    # an explicit archetype="white_paper" request, dropping archetype and
+    # tenant_id kwargs and tagging output as provider=local. Honor the
+    # caller's archetype intent first.
+    _arch = (archetype or "").lower().strip()
+    _force_cited = _arch in {"cited_doc", "research_brief", "white_paper"}
+    _force_code = _arch == "code_project"
+
     # Route CODE_PROJECT queries to the dedicated assembly pipeline
-    if _is_code_project_query(query):
+    if _force_code or (not _force_cited and _is_code_project_query(query)):
         return generate_code_project_deliverable(query, librarian_context=librarian_context)
 
     # --- Stage 0: Compound Task Decomposition (CTD-WIRE-001) ---------------
