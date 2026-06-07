@@ -809,3 +809,44 @@ Out of scope for this session.
 - R70-C (streaming verification) — still correct
 - R70-D (max_tokens trim) — still correct
 - The cited_doc plumbing is sound; the LLM's reliability is the gap
+
+## R75 — production landmine: src/ corruption by agent-spawn (2026-06-07)
+
+### What happened
+During a workspace audit, found that `src/config.py` (9388B → 28B)
+and `src/executor_agent.py` (29737B → 26B) had been truncated to
+single-line stubs by background agent task output. Both files were
+modified at 03:19 UTC and 05:34 UTC the same day — within the previous
+10 hours.
+
+### Why the service was still alive
+Python had already loaded both modules into memory via .pyc cache
+from a successful boot the previous day (Jun 6 19:43). The .pyc was
+the only thing keeping the service from import-erroring out. Any
+restart would have crashed the FastAPI app (src/runtime/app.py:303
+imports `from src.executor_agent import get_executor_agent`).
+
+### Probable cause
+`r615_spawn_service` (port 8095, started Jun 6) runs an executor at
+`src/execution_orchestrator/executor.py:229` with a raw
+`open(path, 'w')` pattern. Agents resolve task names like
+"executor_agent" to filesystem paths and write their short answer
+there, clobbering the real tracked source file.
+
+### Fix applied
+1. Backed up corrupted stubs to `state_snapshots/src_*.py.*.CORRUPTED-STUB`
+2. `git checkout HEAD -- src/config.py src/executor_agent.py`
+3. Verified md5 matches HEAD, ast.parse OK, import test OK
+4. Cleared stale .pyc for both modules
+5. Restarted service. health=200 internal and external. No errors.
+6. Installed `/usr/local/bin/murphy-source-tripwire.sh` cron @ */5 min:
+   alarms if any tracked `src/*.py` falls below 25% of HEAD size.
+
+### Followup R76 needed (deferred)
+The spawn-service path resolution needs a sandbox so agents physically
+cannot write into the tracked source tree. The tripwire detects the
+problem but doesn't prevent recurrence. Options:
+- chattr +i on tracked source files
+- chroot/jail the spawn service to /tmp/agent_scratch/
+- mediate all agent writes through a path-allowlist API
+
