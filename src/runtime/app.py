@@ -17480,6 +17480,43 @@ def create_app() -> FastAPI:
 
     app.add_middleware(_ResponseSizeLimitMiddleware)
 
+    # ── R70-A (2026-06-07): in-flight request counter ───────────────────
+    # The systemd hang-watchdog kills murphy-production when /api/health
+    # times out 6/8 times in 136s. Long LLM requests block the loop
+    # enough to false-trigger the watchdog mid-customer-work. Expose an
+    # in-flight counter so the watchdog can distinguish "busy" from "hung".
+    import threading as _r70a_threading
+    _r70a_inflight_lock = _r70a_threading.Lock()
+    _r70a_inflight = {"n": 0, "peak": 0, "total": 0}
+
+    @app.middleware("http")
+    async def _r70a_inflight_middleware(request, call_next):
+        # Cheap: skip the counter for health endpoints themselves
+        path = (request.url.path or "")
+        if path in ("/api/health", "/api/health/inflight", "/api/healthz"):
+            return await call_next(request)
+        with _r70a_inflight_lock:
+            _r70a_inflight["n"] += 1
+            _r70a_inflight["total"] += 1
+            if _r70a_inflight["n"] > _r70a_inflight["peak"]:
+                _r70a_inflight["peak"] = _r70a_inflight["n"]
+        try:
+            return await call_next(request)
+        finally:
+            with _r70a_inflight_lock:
+                _r70a_inflight["n"] = max(0, _r70a_inflight["n"] - 1)
+
+    @app.get("/api/health/inflight")
+    async def _r70a_inflight_endpoint():
+        with _r70a_inflight_lock:
+            snap = dict(_r70a_inflight)
+        return JSONResponse({
+            "in_flight": snap["n"],
+            "peak_since_boot": snap["peak"],
+            "total_since_boot": snap["total"],
+        })
+
+
     # ==================== PARTNER INTEGRATION ENDPOINTS ====================
 
     _partner_requests: dict = {}

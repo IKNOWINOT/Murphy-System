@@ -549,3 +549,43 @@ appears in 2 handlers), VERIFY which handler the line numbers fall in
 before patching. I assumed the first match was the right one; it wasn't.
 Always: `awk 'NR<=LINE && /async def/{lastdef=$0} END{print lastdef}'`
 to confirm the enclosing function.
+
+## R70-A — request-aware hang-watchdog (2026-06-07)
+
+### Root cause (found during R69b verification)
+`/usr/local/bin/murphy-hang-watchdog.sh` runs every 3 min, probes
+`/api/health` 8 times with 12s timeouts. If ≥6 fail, it calls
+`systemctl restart murphy-production`. Long LLM work (90-130s)
+blocks the event loop enough that the health probe times out
+6+ times in the 136s window, triggering an automatic restart that
+kills the in-flight customer request mid-generation.
+
+Verified pre-fix: white_paper test 08:26 → watchdog probed 08:26:36
+during LLM work → 08:27:52 SIGKILL → customer got "Empty reply from
+server" after 112s. Six similar self-kills logged in watchdog_events.db
+in the 2 hours preceding the fix.
+
+### R70-A fix
+1. New middleware in `src/runtime/app.py` (after `_ResponseSizeLimitMiddleware`):
+   counts in-flight HTTP requests with a thread-safe lock. Skips counting
+   health endpoints themselves.
+2. New endpoint `GET /api/health/inflight` returns
+   `{in_flight, peak_since_boot, total_since_boot}`.
+3. `murphy-hang-watchdog.sh` updated: before issuing the restart, query
+   `/api/health/inflight`. If `in_flight > 0`, log "suppressed" event and
+   exit 0 instead of restarting.
+
+### Verification (post-fix)
+- white_paper test that previously died at 112s now completes at 125s
+  with HTTP 200 (success=True)
+- Watchdog fired 5 times in 25 min after the fix, all completed cleanly
+  without restarting the service
+- Endpoint smoke test: `{"in_flight":0,"peak_since_boot":35,"total_since_boot":508}`
+- Service uptime preserved through ongoing background load
+
+### Honest caveat
+The white_paper test return came from `provider=local` (stub fallback)
+not the LLM — citations were absent. This is a separate issue
+(rate-limit fallback path) tracked as R71. R70-A fixes the
+service-killing-itself bug; it doesn't fix LLM rate-limit handling.
+
