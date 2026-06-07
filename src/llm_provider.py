@@ -56,8 +56,16 @@ TOGETHER_BASE_URL  = "https://api.together.xyz/v1"
 DEEPINFRA_PRIMARY_MODEL = "meta-llama/Llama-3.3-70B-Instruct-Turbo"
 DEEPINFRA_FAST_MODEL    = "meta-llama/Meta-Llama-3.1-8B-Instruct"  # for short/heartbeat tasks
 
+# R70-B (2026-06-07): restore tiered model routing on DeepInfra.
+# These aliases were collapsed to PRIMARY in R67 when Qwen was primary
+# and "one model does everything well" was the strategy. Now that
+# MFGC/MSS internal hops legitimately benefit from a fast small model
+# (Llama-3.1-8B at ~1-3s vs 70B at ~10-25s), restore the original intent.
+# CHAT and CODE stay on PRIMARY (Llama-3.3-70B-Turbo, quality). Only FAST
+# routes to Llama-3.1-8B-Instruct. Callers opt in via model_hint="fast";
+# existing model_hint="chat" callsites are unchanged.
 DEEPINFRA_CHAT_MODEL   = DEEPINFRA_PRIMARY_MODEL
-DEEPINFRA_FAST_MODEL   = DEEPINFRA_PRIMARY_MODEL
+# DEEPINFRA_FAST_MODEL already set above to Llama-3.1-8B-Instruct
 DEEPINFRA_CODE_MODEL   = DEEPINFRA_PRIMARY_MODEL
 
 TOGETHER_CHAT_MODEL    = "meta-llama/Llama-3.3-70B-Instruct-Turbo"

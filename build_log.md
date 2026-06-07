@@ -633,3 +633,48 @@ A keyword detector is a heuristic, not a contract. When a caller
 provides explicit intent (an archetype parameter), explicit intent
 must win over the heuristic. Same rule applies to any future
 auto-detection: explicit > inferred.
+
+## R70-B — restore tiered model routing (2026-06-07)
+
+### Audit finding
+`llm_provider.py:60` collapsed `DEEPINFRA_FAST_MODEL` and `_CODE_MODEL`
+to `PRIMARY_MODEL` (Llama-3.3-70B-Turbo) during R67 with the rationale
+"one model does everything well". This was correct then. But existing
+callsites in `murphy_system_core.py:12282` (MFGC `_try_llm_generate`)
+and `llm_self_check.py:423` were already requesting
+`model_hint="fast"`, silently getting the 70B model anyway.
+
+### Fix
+Removed the FAST_MODEL alias override. `DEEPINFRA_FAST_MODEL` now
+correctly resolves to `Llama-3.1-8B-Instruct` (the value declared on
+line 57). CHAT and CODE stay on PRIMARY. Together's fast stays on 70B
+(Together is fast enough that downgrading risks quality with no win).
+
+### Verified post-fix
+- `MFGC-LLM-GEN-001 external_llm model=Meta-Llama-3.1-8B-Instruct latency=7.06s`
+  (was 24s on 70B-Turbo in R71-B's run)
+- cited_doc test on "transformer attention mechanisms": HTTP 200,
+  13.2KB content, real Vaswani Attention and Bahdanau NMT citations
+- success=True, provider=llm-remote:deepinfra (no regression)
+
+### Honest latency finding (NOT a win)
+Total cited_doc time was 136s vs ~94s pre-R70-B. Slower, not faster.
+Why: only ONE callsite (MFGC) actually requests fast. The dominant
+cost (~129s) is a single 70B call during final deliverable composition
+which correctly uses model_hint="chat" — and that's right; the final
+prose needs quality, not speed. R70-B saves ~17s per request on the
+MFGC hop (24s → 7s) but other run-to-run variance dominates.
+
+### Lesson (added to canon)
+Wiring a fast model is necessary but not sufficient for a latency win.
+Audit which callsites actually request fast BEFORE projecting a win.
+If the long-pole call legitimately needs quality (final composition,
+cited research), the fast model can only help peripheral hops, and
+the win will be modest.
+
+### Next obvious optimization (R70-C candidate, not done here)
+The 129s single-call cost dominates. Options:
+  (a) Enable streaming on the final composition (LLM_USE_STREAMING=1
+      already set globally; verify it's actually engaging here)
+  (b) Reduce max_tokens cap for cited_doc (current: 32768)
+  (c) Run MFGC and MSS in parallel rather than serial
