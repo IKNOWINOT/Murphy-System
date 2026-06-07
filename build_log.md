@@ -678,3 +678,51 @@ The 129s single-call cost dominates. Options:
       already set globally; verify it's actually engaging here)
   (b) Reduce max_tokens cap for cited_doc (current: 32768)
   (c) Run MFGC and MSS in parallel rather than serial
+
+## R70-C — streaming engagement verified (2026-06-07)
+
+### Question
+Was R68's streaming companion actually engaging on the 129s 70B
+composition call that dominates cited_doc latency?
+
+### Method
+Added two tracer log lines:
+1. `DeepInfra GATE stream=<bool>` at the gate decision point in
+   `_complete_with_fallback` (line 732)
+2. `DeepInfra STREAM-IN model=... max_tokens=...` at the entry of
+   `_post_openai_compat_streaming` (line 483)
+
+### Finding — streaming IS engaging on every DeepInfra call
+- Every gate decision: `stream=True`
+- Every call enters `_post_openai_compat_streaming`
+- R70-B fast model also confirmed firing (Meta-Llama-3.1-8B-Instruct
+  shows up in STREAM-IN markers)
+
+### Latency observation
+- R69 cited_doc: 94s
+- R70-B cited_doc: 136s
+- R70-C cited_doc: 105s
+Run-to-run variance dominates; streaming defeats the 120s socket
+wall but does not make the LLM generate tokens faster.
+
+### Real perf opportunity revealed by tracers
+The max_tokens distribution shows:
+- 1× `model=Llama-3.3-70B-Turbo max_tokens=32768` — final composition
+  (legitimate; produces 13KB content)
+- 1× `model=Meta-Llama-3.1-8B-Instruct max_tokens=32768` — MFGC gate
+  factor extraction (WASTEFUL; only needs a short JSON response)
+- Many smaller calls at 5/120/600/700/1000 (correctly sized)
+
+The 8B-with-32k-cap is the cleanest perf opportunity. Capping MFGC
+fast calls at ~2-4k tokens could meaningfully reduce that hop's
+latency since the model wouldn't keep extending.
+
+### What R70-C is and isn't
+- IS: definitive proof that R68 streaming + R70-B fast model both
+  work as designed
+- ISN'T: a perf improvement on its own — tracer-only diagnostic round
+
+### Citations verified
+BERT pretraining query returned 5 real refs: Devlin BERT, Wang GLUE,
+Vaswani Attention, Peters ELMo, plus one inline. All legitimate.
+

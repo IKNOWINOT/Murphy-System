@@ -479,6 +479,8 @@ class MurphyLLMProvider:
         if seed is not None:
             payload["seed"] = seed
 
+        # R70-C (2026-06-07): tracer — confirm streaming actually engaged.
+        logger.info("DeepInfra STREAM-IN model=%s max_tokens=%d", model, _safe_max)
         accumulated = []
         usage = {}
         finish_reason = None
@@ -726,6 +728,8 @@ class MurphyLLMProvider:
                 # DeepInfra leg through stream=True so the 120s socket wall does not
                 # truncate long generations. Approved by Murphy + founder 2026-06-07.
                 _r68_use_streaming = os.environ.get("LLM_USE_STREAMING", "0").strip() in ("1","true","yes","on")
+                # R70-C (2026-06-07): tracer — show gate decision in logs
+                logger.info("DeepInfra GATE stream=%s model=%s", _r68_use_streaming, model)
                 if _r68_use_streaming:
                     data = self._post_openai_compat_streaming(
                         DEEPINFRA_BASE_URL, self.deepinfra_api_key,
