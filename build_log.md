@@ -1322,3 +1322,75 @@ founder looks for things. Tiles that survive are limited to:
   L17: Chat layer already handles intent; standalone tiles for
        "show me X" duplicate it.
 
+
+## R82 — Customer-centric outreach composer (2026-06-07)
+
+### Founder finding (2026-06-07)
+"These emails don't make sense. Why are we selling like we are talking to
+ourselves? We are selling to the customer we got the email from. Look at
+their website. How can we solve their problems? What are their problems?"
+
+### Root cause
+src/lead_prospector.py _compose_outreach() only read 4 fields from each
+lead (name/email/company/title) and filled 3 hardcoded Murphy-brochure
+templates (A/B/C + 2 follow-ups). Meanwhile contacts.custom_fields had
+FULL enrichment data populated by src/prospect_enricher.py (PATCH-197):
+company_description, tech_stack, pain_signals, buying_trigger, github
+top repos, tweet themes, language_style. 283/283 contacts enriched.
+Data was sitting unused. Every email read like a brochure pitched AT us.
+
+### What ships
+1) New helper _r82_load_enrichment(email) — pulls custom_fields from
+   contacts table for the recipient.
+2) New helper _r82_compose_with_llm(lead, enrichment, touch) — calls
+   the internal LLM (DeepInfra Llama 3.3 70B-Turbo) with a strict
+   system prompt that BANS the generic openers and REQUIRES:
+     (1) Lead with their situation, not Murphy's pitch
+     (2) Use one concrete detail from their data
+     (3) Name one specific problem they likely have
+     (4) Position Murphy in ONE sentence
+     (5) Max 120 words, plain text, no markdown
+     (6) NO 'AI teams build with...', 'Most teams spend 80%...',
+         'The one thing I hear most' (those phrases are banned)
+3) New helper _r82_static_fallback() — enrichment-aware static fallback
+   used only when the LLM is unreachable. Never reverts to old A/B/C.
+4) _compose_outreach() body rewritten: load enrichment → try LLM →
+   fall back to enrichment-aware static. Log which enrichment fields
+   were used so HITL drill-down can verify the LLM saw real data.
+
+### Sales-cadence timer paused
+`murphy-sales-cadence.timer` was stopped and disabled before patching
+so no new generic emails could queue while the rewrite was in flight.
+Next-firing was 2026-06-08T16:00 UTC. Re-enable after founder eyeballs
+3-5 sample R82 outputs in the HITL queue.
+
+### Verified
+Smoke test on 2 real enriched contacts (Redbean, Padlet):
+  Both got LLM-composed emails with template_id=r82_llm_touch1.
+  Enrichment fields used: buying_trigger, company_description,
+  github_top_repos, tech_stack.
+  Latency: Redbean 4.75s, Padlet 19.18s — well within HITL queue cadence.
+  Output is sub-120 words, leads with the prospect's product, names a
+  specific likely problem, positions Murphy in one sentence.
+
+Example output (Redbean — AI character generator):
+  Subject: Ensuring Reliability in AI-Generated Characters
+  Body: Your team at Redbean has made significant strides in creating
+  original characters with Redbean AI, leveraging React for the frontend.
+  Given the complexity of generating interactive scenes and stories, I
+  suspect you likely face challenges in detecting and handling edge cases
+  where AI outputs may not meet expectations. Murphy System can help
+  mitigate such issues. I'd love to discuss this further on a 15-minute
+  call.
+  — Corey
+
+### Still in front of every send
+R454 HITL queue still gates every outbound. The R82 rewrite changes
+WHAT gets queued, not whether founder approval is required.
+
+### Files
+  src/lead_prospector.py (60KB → 64KB)
+
+### Snapshot
+  /var/lib/murphy-production/state_snapshots/lead_prospector.py.<TS>.before
+

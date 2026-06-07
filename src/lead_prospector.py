@@ -361,6 +361,196 @@ Wishing you and the team well.
 — Corey"""
 
 
+def _r82_load_enrichment(email):
+    """R82 — Pull contacts.custom_fields for this email. Returns {} if missing."""
+    if not email:
+        return {}
+    try:
+        with sqlite3.connect(CRM_DB, timeout=4) as db:
+            row = db.execute(
+                "SELECT custom_fields FROM contacts WHERE LOWER(email) = LOWER(?) LIMIT 1",
+                (email,),
+            ).fetchone()
+        if not row or not row[0]:
+            return {}
+        cf = json.loads(row[0])
+        return cf if isinstance(cf, dict) else {}
+    except Exception as e:
+        logger.debug("[R82] enrichment load failed for %s: %s", email, e)
+        return {}
+
+
+def _r82_clean_meta(text):
+    """Strip the leading meta-tag prefix the enricher leaves on company_description."""
+    if not text:
+        return ""
+    out = text.replace('<meta name="description" content="', "").strip()
+    for tail in ('"/>', '"/', '">', '"'):
+        if out.endswith(tail):
+            out = out[: -len(tail)]
+            break
+    return out.strip()
+
+
+def _r82_compose_with_llm(lead, enrichment, touch_number):
+    """R82 — Compose customer-centric outreach via the internal LLM.
+
+    Returns {subject, body} on success, None on failure (caller falls back).
+    """
+    first    = lead.get("first_name") or (lead.get("name","").split()[0] if lead.get("name") else "there")
+    company  = lead.get("company") or "your team"
+    title    = lead.get("title", "")
+    url      = lead.get("url", "")
+
+    descr    = _r82_clean_meta(enrichment.get("company_description") or "")[:300]
+    stack    = enrichment.get("tech_stack") or []
+    stack_s  = ", ".join(stack[:6]) if stack else ""
+    pains    = enrichment.get("pain_signals") or []
+    pains_s  = "; ".join(pains[:5]) if pains else ""
+    trigger  = enrichment.get("buying_trigger") or ""
+    themes   = enrichment.get("tweet_themes") or []
+    themes_s = ", ".join(themes[:5]) if themes else ""
+    repos    = enrichment.get("github_top_repos") or []
+    repo_s   = ""
+    if repos and isinstance(repos, list):
+        rn = [r.get("name","") for r in repos[:3] if isinstance(r, dict) and r.get("name")]
+        repo_s = ", ".join(rn)
+    lang_style = enrichment.get("language_style") or "founder-casual"
+
+    if not (descr or stack or pains or trigger or themes or repo_s):
+        logger.info("[R82] no enrichment signal for %s; using enrichment-aware static fallback", company)
+        return None
+
+    touch_intent = {
+        1: "FIRST cold outreach. Earn the reply by showing we read their site/work.",
+        2: "SECOND touch. Acknowledge they're busy. Add ONE new insight or angle. Don't repeat the first email.",
+        3: "THIRD and final touch. Short, gracious, leaves the door open. No new pitch.",
+    }.get(touch_number, "Cold outreach.")
+
+    system_prompt = (
+        "You are Corey Post, founder of Murphy System. You're writing a cold email TO a real person at a real company. "
+        "Murphy System is a production safety + automation layer for AI teams: failure detection, compliance guardrails, audit trail, HITL controls. "
+        "Your job: write an email that proves you read their work and names ONE specific problem they likely face. "
+        "RULES - hard: "
+        "(1) Lead with THEIR situation, not Murphy's pitch. "
+        "(2) Use one concrete detail from their data (product, stack, repo, pain phrase). "
+        "(3) Name ONE specific problem they probably have. "
+        "(4) Position Murphy in ONE sentence as a fix - not a paragraph. "
+        "(5) End with ONE simple ask (15-min call, reply with thoughts). "
+        "(6) Max 120 words. Plain text. No markdown, no bullets, no emojis. "
+        "(7) NO generic openers like 'AI teams build with...', 'Most teams spend 80%...', 'The one thing I hear most'. Those are BANNED. "
+        "(8) Sign as: - Corey"
+    )
+
+    user_prompt = (
+        "WRITE the email now.\n\n"
+        + f"Recipient: {first} ({title}) at {company}\n"
+        + f"Touch number: {touch_number} - {touch_intent}\n"
+        + f"Their site: {url}\n"
+        + f"What they do (from their site): {descr or '(unknown)'}\n"
+        + f"Their tech stack: {stack_s or '(unknown)'}\n"
+        + f"Pain signals from their public footprint: {pains_s or '(none found)'}\n"
+        + f"Strongest buying trigger we found: {trigger or '(none)'}\n"
+        + f"Themes they post about: {themes_s or '(none)'}\n"
+        + f"Their notable repos: {repo_s or '(none)'}\n"
+        + f"Their language style: {lang_style}\n\n"
+        + "Return the email as plain text: 'Subject: <subject>' on the first line, blank line, then body. Nothing else."
+    )
+
+    try:
+        from src.llm_provider import get_llm
+        llm = get_llm()
+        result = llm.complete(
+            prompt=user_prompt,
+            system=system_prompt,
+            max_tokens=380,
+            temperature=0.55,
+        )
+        text = (getattr(result, "content", None) or (result.get("content") if isinstance(result, dict) else None) or "") if result is not None else ""
+        text = text.strip()
+        if not text or "subject:" not in text.lower():
+            logger.warning("[R82] LLM returned unparseable output for %s", company)
+            return None
+        lines = text.split("\n")
+        subj_idx = None
+        for i, ln in enumerate(lines):
+            if ln.lower().startswith("subject:"):
+                subj_idx = i
+                break
+        if subj_idx is None:
+            return None
+        subject = lines[subj_idx].split(":", 1)[1].strip()
+        body_lines = lines[subj_idx + 1 :]
+        while body_lines and not body_lines[0].strip():
+            body_lines.pop(0)
+        body = "\n".join(body_lines).strip()
+        if len(body) < 40:
+            logger.warning("[R82] LLM body too short for %s (%d chars)", company, len(body))
+            return None
+        if body[:80].lower().startswith(("i cannot", "i'm sorry", "i am sorry", "i won't")):
+            logger.warning("[R82] LLM refused for %s", company)
+            return None
+        return {"subject": subject, "body": body}
+    except Exception as e:
+        logger.warning("[R82] LLM compose failed for %s: %s", company, e)
+        return None
+
+
+def _r82_static_fallback(lead, enrichment, touch_number):
+    """R82 - Enrichment-aware static fallback. NEVER reverts to old A/B/C generic."""
+    first   = lead.get("first_name") or (lead.get("name","").split()[0] if lead.get("name") else "there")
+    company = lead.get("company") or "your team"
+    descr   = _r82_clean_meta(enrichment.get("company_description") or "")[:200]
+    stack   = enrichment.get("tech_stack") or []
+    pains   = enrichment.get("pain_signals") or []
+
+    if descr:
+        them_line = f"I came across {company} and read your pitch - {descr[:160]}."
+    elif stack:
+        them_line = f"I saw {company} is building with {', '.join(stack[:3])}."
+    else:
+        them_line = f"I came across {company} while researching AI-first teams."
+
+    if pains:
+        problem = f"Teams shipping with your stack often hit {pains[0]} early, and it tends to get worse as the model surface grows."
+    elif "react" in [s.lower() for s in stack]:
+        problem = "AI features in user-facing apps are where reliability complaints land first - and they're hard to debug after the fact."
+    else:
+        problem = "AI teams hit reliability and compliance walls earlier than they expect, usually right after the first customer-facing launch."
+
+    pitch = "Murphy System is the safety + audit layer between your AI and your users - catches failures, logs decisions, keeps your team in control. Built for teams that want to ship fast without the liability."
+
+    if touch_number == 1:
+        subj = f"Saw {company} - one quick thought"
+        body = (
+            f"Hi {first},\n\n"
+            f"{them_line}\n\n"
+            f"{problem}\n\n"
+            f"{pitch}\n\n"
+            f"Worth a 15-minute call?\n\n"
+            f"- Corey\nFounder, Murphy System\nmurphy.systems"
+        )
+    elif touch_number == 2:
+        subj = f"Re: Saw {company} - one quick thought"
+        body = (
+            f"Hi {first},\n\n"
+            f"Wanted to follow up once. {problem} It usually surfaces in customer support tickets first, "
+            f"so by the time it's a board-level issue, the cleanup is 10x harder.\n\n"
+            f"Happy to share what we're seeing at other AI teams if useful.\n\n"
+            f"- Corey"
+        )
+    else:
+        subj = "Last note"
+        body = (
+            f"Hi {first},\n\n"
+            f"Last reach-out. If AI reliability or compliance ever becomes urgent at {company}, "
+            f"murphy.systems is the place to start. Otherwise wishing you and the team well.\n\n"
+            f"- Corey"
+        )
+
+    return {"subject": subj, "body": body}
+
+
 def _compose_outreach(lead: Dict, touch_number: int = 1) -> Dict:
     """
     _R456_LINEAGE — Compose a personalised outreach email using sales best practices.
@@ -375,12 +565,26 @@ def _compose_outreach(lead: Dict, touch_number: int = 1) -> Dict:
     touch_number: 1=opener, 2=follow-up 1, 3=follow-up 2.
     Returns {subject, body, to, from, touch, lineage}.
     """
+    # _R82_CUSTOMER_CENTRIC (2026-06-07) - read enrichment, ask LLM to write
+    # FROM the prospect's situation. Hardcoded A/B/C templates retired.
+    # Enrichment-aware static fallback only when LLM is unreachable.
     name      = lead.get("name", "")
     email     = lead.get("email", "")
     company   = lead.get("company", "there")
     title     = lead.get("title", "")
     first     = (name.split()[0] if name and " " in name else name) or "there"
-    role_ctx  = "engineering" if any(w in title.lower() for w in ["engineer","cto","tech"])                 else "founder" if "found" in title.lower()                 else "product" if "product" in title.lower()                 else "AI"
+    _t = title.lower()
+    if any(w in _t for w in ["engineer","cto","tech"]):
+        role_ctx = "engineering"
+    elif "found" in _t:
+        role_ctx = "founder"
+    elif "product" in _t:
+        role_ctx = "product"
+    else:
+        role_ctx = "AI"
+
+    lead_for_helpers = dict(lead)
+    lead_for_helpers.setdefault("first_name", first)
 
     ctx = {
         "first_name":   first,
@@ -389,29 +593,24 @@ def _compose_outreach(lead: Dict, touch_number: int = 1) -> Dict:
         "role_context": role_ctx,
     }
 
-    # Track which template was selected so the UI can show the raw template too
-    template_used = None
-    template_id = None
+    enrichment = _r82_load_enrichment(email)
 
-    if touch_number == 1:
-        tmpl = random.choice(OPENER_TEMPLATES)
-        template_used = tmpl
-        template_id = "opener_" + str(OPENER_TEMPLATES.index(tmpl) + 1)
-        body = tmpl.format(**ctx)
-        subj = body.split("\n")[0].replace("Subject: ","")
-        body = "\n".join(body.split("\n")[1:]).strip()
-    elif touch_number == 2:
-        template_used = FOLLOWUP_1_TEMPLATE
-        template_id = "followup_1"
-        body = FOLLOWUP_1_TEMPLATE.format(**ctx)
-        subj = body.split("\n")[0].replace("Subject: ","")
-        body = "\n".join(body.split("\n")[1:]).strip()
+    composed = _r82_compose_with_llm(lead_for_helpers, enrichment, touch_number)
+    if composed:
+        subj = composed["subject"]
+        body = composed["body"]
+        template_used = "llm_customer_centric"
+        template_id = "r82_llm_touch%d" % touch_number
+        _enrich_keys = [k for k in ("company_description","tech_stack","pain_signals","buying_trigger","tweet_themes","github_top_repos") if enrichment.get(k)]
+        logger.info("[R82] LLM composed touch #%d for %s (enrichment fields used: %s)",
+                    touch_number, company, sorted(_enrich_keys))
     else:
-        template_used = FOLLOWUP_2_TEMPLATE
-        template_id = "followup_2"
-        body = FOLLOWUP_2_TEMPLATE.format(**ctx)
-        subj = body.split("\n")[0].replace("Subject: ","")
-        body = "\n".join(body.split("\n")[1:]).strip()
+        static = _r82_static_fallback(lead_for_helpers, enrichment, touch_number)
+        subj = static["subject"]
+        body = static["body"]
+        template_used = "static_enrichment_aware"
+        template_id = "r82_static_touch%d" % touch_number
+        logger.info("[R82] Static fallback used for %s touch #%d", company, touch_number)
 
     # R456 — capture lineage
     # Find each input value's character range in the final body
