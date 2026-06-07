@@ -193,6 +193,35 @@ def _ensure_schema() -> None:
 # Core billing class
 # ─────────────────────────────────────────────────────────────────────────────
 
+
+
+# ── Vault read (PATCH-407, 2026-06-07): prefer vault, fall back to env ───────
+def _vault_or_env(name: str) -> str:
+    """Read a secret by name. Tries Murphy vault first; falls back to env var.
+
+    Vault is the canonical source. Env is kept as a boot-ordering fallback so
+    that nowpayments_billing can initialise before the vault module is fully
+    loaded (the vault itself needs the FastAPI app object).
+    """
+    try:
+        # Local import to dodge boot-ordering cycle
+        from src.patch405_secrets_vault import _db, _decrypt, _CRYPTO_OK, init_db
+        if _CRYPTO_OK:
+            init_db()
+            conn = _db()
+            row = conn.execute(
+                "SELECT encrypted_value, nonce FROM vault_secrets "
+                "WHERE name=? AND revoked_at IS NULL", (name,)
+            ).fetchone()
+            conn.close()
+            if row:
+                return _decrypt(row[0], row[1])
+    except Exception:
+        # Any failure (import, db lock, decrypt) → fall through to env
+        pass
+    return os.environ.get(name, "")
+
+
 class NowPaymentsBilling:
     """
     Murphy crypto billing via NOWPayments.
@@ -213,8 +242,12 @@ class NowPaymentsBilling:
     """
 
     def __init__(self, api_key: str = "", ipn_secret: str = "") -> None:
-        self._api_key    = api_key    or os.environ.get("NOWPAYMENTS_API_KEY", "")
-        self._ipn_secret = ipn_secret or os.environ.get("NOWPAYMENTS_IPN_SECRET", "")
+        # 2026-06-07: prefer Murphy vault → fall back to env (for boot ordering)
+        # Both NOWPAYMENTS_API_KEY (write-class) and NOWPAYMENTS_IPN_SECRET
+        # (destructive-class) live in /var/lib/murphy-production/murphy_vault.db.
+        # See patch405_secrets_vault.py.
+        self._api_key    = api_key    or _vault_or_env("NOWPAYMENTS_API_KEY")
+        self._ipn_secret = ipn_secret or _vault_or_env("NOWPAYMENTS_IPN_SECRET")
         self._lock = threading.Lock()
         _ensure_schema()
 

@@ -1433,3 +1433,56 @@ Decisions pending from founder before scrub:
 - Decide fate of Business tier + ROI calc
 - Provide working NOWPayments key OR remove "NOWPayments live" claim
 
+
+## PATCH-407 — Relocate NOWPayments secrets to canonical vault (2026-06-07)
+
+### Founder directive (2026-06-07)
+"That nowpayments should be in the Murphy vault."
+
+### What was happening
+NOWPAYMENTS_API_KEY and NOWPAYMENTS_IPN_SECRET lived only in
+/etc/murphy-production/environment (file env). The Murphy vault
+(/var/lib/murphy-production/murphy_vault.db, PATCH-405) had no
+entry for either. R83.P0's pricing audit panicked about this
+("NOWPayments not functional") because it only checked the vault,
+not the production env where the keys actually were.
+
+### What ships
+1) Both secrets written to canonical Murphy vault via the same
+   AES-256-GCM path PATCH-405 uses for Twilio + Together:
+     NOWPAYMENTS_API_KEY     risk_class=write
+     NOWPAYMENTS_IPN_SECRET  risk_class=destructive
+   Granted to "billing" and "platform" agents.
+
+2) Helper added to nowpayments_billing.py: _vault_or_env(name).
+   Reads vault first; falls back to env for boot ordering.
+   Allows zero-downtime key rotation via vault going forward.
+
+3) __init__ in NowPaymentsBilling switched from
+     api_key or os.environ.get("NOWPAYMENTS_API_KEY", "")
+   to
+     api_key or _vault_or_env("NOWPAYMENTS_API_KEY")
+
+### Verified
+- Vault roundtrip: encrypt → decrypt → matches original (True)
+- Live import with env stripped: vault path supplies both secrets
+- Production restart: service back to active, 200 on all
+  canonical surfaces (/, /os, /api/public/stats)
+- End-to-end NOWPayments call against the live API:
+    POST /api/payments/nowpayments/checkout {"tier":"business"}
+    → 200, checkout_url = https://nowpayments.io/payment/?iid=4568293117
+  Real invoice ID returned from real NOWPayments account using
+  the vault key. Integration is fully functional and now reading
+  from the canonical source.
+
+### Files touched
+  src/nowpayments_billing.py  (added _vault_or_env helper + switched __init__)
+
+### Snapshot
+  /var/lib/murphy-production/state_snapshots/nowpayments_billing.py.<TS>.before
+
+### Why this matters
+One source of truth. Going forward, all secrets live in the vault,
+and the env-file fallback exists only for boot ordering. Rotations
+no longer need a server restart with new env values — just write
+the new value to vault and the next billing call picks it up.
