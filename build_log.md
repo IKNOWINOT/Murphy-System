@@ -1135,3 +1135,63 @@ view) for tomorrow.
 - /var/lib/murphy-production/state_snapshots/app.py.<TS>.before
 - /var/lib/murphy-production/state_snapshots/murphy-os.html.<TS>.before
 
+
+## R78 — Per-page action bars + sub-tabs for OS dashboard (2026-06-07)
+
+### Founder ask
+"Look at pages and decide that after looking at it it has action bars
+and it has sub tabs on the same page for os."
+
+### Audit
+6 of 8 OS pages were 7-13 line stubs with just a section-title and a
+data slot. Global Quick Actions strip (R77.P3) covered cross-page
+actions. Missing: per-page action bars + sub-tabs for content
+organization within each page.
+
+### Shipped
+A uniform .page-header block injected at the top of 6 pages:
+agents, pipeline, soul, hitl, shield, mail. Each header has:
+  - title chip (page name in mint, matches design language)
+  - sub-tab strip (reuses .nav-tab pattern visually)
+  - action bar (3 focused CTAs per page, primary action highlighted)
+
+### Sub-tabs per page
+  agents:   All | Active | Idle | Failed
+  pipeline: All Stages | Discovery | Qualified | Proposal | Won
+  soul:     North Star | Covenant | Harm Thresholds | World Context
+  hitl:     Pending | Approved | Rejected
+  shield:   Status | Vault | Tripwires | Sandbox
+  mail:     Outbound Queue | All Mailboxes | Safety Net
+
+Sub-tab routing is pure CSS — sets [data-active-sub] on the page div,
+attribute selectors hide [data-sub] rows that don't match. Loaders
+opt in by tagging rendered rows with data-sub="…" (existing rows
+without the attribute remain visible — backward compatible). Last
+active sub-tab persisted in localStorage per page.
+
+### Actions per page (wired to real APIs)
+  agents:   ↻ Refresh · 🩺 Health Check · 🔄 Restart Idle
+  pipeline: ↻ Refresh · 📤 Export CSV (client-side) · 🤝 Full CRM
+  soul:     ↻ Refresh · 📜 History · ✏️ Edit (opens /ui/soul-edit)
+  hitl:     ↻ Refresh · ✅ Bulk Approve · ❌ Bulk Reject
+            (wired to /api/hitl/items/bulk-{approve,reject} — confirm
+            dialog before firing)
+  shield:   ↻ Refresh · 🛡️ Run Audit · 📋 Tripwire Log
+  mail:     ↻ Refresh (page already had bulk actions)
+
+All action handlers log to the R77.P3 qa-log panel so the user sees
+HTTP status + result inline, same UX as the global Quick Actions.
+
+### Verified on live edge
+  https://murphy.systems/os → 200
+  22 sub-tab markers served
+  11 page-action-btn markers served
+  15 page-header divs (6 new + reused)
+  tripwire clean
+
+### Files
+  static/murphy-os.html (135KB → 150KB)
+
+### Snapshot
+  /var/lib/murphy-production/state_snapshots/murphy-os.html.<TS>.before
+

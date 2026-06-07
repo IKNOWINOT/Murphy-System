@@ -924,6 +924,86 @@ body {
 /* Pad main content above ask bar */
 .main { padding-bottom: 48px; }
 
+/* ── R78 — Per-page header: sub-tabs + actions ── */
+.page-header {
+  display: grid;
+  grid-template-columns: minmax(120px, auto) 1fr auto;
+  align-items: center; gap: 16px;
+  padding: 12px 16px;
+  background: var(--bg2, #131920);
+  border-bottom: 1px solid var(--border, #21262d);
+  margin-bottom: 12px;
+}
+.page-header-title {
+  font-size: 12px; font-weight: 800; color: #00d4aa;
+  text-transform: uppercase; letter-spacing: 1px;
+}
+.sub-tabs {
+  display: flex; flex-wrap: wrap; gap: 4px;
+  align-items: center; justify-self: start;
+}
+.sub-tab {
+  background: transparent; border: 1px solid var(--border, #21262d);
+  color: #788079; font-size: 11.5px; font-weight: 600;
+  padding: 5px 11px; border-radius: 4px; cursor: pointer;
+  transition: background .15s, color .15s, border-color .15s;
+}
+.sub-tab:hover { color: #cde; border-color: var(--border2, #30363d); }
+.sub-tab.active {
+  background: rgba(0,212,170,0.12); color: #00d4aa;
+  border-color: rgba(0,212,170,0.4);
+}
+.page-actions {
+  display: flex; flex-wrap: wrap; gap: 6px; justify-self: end;
+}
+.page-action-btn {
+  background: var(--bg3, #161b22); border: 1px solid var(--border, #21262d);
+  color: #cde; font-size: 11.5px; font-weight: 600;
+  padding: 6px 11px; border-radius: 4px; cursor: pointer;
+  transition: background .15s, border-color .15s, transform .1s;
+}
+.page-action-btn:hover { background: var(--bg4, #1c2128); border-color: #00d4aa; }
+.page-action-btn:active { transform: translateY(1px); }
+.page-action-btn.primary {
+  background: rgba(0,212,170,0.12); color: #00d4aa;
+  border-color: rgba(0,212,170,0.4);
+}
+.page-action-btn.primary:hover { background: rgba(0,212,170,0.22); }
+
+/* Sub-tab filter behaviour — hide rows that don't match current filter.
+   Loaders should set data-sub on each row to opt in. Rows without
+   data-sub remain visible (so existing page content keeps working
+   while loaders are upgraded). */
+[data-active-sub] [data-sub]:not([data-sub=""]) { display: none; }
+[data-active-sub="all"] [data-sub] { display: revert; }
+[data-active-sub="active"] [data-sub~="active"],
+[data-active-sub="idle"] [data-sub~="idle"],
+[data-active-sub="failed"] [data-sub~="failed"],
+[data-active-sub="discovery"] [data-sub~="discovery"],
+[data-active-sub="qualified"] [data-sub~="qualified"],
+[data-active-sub="proposal"] [data-sub~="proposal"],
+[data-active-sub="won"] [data-sub~="won"],
+[data-active-sub="pending"] [data-sub~="pending"],
+[data-active-sub="approved"] [data-sub~="approved"],
+[data-active-sub="rejected"] [data-sub~="rejected"],
+[data-active-sub="northstar"] [data-sub~="northstar"],
+[data-active-sub="covenant"] [data-sub~="covenant"],
+[data-active-sub="harm"] [data-sub~="harm"],
+[data-active-sub="world"] [data-sub~="world"],
+[data-active-sub="status"] [data-sub~="status"],
+[data-active-sub="vault"] [data-sub~="vault"],
+[data-active-sub="tripwires"] [data-sub~="tripwires"],
+[data-active-sub="sandbox"] [data-sub~="sandbox"],
+[data-active-sub="outbound"] [data-sub~="outbound"],
+[data-active-sub="inbox"] [data-sub~="inbox"],
+[data-active-sub="safety"] [data-sub~="safety"] { display: revert; }
+
+/* Compact action bar on smaller viewports */
+@media (max-width: 900px) {
+  .page-header { grid-template-columns: 1fr; gap: 8px; }
+  .sub-tabs, .page-actions { justify-self: stretch; }
+}
+
 /* ── R77.P3 — Quick Actions strip (always visible across pages) ── */
 .qa-strip {
   position: sticky; top: 0; z-index: 50;
@@ -1454,6 +1534,12 @@ body {
 
     <!-- ═══ AGENTS ═══ -->
     <div class="page" id="page-agents">
+      <!-- R78 — page header (sub-tabs + actions) -->
+      <div class="page-header" id="hdr-agents">
+        <div class="page-header-title">Swarm Agents</div>
+        <div class="sub-tabs"><button class="sub-tab active" data-page="agents" data-filter="all" onclick="subTab(event,'agents','all')">All</button><button class="sub-tab" data-page="agents" data-filter="active" onclick="subTab(event,'agents','active')">Active</button><button class="sub-tab" data-page="agents" data-filter="idle" onclick="subTab(event,'agents','idle')">Idle</button><button class="sub-tab" data-page="agents" data-filter="failed" onclick="subTab(event,'agents','failed')">Failed</button></div>
+        <div class="page-actions"><button class="page-action-btn" onclick="qaAction(event,'swarm_status'); loadAgents()">↻ Refresh</button><button class="page-action-btn" onclick="qaAction(event,'audit')">🩺 Health Check</button><button class="page-action-btn primary" onclick="r78AgentRestartIdle()">🔄 Restart Idle</button></div>
+      </div>
       <div style="padding:16px">
         <div class="section-title" style="margin-bottom:12px">Swarm Agents — Soul-Aware</div>
         <div class="agents-grid" id="agents-grid">
@@ -1464,6 +1550,12 @@ body {
 
     <!-- ═══ PIPELINE ═══ -->
     <div class="page" id="page-pipeline">
+      <!-- R78 — page header (sub-tabs + actions) -->
+      <div class="page-header" id="hdr-pipeline">
+        <div class="page-header-title">CRM Pipeline</div>
+        <div class="sub-tabs"><button class="sub-tab active" data-page="pipeline" data-filter="all" onclick="subTab(event,'pipeline','all')">All Stages</button><button class="sub-tab" data-page="pipeline" data-filter="discovery" onclick="subTab(event,'pipeline','discovery')">Discovery</button><button class="sub-tab" data-page="pipeline" data-filter="qualified" onclick="subTab(event,'pipeline','qualified')">Qualified</button><button class="sub-tab" data-page="pipeline" data-filter="proposal" onclick="subTab(event,'pipeline','proposal')">Proposal</button><button class="sub-tab" data-page="pipeline" data-filter="won" onclick="subTab(event,'pipeline','won')">Won</button></div>
+        <div class="page-actions"><button class="page-action-btn" onclick="loadPipeline()">↻ Refresh</button><button class="page-action-btn" onclick="r78PipelineExport()">📤 Export CSV</button><button class="page-action-btn primary" onclick="window.location='/ui/crm'">🤝 View All Deals</button></div>
+      </div>
       <div id="pipeline-list" style="padding:16px;display:flex;flex-direction:column;gap:6px;"></div>
       <div class="pipeline-page">
         <div class="section-title" id="pipe-title">CRM Pipeline</div>
@@ -1475,6 +1567,12 @@ body {
 
     <!-- ═══ SOUL ═══ -->
     <div class="page" id="page-soul">
+      <!-- R78 — page header (sub-tabs + actions) -->
+      <div class="page-header" id="hdr-soul">
+        <div class="page-header-title">Murphy Soul</div>
+        <div class="sub-tabs"><button class="sub-tab active" data-page="soul" data-filter="northstar" onclick="subTab(event,'soul','northstar')">North Star</button><button class="sub-tab" data-page="soul" data-filter="covenant" onclick="subTab(event,'soul','covenant')">Covenant</button><button class="sub-tab" data-page="soul" data-filter="harm" onclick="subTab(event,'soul','harm')">Harm Thresholds</button><button class="sub-tab" data-page="soul" data-filter="world" onclick="subTab(event,'soul','world')">World Context</button></div>
+        <div class="page-actions"><button class="page-action-btn" onclick="loadSoul()">↻ Refresh</button><button class="page-action-btn" onclick="r78SoulHistory()">📜 View History</button><button class="page-action-btn primary" onclick="r78SoulEdit()">✏️ Edit Soul</button></div>
+      </div>
       <div class="soul-page">
         <div class="section-title" style="margin-bottom:16px">Murphy Soul</div>
         <div class="soul-north-star" id="soul-star">Loading…</div>
@@ -1489,6 +1587,12 @@ body {
 
     <!-- ═══ HITL ═══ -->
     <div class="page" id="page-hitl">
+      <!-- R78 — page header (sub-tabs + actions) -->
+      <div class="page-header" id="hdr-hitl">
+        <div class="page-header-title">Human-In-The-Loop</div>
+        <div class="sub-tabs"><button class="sub-tab active" data-page="hitl" data-filter="pending" onclick="subTab(event,'hitl','pending')">Pending</button><button class="sub-tab" data-page="hitl" data-filter="approved" onclick="subTab(event,'hitl','approved')">Approved</button><button class="sub-tab" data-page="hitl" data-filter="rejected" onclick="subTab(event,'hitl','rejected')">Rejected</button></div>
+        <div class="page-actions"><button class="page-action-btn" onclick="loadHITL(); qaAction(event,'hitl_queue')">↻ Refresh</button><button class="page-action-btn" onclick="r78HitlBulk('approve')">✅ Bulk Approve</button><button class="page-action-btn" onclick="r78HitlBulk('reject')">❌ Bulk Reject</button></div>
+      </div>
       <div style="padding:16px">
         <div class="section-title" style="margin-bottom:12px">HITL — Human In The Loop</div>
         <div id="hitl-content" style="font-size:13px;color:var(--text2)">Loading…</div>
@@ -1497,6 +1601,12 @@ body {
 
     <!-- ═══ SHIELD ═══ -->
     <div class="page" id="page-shield">
+      <!-- R78 — page header (sub-tabs + actions) -->
+      <div class="page-header" id="hdr-shield">
+        <div class="page-header-title">Shield Wall</div>
+        <div class="sub-tabs"><button class="sub-tab active" data-page="shield" data-filter="status" onclick="subTab(event,'shield','status')">Status</button><button class="sub-tab" data-page="shield" data-filter="vault" onclick="subTab(event,'shield','vault')">Vault</button><button class="sub-tab" data-page="shield" data-filter="tripwires" onclick="subTab(event,'shield','tripwires')">Tripwires</button><button class="sub-tab" data-page="shield" data-filter="sandbox" onclick="subTab(event,'shield','sandbox')">Sandbox</button></div>
+        <div class="page-actions"><button class="page-action-btn" onclick="loadShield()">↻ Refresh</button><button class="page-action-btn" onclick="qaAction(event,'audit')">🛡️ Run Audit</button><button class="page-action-btn primary" onclick="r78ShieldTripwireLog()">📋 Tripwire Log</button></div>
+      </div>
       <div style="padding:16px">
         <div class="section-title" style="margin-bottom:12px">Shield Wall</div>
         <div id="shield-content" style="font-size:12px;color:var(--text2)">Loading…</div>
@@ -1506,6 +1616,12 @@ body {
   
     <!-- PATCH-413d: Mail tab stub (full impl in Phase 7a) -->
     <div class="page" id="page-mail">
+      <!-- R78 — page header (sub-tabs + actions) -->
+      <div class="page-header" id="hdr-mail">
+        <div class="page-header-title">Mail Center</div>
+        <div class="sub-tabs"><button class="sub-tab active" data-page="mail" data-filter="outbound" onclick="subTab(event,'mail','outbound')">Outbound Queue</button><button class="sub-tab" data-page="mail" data-filter="inbox" onclick="subTab(event,'mail','inbox')">All Mailboxes</button><button class="sub-tab" data-page="mail" data-filter="safety" onclick="subTab(event,'mail','safety')">Safety Net</button></div>
+        <div class="page-actions"><button class="page-action-btn" onclick="mailRefresh()">↻ Refresh</button></div>
+      </div>
       <div style="padding:24px;max-width:900px;">
         <h2 style="color:#5ee0c4;margin:0 0 8px;">📧 Mail</h2>
         <div style="color:#8aa;margin-bottom:24px;">Direct connection to murphy.systems mail stack. Founder sees all 18 mailboxes; outbound emails require review before send.</div>
@@ -3452,6 +3568,136 @@ async function r465BulkRejectAll() {
       }
     } catch(_){}
   });
+})();
+</script>
+
+<script>
+// R78 — Sub-tab routing + per-page action handlers
+(function () {
+  // Sub-tab → set [data-active-sub] on the page div so CSS filters rows
+  window.subTab = function (ev, pageId, filter) {
+    const page = document.getElementById('page-' + pageId);
+    if (!page) return;
+    page.setAttribute('data-active-sub', filter);
+    // Update active button class
+    if (ev && ev.currentTarget) {
+      const grp = ev.currentTarget.parentElement;
+      grp.querySelectorAll('.sub-tab').forEach(b => b.classList.remove('active'));
+      ev.currentTarget.classList.add('active');
+    }
+    // Persist
+    try { localStorage.setItem('r78-sub-' + pageId, filter); } catch(_){}
+  };
+
+  // Restore last-active sub-tab per page on load
+  document.addEventListener('DOMContentLoaded', () => {
+    ['agents','pipeline','soul','hitl','shield','mail'].forEach(pid => {
+      let f = 'all';
+      try { f = localStorage.getItem('r78-sub-' + pid) || f; } catch(_){}
+      const page = document.getElementById('page-' + pid);
+      if (!page) return;
+      page.setAttribute('data-active-sub', f);
+      const btn = page.querySelector(`.sub-tab[data-filter="${f}"]`);
+      if (btn) {
+        btn.parentElement.querySelectorAll('.sub-tab').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      }
+    });
+  });
+
+  // ─── Page-specific action handlers ────────────────────────────────
+  function _log(kind, msg) {
+    // Reuse the R77.P3 qa-log if present
+    const out = document.getElementById('qa-log');
+    if (!out) { console.log('[R78]', kind, msg); return; }
+    const ts = new Date().toISOString().slice(11,19);
+    out.insertAdjacentHTML('beforeend',
+      `<div class="qa-line ${kind}"><span class="ts">${ts}</span>${msg.replace(/</g,'&lt;')}</div>`);
+    out.scrollTop = out.scrollHeight;
+  }
+
+  // AGENTS — restart idle agents (best-effort via dispatch)
+  window.r78AgentRestartIdle = async function () {
+    _log('info', '→ POST /api/swarm/agents/restart-idle');
+    try {
+      const r = await fetch('/api/swarm/agents/restart-idle', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        credentials: 'include', body: JSON.stringify({})
+      });
+      const d = await r.json().catch(() => ({}));
+      _log(r.ok ? 'ok' : 'err',
+        `← ${r.status} ${(d.message || d.detail || d.error || (r.ok ? 'queued' : 'failed')).toString().slice(0,180)}`);
+      if (typeof loadAgents === 'function') loadAgents();
+    } catch (e) { _log('err', `× ${e.message}`); }
+  };
+
+  // PIPELINE — export visible deals as CSV (client-side, current view only)
+  window.r78PipelineExport = function () {
+    const cols = document.querySelectorAll('#pipeline-cols [data-deal]');
+    if (!cols.length) { _log('err', 'no deals visible — load pipeline first'); return; }
+    const rows = [['id','name','stage','value','owner']];
+    cols.forEach(el => {
+      const d = el.dataset;
+      rows.push([d.deal||'', d.name||'', d.stage||'', d.value||'', d.owner||'']);
+    });
+    const csv = rows.map(r => r.map(c => `"${(c||'').toString().replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], {type:'text/csv'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `murphy-pipeline-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    _log('ok', `exported ${rows.length-1} deals to CSV`);
+  };
+
+  // SOUL — view recent identity history (read-only)
+  window.r78SoulHistory = async function () {
+    _log('info', '→ GET /api/self/identity/history');
+    try {
+      const r = await fetch('/api/self/identity/history?limit=10', {credentials:'include'});
+      const d = await r.json().catch(() => ({}));
+      const n = (d.events || d.history || []).length;
+      _log(r.ok ? 'ok' : 'err',
+        `← ${r.status} ${n} recent identity events`);
+    } catch (e) { _log('err', `× ${e.message}`); }
+  };
+
+  // SOUL — open identity editor in a new tab (no inline edit risk)
+  window.r78SoulEdit = function () {
+    window.open('/ui/soul-edit', '_blank', 'noopener');
+  };
+
+  // HITL — bulk approve / reject
+  window.r78HitlBulk = async function (action) {
+    const ok = confirm(`Bulk ${action} ALL pending HITL items? This cannot be undone.`);
+    if (!ok) { _log('info', `bulk ${action} cancelled`); return; }
+    const url = action === 'approve'
+      ? '/api/hitl/items/bulk-approve'
+      : '/api/hitl/items/bulk-reject';
+    _log('info', `→ POST ${url}`);
+    try {
+      const r = await fetch(url, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        credentials:'include', body: JSON.stringify({all:true})
+      });
+      const d = await r.json().catch(() => ({}));
+      const n = d.count ?? d.affected ?? d.processed ?? '?';
+      _log(r.ok ? 'ok' : 'err',
+        `← ${r.status} ${action}ed=${n} ${(d.detail||d.error||'').toString().slice(0,140)}`);
+      if (typeof loadHITL === 'function') loadHITL();
+    } catch (e) { _log('err', `× ${e.message}`); }
+  };
+
+  // SHIELD — fetch recent tripwire entries
+  window.r78ShieldTripwireLog = async function () {
+    _log('info', '→ GET /api/security/tripwire/log?limit=20');
+    try {
+      const r = await fetch('/api/security/tripwire/log?limit=20', {credentials:'include'});
+      const d = await r.json().catch(() => ({}));
+      const evs = d.events || d.entries || [];
+      _log(r.ok ? 'ok' : 'err',
+        `← ${r.status} ${evs.length} tripwire events; last: ${(evs[0]?.ts || evs[0]?.timestamp || '—')}`);
+    } catch (e) { _log('err', `× ${e.message}`); }
+  };
 })();
 </script>
 </body>
