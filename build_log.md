@@ -850,3 +850,65 @@ problem but doesn't prevent recurrence. Options:
 - chroot/jail the spawn service to /tmp/agent_scratch/
 - mediate all agent writes through a path-allowlist API
 
+
+## SLICE-F-restore — /api/public/stats edge routing fixed (2026-06-07)
+
+### Problem
+https://murphy.systems/api/public/stats returned 404 because nginx
+location `/api/public/` (prefix-match) routed everything to :8088
+Public Pulse, which doesn't have a /stats endpoint. The actual
+implementation lives on the monolith :8000 (src/runtime/app.py:4700).
+
+### Fix
+Added exact-match nginx location BEFORE the prefix block:
+```
+location = /api/public/stats {
+    proxy_pass http://127.0.0.1:8000;
+    ...
+}
+```
+Exact-match (=) takes precedence over prefix in nginx routing.
+
+### Per active_user_instructions
+Verified /etc/nginx/sites-enabled/murphy-production is NOT a symlink
+(33156B vs 15818B in sites-available). Patched the active file.
+sites-available has no /api/public/ block at all (older), so no
+parallel edit needed there.
+
+### Verified
+- nginx -t: ok
+- systemctl reload nginx: zero-downtime
+- https://murphy.systems/api/public/stats → 200
+- Response: swarm_agents=10, mind_cycle=4159, mind_avg_confidence=0.811,
+  crm_deals=271, mfgc_gates=6/6, system_status=operational
+
+### Snapshot
+/var/lib/murphy-production/state_snapshots/nginx_sites-enabled.<TS>.before
+
+## SLICE-C-audit — /api/comms/inbox 404 was a CANON ERROR (2026-06-07)
+
+### Problem (claimed)
+Canon claimed /api/comms/inbox was a 404 regression that needed
+remount.
+
+### Reality (audited)
+Per SD-55 ("re-audit long-standing findings"), checked the actual
+router. The endpoint is `/api/comms/email/inbox` (note the /email/
+segment), not `/api/comms/inbox`. The endpoint is mounted, responds
+200, and returns real email data when given ?user=.
+
+Tested: GET https://murphy.systems/api/comms/email/inbox?user=cpost@murphy.systems
+→ 200 with real email body from murphy@murphy.systems.
+
+### Surface area sanity
+29 comms endpoints across email/im/voice/video/automate, all mounted
+via `app.include_router(_comms_hub_router)` at app.py:4335.
+
+### Lesson (L12 added)
+Canon errors propagate forever if not re-audited. The wrong URL in
+memory.md became a "regression" in the shape-of-complete status,
+which would have led to an unnecessary "fix" round. SD-55 saved
+the round. Always audit before believing canon.
+
+### Net effect
+Slice C is GREEN, not RED. memory.md needs correction.
