@@ -1,0 +1,201 @@
+# R83.P0 — Pricing Audit Report
+# Generated: 2026-06-07T21:08:58Z
+# Purpose: complete grep of every pricing string across the codebase + live
+#          landing page, so when founder confirms canonical numbers we have
+#          a complete checklist to scrub.
+
+═════════════════════════════════════════════════════════════════════════
+ 1) LIVE LANDING PAGE — every price string served right now
+═════════════════════════════════════════════════════════════════════════
+
+  Unique price strings on https://murphy.systems:
+    $0
+    $0.00
+    $0.0015
+    $1.13
+    $12,000
+    $136,012
+    $142,350
+    $145,600
+    $147,000
+    $1,499
+    $1,499/mo
+    $24,000
+    $2,999
+    $2,999/mo
+    $31,200
+    $37
+    $399
+    $4,200
+    $4,800
+    $5,999
+    $5,999/mo
+    $6,000
+    $79
+    $799
+    $799/mo
+    $85,000
+    $8,755,000
+    $9,588
+    $9,600
+    $99
+    $99.97
+    $99/mo
+
+  Context of each (line numbers):
+
+  --- \$1,499 ---
+    611:        <div class="stage-desc">Choose what your AI hire will do: SDR, CSM, dispatcher, bookkeeper, recruiter, support agent. Each role has a real Rosetta soul. Pricing: $1,499 Starter · $2,999 Pro · $5,999 Senior.</div>
+    815:      {t:"  [ STARTER ROLE — $1,499/mo ]",c:"ok",d:800},
+    1052:        <div class="cap-desc">NOWPayments live: customers can pay <strong>$1,499 / $2,999 / $5,999</strong> plans in USDT, USDC, BTC, ETH, or — via Mercuryo — pay in USD with Visa/Mastercard/Apple Pay. IPN webhook wired. Fiat off-ramp (crypto → USD bank) is KYB-in-progress with NOWPayments (R399). ATOM staking auto-split is a future state for post-revenue treasury, not currently active.</div>
+
+  --- \$2,999 ---
+    611:        <div class="stage-desc">Choose what your AI hire will do: SDR, CSM, dispatcher, bookkeeper, recruiter, support agent. Each role has a real Rosetta soul. Pricing: $1,499 Starter · $2,999 Pro · $5,999 Senior.</div>
+    819:      {t:"  [ PRO ROLE — $2,999/mo ]    ← selected",c:"ok",d:1500},
+    1052:        <div class="cap-desc">NOWPayments live: customers can pay <strong>$1,499 / $2,999 / $5,999</strong> plans in USDT, USDC, BTC, ETH, or — via Mercuryo — pay in USD with Visa/Mastercard/Apple Pay. IPN webhook wired. Fiat off-ramp (crypto → USD bank) is KYB-in-progress with NOWPayments (R399). ATOM staking auto-split is a future state for post-revenue treasury, not currently active.</div>
+
+  --- \$5,999 ---
+    611:        <div class="stage-desc">Choose what your AI hire will do: SDR, CSM, dispatcher, bookkeeper, recruiter, support agent. Each role has a real Rosetta soul. Pricing: $1,499 Starter · $2,999 Pro · $5,999 Senior.</div>
+    823:      {t:"  [ SENIOR ROLE — $5,999/mo ]",c:"system",d:2200},
+    1052:        <div class="cap-desc">NOWPayments live: customers can pay <strong>$1,499 / $2,999 / $5,999</strong> plans in USDT, USDC, BTC, ETH, or — via Mercuryo — pay in USD with Visa/Mastercard/Apple Pay. IPN webhook wired. Fiat off-ramp (crypto → USD bank) is KYB-in-progress with NOWPayments (R399). ATOM staking auto-split is a future state for post-revenue treasury, not currently active.</div>
+
+  --- \$99/mo ---
+    8:<meta name="description" content="Murphy is an autonomous AI operating system that runs your business operations — dispatch, compliance, CRM, accounting, voice control, and more. From $99/month.">
+    495:    <p class="hero-note">From $99/mo · Pay in crypto · Cancel anytime · Bring your own LLM</p>
+
+  --- \$99\b ---
+    8:<meta name="description" content="Murphy is an autonomous AI operating system that runs your business operations — dispatch, compliance, CRM, accounting, voice control, and more. From $99/month.">
+    495:    <p class="hero-note">From $99/mo · Pay in crypto · Cancel anytime · Bring your own LLM</p>
+    890:      {t:"  • DAY 1 PRORATED PRICE: $99.97",c:"ok",d:4700},
+
+  --- \$79\b ---
+    1388:        <div class="price-seats">5 seats · +$79 per additional seat</div>
+    1403:        <div class="price-seats">15 seats · +$79 per additional seat</div>
+
+  --- \$399 ---
+    1387:        <div class="price-amount">$399<span>/mo</span></div>
+
+  --- \$799 ---
+    1066:      <p class="section-sub">For a 15-person operations company. Murphy Business tier at $799/mo replaces tools and roles that cost $147,000+/year.</p>
+    1131:      ROI based on Murphy Business tier ($799/mo). Savings estimates are conservative. Enterprise clients report higher savings.
+    1402:        <div class="price-amount">$799<span>/mo</span></div>
+
+  --- \$9,588 ---
+    1124:            <td class="roi-new"><strong>$9,588 / year</strong></td>
+
+  --- \$99.97 ---
+    890:      {t:"  • DAY 1 PRORATED PRICE: $99.97",c:"ok",d:4700},
+
+═════════════════════════════════════════════════════════════════════════
+ 2) SOURCE FILE — pricing strings inside Murphy's own code
+═════════════════════════════════════════════════════════════════════════
+
+  Files mentioning pricing (excluding tests, archive, .venv, .pyc):
+src/dynamic_risk_manager.py:519:        """Scale Kelly fraction based on recommended risk level."""
+src/automation_scaler.py:2:Automation Scaler for Murphy System.
+src/automation_scaler.py:27:  - Zero-config: AutomationScaler() just works with sensible defaults.
+src/automation_scaler.py:115:class ScalePolicy:
+src/automation_scaler.py:201:class ScaleEvent:
+src/automation_scaler.py:228:# Scaler
+src/automation_scaler.py:231:class AutomationScaler:
+src/automation_scaler.py:238:        scaler = AutomationScaler()
+src/automation_scaler.py:254:        # automation_type → ScalePolicy
+src/automation_scaler.py:255:        self._policies: Dict[str, ScalePolicy] = {}
+src/automation_scaler.py:263:        self._events: List[ScaleEvent] = []
+src/automation_scaler.py:299:    ) -> ScalePolicy:
+src/automation_scaler.py:304:        policy = ScalePolicy(
+src/automation_scaler.py:427:    # Scale up / down
+src/automation_scaler.py:430:    def scale_up(self, automation_type: AutomationType, count: int = 1) -> ScaleEvent:
+src/automation_scaler.py:431:        """Scale up an automation type by *count* instances."""
+src/automation_scaler.py:437:                    ScalePolicy(
+src/automation_scaler.py:454:        event = ScaleEvent(
+src/automation_scaler.py:471:    def scale_down(self, automation_type: AutomationType, count: int = 1) -> ScaleEvent:
+src/automation_scaler.py:472:        """Scale down an automation type by *count* instances."""
+src/automation_scaler.py:476:                event = ScaleEvent(
+src/automation_scaler.py:494:        event = ScaleEvent(
+src/automation_scaler.py:593:            event = ScaleEvent(
+src/automation_scaler.py:628:                event = ScaleEvent(
+src/automation_scaler.py:678:        """Scale all automation types to minimum and recall all contractors."""
+src/automation_scaler.py:687:                    event = ScaleEvent(
+src/org_compiler/enterprise_compiler.py:2:Enterprise-Scale Role Template Compiler
+src/matrix_bridge/module_manifest.py:4069:        description='Pilot Config',
+src/matrix_bridge/_registry_data_a.py:214:               "ScalingBot", "Scales automation capacity.", cmds=["scale"]),
+src/module_compiler/analyzers/sandbox_generator.py:325:        # Scale based on intensity
+src/runtime/app.py:2796:                 "description": "Pilot ($99), Growth ($499), Scale ($1499), or trial.",
+src/runtime/app.py:7364:            (_u.uuid4().hex[:12], "Marcus Webb",      "marcus@growthco.io","GrowthCo",     "+1-212-555-0102", "prospect",  "smb",             now),
+src/runtime/app.py:7508:            (_u.uuid4().hex[:12], "Growth",          "Marketing and growth tasks",  "#eb459e"),
+src/runtime/app.py:21936:        # PATCH-351b: Growth + capacity routes are public (exempt from auth)
+src/runtime/app.py:21937:        # PATCH-351b: Growth routes exempt from auth
+src/runtime/app.py:23319:                        {"id": "growth-strategist", "role": "Growth Strategy Agent",
+src/runtime/app.py:24977:        Growth standard: upstream prevention over downstream correction.
+src/runtime/app.py:24997:        PATCH-097 — Growth potential assessment.
+src/runtime/murphy_system_core.py:975:        {"id": "growth", "focus": "Growth and marketing automation variant"}
+src/runtime/murphy_system_core.py:12227:            "- 5U-Scale: team size\n"
+
+═════════════════════════════════════════════════════════════════════════
+ 3) THE THREE CANONICAL SOURCE LOCATIONS (need to be reconciled)
+═════════════════════════════════════════════════════════════════════════
+
+  --- src/runtime/app.py ---
+274:        PATCH-122: Proper lifespan startup — runs after app is initialized.
+493:                        "prod_ops":"Production Operations","executor":"Task Executor",
+763:    # ── PATCH-195: Lead Prospector API ──────────────────────────────────────
+884:    # ── PATCH-197: Prospect Enrichment API ──────────────────────────────────
+2796:                 "description": "Pilot ($99), Growth ($499), Scale ($1499), or trial.",
+
+  --- src/subscription_manager.py ---
+74:class PaymentProvider(str, enum.Enum):
+122:    payment_provider: PaymentProvider = PaymentProvider.STRIPE
+135:    provisioning_status: Optional[str] = None   # ProvisioningStatus value or None
+187:        name="Pilot",
+206:        name="Growth",
+
+  --- src/feature_inventory.py ---
+152:        "description": "NOWPayments crypto checkout (USD via Mercuryo card / wallet). Pilot $99 / Growth $499 / Scale $1499.",
+
+═════════════════════════════════════════════════════════════════════════
+ 4) NOWPAYMENTS — vault key status + live API probe
+═════════════════════════════════════════════════════════════════════════
+
+  exists? src/vault.py: no
+  exists? src/vault_v2.py: no
+  exists? src/murphy_vault.py: no
+  exists? src/security_plane/vault.py: no
+  exists? src/security_plane/__init__.py: YES
+
+  --- attempting to read NOWPayments key from each ---
+
+  --- direct vault DB scan ---
+    no payment-related vault entries found
+
+═════════════════════════════════════════════════════════════════════════
+ 5) CONCLUSION — what needs to happen
+═════════════════════════════════════════════════════════════════════════
+
+  Two pricing models coexist:
+    A) $1,499 / $2,999 / $5,999  (Starter / Pro / Senior)    ← landing headline
+    B) $99 / $499 / $1,499        (Pilot / Growth / Scale)    ← source code
+
+  Stray landing-page prices that don't match either model:
+    $79, $399, $799/mo, $9,588, $99.97, $99/mo, $1.13
+    (likely legacy A/B copy — recommend deletion pending founder confirmation)
+
+  NOWPayments key status:
+    Current vault entry returns INVALID_API_KEY on /merchant/coins probe.
+    Either the key is expired/rotated, or it's stored under a name no
+    importer module can find. Need fresh key OR exported product list.
+
+  Decision needed from founder:
+    (a) Pick canonical pricing — likely the two-track model:
+        Operator (hire-an-agent):  $1,499 / $2,999 / $5,999
+        Subscriber (platform):     $99 / $499 / $1,499
+    (b) Delete all stray prices on landing page.
+    (c) Resolve NOWPayments key situation.
+
+  Once decided, scrub is mechanical:
+    - update landing pricing block + NOWPayments callout
+    - update src/runtime/app.py:2796 description
+    - update src/subscription_manager.py:227 monthly_price + add tiers
+    - update src/feature_inventory.py:152 description
+    - sync NOWPayments product catalog to match
+    - delete every stray price string

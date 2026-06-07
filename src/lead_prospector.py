@@ -282,84 +282,10 @@ def _add_to_crm(lead: Dict) -> Optional[str]:
 # SALES EMAIL COMPOSER  (Challenger / Sandler / value-first principles)
 # ══════════════════════════════════════════════════════════════════════════════
 
-OPENER_TEMPLATES = [
-    # Template A — Insight-first (Challenger Sale)
-    """Subject: The one thing killing AI adoption at {company}
-
-Hi {first_name},
-
-Most teams building with AI spend 80% of their time on failure modes — not features. Every hallucination, every bad output, every unauthorized action that slips through costs them trust they can't easily rebuild.
-
-Murphy System is the safety and automation layer that sits between your AI and your users. We catch failures before they happen, track every decision made, and let your team stay in control without slowing down.
-
-Thought it might be relevant given what you're building at {company}.
-
-Worth a 15-minute call this week?
-
-— Corey
-Corey Post | Founder, Murphy System
-murphy.systems | cpost@murphy.systems""",
-
-    # Template B — Pain-first (SPIN)
-    """Subject: Quick question about AI reliability at {company}
-
-Hi {first_name},
-
-How much time does your team spend debugging AI outputs versus building new features?
-
-For most {role_context} teams, it's more than they'd like to admit.
-
-Murphy System gives AI teams a production safety layer — automated failure detection, compliance guardrails, and a full audit trail — so you ship faster with less risk.
-
-Open to a quick conversation about what that could look like at {company}?
-
-— Corey
-Corey Post | Founder, Murphy System
-murphy.systems""",
-
-    # Template C — Social proof + specificity
-    """Subject: How teams like {company} are reducing AI risk
-
-Hi {first_name},
-
-AI teams at early-stage companies are dealing with a problem that doesn't have a clean solution yet: how do you move fast with AI without the liability of things going wrong?
-
-That's exactly what Murphy System solves — a compliance and safety platform purpose-built for AI-first teams. Automated risk detection, HITL controls, SOC2/GDPR coverage out of the box.
-
-Would love to show you what we've built. 15 minutes?
-
-— Corey
-cpost@murphy.systems | murphy.systems""",
-]
-
-FOLLOWUP_1_TEMPLATE = """Subject: Re: Murphy System — {company}
-
-Hi {first_name},
-
-Just bumping this up in case it got buried.
-
-The one thing I hear most from {role_context} founders is that compliance and AI safety feel like future problems — until they aren't.
-
-Murphy handles it at the platform level so it's never a fire drill.
-
-Still worth a quick call?
-
-— Corey"""
-
-FOLLOWUP_2_TEMPLATE = """Subject: Last note — Murphy System
-
-Hi {first_name},
-
-Last reach-out, I promise.
-
-If AI reliability and compliance ever become a priority at {company}, murphy.systems is the place to start.
-
-If the timing is just off, totally understand — reply "not now" and I won't contact you again.
-
-Wishing you and the team well.
-
-— Corey"""
-
+# OPENER_TEMPLATES / FOLLOWUP_1_TEMPLATE / FOLLOWUP_2_TEMPLATE
+# RETIRED 2026-06-07 (R82.P3). Live composer path (_compose_outreach → _r82_compose_with_llm
+# → _r82_static_fallback) is the only path. Templates removed to prevent accidental
+# reactivation. See R82 commit e9d4c6c1 for the customer-centric rewrite.
 
 def _r82_load_enrichment(email):
     """R82 — Pull contacts.custom_fields for this email. Returns {} if missing."""

@@ -1394,3 +1394,42 @@ WHAT gets queued, not whether founder approval is required.
 ### Snapshot
   /var/lib/murphy-production/state_snapshots/lead_prospector.py.<TS>.before
 
+
+## R82.P3 + R83.P0 — Cleanup + pricing audit (2026-06-07)
+
+### R82.P3 — Delete dead opener templates
+- Removed OPENER_TEMPLATES, FOLLOWUP_1_TEMPLATE, FOLLOWUP_2_TEMPLATE
+  from src/lead_prospector.py (2,372 bytes)
+- Zero importers — confirmed via grep
+- Replaced with 4-line retirement comment pointing at R82 (e9d4c6c1)
+- Verified: syntax OK, composer chain still imports, tripwire clean
+
+### R83.P0 — Comprehensive pricing audit (no code changes)
+Generated docs/audits/R83_P0_pricing_audit_2026-06-07.txt
+
+Three findings worse than expected:
+
+1) THREE pricing models coexist:
+   - Role hire:     $1,499 / $2,999 / $5,999  (Starter/Pro/Senior, landing)
+   - Business tier: $399 / $799/mo with +$79/seat (landing only)
+   - Source legacy: $99 / $499 / $1,499  (Pilot/Growth/Scale)
+     in src/runtime/app.py:2796, src/subscription_manager.py:227,
+     src/feature_inventory.py:152
+
+2) Landing has a whole ROI calculator section built around the
+   $799/mo Business tier ($147k+/yr savings, $9,588/yr) that exists
+   NOWHERE in source code.
+
+3) NOWPayments is NOT functional despite landing-page claim:
+   - No vault module exists (vault.py, vault_v2.py, murphy_vault.py
+     all absent)
+   - No NOWPayments key in any vault DB
+   - Live /merchant/coins returns INVALID_API_KEY
+   The landing line "NOWPayments live: customers can pay $1,499 /
+   $2,999 / $5,999 plans" is currently FALSE.
+
+Decisions pending from founder before scrub:
+- Confirm canonical pricing model
+- Decide fate of Business tier + ROI calc
+- Provide working NOWPayments key OR remove "NOWPayments live" claim
+
