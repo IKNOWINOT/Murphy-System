@@ -912,3 +912,60 @@ the round. Always audit before believing canon.
 
 ### Net effect
 Slice C is GREEN, not RED. memory.md needs correction.
+
+## R76 — sandbox spawn-service (the PROPER fix for R75) (2026-06-07)
+
+### Problem
+Per R75: agents could write into `src/config.py`-style paths and
+clobber tracked source. The previous `_is_safe_path()` at
+`src/execution_orchestrator/executor.py:351` only blocked `..`, `~`,
+`/etc`, `/sys`, `/proc`. It returned True for `src/config.py`,
+`src/executor_agent.py`, and `src/runtime/app.py` — exactly the
+R75 attack vectors. 4 of 9 desired-contract tests failed.
+
+### Fix
+Rewrote `_is_safe_path()` to delegate to the canonical
+`PathTraversalPreventer` (already exists at
+`src/security_plane/hardening.py:663`) with an explicit allowlist:
+
+```
+/tmp/agent_scratch
+/tmp/murphy_scratch
+/opt/Murphy-System/output
+/opt/Murphy-System/state_snapshots
+/var/lib/murphy-production/agent_scratch
+```
+
+All other paths are rejected and logged at WARNING. `src/` is NOT
+in the allowlist — agent scratch is never tracked source.
+
+If `PathTraversalPreventer` ever fails to import, the function fails
+CLOSED (rejects the write) rather than fails open.
+
+### Verified (10/10 attack vectors)
+- ✅ `src/config.py` rejected
+- ✅ `/opt/Murphy-System/src/config.py` rejected (absolute form)
+- ✅ `src/executor_agent.py` rejected
+- ✅ `src/runtime/app.py` rejected
+- ✅ `../etc/passwd` rejected (traversal)
+- ✅ `/etc/passwd` rejected (absolute)
+- ✅ `/tmp/agent_scratch/out.txt` allowed
+- ✅ `/opt/Murphy-System/output/result.json` allowed
+- ✅ `/opt/Murphy-System/state_snapshots/x.txt` allowed
+- ✅ `answer.txt` rejected (untracked at repo root — was allowed
+  before; now requires explicit scratch dir)
+
+### Service impact
+Service restarted cleanly, health=200 internal + external,
+`/api/public/stats` still 200 (SLICE-F still good), tripwire still
+clean. No regressions observed in the 30s window after restart.
+
+### Snapshot
+`/var/lib/murphy-production/state_snapshots/executor.py.<TS>.before`
+
+### L13 (new) — fail-closed > fail-open on safety paths
+The patch's safety-import block returns False if the preventer can't
+load. The previous code returned True if checks didn't match. R75
+existed because the old code's default was permissive. R76's default
+is restrictive. ALWAYS fail-closed on safety paths.
+

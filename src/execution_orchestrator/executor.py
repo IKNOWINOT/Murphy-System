@@ -349,13 +349,52 @@ class StepwiseExecutor:
             return value
 
     def _is_safe_path(self, path: str) -> bool:
-        """Check if path is within allowed directories"""
-        # In production, would have more sophisticated path validation
-        # For now, just check it doesn't try to escape workspace
-        dangerous_patterns = ['..', '~', '/etc', '/sys', '/proc']
+        """Check if path is within allowed directories.
 
-        for pattern in dangerous_patterns:
-            if pattern in path:
+        R76 (2026-06-07): Hardened against R75 — background agents
+        were writing into tracked source files like src/config.py
+        and src/executor_agent.py because the previous version only
+        blocked '..', '~', '/etc', '/sys', '/proc'. Now delegates to
+        the canonical PathTraversalPreventer with an explicit
+        allowlist of writable scratch dirs. Anything outside the
+        allowlist is rejected and logged.
+        """
+        try:
+            from src.security_plane.hardening import PathTraversalPreventer
+        except Exception:
+            try:
+                from security_plane.hardening import PathTraversalPreventer
+            except Exception as exc:
+                logger.error(
+                    "R76 SAFETY: PathTraversalPreventer unavailable (%s); "
+                    "rejecting path %r to fail-closed", exc, path,
+                )
                 return False
 
-        return True
+        # Allowlist — only these prefixes may be written to.
+        # IMPORTANT: src/ is NOT in the allowlist — tracked source is
+        # never a valid write target for a step. Agents that need
+        # scratch space must write to /tmp/agent_scratch/ or output/.
+        allowed_bases = [
+            "/tmp/agent_scratch",
+            "/tmp/murphy_scratch",
+            "/opt/Murphy-System/output",
+            "/opt/Murphy-System/state_snapshots",
+            "/var/lib/murphy-production/agent_scratch",
+        ]
+        # Create scratch dirs if missing (idempotent, harmless)
+        import os as _os
+        for _base in allowed_bases:
+            try:
+                _os.makedirs(_base, exist_ok=True)
+            except Exception:
+                pass
+
+        preventer = PathTraversalPreventer(allowed_bases)
+        ok = preventer.is_safe_path(path)
+        if not ok:
+            logger.warning(
+                "R76 SAFETY: rejected write to %r (not in allowlist: %s)",
+                path, allowed_bases,
+            )
+        return ok
