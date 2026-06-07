@@ -924,6 +924,101 @@ body {
 /* Pad main content above ask bar */
 .main { padding-bottom: 48px; }
 
+/* ── R79 — Commission form (Dispatch page) ── */
+.commission-form {
+  display: flex; flex-direction: column; gap: 12px;
+  background: var(--bg2, #131920);
+  border: 1px solid var(--border, #21262d); border-radius: 8px;
+  padding: 16px; margin-bottom: 14px;
+}
+.commission-header { display: flex; flex-direction: column; gap: 2px; }
+.commission-title {
+  font-size: 13.5px; font-weight: 800; color: #00d4aa;
+  text-transform: uppercase; letter-spacing: 1px;
+}
+.commission-sub { font-size: 11.5px; color: #788079; font-weight: 500; }
+
+.commission-form .form-label {
+  display: flex; flex-direction: column; gap: 5px;
+}
+.commission-form .form-label-text {
+  font-size: 10.5px; color: #cde; font-weight: 600;
+  letter-spacing: 0.5px; text-transform: uppercase;
+}
+.commission-form .form-required { color: #f05252; margin-left: 2px; }
+
+.commission-form .form-input,
+.commission-form .form-textarea {
+  background: var(--bg3, #161b22);
+  border: 1px solid var(--border, #21262d);
+  color: #e6edf3; font-size: 12.5px; font-family: inherit;
+  padding: 9px 11px; border-radius: 5px; outline: none;
+  transition: border-color .15s, background .15s;
+  width: 100%;
+}
+.commission-form .form-textarea {
+  font-family: 'JetBrains Mono','Fira Code',monospace;
+  font-size: 12px; line-height: 1.55; resize: vertical;
+  min-height: 70px;
+}
+.commission-form .form-input:focus,
+.commission-form .form-textarea:focus {
+  border-color: #00d4aa; background: var(--bg4, #1c2128);
+}
+
+.commission-form .form-grid-2 {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+}
+.commission-form .form-grid-3 {
+  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;
+}
+@media (max-width: 800px) {
+  .commission-form .form-grid-2,
+  .commission-form .form-grid-3 { grid-template-columns: 1fr; }
+}
+
+.commission-form .form-details {
+  background: var(--bg3, #161b22); border: 1px solid var(--border, #21262d);
+  border-radius: 5px; padding: 4px 11px;
+}
+.commission-form .form-summary {
+  cursor: pointer; padding: 7px 0; font-size: 12px; color: #cde;
+  font-weight: 600; list-style: none;
+}
+.commission-form .form-summary::-webkit-details-marker { display: none; }
+.commission-form .form-summary::before { content: '▸ '; color: #00d4aa; }
+.commission-form .form-details[open] .form-summary::before { content: '▾ '; }
+.commission-form .form-details[open] { padding-bottom: 12px; }
+
+.commission-form .quick-actions {
+  display: flex; flex-wrap: wrap; gap: 6px;
+}
+.commission-form .qa-btn:hover {
+  background: rgba(0,212,170,0.12); border-color: rgba(0,212,170,0.4);
+  color: #00d4aa;
+}
+
+.commission-execute-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin-top: 4px;
+}
+.commission-meta { font-size: 11px; color: #788079; }
+.commission-form .command-execute {
+  background: linear-gradient(180deg, #00d4aa, #00b894);
+  color: #06141a; font-weight: 700; font-size: 13px;
+  padding: 11px 22px; border: 0; border-radius: 6px; cursor: pointer;
+  letter-spacing: 0.3px;
+  transition: transform .1s, box-shadow .15s;
+}
+.commission-form .command-execute:hover {
+  box-shadow: 0 0 0 1px #00d4aa, 0 4px 16px rgba(0,212,170,0.25);
+}
+.commission-form .command-execute:active { transform: translateY(1px); }
+.commission-form .command-execute:disabled {
+  background: #2a3138; color: #788079; cursor: not-allowed;
+  box-shadow: none;
+}
+
 /* ── R78 — Per-page header: sub-tabs + actions ── */
 .page-header {
   display: grid;
@@ -1473,20 +1568,89 @@ body {
 
     <!-- ═══ DISPATCH ═══ -->
     <div class="page" id="page-dispatch">
-      <div class="command-box-wrap">
-        <div class="command-row">
-          <input class="command-input" id="cmd-input"
-            placeholder="What should Murphy do? Be specific — 'Analyze top 3 CRM deals and recommend next outreach'"
-            onkeydown="if(event.key==='Enter') runDispatch()" />
-          <button class="command-execute" id="cmd-btn" onclick="runDispatch()">▶ Execute</button>
+      <!-- R79 (2026-06-07) — Commission Form -->
+      <div class="command-box-wrap commission-form">
+        <div class="commission-header">
+          <div class="commission-title">Commission a Request</div>
+          <div class="commission-sub">Set depth. Murphy commissions only what you specify.</div>
         </div>
+
+        <!-- COMMISSION TEMPLATES (chips fill the entire form, not just prompt) -->
         <div class="quick-actions">
-          <button class="qa-btn" onclick="setTask('Brief me on system status right now')">⚡ Brief Me</button>
-          <button class="qa-btn" onclick="setTask('Analyze all CRM deals and recommend top 3 outreach actions')">📊 CRM Review</button>
-          <button class="qa-btn" onclick="setTask('What is the single most important gap Murphy should fix today?')">🎯 Top Gap</button>
-          <button class="qa-btn" onclick="setTask('Generate a weekly executive summary of all system activity')">📝 Exec Summary</button>
-          <button class="qa-btn" onclick="setTask('Run cold outreach campaign to top 5 pipeline prospects')">📧 Outreach</button>
-          <button class="qa-btn" onclick="setTask('Audit all 9 graphs and report what is running vs idle')">🔷 Graph Audit</button>
+          <button class="qa-btn" onclick="r79Template('brief_me')">⚡ Brief Me</button>
+          <button class="qa-btn" onclick="r79Template('crm_review')">📊 CRM Review</button>
+          <button class="qa-btn" onclick="r79Template('top_gap')">🎯 Top Gap</button>
+          <button class="qa-btn" onclick="r79Template('exec_summary')">📝 Exec Summary</button>
+          <button class="qa-btn" onclick="r79Template('outreach')">📧 Outreach</button>
+          <button class="qa-btn" onclick="r79Template('graph_audit')">🔷 Graph Audit</button>
+          <button class="qa-btn" onclick="r79Template('research_brief')">📝 Research Brief</button>
+          <button class="qa-btn" onclick="r79Template('code_project')">⚙️ Code Project</button>
+          <button class="qa-btn" onclick="r79Reset()" title="Clear form">↺ Reset</button>
+        </div>
+
+        <!-- PROMPT (required) -->
+        <label class="form-label">
+          <span class="form-label-text">What do you want Murphy to do? <span class="form-required">*</span></span>
+          <textarea id="cmd-input" rows="4" class="form-textarea command-input"
+            placeholder="Be specific. Be honest about what 'done' looks like. e.g. 'Analyze our 3 stalled CRM deals and rank by probability of close + suggested next outreach for each'"
+            onkeydown="if(event.key==='Enter'&&(event.metaKey||event.ctrlKey)) runDispatch()"></textarea>
+        </label>
+
+        <!-- ROW: ARCHETYPE + PRIORITY + DEADLINE -->
+        <div class="form-grid-3">
+          <label class="form-label">
+            <span class="form-label-text">Output Type</span>
+            <select id="r79-archetype" class="form-input">
+              <option value="">Auto-detect (let Rosetta decide)</option>
+              <option value="research_brief">📝 Research Brief (cited)</option>
+              <option value="cited_doc">🔍 Cited Document</option>
+              <option value="white_paper">📜 White Paper</option>
+              <option value="code_project">⚙️ Code Project</option>
+              <option value="audit">🛡️ Audit Report</option>
+              <option value="exec_summary">📊 Executive Summary</option>
+              <option value="outreach">📧 Outreach Plan</option>
+              <option value="custom">✏️ Custom (general LLM)</option>
+            </select>
+          </label>
+          <label class="form-label">
+            <span class="form-label-text">Priority</span>
+            <select id="r79-priority" class="form-input">
+              <option value="normal" selected>Normal</option>
+              <option value="high">High — surface in HITL</option>
+              <option value="now">Now — interrupt swarm</option>
+            </select>
+          </label>
+          <label class="form-label">
+            <span class="form-label-text">Deadline (optional)</span>
+            <input id="r79-deadline" type="datetime-local" class="form-input" />
+          </label>
+        </div>
+
+        <!-- ROW: AUDIENCE + SUCCESS -->
+        <div class="form-grid-2">
+          <label class="form-label">
+            <span class="form-label-text">Audience — who is this for?</span>
+            <input id="r79-audience" type="text" class="form-input"
+              placeholder="e.g. 'founder', 'investor brief', 'engineering team', 'CFO'" />
+          </label>
+          <label class="form-label">
+            <span class="form-label-text">Success criteria — how do we know it's done?</span>
+            <input id="r79-success" type="text" class="form-input"
+              placeholder="e.g. '3 ranked actions with rationale + dollar impact'" />
+          </label>
+        </div>
+
+        <!-- ATTACHED CONTEXT (collapsible) -->
+        <details class="form-details" id="r79-context-details">
+          <summary class="form-summary">📎 Attached context (paste relevant emails, links, prior thoughts)</summary>
+          <textarea id="r79-context" rows="5" class="form-textarea"
+            placeholder="Paste any context Murphy should consider — the more concrete, the better the output."></textarea>
+        </details>
+
+        <!-- EXECUTE BAR -->
+        <div class="commission-execute-row">
+          <div class="commission-meta" id="r79-meta">Cmd/Ctrl+Enter to execute</div>
+          <button class="command-execute" id="cmd-btn" onclick="runDispatch()">▶ Commission Request</button>
         </div>
       </div>
 
@@ -3698,6 +3862,164 @@ async function r465BulkRejectAll() {
         `← ${r.status} ${evs.length} tripwire events; last: ${(evs[0]?.ts || evs[0]?.timestamp || '—')}`);
     } catch (e) { _log('err', `× ${e.message}`); }
   };
+})();
+</script>
+
+<script>
+// R79 — Commission templates + form-aware dispatch wrapper.
+(function () {
+  const TEMPLATES = {
+    brief_me: {
+      prompt: 'Brief me on the entire system right now: what is healthy, what is degraded, what is blocked, and what is the single highest-leverage thing I should focus on.',
+      archetype: 'exec_summary', priority: 'high',
+      audience: 'founder',
+      success: 'Honest 1-paragraph health verdict + 3 ranked priorities + the ONE thing to do today'
+    },
+    crm_review: {
+      prompt: 'Analyze all open CRM deals. For each stalled deal explain why it is stalled and what the next outreach should be. Rank by close-probability × dollar value.',
+      archetype: 'research_brief', priority: 'high',
+      audience: 'founder',
+      success: 'Top 3 ranked actions with rationale + suggested outreach copy for each'
+    },
+    top_gap: {
+      prompt: 'What is the single most important gap Murphy should fix today? Use the shape-of-complete framework — show me which slice has the lowest gate score and what closing it would unlock.',
+      archetype: 'exec_summary', priority: 'high',
+      audience: 'founder',
+      success: 'One named gap + the specific fix + estimated time + which slice it moves'
+    },
+    exec_summary: {
+      prompt: 'Generate a weekly executive summary covering: revenue moved, deals progressed, code shipped, agents that ran, HITL approvals, and ledger entries. Honest assessment — no theater.',
+      archetype: 'exec_summary', priority: 'normal',
+      audience: 'founder',
+      success: 'One-pager with concrete numbers per category + 3 wins + 3 worries'
+    },
+    outreach: {
+      prompt: 'Run a cold outreach analysis on our top 5 pipeline prospects. Draft personalized outreach for each.',
+      archetype: 'outreach', priority: 'normal',
+      audience: 'pipeline prospects',
+      success: '5 personalized drafts, each <=120 words, with named hook tied to their context'
+    },
+    graph_audit: {
+      prompt: 'Audit all 9 graphs (Auth/Identity, Time/Cause, Possibility, Substrate, MFGC, Rosetta, Swarm, Soul, Build). For each report: running or idle, last activity, and whether it is actually producing value vs just keeping itself alive.',
+      archetype: 'audit', priority: 'normal',
+      audience: 'founder',
+      success: '9-row table: graph | state | last-activity | producing-value? | one-line verdict'
+    },
+    research_brief: {
+      prompt: 'Write a research brief on a topic of your choosing — make sure to include real bibliographic citations with verifiable URLs.',
+      archetype: 'research_brief', priority: 'normal',
+      audience: 'general',
+      success: '5+ real cited references that pass /api/citations/verify'
+    },
+    code_project: {
+      prompt: 'Implement a small self-contained Python module that solves a real internal problem — pick something Murphy needs.',
+      archetype: 'code_project', priority: 'normal',
+      audience: 'engineering',
+      success: 'Working module with type hints, docstrings, and one passing self-test in __main__'
+    }
+  };
+
+  function _get(id) { return document.getElementById(id); }
+
+  window.r79Template = function (key) {
+    const t = TEMPLATES[key]; if (!t) return;
+    const set = (id, v) => { const el = _get(id); if (el && v != null) el.value = v; };
+    set('cmd-input', t.prompt);
+    set('r79-archetype', t.archetype || '');
+    set('r79-priority', t.priority || 'normal');
+    set('r79-audience', t.audience || '');
+    set('r79-success', t.success || '');
+    // Bring focus to prompt for quick edits
+    const ti = _get('cmd-input'); if (ti) { ti.focus(); ti.setSelectionRange(ti.value.length, ti.value.length); }
+    const meta = _get('r79-meta');
+    if (meta) meta.textContent = `Template: ${key} loaded — edit any field, then commission`;
+  };
+
+  window.r79Reset = function () {
+    ['cmd-input','r79-archetype','r79-priority','r79-audience','r79-success','r79-deadline','r79-context']
+      .forEach(id => { const el = _get(id); if (el) el.value = (id === 'r79-priority' ? 'normal' : ''); });
+    const meta = _get('r79-meta'); if (meta) meta.textContent = 'Cmd/Ctrl+Enter to execute';
+  };
+
+  // Build the full commission payload from the form
+  window.r79BuildPayload = function () {
+    const prompt = (_get('cmd-input')||{}).value || '';
+    if (!prompt.trim()) return null;
+    return {
+      prompt: prompt.trim(),
+      task: prompt.trim(),                // alias for backward-compat
+      archetype: (_get('r79-archetype')||{}).value || undefined,
+      priority:  (_get('r79-priority') ||{}).value || 'normal',
+      audience:  (_get('r79-audience') ||{}).value || undefined,
+      success_criteria: (_get('r79-success')||{}).value || undefined,
+      deadline:  (_get('r79-deadline')||{}).value || undefined,
+      attached_context: (_get('r79-context')||{}).value || undefined,
+      commissioned_at: new Date().toISOString(),
+      commission_source: 'os-dispatch-form-r79'
+    };
+  };
+
+  // Render commission summary at top of result box
+  window.r79RenderSummary = function (payload) {
+    const box = _get('result-box');
+    if (!box) return;
+    let chips = [];
+    if (payload.archetype) chips.push(`type=${payload.archetype}`);
+    if (payload.priority && payload.priority !== 'normal') chips.push(`priority=${payload.priority}`);
+    if (payload.audience) chips.push(`for=${payload.audience}`);
+    if (payload.success_criteria) chips.push(`done=${payload.success_criteria.slice(0,40)}…`);
+    if (payload.deadline) chips.push(`due=${payload.deadline}`);
+    let bar = document.getElementById('r79-commission-bar');
+    if (!bar) {
+      bar = document.createElement('div');
+      bar.id = 'r79-commission-bar';
+      bar.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;padding:8px 10px;margin-bottom:8px;background:rgba(0,212,170,0.08);border:1px solid rgba(0,212,170,0.3);border-radius:5px;font-size:10.5px;color:#cde';
+      box.insertBefore(bar, box.firstChild);
+    }
+    bar.innerHTML = `<span style="color:#00d4aa;font-weight:700;letter-spacing:1px">COMMISSIONED</span>` +
+      chips.map(c => `<span style="color:#cde">${c.replace(/</g,'&lt;')}</span>`).join('<span style="color:#788079">·</span>');
+  };
+
+  // Patch the existing runDispatch to use the full commission payload.
+  // We wait until DOMContentLoaded to wrap so the original is defined.
+  document.addEventListener('DOMContentLoaded', () => {
+    const original = window.runDispatch;
+    if (typeof original !== 'function') return;
+    window.runDispatch = async function () {
+      const payload = window.r79BuildPayload();
+      if (!payload) {
+        const meta = _get('r79-meta');
+        if (meta) { meta.textContent = '⚠ describe the request first'; meta.style.color = '#f05252'; setTimeout(()=>{meta.textContent='Cmd/Ctrl+Enter to execute';meta.style.color='';}, 3000); }
+        return;
+      }
+      // Render commission summary chip-bar in the result area
+      try { window.r79RenderSummary(payload); } catch(_) {}
+      // Expose the full payload so the original dispatch can pick fields up
+      window.__lastCommission = payload;
+      // Forward to the original handler — it reads #cmd-input.value (now the prompt)
+      return original.apply(this, arguments);
+    };
+
+    // Try to extend the `api()` helper so /api/rosetta/dispatch sends the full payload.
+    // Heuristic: when the body would be {prompt:...} or {task:...} from runDispatch,
+    // augment with all form fields. We do this by monkey-patching window.fetch for
+    // the rosetta dispatch URL only.
+    const _origFetch = window.fetch.bind(window);
+    window.fetch = async function (url, init) {
+      try {
+        if (typeof url === 'string' &&
+            url.endsWith('/api/rosetta/dispatch') &&
+            init && init.method === 'POST' && init.body &&
+            window.__lastCommission) {
+          let body = {};
+          try { body = JSON.parse(init.body); } catch (_) { body = {}; }
+          const merged = Object.assign({}, window.__lastCommission, body);
+          init = Object.assign({}, init, { body: JSON.stringify(merged) });
+        }
+      } catch (_) {}
+      return _origFetch(url, init);
+    };
+  });
 })();
 </script>
 </body>

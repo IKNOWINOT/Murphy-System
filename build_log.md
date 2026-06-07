@@ -1195,3 +1195,60 @@ HTTP status + result inline, same UX as the global Quick Actions.
 ### Snapshot
   /var/lib/murphy-production/state_snapshots/murphy-os.html.<TS>.before
 
+
+## R79 — Dispatch Commission Form (2026-06-07)
+
+### Founder ask
+"Dispatch doesn't present the call to action of a request you need to
+commission in full depth or does this do the call to action."
+
+### Audit
+Dispatch page was a bare textarea + 6 chips that pre-fill the same
+textarea + Execute → /api/rosetta/dispatch. Zero way to specify
+archetype, priority, audience, success criteria, deadline, or attach
+context. Real commissions have depth; the UI didn't allow any.
+
+### Shipped — commission form
+Replaced the bare command-box-wrap with a structured form:
+  - Prompt (required, 4-row textarea)
+  - Output Type (Auto | Research Brief | Cited Doc | White Paper |
+    Code Project | Audit | Exec Summary | Outreach | Custom)
+  - Priority (Normal | High | Now)
+  - Deadline (optional datetime)
+  - Audience (free text — who's this for)
+  - Success criteria (free text — how do we know done)
+  - Attached context (collapsible details; paste prior emails/links)
+  - Commission Request button (Cmd/Ctrl+Enter shortcut)
+
+### Templates (chips now fill the WHOLE form, not just prompt)
+8 templates: Brief Me · CRM Review · Top Gap · Exec Summary ·
+Outreach · Graph Audit · Research Brief · Code Project — plus a
+Reset chip. Each template sets prompt + archetype + priority +
+audience + success criteria so 'CRM Review' becomes a real
+commission ("Top 3 ranked actions with rationale + dollar impact for
+founder, research_brief archetype, high priority").
+
+### Backend integration
+No backend change required. Form-aware runDispatch wrapper builds
+the full commission payload, exposes it as window.__lastCommission,
+and a fetch interceptor merges it into POST /api/rosetta/dispatch.
+The endpoint already accepts arbitrary body fields (it parses
+body.get(...) for each one); unknown fields are ignored.
+
+Commission summary chip-bar (COMMISSIONED · type=… · priority=… ·
+for=… · done=…) renders at top of result box so the user sees
+exactly what was sent.
+
+### Verified on live edge
+  https://murphy.systems/os → 200
+  26 commission-form markers served
+  9 template handlers served
+  6 form-grid layouts served
+  tripwire clean
+
+### Files
+  static/murphy-os.html (150KB → 166KB)
+
+### Snapshot
+  /var/lib/murphy-production/state_snapshots/murphy-os.html.<TS>.before
+
