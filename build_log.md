@@ -1018,3 +1018,44 @@ External https://murphy.systems/api/public/stats:
   exist; the real source is src.hitl_gate_swarm.get_hitl_queue().
   When in doubt, use the same source the canonical endpoint uses.
 
+
+## R69c — citation verification post-gate (2026-06-07)
+
+### Problem
+cited_doc / research_brief / white_paper archetypes returned raw LLM
+output with no verification. Per R69-citation-audit, ~20-30% of refs
+were plausibly hallucinated. Could not honestly claim "verified
+citations" anywhere.
+
+### Fix
+Wired src/citation_verifier.verify_deliverable() into
+generate_custom_deliverable() at the end of the function, gated on
+archetype in (cited_doc, research_brief, white_paper).
+
+Result is attached as deliverable.citation_audit with shape:
+  {verdict, citation_summary, citations[], plagiarism, elapsed_ms}
+
+When verdict in (fail, no_citations), a HONESTY BANNER is prepended
+to deliverable.content listing the verified/broken/unmatched counts.
+'warn' is silent (snippet_match false-positives too noisy).
+'unavailable' is silent (verifier itself failed — don't lie).
+
+### Verified end-to-end
+POST /api/demo/generate-deliverable {"query":"...","archetype":"cited_doc"}
+returns:
+  deliverable.citation_audit.verdict = "no_citations"
+  citation_summary = {total:0, verified:0, broken:0, unmatched:0}
+  honesty banner injected at top of content
+  elapsed_ms = 2  (zero overhead when no citations to check)
+
+### What this unlocks
+We can now SAFELY publish "Murphy verifies its own citations" on the
+landing page (Slice F has the live data, R69c proves honesty).
+Without R69c the landing-page claim would have been false.
+
+### Per L14
+Did NOT build new verification logic. Reused canonical
+src/citation_verifier.verify_deliverable() — same code already
+exposed at /api/citations/verify. ~10 lines of wiring, not a new
+module.
+

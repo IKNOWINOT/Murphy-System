@@ -6944,11 +6944,58 @@ def generate_custom_deliverable(
         if _is_substantive_llm_output(content)
         else "composer"
     )
+    # R69c (2026-06-07): Citation verification post-gate. When the
+    # archetype is a cited deliverable, call verify_deliverable() — the
+    # same canonical verifier exposed at /api/citations/verify. Attach
+    # the audit result to the return so the caller (and the UI) can
+    # display honest verification status. If verdict is 'fail' or
+    # 'no_citations', prefix the content with an HONESTY BANNER so we
+    # never claim verification we didn't get.
+    citation_audit = None
+    _archetype_lc = (archetype or "").strip().lower()
+    _is_cited_archetype = _archetype_lc in ("cited_doc", "research_brief", "white_paper")
+    if _is_cited_archetype:
+        try:
+            from src.citation_verifier import verify_deliverable as _vd
+            # Budget: 30s max. Verify only the LLM body (not branding chrome).
+            citation_audit = _vd(content, max_citations=20, timeout_per_citation=8.0)
+        except Exception as _e:
+            import logging as _lg
+            _lg.getLogger(__name__).warning(
+                "R69c: citation verifier failed (%s) — emitting unverified", _e,
+            )
+            citation_audit = {"ok": False, "error": str(_e), "verdict": "unavailable"}
+
+        # HONESTY BANNER — only when we got a clean 'fail' or 'no_citations'.
+        # 'warn' is too noisy (snippet_match heuristic flags real-but-different
+        # phrasing as unmatched). 'unavailable' is silent — we don't claim
+        # anything about the citations.
+        verdict = (citation_audit or {}).get("verdict")
+        if verdict in ("fail", "no_citations"):
+            cs = (citation_audit or {}).get("citation_summary") or {}
+            banner = (
+                "\n\n---\n"
+                "⚠ **CITATION AUDIT NOTICE** "
+                f"(verdict: {verdict})\n\n"
+                f"This deliverable contains **{cs.get('total', 0)}** cited references. "
+                f"Of those, **{cs.get('verified', 0)}** were live-verified, "
+                f"**{cs.get('broken', 0)}** returned a broken URL or 404, and "
+                f"**{cs.get('unmatched', 0)}** could not be confirmed via snippet match.\n\n"
+                "Always cross-check critical citations before publication. Murphy does not "
+                "fabricate citations on purpose, but LLM outputs can include plausible-looking "
+                "references that don't resolve to a real source. This audit is automated; "
+                "absence of an audit notice does not guarantee 100% verification.\n"
+                "---\n\n"
+            )
+            # Insert at top of the textual content so it's the first thing read.
+            txt = banner + txt
+
     return {
         "title": title,
         "content": txt,
         "filename": filename,
         "llm_provider": provider_used,
+        "citation_audit": citation_audit,  # R69c — None when not a cited archetype
     }
 
 
