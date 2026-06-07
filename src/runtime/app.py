@@ -4715,6 +4715,8 @@ def create_app() -> FastAPI:
             "crm_deals": 0,
             "mfgc_gates_open": 0,
             "mfgc_gates_total": 0,
+            "hitl_pending": 0,           # SLICE-F Pillar-5 (R76b)
+            "ledger_entries": 0,         # SLICE-F Pillar-5 (R76b)
             "system_status": "operational",
             "degraded_components": [],
         }
@@ -4782,6 +4784,42 @@ def create_app() -> FastAPI:
             out["system_status"] = "degraded"
         elif len(out["degraded_components"]) >= 1:
             out["system_status"] = "partial"
+        # ── HITL pending (SLICE-F Pillar-5 R76b) — use the SAME source the
+        # live /api/swarm/hitl/pending endpoint uses (hitl_gate_swarm.get_hitl_queue)
+        try:
+            from src.hitl_gate_swarm import get_hitl_queue as _ghq
+            _q = _ghq()
+            _stats = _q.stats() or {}
+            # stats has shape {"total": N, "by_status": {"pending": N}}
+            out["hitl_pending"] = int((_stats.get("by_status") or {}).get("pending", 0))
+        except Exception:
+            out["degraded_components"].append("hitl")
+
+        # ── PSM ledger entries (SLICE-F Pillar-5 R76b) — the ledger is a
+        # JSONL file (not sqlite). Use SelfEditLedger.read_all() — the same
+        # method the live /api/platform/self-modification/ledger endpoint
+        # uses. Try the resolved path first, then the known production path.
+        try:
+            from src.platform_self_modification.endpoint import (
+                SelfEditLedger as _SEL,
+                _resolve_ledger_path as _rlp,
+            )
+            import os as _os
+            _candidates = [
+                _rlp(),
+                "/var/lib/murphy-production/platform_self_edit_ledger.jsonl",
+                "/opt/Murphy-System/data/platform_self_edit_ledger.jsonl",
+            ]
+            for _lp in _candidates:
+                if _lp and _os.path.exists(_lp):
+                    _ledger = _SEL(_lp)
+                    if hasattr(_ledger, "read_all"):
+                        _entries = _ledger.read_all() or []
+                        out["ledger_entries"] = len(_entries)
+                        break
+        except Exception:
+            out["degraded_components"].append("ledger")
+
         return JSONResponse(out)
 
     @app.get("/os", include_in_schema=False)

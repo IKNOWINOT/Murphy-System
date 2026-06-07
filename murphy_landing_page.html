@@ -1694,11 +1694,11 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
       </div>
       <div style="background:#0f1614;padding:24px;border-radius:12px;border:1px solid #1f2c28;">
         <div id="audit-cycle" style="font-size:32px;color:#00d4aa;font-weight:700;">—</div>
-        <div style="font-size:12px;color:#7d8e88;text-transform:uppercase;letter-spacing:1.5px;margin-top:6px;">Mind cycle</div>
+        <div style="font-size:12px;color:#7d8e88;text-transform:uppercase;letter-spacing:1.5px;margin-top:6px;">HITL pending</div>
       </div>
       <div style="background:#0f1614;padding:24px;border-radius:12px;border:1px solid #1f2c28;">
         <div id="audit-applied" style="font-size:32px;color:#00d4aa;font-weight:700;">—</div>
-        <div style="font-size:12px;color:#7d8e88;text-transform:uppercase;letter-spacing:1.5px;margin-top:6px;">Patches applied</div>
+        <div style="font-size:12px;color:#7d8e88;text-transform:uppercase;letter-spacing:1.5px;margin-top:6px;">Ledger entries</div>
       </div>
       <div style="background:#0f1614;padding:24px;border-radius:12px;border:1px solid #1f2c28;">
         <div id="audit-routes" style="font-size:32px;color:#00d4aa;font-weight:700;">—</div>
@@ -1714,12 +1714,20 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
   </div>
 
   <script>
-    fetch('/api/self/audit').then(r => r.json()).then(d => {
-      const c = d.checks || {};
-      document.getElementById('audit-heartbeats').textContent = c.heartbeats_10min || '—';
-      document.getElementById('audit-cycle').textContent = (c.mind_cycle && c.mind_cycle.lifetime_cycle) || '—';
-      document.getElementById('audit-applied').textContent = (c.patcher_stats && c.patcher_stats.applied) || '—';
-      document.getElementById('audit-routes').textContent = c.registry_route_count || '—';
+    // SLICE-F Pillar-5 (R76b): use /api/public/stats (working) instead of /api/self/audit (broken).
+    // Mind cycle is the live signal; HITL pending shows the human queue; ledger entries
+    // proves the self-modification loop is real; route count comes from the registry endpoint.
+    fetch('/api/public/stats', { cache: 'no-store' }).then(r => r.json()).then(d => {
+      document.getElementById('audit-heartbeats').textContent = (d.mind_cycle || 0).toLocaleString();
+      document.getElementById('audit-cycle').textContent = (d.hitl_pending != null) ? d.hitl_pending : '—';
+      document.getElementById('audit-applied').textContent = (d.ledger_entries != null) ? d.ledger_entries : '—';
+    }).catch(() => {});
+    // Route count comes from the registry summary
+    fetch('/api/registry/summary', { cache: 'no-store' }).then(r => r.json()).then(d => {
+      const routes = d && d.data && d.data.routes;
+      if (routes && routes.total != null) {
+        document.getElementById('audit-routes').textContent = routes.total.toLocaleString();
+      }
     }).catch(() => {});
   </script>
 </section>

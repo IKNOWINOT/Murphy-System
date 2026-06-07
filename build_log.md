@@ -969,3 +969,52 @@ load. The previous code returned True if checks didn't match. R75
 existed because the old code's default was permissive. R76's default
 is restrictive. ALWAYS fail-closed on safety paths.
 
+
+## SLICE-F-Pillar-5 — landing renders live system signals (2026-06-07)
+
+### Problem
+Landing page audit section read from /api/self/audit which returned
+all-None for the 4 tile checks (heartbeats, mind cycle, patches
+applied, routes). The page had wired-up tiles with nothing to show.
+
+### Fix
+Two-part:
+
+1) Extend /api/public/stats with hitl_pending + ledger_entries:
+   - hitl_pending sourced from src.hitl_gate_swarm.get_hitl_queue()
+     (SAME source the /api/swarm/hitl/pending endpoint uses)
+   - ledger_entries sourced from SelfEditLedger.read_all() with
+     candidate paths probed (resolver path + known production path
+     + fallback). JSONL not sqlite — that was the first miss.
+
+2) Repoint landing page from /api/self/audit (broken) to
+   /api/public/stats (working). Added /api/registry/summary fetch
+   for route count. Relabeled 2 tiles: "Mind cycle" -> "HITL pending",
+   "Patches applied" -> "Ledger entries".
+
+### Verified
+External https://murphy.systems/api/public/stats:
+  swarm_agents:    10
+  mind_cycle:      4159
+  mind_avg_conf:   0.811
+  crm_deals:       271
+  mfgc_gates:      6/6
+  hitl_pending:    10       <- NEW
+  ledger_entries:  227      <- NEW
+  system_status:   operational
+  degraded:        []       <- no probe failures
+
+### Pillar-5 effect
+- Slice A (self-modification) goes YELLOW -> GREEN: ledger count
+  now visible on landing page = 227 entries proves the loop runs.
+- Slice F GREEN++: landing page now tells the real story instead
+  of showing em-dashes.
+
+### Misses worth keeping
+- First probe used sqlite — the JSONL ledger was a miss caused by
+  assuming "ledger = database". Verified via audit before assuming
+  (per SD-55).
+- First HITL probe queried `hitl_items` table name that doesn't
+  exist; the real source is src.hitl_gate_swarm.get_hitl_queue().
+  When in doubt, use the same source the canonical endpoint uses.
+
