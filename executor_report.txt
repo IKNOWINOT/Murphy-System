@@ -1,1 +1,0 @@
-The executor's swarm heartbeat is functioning correctly. It sends a heartbeat signal to all 9 agents every 5 minutes.

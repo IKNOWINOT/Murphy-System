@@ -185,3 +185,74 @@ Thumbs.db
 *.pre-*
 *.bak*
 docs/auto/
+
+# ── PCR-024: agent-answer noise files (2026-06-08) ────────────────────────
+# Some agent endpoint writes its "answers" to disk at unpredictable paths.
+# On 2026-06-08 01:18 UTC this gutted src/executor_agent.py (restored at
+# 23:09 UTC). On 2026-06-08 ~23:00 UTC inspection found 22 shadow files
+# inside src/ that would import-shadow real modules — quarantined into
+# /var/lib/murphy-production/state_snapshots/shadow_quarantine/.
+# This block stops the noise from polluting commits while the underlying
+# write-endpoint audit remains banked for a future session.
+
+# Root-level agent answer dumps
+/answer.txt
+/apc_outreach_*.txt
+/executorConfirmation.txt
+/executor_agent_*.txt
+/executor_heartbeat*.txt
+/executor_log.txt
+/executor_output.txt
+/executor_report.txt
+/executor_result.txt
+/executor_status.txt
+/executor_swarm_heartbeat.txt
+/final_answer.txt
+/heartbeat.txt
+/heartbeat_status.txt
+/incident_inc_*.txt
+/incident_report.inc_*
+/incident_report.inc_*.md
+/incident_report.inc_*.txt
+/incident_report.md
+/outreach_log.json
+/outreach_report.txt
+/report.txt
+/report_*.txt
+/report/
+/reports/
+/result.txt
+/results.txt
+/results/
+/swarm_heartbeat.executed
+/swarm_heartbeat*.txt
+/swarm_heartbeat*.json
+/swarm_heartbeat*.py
+/verification.txt
+/verification_results.txt
+/verification_report.txt
+/verify.txt
+/verify/
+/verify_apc_outreach*.txt
+/verify_executor_heartbeat.txt
+/verify_inc_*.txt
+/verify_outreach.txt
+/verify_outreach_log.txt
+/verify_report.txt
+/verify_swarm_heartbeat.txt
+/crm.db.schema
+
+# Agent scratch directory at repo root
+/executor/
+
+# Stray text answers that ended up under src/ (these should never exist)
+src/api/crm/*.txt
+src/api/crm/*.log
+src/executor*.txt
+src/executor*.json
+src/executor.py
+src/executor/
+src/executor_agent_*.txt
+src/executor_agent/
+src/executor_heartbeat*
+src/swarm_heartbeat*

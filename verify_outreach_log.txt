@@ -1,3 +1,0 @@
-Confirmed the outreach log is accessed via /api/crm/activities as referenced in src/capacity_watchdog.py line 247. The CRM system handles activities through src/crm/api.py, src/crm/models.py, and src/crm/crm_manager.py. No inbound replies in 999 days indicates a need to refresh APC outreach copy.
-
-Recommendation: Update the outreach copy to improve response rates and monitor through the CRM activity log.

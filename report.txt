@@ -1,2 +1,0 @@
-Swarm heartbeat — executor
-The Swarm heartbeat is a scheduled task that runs every 5 minutes, sending a status signal to all 9 agents in the Swarm.

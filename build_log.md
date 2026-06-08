@@ -2256,3 +2256,92 @@ Phase summary:
   5. Canvas Linking         ✓ 92cae91f
   6a. Bottleneck Monitor    ✓ 77f69d7c
   6b. HITL + Auto-fix + Fix ✓ (this commit) ← DIRECTIVE COMPLETE
+
+## PCR-024 — Shadow quarantine + .gitignore for agent-answer noise — 2026-06-08
+
+CONTEXT:
+  Post-directive sweep (after fa9cea71) surfaced 113 untracked/modified
+  files in git status. 108 of them (96%) were agent-answer noise files
+  from some endpoint writing its "answers" to disk at unpredictable paths.
+
+  The same family of writes had earlier (2026-06-08 01:18 UTC) gutted
+  src/executor_agent.py from 536 lines to 2 lines, causing every
+  murphy-production restart to fire
+    'cannot import name get_executor_agent from src.executor_agent'
+  for 22 hours straight before being noticed.
+
+WHAT SHIPPED:
+  1. Restored src/executor_agent.py from HEAD (commit 551a0b44).
+     - 2 lines → 536 lines
+     - ExecutorAgent class, get_executor_agent(), get_executor() all back
+     - Lifespan startup error stopped (0 in last 60s after restart)
+
+  2. Quarantined 6 shadow paths from src/ into
+     /var/lib/murphy-production/state_snapshots/shadow_quarantine/
+     - src/executor.py
+     - src/executor/         ← had __init__.py — a real Python package
+                                that would have import-shadowed
+                                the file form on next resolution
+     - src/executor_agent/   ← directory; same risk
+     - src/executor_heartbeat.py
+     - src/swarm_heartbeat.py
+     - src/swarm_heartbeat_executor.py
+     All 6 were agent-generated, no real references from prod code.
+     Two of them (src/executor/ and src/executor_agent/) had import
+     paths that real production code uses (app.py + workflow_executor.py)
+     — confirming this was outage prevention, not hygiene.
+
+  3. .gitignore block to hide future agent-answer noise from commits
+     - Covers root-level patterns (executor_*, swarm_heartbeat_*,
+       answer*, report*, verify_*, incident_report_*)
+     - Covers in-src patterns (src/executor_*, src/swarm_heartbeat_*,
+       src/api/crm/*.txt)
+     - Stopped tracking 7 already-committed noise files via git rm --cached
+
+EVIDENCE PRESERVED (everything reversible):
+  /var/lib/murphy-production/state_snapshots/executor_agent_restore/
+    executor_agent.py.gutted.<ts>   - the 2-line replacement
+    executor_dir.<ts>/              - the agent's original work dir
+  /var/lib/murphy-production/state_snapshots/shadow_quarantine/<ts>/
+    src__executor/__init__.py       - the SMOKING GUN (package shadow)
+    src__executor_agent/answers/    - more agent dumps
+    src__executor.py
+    src__executor_heartbeat.py
+    src__swarm_heartbeat.py
+    src__swarm_heartbeat_executor.py
+  /var/lib/murphy-production/state_snapshots/gitignore_cleanup/
+    .gitignore.<ts>                 - prior .gitignore for rollback
+
+POST-CHANGE VERIFICATION:
+  ✓ src.executor_agent.get_executor_agent importable
+  ✓ ExecutorAgent class instantiable
+  ✓ murphy-production.service: active
+  ✓ 0 'cannot import name' errors in last 60s
+  ✓ All 15 production surfaces still 200/400/401 (no regression):
+      / /os /canvas /health-os /marketplace /comms /developers
+      /roi-calendar /api/health /api/conductor/healthz
+      /api/public/stats /api/auth/verify-email
+      /api/provenance/preview /api/bottleneck/flags
+      /api/canvas/hotspots
+  ✓ tripwire clean
+  ✓ security sweep clean
+
+BANKED FOR LATER (the real fix):
+  Audit src/ for unrestricted file-write endpoints. Some agent
+  endpoint inside Murphy has open(path, 'w') with insufficient
+  path validation. The PCR-024 .gitignore stops the symptom from
+  polluting commits, but the disease — write-anywhere endpoint —
+  is still live and may strike again at a different path.
+  Estimated effort: 5-8 credits for a focused grep+audit session.
+
+OPERATING RULES HELD:
+  Rule #2  snapshot before EVERY destructive move ✓ (3 snapshots)
+  Rule #6  HITL queue untouched ✓
+  Rule #7  no phantom features ✓
+  L29      security sweep clean ✓
+  L30      no set -e in heredocs ✓
+  L31      real UA + retry-once ✓
+  L32      verifier PASS before commit ✓
+
+Phase 6 directive remains 6/6 complete — this is hygiene + safety
+on top of that, not a new directive.
