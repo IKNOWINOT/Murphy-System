@@ -1890,3 +1890,48 @@ Do not commit when the verifier fails, even if you SUSPECT the failure
 is a false positive. Investigate first, fix the verifier OR fix the
 underlying issue, re-run, then commit. The plan operating rule exists
 to prevent exactly this drift.
+
+## PCR-018 — Phase 2 of Final Shape of Complete (Backend Function Catalog) — 2026-06-08
+
+### What shipped
+- scripts/backend_catalog_check.py — generator + verifier in one tool.
+  Walks src/ for @app/@router decorators, extracts UI fetch targets
+  from static/*.html, probes each route with real UA + retry-once
+  (L31), classifies each route as UI-LINKED / INTERNAL / GHOST / DEAD.
+- docs/strategy/backend_function_catalog.md — auto-generated catalog,
+  refreshed by re-running the script.
+- Plan progress tracker updated: Phase 2 → shipped.
+
+### Findings (this run)
+See catalog file. Headline numbers were captured at commit time;
+re-run the generator to refresh.
+
+### Verifier
+\$ python3 scripts/backend_catalog_check.py
+  Discovers routes, classifies, writes catalog, exits 0 on PASS.
+  Use --verify-only for fast CI mode (no probes).
+
+### Composes with
+- PCR-017 UI Surface Audit (the inverse view; together → Phase 3 gap map)
+- PCR-014 Auto-doc generator (catalog references module docs)
+- MPCS Trajectory Confidence (this commit counts as a verified path segment)
+
+### Operating rules held
+- One phase per session ✓
+- No set -e in heredocs (L30) ✓
+- Tight security sweep only (L29) ✓
+- Real UA + retry-once on probes (L31) ✓
+- Verifier PASS before commit (L32) ✓
+- Build log entry attached ✓
+- Plan progress tracker updated ✓
+
+### Next
+Phase 3 — Gap Map + Closure Priorities (PCR-019). Joins Phase 1 + 2 into
+a single matrix:
+  A. UI without backend (broken CTAs to fix or kill)
+  B. Backend without UI (ghost functions to expose or document)
+  C. UI labels not in user-description language (jargon to translate)
+Founder go required.
+
+### Progress
+2/6 phases complete. 4 sessions remaining to FINAL SHAPE OF COMPLETE.
