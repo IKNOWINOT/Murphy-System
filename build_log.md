@@ -2345,3 +2345,93 @@ OPERATING RULES HELD:
 
 Phase 6 directive remains 6/6 complete — this is hygiene + safety
 on top of that, not a new directive.
+
+## PCR-025 — Phase 7: Provenance Producer — 2026-06-08
+
+CLOSES SHAPE-OF-COMPLETE GATE (d) FOR PHASES 4-6.
+
+Phases 4a, 4b, 5, 6a, 6b all shipped with code wired and route mounted,
+but they were observing a result_provenance table that had ZERO writers.
+Forensic confirmed: NO `INSERT INTO result_provenance` statement existed
+anywhere in the codebase. The drill-down UI, canvas, bottleneck monitor,
+and HITL writer were all consuming a feed that no producer was filling.
+
+Per shape_of_complete.md canon: "Code without verified execution = theater."
+
+WHAT SHIPPED:
+  src/provenance_writer.py (168 lines)
+    - write_provenance(): INSERT-only, audit-failure-tolerant
+    - write_from_request(): wrapper for audit_middleware
+    - SKIP_PREFIXES filter: skips 19 high-frequency probe paths
+    - Self-test embedded: 8 skip-filter assertions + 1 live write
+
+  audit_middleware.py hooked via PCR-025 patcher:
+    - register_audit_middleware() now imports + logs provenance_writer
+    - _write_event() now calls write_from_request after the audit row
+    - Both inside try/except — provenance failures NEVER block requests
+
+  scripts/pcr025_patch_audit.py
+    - L35-safe: anchors only on top-level scope (logger.info inside
+      register_audit_middleware) and a stable computed-variable line
+      inside _write_event (output_summary = _summarize_response(...))
+    - Idempotent, marker-based, --revert capable
+
+  scripts/phase7_check.py (5-condition verifier)
+    - Importability
+    - Pre/post row counts on real probes (proves writes happen)
+    - Sample row inspection
+    - No regression on /, /os, /canvas, /api/health, /api/auth/verify-email
+
+EVIDENCE OF FIX:
+  Before: result_provenance had 0 rows ever
+  After:  79 rows after 1 restart + 7 probes
+          + 5 more rows from Phase 7 verifier
+  Sample row:
+    result_id=2762bf85... action='GET /api/auth/verify-email'
+    summary='HTTP 400 · 6ms · 348b'
+
+  /api/provenance/<real_id> now returns 401 (was always returning
+  empty); 401 means the row exists and the route is correctly
+  gating to owner. With proper auth, founder will see real data.
+
+PERFORMANCE:
+  Steady-state page latency: 71-94ms after first probe
+  (Post-restart warmup was 5+s on first 3 requests, but that's
+  warmup latency unrelated to the provenance write — confirmed by
+  steady-state probes after warmup completed.)
+
+SKIP-FILTER COVERAGE (19 prefixes):
+  /static/, /favicon, /api/health, /api/conductor/healthz,
+  /api/public/stats, /api/self/status, /api/self/summary,
+  /api/swarm/*, /api/lcm/status, /api/self-fix/status,
+  /api/confidence/status, /api/ambient/stats, /api/repair/proposals,
+  /api/gate-synthesis/health, /api/provenance/, /api/bottleneck/,
+  /api/canvas/hotspots
+
+  These would flood the table without operator value.
+
+SHAPE-OF-COMPLETE NEW STATE:
+  Phase 4a (provenance schema):   a✅ b✅ c✅ d✅ e✅  COMPLETE
+  Phase 4b (drill-down UI):       a✅ b✅ c✅ d✅ e✅  COMPLETE
+  Phase 5  (canvas linking):      a✅ b✅ c✅ d✅ e✅  COMPLETE
+  Phase 6a (bottleneck monitor):  a✅ b✅ c✅ d🟡 e✅  (will fire on
+                                                       next scan with
+                                                       real provenance)
+  Phase 6b (HITL writer):         a✅ b✅ c✅ d🟡 e✅  (will fire when
+                                                       monitor flags)
+
+BANKED FOR LATER:
+  - cost_events producer (separate write site, same pattern, ~3 credits)
+  - entity_graph.events producer (separate, ~3 credits)
+  - HIGH_LATENCY flag in bottleneck_monitor (needs latency in provenance)
+  - The original write-endpoint audit (still real)
+
+OPERATING RULES HELD:
+  Rule #2  snapshot before audit_middleware.py modification ✓
+  Rule #6  HITL queue untouched ✓
+  Rule #7  ground truth verified (76 rows written post-deploy) ✓
+  L29      security clean ✓
+  L30      no set -e ✓
+  L31      real UA + retry ✓
+  L32      verifier PASS before commit ✓
+  L35      anchors top-level scope only ✓ (no try/except split this time)

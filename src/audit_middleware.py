@@ -358,6 +358,22 @@ class AuditMiddleware(BaseHTTPMiddleware):
 
         input_summary = _summarize_request(request, body_hash)
         output_summary = _summarize_response(status_code, latency_ms, response_size)
+        # === PCR-025 BEGIN provenance side-write ===
+        try:
+            from src.provenance_writer import write_from_request as _pcr025_pw
+            _pcr025_pw(
+                path=path,
+                method=method,
+                status_code=status_code,
+                latency_ms=latency_ms,
+                actor=actor,
+                body_hash=body_hash,
+                response_size=response_size,
+            )
+        except Exception as _pcr025_e:
+            logger.debug("provenance side-write failed: %s", _pcr025_e)
+        # === PCR-025 END provenance side-write ===
+
 
         # Build metadata JSON
         meta = {
@@ -431,6 +447,14 @@ def register_audit_middleware(app, service_name: str = "monolith") -> None:
     """
     app.add_middleware(AuditMiddleware, service_name=service_name)
     logger.info("audit_middleware: registered for service=%s", service_name)
+    # === PCR-025 BEGIN provenance writer init ===
+    try:
+        from src import provenance_writer  # noqa: F401
+        logger.info("audit_middleware: provenance_writer loaded (PCR-025)")
+    except Exception as _e:
+        logger.warning("audit_middleware: provenance_writer load failed: %s", _e)
+    # === PCR-025 END provenance writer init ===
+
 
 
 # Legacy alias
