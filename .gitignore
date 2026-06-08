@@ -184,3 +184,4 @@ Thumbs.db
 # PATCH-447: Exclude session backup files created during patches
 *.pre-*
 *.bak*
+docs/auto/
