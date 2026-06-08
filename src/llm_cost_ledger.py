@@ -77,8 +77,17 @@ class LLMCostLedger:
 
     def record(self, *, model: str, provider: str, prompt_tokens: int,
                completion_tokens: int, latency_ms: float = 0.0,
-               caller: str = "unknown", success: bool = True):
-        """Record one LLM call."""
+               caller: str = "unknown", success: bool = True,
+               tenant_id: str = "platform", job_id: str = None):
+        """Record one LLM call.
+
+        PATCH-409 (2026-06-08): every call is tagged with tenant_id + job_id
+        for per-job cost attribution. See
+        .agents/rules/vault_and_accounting_canon.md Part 4.
+          - tenant_id="platform" → Murphy's own work (sales, watchdog, etc.)
+          - tenant_id="<tenant>" → work performed FOR that tenant
+          - job_id="JOB-..."     → optional job code; rolls up on tenant invoice
+        """
         total = prompt_tokens + completion_tokens
         cost_key = next((k for k in _MODEL_COSTS if k in model.lower()), "default")
         cost_usd = (total / 1000.0) * _MODEL_COSTS[cost_key]
@@ -88,10 +97,11 @@ class LLMCostLedger:
             with self._lock, self._conn() as conn:
                 conn.execute(
                     "INSERT INTO calls (ts, model, provider, prompt_tokens, completion_tokens, "
-                    "total_tokens, cost_usd, latency_ms, caller, success) "
-                    "VALUES (?,?,?,?,?,?,?,?,?,?)",
+                    "total_tokens, cost_usd, latency_ms, caller, success, tenant_id, job_id) "
+                    "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
                     (ts, model, provider, prompt_tokens, completion_tokens,
-                     total, cost_usd, latency_ms, caller, int(success))
+                     total, cost_usd, latency_ms, caller, int(success),
+                     tenant_id, job_id)
                 )
                 conn.execute("""
                     INSERT INTO daily_summary (date, total_calls, total_tokens, total_cost_usd)

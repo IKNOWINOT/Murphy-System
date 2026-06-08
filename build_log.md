@@ -1486,3 +1486,82 @@ One source of truth. Going forward, all secrets live in the vault,
 and the env-file fallback exists only for boot ordering. Rotations
 no longer need a server restart with new env values — just write
 the new value to vault and the next billing call picks it up.
+
+## PATCH-408 + PATCH-409 — Vault classes + job-tagged ledger (2026-06-08)
+
+### Founder directive (2026-06-08)
+Architectural conversation locked the following:
+  - Vault has TWO classes: platform (Murphy's engine) + tenant_identity
+    (tenant's own override)
+  - No cross-tenant reads. Industry-standard privacy floor: admins see
+    name+metadata+audit but never raw value.
+  - Tenant uses their own credential → Murphy takes ZERO from that
+    transaction. But work performed FOR a tenant (LLM calls, voice, etc.)
+    bills to that tenant + job_id for invoice attribution.
+
+Canon doc: docs/architecture/vault_and_accounting_canon.md
+
+### PATCH-408.P1 — Vault schema migration
+- Added `class` (platform|tenant_identity) and `tenant_id` columns
+- Composite uniqueness: (name, class, tenant_id)
+- Method: rebuild table (SQLite can't drop PRIMARY KEY in place)
+- Migrated 7 tenant_password_* rows in-place:
+  tenant_password_acmecorp → name='tenant_password' class='tenant_identity' tenant_id='acmecorp'
+  (and 6 others — apex_wellness, bedford_eats_demo, inoni, oregon_mep_demo,
+   pdx_accounting_demo, testorg320)
+- old vault_secrets table preserved as vault_secrets_old for rollback
+- snapshot: state_snapshots/murphy_vault.db.<TS>.pre_patch408
+- 14 rows in / 14 rows out
+
+### PATCH-408.P2 — _vault_or_env extended with tenant scoping
+nowpayments_billing.py:_vault_or_env() now accepts:
+  - tenant_id: which tenant's identity to try first
+  - caller_tenant: who is asking (cross-tenant guard)
+  - require_tenant_override: refuse platform fallback
+Raises CrossTenantReadRefused when caller_tenant != tenant_id.
+5 functional tests pass: platform read, fallback, override, cross-tenant
+guard, same-tenant ok. Service health 200 after restart.
+
+### PATCH-408 known issue (pre-existing, not caused)
+7 tenant_password rows have text/text storage instead of blob/blob
+(different code path created them). Decrypt fails on those rows with
+the canonical _decrypt(). Confirmed pre-existing via snapshot of the
+pre-migration DB. Not blocking. Will be fixed in PATCH-408.P4 (UI for
+tenants to re-upload, which will use the canonical write path).
+
+### PATCH-409.P1 — Job-tagged LLM cost ledger
+- Added `job_id TEXT` column to llm_cost_ledger.calls
+- Added index idx_calls_tenant_job(tenant_id, job_id) for invoice rollups
+- snapshot: state_snapshots/llm_cost_ledger.db.<TS>.pre_p409
+
+### PATCH-409.P2 — record() signature extension
+src/llm_cost_ledger.py:LLMCostLedger.record() now accepts:
+  - tenant_id (default 'platform' — backward-compat)
+  - job_id (default None)
+Existing call-sites still work unchanged (they default to platform).
+New call-sites can pass tenant_id='acmecorp', job_id='JOB-2026-001234'
+to attribute cost.
+
+Verified end-to-end:
+  - Backward-compat call records as tenant='platform' job=None
+  - Tagged call records as tenant='acmecorp' job='JOB-2026-001234'
+  - Rollup query: SELECT COUNT(*), SUM(cost) WHERE tenant=? AND job=?
+    returns clean line-item data for invoice generation
+  - Service health 200 after restart in 5 seconds
+
+### What this unblocks
+- Tenants can now (when the upload UI ships in PATCH-408.P4) bring their
+  own Twilio, NOWPayments, etc. Their customers pay them direct.
+- Per-job invoice generation becomes possible: query the cost ledger
+  by (tenant_id, job_id) and produce a customer-facing bill with provable
+  AI cost line-items.
+- This is the architectural foundation for the operator-track value
+  proposition: "hire a Murphy SDR/dispatcher/bookkeeper, pass through
+  the AI cost to your customers with full attribution."
+
+### Future work (queued, not in this patch)
+- PATCH-408.P3: tenant-facing UI in /os to upload identity secrets
+- PATCH-408.P4: fix the 7 legacy tenant_password text/text storage
+- PATCH-410: canonical jobs table (promote one of 8 existing project tables)
+- PATCH-411: customer-facing invoice PDF generator
+- Voice/SMS/storage ledgers when those engines mature

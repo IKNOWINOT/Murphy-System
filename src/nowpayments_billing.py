@@ -195,31 +195,78 @@ def _ensure_schema() -> None:
 
 
 
-# ── Vault read (PATCH-407, 2026-06-07): prefer vault, fall back to env ───────
-def _vault_or_env(name: str) -> str:
-    """Read a secret by name. Tries Murphy vault first; falls back to env var.
+# ── Vault read (PATCH-407 + PATCH-408): vault-first with tenant scoping ─────
+class CrossTenantReadRefused(Exception):
+    """Raised when a tenant op tries to read another tenant's identity secret."""
+    pass
 
-    Vault is the canonical source. Env is kept as a boot-ordering fallback so
-    that nowpayments_billing can initialise before the vault module is fully
-    loaded (the vault itself needs the FastAPI app object).
+
+def _vault_or_env(name: str, tenant_id: str = None,
+                  caller_tenant: str = None,
+                  require_tenant_override: bool = False) -> str:
+    """Read a secret by name. PATCH-408 canonical accessor.
+
+    Scoping rules (per .agents/rules/vault_and_accounting_canon.md):
+      - tenant_id=None        → reads class='platform' only (Murphy's engine)
+      - tenant_id='acmecorp'  → tries class='tenant_identity' tenant=acmecorp
+                                 first, falls back to class='platform' default
+                                 (unless require_tenant_override=True)
+      - caller_tenant cross-check: if caller_tenant is set AND differs from
+        tenant_id, raises CrossTenantReadRefused. Inoni/admin code that
+        legitimately serves multiple tenants must NOT pass caller_tenant.
+
+    Vault is canonical. Env is a boot-ordering fallback for platform reads
+    only; tenant_identity reads never fall back to env.
     """
+    # Cross-tenant guard
+    if caller_tenant and tenant_id and caller_tenant != tenant_id:
+        raise CrossTenantReadRefused(
+            f"tenant '{caller_tenant}' cannot read identity secret of '{tenant_id}'"
+        )
+
     try:
-        # Local import to dodge boot-ordering cycle
         from src.patch405_secrets_vault import _db, _decrypt, _CRYPTO_OK, init_db
         if _CRYPTO_OK:
             init_db()
             conn = _db()
+            # 1) If tenant_id given, try tenant_identity first
+            if tenant_id:
+                row = conn.execute(
+                    "SELECT encrypted_value, nonce FROM vault_secrets "
+                    "WHERE name=? AND class='tenant_identity' "
+                    "AND tenant_id=? AND revoked_at IS NULL",
+                    (name, tenant_id)
+                ).fetchone()
+                if row:
+                    conn.close()
+                    try:
+                        return _decrypt(row[0], row[1])
+                    except (TypeError, ValueError):
+                        # Storage-type drift on legacy rows; treat as missing
+                        pass
+                if require_tenant_override:
+                    conn.close()
+                    return ""
+
+            # 2) Platform fallback (default behavior, or tenant_id=None)
             row = conn.execute(
                 "SELECT encrypted_value, nonce FROM vault_secrets "
-                "WHERE name=? AND revoked_at IS NULL", (name,)
+                "WHERE name=? AND class='platform' AND revoked_at IS NULL",
+                (name,)
             ).fetchone()
             conn.close()
             if row:
-                return _decrypt(row[0], row[1])
+                try:
+                    return _decrypt(row[0], row[1])
+                except (TypeError, ValueError):
+                    pass
     except Exception:
-        # Any failure (import, db lock, decrypt) → fall through to env
         pass
-    return os.environ.get(name, "")
+
+    # 3) Env fallback (platform reads only)
+    if not tenant_id or not require_tenant_override:
+        return os.environ.get(name, "")
+    return ""
 
 
 class NowPaymentsBilling:
