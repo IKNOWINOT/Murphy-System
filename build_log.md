@@ -1804,3 +1804,53 @@ sweeps should require human confirmation, not abort the shell.
 - MPCS Phase 1 (TC verifier now counts this commit as a verified path segment)
 - Variance Interception Canon (auto-docs are part of "right docs in context"
   from the right-arena definition)
+
+## PCR-017 — Phase 1 of Final Shape of Complete (UI Surface Audit) — 2026-06-08
+
+### What shipped
+- docs/strategy/ui_surface_audit.md — full enumeration of every CTA
+  across 30 HTML files in static/
+- scripts/ui_audit_check.py — verifier that asserts CTA counts stay
+  within tolerance, REAL routes still 200, INTERNAL routes still
+  auth-gated, FAKE routes still 404 (regression catch)
+- docs/strategy/final_shape_of_complete_plan.md progress tracker
+  updated: Phase 1 → shipped
+
+### Findings
+- 116 CTAs enumerated across 30 HTML files
+- Classification:
+    ~40 REAL (calls a 200 endpoint)
+    ~38 INTERNAL (calls a 401-gated endpoint — auth-required, not broken)
+    ~25 NAV (internal href or DOM-only page switch)
+    ~6 DEGRADED (real route, broken result — Phase 4 target)
+    ~5 FAKE (route 404)
+    ~2 DEAD (DOM-only no observable effect)
+- The 5 critical FAKE findings:
+    1. /canvas route 404 (HTML exists at 1020 lines, no route)
+    2. /api/canvas/items 404
+    3. /api/canvas/attach 404
+    4. /api/canvas/save 404
+    5. /workshop /dispatch /workspace /chain routes 404
+- R80.P1's 3 prior kills confirmed: Restart Idle, View History,
+  Tripwire Log now route through tellMurphy instead of dead endpoints.
+
+### Verifier
+$ python3 scripts/ui_audit_check.py
+  Runs CTA count check, 3 live HTTP probe groups (green/gated/fake),
+  exits 0 on PASS.
+
+### Why this matters
+The directive's goal #1 ("every UI CTA matches backend solution space")
+cannot be measured without an enumeration. This audit IS that
+enumeration. Phase 2 will build the inverse (every backend function
+classified) and Phase 3 will join them into the Gap Map.
+
+### Composes with
+- PCR-014 auto-doc (Phase 2 catalog will build on top)
+- MPCS Trajectory Confidence (each phase commit is a verified path
+  segment; TC counts this)
+- Variance Interception Canon (Phase 6 bottleneck monitor watches these
+  116 CTAs at runtime)
+
+### Next
+Phase 2 — Backend Function Catalog (PCR-018). Founder go required.
