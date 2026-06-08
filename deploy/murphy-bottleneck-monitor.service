@@ -1,0 +1,24 @@
+[Unit]
+Description=Murphy Bottleneck Monitor (PCR-022 / Phase 6a) — read-only flag generator
+Documentation=https://github.com/IKNOWINOT/Murphy-System/blob/main/docs/strategy/final_shape_of_complete_plan.md
+After=network.target
+
+[Service]
+Type=oneshot
+User=murphy
+Group=murphy
+WorkingDirectory=/opt/Murphy-System
+ExecStart=/opt/Murphy-System/venv/bin/python3 -m src.bottleneck_monitor --window-minutes 60 --quiet
+TimeoutStartSec=120
+StandardOutput=journal
+StandardError=journal
+
+# Hardening: read-only filesystem except the one file we write
+ProtectSystem=strict
+ReadWritePaths=/var/lib/murphy-production
+ProtectHome=yes
+NoNewPrivileges=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

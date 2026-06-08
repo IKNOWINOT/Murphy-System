@@ -1,0 +1,14 @@
+[Unit]
+Description=Murphy Bottleneck Monitor — run every 5 minutes (PCR-022 / Phase 6a)
+Documentation=https://github.com/IKNOWINOT/Murphy-System/blob/main/docs/strategy/final_shape_of_complete_plan.md
+
+[Timer]
+# First run 1 minute after boot, then every 5 minutes
+OnBootSec=1min
+OnUnitActiveSec=5min
+AccuracySec=15s
+Unit=murphy-bottleneck-monitor.service
+Persistent=true
+
+[Install]
+WantedBy=timers.target

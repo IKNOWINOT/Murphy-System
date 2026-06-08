@@ -28524,6 +28524,53 @@ def create_app() -> FastAPI:
                                 status_code=500)
     # === PCR-020 END provenance route ===
 
+        # === PCR-022 BEGIN bottleneck flags route ===
+    @app.get("/api/bottleneck/flags")
+    async def _pcr022_bottleneck_flags(request: Request):
+        """
+        Bottleneck monitor read endpoint. Returns the latest flag set
+        as written by src/bottleneck_monitor.py.
+
+        Owner-only (founder email or same-host). If the monitor has
+        never run, returns an empty payload instead of 404.
+        """
+        import json, os
+        from pathlib import Path as _Path
+        _founder_email = os.environ.get("MURPHY_FOUNDER_EMAIL", "cpost@murphy.systems")
+        _caller_email = None
+        try:
+            _caller_email = request.headers.get("x-murphy-user")
+        except Exception:
+            pass
+        _is_founder = bool(_caller_email) and _caller_email == _founder_email
+        if not _is_founder:
+            try:
+                _host = (request.client.host if request.client else "") or ""
+                _is_founder = _host in ("127.0.0.1", "::1")
+            except Exception:
+                pass
+        if not _is_founder:
+            return JSONResponse({"error": "owner_only"}, status_code=401)
+
+        flags_path = _Path("/var/lib/murphy-production/bottleneck_flags.json")
+        if not flags_path.exists():
+            return JSONResponse({
+                "generated_at": None,
+                "window_minutes": 0,
+                "flags": [],
+                "flag_count": 0,
+                "stats": {},
+                "phase": "6a (read-only)",
+                "note": "monitor has not yet produced output; check systemd timer murphy-bottleneck-monitor.timer",
+            })
+        try:
+            with flags_path.open("r", encoding="utf-8") as f:
+                return JSONResponse(json.load(f))
+        except Exception as e:
+            return JSONResponse({"error": "read_failed", "detail": str(e)[:200]},
+                                status_code=500)
+    # === PCR-022 END bottleneck flags route ===
+
     @app.get("/api/self/audit")
     async def _self_audit():
         """Ground-truth state snapshot — prevents hallucinated self-views."""

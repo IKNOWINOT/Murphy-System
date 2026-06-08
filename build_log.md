@@ -2112,3 +2112,62 @@ Operating rules held (all 10 + L33 + L34):
 Progress: 5/6 phases complete. 1 session to FINAL SHAPE OF COMPLETE.
 Next: Phase 6 — Bottleneck Monitor + HITL (fixes /api/auth/verify-email 500
       as the first HITL-gated action).
+
+## PCR-022 — Phase 6a of Final Shape of Complete (Bottleneck Monitor — read-only) — 2026-06-08
+
+What shipped:
+- src/bottleneck_monitor.py (302 lines) — read-only flag generator
+- /api/bottleneck/flags route (owner-only) — reads bottleneck_flags.json
+- deploy/murphy-bottleneck-monitor.service + .timer — systemd, runs every 5 min
+- scripts/pcr022_patch_app.py (idempotent patcher)
+- scripts/phase6a_check.py (verifier)
+
+Honest sub-scoping (6a vs full Phase 6):
+- 6a (this commit): read-only monitor, route, timer, verifier
+- 6b (next session, founder go): HITL queue writes, auto-fix matrix,
+  /api/auth/verify-email 500 fix (HITL-gated), canvas hotspot overlay
+
+Operating rule #6 (HITL queue sacred) explicitly held: 6a does NOT
+touch hitl_queue at all. 6b will, with founder approval.
+
+Canonical data sources (verified before code was written):
+- economic_pulse.db / cost_events (1,436 rows in prod)
+- entity_graph.db / events (hash-chained outcome log)
+- entity_graph.db / result_provenance (shipped Phase 4a)
+- hitl_queue.db / hitl_queue (read-only this phase, write in 6b)
+
+Flag types emitted:
+- HIGH_ERROR_<pipeline>: >10% non-ok outcomes in window
+- COST_SPIKE_<action_type>: window avg cost > 2× lifetime avg
+- HIGH_LATENCY_<pipeline>: deferred — needs finished_at in schema
+
+First-run output (logged in commit body): 0 flags. Window had 0 events,
+0 costs, 0 provenance. System quiet + provenance brand new. Monitor
+correctly emitted empty payload, not an error.
+
+Snapshot: state_snapshots/PCR-022_pre/app.py.<ts> restorable.
+
+Verifier output:
+  ✓ all 5 files present + sized
+  ✓ compute_flags importable
+  ✓ flags JSON has expected schema (7 required keys)
+  ✓ /api/bottleneck/flags: 401 (route registered, owner-only)
+  ✓ all 11 prior-phase surfaces still 200 (no regression)
+  PASS
+
+Systemd state after install:
+  enabled, active
+  Next run: every 5 min via OnUnitActiveSec
+  Hardening: ProtectSystem=strict, ReadWritePaths scoped to /var/lib/murphy-production
+
+Operating rules held (all 10 + L33 + L34):
+  HITL queue sacred (rule #6) ✓ — no writes this phase
+  No phantom features (rule #7) ✓ — checked DB ground truth first
+  Snapshot before app.py modification ✓
+  Verifier PASS before commit (L32) ✓
+  Real UA + retry-once (L31) ✓
+  Tight security sweep (L29) ✓
+  No set -e (L30) ✓
+
+Progress: 5.5/6 phases complete. One half-phase to FINAL SHAPE OF COMPLETE.
+Next: Phase 6b — HITL writes + auto-fix matrix + verify-email 500 fix.
