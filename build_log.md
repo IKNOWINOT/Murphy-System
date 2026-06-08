@@ -1676,3 +1676,48 @@ Future hook (NOT in this patch):
 - CI pre-commit term-check that refuses commits introducing new
   ALL-CAPS / hyphenated technical terms not present in glossary
 - Will wire into tripwire in PCR-012 (MCP polish phase)
+
+## VARIANCE INTERCEPTION CANON — Locked 2026-06-08
+
+### Founder principle
+33.33% and 66.66% as the mathematical anchors for variance interception.
+30/70 as the empirical clusters where real failures show up. Between
+33 and 66 is the only window where intervention costs less than the
+problem. Past 66, cost-to-fix grows Pythagorean (hypotenuse of time²
++ cost²), not linearly.
+
+### What shipped
+- docs/architecture/variance_interception_canon.md (new canon)
+- .agents/rules/variance_interception_canon.md (sandbox copy)
+
+### Three variance dimensions tracked
+1. Time variance (planned schedule vs delivered work)
+2. Cost variance (planned budget vs delivered value)
+3. Knowledge-fit variance (assigned role's skills vs task's demands)
+   ← leading indicator
+
+### Four interception zones
+- 0–33%   🟢 Green   — proceed, log
+- 33–50%  🟡 Yellow  — soft signal, propose correction
+- 50–66%  🟠 Orange  — soft HITL, founder decides
+- > 66%   🔴 Red     — hard HITL, refuse, post-mortem required
+
+### "Right arena" definition
+- Right Rosetta role
+- Right skills (typed dispatch sufficient for the task)
+- Right docs in context (glossary, canon, prior decisions)
+- Right scope (action within authority boundary)
+
+### Promotion path
+Graduates to PCR-016 when:
+- planned_minutes + planned_cost_usd added to cost ledger
+- variance_monitor.py ships + verifier passes
+- Rosetta dispatcher gates on knowledge-fit variance
+- First HITL trip fires correctly
+
+### Lessons
+L25: 33/66 thresholds are a forcing function. Without explicit
+     thresholds, "should have caught earlier" is the most expensive
+     sentence in post-mortems.
+L26: Knowledge-fit variance is the leading indicator. By the time
+     time-variance shows up, you've already wasted a third of the plan.
