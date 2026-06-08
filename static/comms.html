@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Comms Hub · Murphy</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <script src="/static/components/murphy-readout.js"></script>
+  <style>
+    body { background:#0a0f14; color:#cfe1ec; font-family:-apple-system,BlinkMacSystemFont,sans-serif;
+           margin:0; padding:0; }
+    header { background:#0e1820; border-bottom:1px solid #1f2a35; padding:14px 24px;
+             display:flex; justify-content:space-between; align-items:center; }
+    header h1 { margin:0; font-size:18px; color:#5ee0c4; }
+    .back { color:#7aafd1; text-decoration:none; font-size:13px; }
+    main { padding:24px; max-width:1400px; margin:0 auto; }
+    .tabs { display:flex; gap:4px; margin-bottom:16px; border-bottom:1px solid #1f2a35; }
+    .tab { padding:8px 14px; cursor:pointer; color:#a8c0d0; font-size:13px;
+           border-bottom:2px solid transparent; user-select:none; }
+    .tab.active { color:#5ee0c4; border-bottom-color:#5ee0c4; }
+    .panel { display:none; }
+    .panel.active { display:block; }
+    .row { background:#0e1820; border:1px solid #1f2a35; border-radius:6px;
+           padding:10px 12px; margin-bottom:6px; font-size:13px; cursor:pointer; }
+    .row:hover { border-color:#5ee0c4; }
+    .row .who { color:#5ee0c4; font-size:12px; }
+    .row .what { color:#cfe1ec; margin-top:4px; }
+    .row .when { color:#789; font-size:11px; }
+    .loading { color:#789; font-style:italic; padding:20px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>💬 Comms Hub</h1>
+    <a class="back" href="/os">← Back to OS</a>
+  </header>
+  <main>
+    <div class="tabs">
+      <span class="tab active" data-tab="inbox">📥 Email inbox</span>
+      <span class="tab" data-tab="outbox">📤 Email outbox</span>
+      <span class="tab" data-tab="video">🎥 Video sessions</span>
+      <span class="tab" data-tab="matrix">💬 Matrix rooms</span>
+    </div>
+    <div id="panel-inbox"  class="panel active"><div class="loading">Loading inbox…</div></div>
+    <div id="panel-outbox" class="panel"><div class="loading">Loading outbox…</div></div>
+    <div id="panel-video"  class="panel"><div class="loading">Loading video sessions…</div></div>
+    <div id="panel-matrix" class="panel"><div class="loading">Loading Matrix rooms…</div></div>
+    <div id="readout" style="margin-top:20px"></div>
+  </main>
+
+  <script>
+    const ENDPOINTS = {
+      inbox:  '/api/comms/email/inbox',
+      outbox: '/api/comms/email/outbox',
+      video:  '/api/comms/video/sessions',
+      matrix: '/api/matrix/chat/rooms',
+    };
+    const loaded = {};
+
+    document.querySelectorAll('.tab').forEach(t => {
+      t.addEventListener('click', () => {
+        const tab = t.getAttribute('data-tab');
+        document.querySelectorAll('.tab').forEach(n => n.classList.remove('active'));
+        document.querySelectorAll('.panel').forEach(n => n.classList.remove('active'));
+        t.classList.add('active');
+        document.getElementById('panel-' + tab).classList.add('active');
+        if (!loaded[tab]) loadPanel(tab);
+      });
+    });
+
+    async function loadPanel(tab) {
+      loaded[tab] = true;
+      const el = document.getElementById('panel-' + tab);
+      try {
+        const r = await fetch(ENDPOINTS[tab], { credentials: 'include' });
+        const j = await r.json();
+        const items = j.items || j.messages || j.sessions || j.rooms || j.results || [];
+        if (!items.length) {
+          el.innerHTML = '<div class="loading">No items.</div>';
+          return;
+        }
+        el.innerHTML = items.slice(0, 100).map(it =>
+          '<div class="row" onclick="showReadout(\'' + escape(it.id || it.result_id || 'preview') + '\')">' +
+            '<div class="who">' + escape(it.from || it.to || it.host || it.room || '(unknown)') + '</div>' +
+            '<div class="what">' + escape((it.subject || it.title || it.topic || it.text || '').slice(0,140)) + '</div>' +
+            '<div class="when">' + escape(it.timestamp || it.created_at || it.when || '') + '</div>' +
+          '</div>'
+        ).join('');
+      } catch (e) {
+        el.innerHTML = '<div class="loading">Could not load.</div>';
+      }
+    }
+
+    function showReadout(rid) {
+      const out = document.getElementById('readout');
+      out.innerHTML = '<murphy-readout result-id="' + escape(rid) + '" expanded="1"></murphy-readout>';
+    }
+
+    function escape(s) {
+      if (s == null) return '';
+      return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    loadPanel('inbox');
+  </script>
+</body>
+</html>

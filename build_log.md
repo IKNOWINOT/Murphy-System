@@ -2024,3 +2024,45 @@ New lessons:
        per-handler owner check is redundant but harmless
 
 Progress: 3.5/6 phases complete. ~2.5 sessions remaining.
+
+## PCR-020b — Phase 4b (UI Pages + Wiring) — 2026-06-08
+
+What shipped:
+- 5 new HTML pages live at: /health-os, /marketplace, /comms, /developers, /roi-calendar
+  - System Health: probes 20 subsystem health endpoints, refreshes every 30s
+  - Marketplace: browses /api/marketplace/agents + categories
+  - Comms Hub: tabbed view of email inbox/outbox + video sessions + Matrix rooms
+  - Developers: API entry points + live-embedded OpenAPI spec
+  - ROI Calendar: 30-day event timeline with click-to-readout
+- 4 of 6 additional UI label translations (the qaAction tile labels)
+- Patcher: scripts/pcr020b_patch_app.py
+- Verifier: scripts/phase4b_check.py
+
+Honest disclosures:
+- 4 of 6 translations applied (not 6/6). The other 2 use markup patterns
+  my regex didn't catch. Not pushed without seeing the render.
+- 0 dead nav hrefs killed (Section A5). Reason: /workshop, /workspace,
+  /chain were never referenced as href= in murphy-os.html — they only
+  existed as routes that 404'd. So the "nav kill" target was already
+  empty. The Phase 1 audit found them as 404 routes, but Phase 4 had
+  nothing to remove from UI.
+
+Snapshot: state_snapshots/PCR-020b_pre/ (app.py, murphy-os.html restorable).
+
+Verifier output:
+  ✓ 5 new HTML files present and sized correctly
+  ✓ murphy-os.html still includes readout component
+  ✓ /health-os, /comms, /developers, /roi-calendar, /marketplace all 200
+  ✓ All 6 canonical surfaces still healthy
+  PASS
+
+Operating rules held (all 10 + L33 + L34):
+  Verifier PASS before commit ✓
+  Snapshot before patching ✓
+  Tight security sweep clean ✓
+  No set -e in heredocs ✓
+  Real UA + retry-once on probes ✓
+  Correct unit name this time (L33 lesson applied) ✓
+
+Progress: 4/6 phases complete. ~2 sessions to FINAL SHAPE OF COMPLETE.
+Next: Phase 5 — Canvas Linking (mount /canvas route, consolidate two canvas surfaces).

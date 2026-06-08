@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>System Health · Murphy</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <script src="/static/components/murphy-readout.js"></script>
+  <style>
+    body { background:#0a0f14; color:#cfe1ec; font-family:-apple-system,BlinkMacSystemFont,sans-serif;
+           margin:0; padding:0; }
+    header { background:#0e1820; border-bottom:1px solid #1f2a35; padding:14px 24px;
+             display:flex; justify-content:space-between; align-items:center; }
+    header h1 { margin:0; font-size:18px; color:#5ee0c4; }
+    .back { color:#7aafd1; text-decoration:none; font-size:13px; }
+    main { padding:24px; max-width:1200px; margin:0 auto; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:14px;
+            margin-top:20px; }
+    .tile { background:#0e1820; border:1px solid #1f2a35; border-radius:8px; padding:14px; }
+    .tile .name { font-size:11px; color:#789; text-transform:uppercase; letter-spacing:1px; }
+    .tile .status { font-size:20px; font-weight:600; margin-top:4px; }
+    .tile.ok .status { color:#5ee0c4; }
+    .tile.warn .status { color:#ffd166; }
+    .tile.bad .status { color:#ff7a7a; }
+    .tile .path { font-size:11px; color:#5a7080; margin-top:6px; font-family:ui-monospace,monospace; }
+    .loading { color:#789; font-style:italic; padding:20px; }
+    .summary { color:#789; font-size:13px; margin-top:8px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🩺 System Health</h1>
+    <a class="back" href="/os">← Back to OS</a>
+  </header>
+  <main>
+    <div class="summary">
+      Aggregated view of every subsystem's health endpoint. Tiles update
+      every 30 seconds. Click a tile to see the raw response.
+    </div>
+    <div id="grid" class="grid">
+      <div class="loading">Probing subsystems…</div>
+    </div>
+    <div id="readout" style="margin-top:20px"></div>
+  </main>
+
+  <script>
+    // Endpoints we probe. Order roughly by importance.
+    const ENDPOINTS = [
+      { name: "Edge / Identity",   path: "/api/system/health" },
+      { name: "Conductor",         path: "/api/conductor/healthz" },
+      { name: "Public stats",      path: "/api/public/stats" },
+      { name: "Audit",             path: "/api/audit/health" },
+      { name: "Bus",               path: "/api/bus/status" },
+      { name: "Brain",             path: "/api/brain/status" },
+      { name: "Vault",             path: "/api/vault/health" },
+      { name: "Phone",             path: "/api/phone/health" },
+      { name: "Identity (legacy)", path: "/api/identity/health" },
+      { name: "Self-repair",       path: "/api/self-fix/status" },
+      { name: "Internal",          path: "/api/internal/health" },
+      { name: "Client solutions",  path: "/api/client-solutions/health" },
+      { name: "Gate synthesis",    path: "/api/gate-synthesis/health" },
+      { name: "Ledger",            path: "/api/ledger/status" },
+      { name: "PCC",               path: "/api/pcc/status" },
+      { name: "Rosetta",           path: "/api/rosetta/status" },
+      { name: "Trading (paper)",   path: "/api/trading/paper/status" },
+      { name: "Trading (risk)",    path: "/api/trading/risk/assessment" },
+      { name: "Crypto",            path: "/api/crypto/status" },
+      { name: "Swarm mind",        path: "/api/swarm/mind/status" },
+    ];
+
+    async function probe(ep) {
+      try {
+        const r = await fetch(ep.path, { credentials: 'include' });
+        return { ...ep, status: r.status, ok: r.status === 200 };
+      } catch (e) {
+        return { ...ep, status: 0, ok: false };
+      }
+    }
+
+    function tileClass(s) {
+      if (s.ok) return 'tile ok';
+      if (s.status === 401 || s.status === 403) return 'tile warn';
+      return 'tile bad';
+    }
+    function tileStatus(s) {
+      if (s.ok) return 'OK';
+      if (s.status === 401 || s.status === 403) return 'Auth';
+      if (s.status === 0) return '???';
+      return String(s.status);
+    }
+
+    async function refresh() {
+      const grid = document.getElementById('grid');
+      const results = await Promise.all(ENDPOINTS.map(probe));
+      grid.innerHTML = results.map(s =>
+        '<div class="' + tileClass(s) + '" onclick="showReadout(\'' + s.path + '\')">' +
+          '<div class="name">' + s.name + '</div>' +
+          '<div class="status">' + tileStatus(s) + '</div>' +
+          '<div class="path">' + s.path + '</div>' +
+        '</div>'
+      ).join('');
+    }
+
+    async function showReadout(path) {
+      const out = document.getElementById('readout');
+      try {
+        const r = await fetch(path, { credentials: 'include' });
+        const txt = await r.text();
+        out.innerHTML = '<murphy-readout result-id="preview" expanded="1"></murphy-readout>' +
+                        '<div style="background:#0a141c;padding:10px;border-radius:6px;font-family:ui-monospace,monospace;font-size:11px;color:#9bb;white-space:pre-wrap;max-height:240px;overflow:auto;margin-top:8px">' +
+                        '<div style="color:#789;text-transform:uppercase;font-size:10px;letter-spacing:1px;margin-bottom:4px">Raw response · ' + path + '</div>' +
+                        txt.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])) +
+                        '</div>';
+      } catch (e) {
+        out.innerHTML = '<div style="color:#ff7a7a">Could not fetch ' + path + '</div>';
+      }
+    }
+
+    refresh();
+    setInterval(refresh, 30000);
+  </script>
+</body>
+</html>

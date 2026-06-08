@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>ROI Calendar · Murphy</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <script src="/static/components/murphy-readout.js"></script>
+  <style>
+    body { background:#0a0f14; color:#cfe1ec; font-family:-apple-system,BlinkMacSystemFont,sans-serif;
+           margin:0; padding:0; }
+    header { background:#0e1820; border-bottom:1px solid #1f2a35; padding:14px 24px;
+             display:flex; justify-content:space-between; align-items:center; }
+    header h1 { margin:0; font-size:18px; color:#5ee0c4; }
+    .back { color:#7aafd1; text-decoration:none; font-size:13px; }
+    main { padding:24px; max-width:1200px; margin:0 auto; }
+    .summary { color:#789; font-size:13px; margin-bottom:14px; }
+    .totals { display:flex; gap:14px; margin-bottom:20px; }
+    .total { background:#0e1820; border:1px solid #1f2a35; border-radius:8px;
+             padding:14px 18px; flex:1; }
+    .total .label { font-size:11px; color:#789; text-transform:uppercase; letter-spacing:1px; }
+    .total .value { font-size:24px; color:#5ee0c4; font-weight:600; margin-top:4px; }
+    .timeline { background:#0e1820; border:1px solid #1f2a35; border-radius:8px; padding:14px; }
+    .event { display:flex; justify-content:space-between; padding:10px 8px;
+             border-bottom:1px solid #1a2530; font-size:13px; cursor:pointer; }
+    .event:last-child { border-bottom:none; }
+    .event:hover { background:#0a141c; }
+    .event .title { color:#cfe1ec; }
+    .event .roi { color:#5ee0c4; font-weight:600; }
+    .event .roi.negative { color:#ff7a7a; }
+    .event .when { color:#789; font-size:11px; }
+    .loading { color:#789; font-style:italic; padding:20px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>📅 ROI Calendar</h1>
+    <a class="back" href="/os">← Back to OS</a>
+  </header>
+  <main>
+    <div class="summary">
+      Every cost-or-revenue event Murphy attributed in the last 30 days,
+      ranked by net impact.
+    </div>
+    <div id="totals" class="totals">
+      <div class="total"><div class="label">Total events</div><div class="value" id="t-count">—</div></div>
+      <div class="total"><div class="label">Net ROI ($)</div><div class="value" id="t-roi">—</div></div>
+      <div class="total"><div class="label">Top event</div><div class="value" id="t-top" style="font-size:14px">—</div></div>
+    </div>
+    <div id="timeline" class="timeline"><div class="loading">Loading events…</div></div>
+    <div id="readout" style="margin-top:20px"></div>
+  </main>
+
+  <script>
+    async function load() {
+      const tl = document.getElementById('timeline');
+      try {
+        const r = await fetch('/api/roi-calendar/events', { credentials: 'include' });
+        const j = await r.json();
+        const events = (j.events || j.items || []).slice(0, 200);
+        const totalROI = events.reduce((s, e) => s + (Number(e.roi) || 0), 0);
+        const top = [...events].sort((a,b) => (Number(b.roi)||0) - (Number(a.roi)||0))[0];
+
+        document.getElementById('t-count').textContent = events.length;
+        document.getElementById('t-roi').textContent = '$' + totalROI.toFixed(0);
+        document.getElementById('t-top').textContent = top ? (top.title || top.event_id || '—').slice(0,30) : '—';
+
+        if (!events.length) {
+          tl.innerHTML = '<div class="loading">No events in the last 30 days.</div>';
+          return;
+        }
+        tl.innerHTML = events.map(e => {
+          const roi = Number(e.roi) || 0;
+          return '<div class="event" onclick="showReadout(\'' + escape(e.result_id || e.event_id || 'preview') + '\')">' +
+            '<div>' +
+              '<div class="title">' + escape((e.title || e.action_name || 'event').slice(0,80)) + '</div>' +
+              '<div class="when">' + escape(e.timestamp || e.when || '') + '</div>' +
+            '</div>' +
+            '<div class="roi ' + (roi < 0 ? 'negative' : '') + '">$' + roi.toFixed(0) + '</div>' +
+          '</div>';
+        }).join('');
+      } catch (e) {
+        tl.innerHTML = '<div class="loading">Could not load events.</div>';
+      }
+    }
+
+    function showReadout(rid) {
+      const out = document.getElementById('readout');
+      out.innerHTML = '<murphy-readout result-id="' + escape(rid) + '" expanded="1"></murphy-readout>';
+    }
+
+    function escape(s) {
+      if (s == null) return '';
+      return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    load();
+  </script>
+</body>
+</html>

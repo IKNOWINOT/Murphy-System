@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Marketplace · Murphy</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <script src="/static/components/murphy-readout.js"></script>
+  <style>
+    body { background:#0a0f14; color:#cfe1ec; font-family:-apple-system,BlinkMacSystemFont,sans-serif;
+           margin:0; padding:0; }
+    header { background:#0e1820; border-bottom:1px solid #1f2a35; padding:14px 24px;
+             display:flex; justify-content:space-between; align-items:center; }
+    header h1 { margin:0; font-size:18px; color:#5ee0c4; }
+    .back { color:#7aafd1; text-decoration:none; font-size:13px; }
+    main { padding:24px; max-width:1200px; margin:0 auto; }
+    .summary { color:#789; font-size:13px; margin-bottom:14px; }
+    .row { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px; }
+    .cat { background:#0e1820; border:1px solid #1f2a35; border-radius:18px; padding:6px 14px;
+           font-size:12px; cursor:pointer; user-select:none; }
+    .cat.active { border-color:#5ee0c4; color:#5ee0c4; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:14px; }
+    .agent { background:#0e1820; border:1px solid #1f2a35; border-radius:8px; padding:14px; }
+    .agent h3 { margin:0 0 6px 0; font-size:15px; color:#5ee0c4; }
+    .agent .desc { font-size:12px; color:#a8c0d0; line-height:1.4; }
+    .agent .meta { display:flex; justify-content:space-between; margin-top:10px;
+                   font-size:11px; color:#789; }
+    .loading { color:#789; font-style:italic; padding:20px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🛒 Marketplace</h1>
+    <a class="back" href="/os">← Back to OS</a>
+  </header>
+  <main>
+    <div class="summary">
+      Browse pre-built agents and capabilities. Click any tile for details.
+    </div>
+    <div id="categories" class="row"><div class="loading">Loading categories…</div></div>
+    <div id="agents" class="grid"><div class="loading">Loading agents…</div></div>
+    <div id="readout" style="margin-top:20px"></div>
+  </main>
+
+  <script>
+    let currentCat = null;
+
+    async function loadCategories() {
+      const el = document.getElementById('categories');
+      try {
+        const r = await fetch('/api/marketplace/categories', { credentials: 'include' });
+        const j = await r.json();
+        const cats = (j.categories || j.items || []).map(c => typeof c === 'string' ? c : (c.name || c.category || c.id));
+        el.innerHTML = '<span class="cat active" data-c="">All</span>' +
+                       cats.map(c => '<span class="cat" data-c="' + escape(c) + '">' + escape(c) + '</span>').join('');
+        el.querySelectorAll('.cat').forEach(node => {
+          node.addEventListener('click', () => {
+            el.querySelectorAll('.cat').forEach(n => n.classList.remove('active'));
+            node.classList.add('active');
+            currentCat = node.getAttribute('data-c') || null;
+            loadAgents();
+          });
+        });
+      } catch (e) {
+        el.innerHTML = '<div class="loading">Could not load categories.</div>';
+      }
+    }
+
+    async function loadAgents() {
+      const el = document.getElementById('agents');
+      el.innerHTML = '<div class="loading">Loading…</div>';
+      try {
+        const url = currentCat ? '/api/marketplace/agents?category=' + encodeURIComponent(currentCat)
+                               : '/api/marketplace/agents';
+        const r = await fetch(url, { credentials: 'include' });
+        const j = await r.json();
+        const list = j.agents || j.items || j.results || [];
+        if (!list.length) {
+          el.innerHTML = '<div class="loading">No agents in this category yet.</div>';
+          return;
+        }
+        el.innerHTML = list.map(a =>
+          '<div class="agent">' +
+            '<h3>' + escape(a.name || a.title || a.id || 'Agent') + '</h3>' +
+            '<div class="desc">' + escape(a.description || a.summary || '(no description)') + '</div>' +
+            '<div class="meta">' +
+              '<span>' + escape(a.category || '') + '</span>' +
+              '<span>' + escape(a.tier || a.price || '') + '</span>' +
+            '</div>' +
+          '</div>'
+        ).join('');
+      } catch (e) {
+        el.innerHTML = '<div class="loading">Could not load agents.</div>';
+      }
+    }
+
+    function escape(s) {
+      if (s == null) return '';
+      return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    loadCategories();
+    loadAgents();
+  </script>
+</body>
+</html>

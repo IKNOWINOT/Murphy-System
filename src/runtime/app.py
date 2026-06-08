@@ -1732,6 +1732,32 @@ def create_app() -> FastAPI:
         except Exception as e:
             return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
+        # === PCR-020b BEGIN phase 4b routes ===
+    @app.get("/health-os", include_in_schema=False)
+    async def _pcr020b_health_page():
+        """System Health aggregated view (PCR-020b)."""
+        from fastapi.responses import FileResponse as _FR
+        return _FR("/opt/Murphy-System/static/health.html", media_type="text/html")
+
+    @app.get("/comms", include_in_schema=False)
+    async def _pcr020b_comms_page():
+        """Comms Hub: email + video + matrix (PCR-020b)."""
+        from fastapi.responses import FileResponse as _FR
+        return _FR("/opt/Murphy-System/static/comms.html", media_type="text/html")
+
+    @app.get("/developers", include_in_schema=False)
+    async def _pcr020b_developers_page():
+        """Developers: API surface + OpenAPI (PCR-020b)."""
+        from fastapi.responses import FileResponse as _FR
+        return _FR("/opt/Murphy-System/static/developers.html", media_type="text/html")
+
+    @app.get("/roi-calendar", include_in_schema=False)
+    async def _pcr020b_roi_calendar_page():
+        """ROI Calendar: event-level ROI (PCR-020b)."""
+        from fastapi.responses import FileResponse as _FR
+        return _FR("/opt/Murphy-System/static/roi-calendar.html", media_type="text/html")
+    # === PCR-020b END phase 4b routes ===
+
     @app.get("/marketplace", include_in_schema=False)
     async def r444_marketplace_page():
         """Public: marketplace browser page."""

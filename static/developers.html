@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Developers · Murphy</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    body { background:#0a0f14; color:#cfe1ec; font-family:-apple-system,BlinkMacSystemFont,sans-serif;
+           margin:0; padding:0; }
+    header { background:#0e1820; border-bottom:1px solid #1f2a35; padding:14px 24px;
+             display:flex; justify-content:space-between; align-items:center; }
+    header h1 { margin:0; font-size:18px; color:#5ee0c4; }
+    .back { color:#7aafd1; text-decoration:none; font-size:13px; }
+    main { padding:24px; max-width:1200px; margin:0 auto; }
+    .summary { color:#789; font-size:13px; margin-bottom:18px; }
+    .links { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
+             gap:10px; margin-bottom:20px; }
+    .link { background:#0e1820; border:1px solid #1f2a35; border-radius:6px;
+            padding:10px 12px; font-size:13px; text-decoration:none; color:#7aafd1; }
+    .link:hover { border-color:#5ee0c4; color:#5ee0c4; }
+    .link .label { color:#789; font-size:11px; text-transform:uppercase; letter-spacing:1px; }
+    pre { background:#0a141c; border:1px solid #1f2a35; border-radius:6px; padding:14px;
+          font-family:ui-monospace,monospace; font-size:11px; color:#9bb;
+          overflow:auto; max-height:600px; white-space:pre-wrap; }
+    .loading { color:#789; font-style:italic; padding:20px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🛠️ Developers</h1>
+    <a class="back" href="/os">← Back to OS</a>
+  </header>
+  <main>
+    <div class="summary">
+      Public API surface, OpenAPI spec, and integration entry points.
+    </div>
+    <div class="links">
+      <a class="link" href="/api/v1/ping" target="_blank">
+        <div class="label">Health</div>
+        GET /api/v1/ping
+      </a>
+      <a class="link" href="/api/v1/openapi.json" target="_blank">
+        <div class="label">OpenAPI</div>
+        GET /api/v1/openapi.json
+      </a>
+      <a class="link" href="/api/v1/docs" target="_blank">
+        <div class="label">Docs</div>
+        GET /api/v1/docs
+      </a>
+      <a class="link" href="/api/public/stats" target="_blank">
+        <div class="label">Public stats</div>
+        GET /api/public/stats
+      </a>
+      <a class="link" href="/api/conductor/healthz" target="_blank">
+        <div class="label">Conductor</div>
+        GET /api/conductor/healthz
+      </a>
+      <a class="link" href="/api/system/health" target="_blank">
+        <div class="label">System health</div>
+        GET /api/system/health
+      </a>
+    </div>
+
+    <h2 style="color:#5ee0c4;font-size:14px;margin-top:30px">OpenAPI spec (live)</h2>
+    <pre id="openapi"><div class="loading">Loading…</div></pre>
+  </main>
+
+  <script>
+    (async function() {
+      const el = document.getElementById('openapi');
+      try {
+        const r = await fetch('/api/v1/openapi.json');
+        const j = await r.json();
+        el.textContent = JSON.stringify(j, null, 2);
+      } catch (e) {
+        el.textContent = 'Could not load /api/v1/openapi.json';
+      }
+    })();
+  </script>
+</body>
+</html>
