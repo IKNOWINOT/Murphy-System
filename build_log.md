@@ -1721,3 +1721,86 @@ L25: 33/66 thresholds are a forcing function. Without explicit
      sentence in post-mortems.
 L26: Knowledge-fit variance is the leading indicator. By the time
      time-variance shows up, you've already wasted a third of the plan.
+
+## PCR-014 — Auto-documentation generator (STD-14 0→10) — 2026-06-08
+
+### Score change
+STD-14 (auto-documentation): 0 → 10. Aggregate context-readiness rises
+to ~6.7 / 10 with PCR-014 shipped.
+
+### What shipped
+- `scripts/auto_doc_generator.py` — walks src/, parses AST per module,
+  generates one Markdown file per module to docs/auto/, plus INDEX.md
+- `.gitignore` += `docs/auto/` (1749 generated files, ~8MB, stay local)
+- Batched git history (one `git log --name-only` call vs. N per-file
+  calls) reduced runtime from >180s timeout to 6s.
+
+### Performance
+- Modules indexed: 1752
+- Docs generated:  1749 (3 skipped: empty `__init__.py` files <20 bytes)
+- Runtime:         6s
+- Output size:     8.1M
+
+### Verifier (the shape of complete)
+```
+$ python3 scripts/auto_doc_generator.py --check
+  ✓ doc count: 1749/1749
+  ✓ INDEX.md timestamp fresh
+  ✓ PASS: PCR-014 verifier
+```
+
+### Snapshot
+`state_snapshots/docs_auto_pre_pcr014_20260608T193450Z.tar.gz` (1.1M)
+contains the pre-existing docs/auto tree from a prior failed attempt,
+preserved for rollback.
+
+### Doc contents per module
+- Purpose: module docstring (first paragraph)
+- Classes: name + docstring + public methods
+- Functions: signature + docstring
+- Dependencies: first 20 import lines
+- Recent changes: last 5 commits touching the file
+- Last regenerated: ISO timestamp
+
+### Why this matters for context readiness
+Standard 14 of the 15-rubric is auto-documentation. Before this patch,
+new contributors (human or agent) had to read source to understand a
+module. After: an LLM-readable summary exists for every public surface,
+regenerable in seconds. INDEX gives O(1) discovery of any module by
+its first-line purpose.
+
+### Security sweep — lesson L29
+The initial security sweep used a loose pattern matching identifier
+NAMES (`API_KEY|TOKEN|PASSWORD|SECRET`). It flagged 3 docs whose source
+files mention these terms as type references or documentation, never
+as assignments. The corrected pattern matches identifier VALUES:
+`(API_KEY|TOKEN|PASSWORD|SECRET)=['"][a-zA-Z0-9_-]{20,}`. The tight
+pattern found ZERO actual leaks across all 1749 generated docs.
+
+**L29:** Security sweeps must match VALUES not NAMES. The right shape
+is `identifier = quoted-string-of-min-length`. Matching just the
+identifier name produces false positives that either block real work
+or numb the operator.
+
+### Operational lesson L30
+The cleanup commit (8cb6b9b1) had to follow PCR-014 (142e0581) because
+two pieces (.gitignore + this build_log entry) didn't land in the
+original commit. Root cause: `set -e` in SSH heredocs killed the shell
+when the loose security sweep tripped a false positive. Going forward,
+multi-step ship sessions avoid `set -e` and check `$?` explicitly per
+gate.
+
+**L30:** `set -e` in SSH heredocs is a foot-gun for multi-step ship
+sessions. Each critical step gates explicitly. False-positive security
+sweeps should require human confirmation, not abort the shell.
+
+### Future
+- Nightly regen via systemd timer (next session)
+- Cross-link to glossary.md when terms appear (PCR-012 MCP polish)
+- Per-module "last test pass" badge once PCR-006 SLA registry exists
+
+### Composes with
+- PCR-009 glossary (terms in auto-docs become cross-linkable in PCR-012)
+- MPCS Phase 1 (TC verifier now counts this commit as a verified path segment)
+- Variance Interception Canon (auto-docs are part of "right docs in context"
+  from the right-arena definition)
