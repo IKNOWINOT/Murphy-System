@@ -545,8 +545,88 @@
   }
   .toast.show { opacity: 1; transform: translateY(0); }
 </style>
+<script src="/static/components/murphy-readout.js"></script>
 </head>
 <body>
+
+<!-- === PCR-021 BEGIN canvas attachments === -->
+<div id="canvas-attachments" style="position:fixed;right:14px;top:60px;width:340px;max-height:80vh;overflow:auto;background:rgba(11,17,24,.96);border:1px solid #2a2a2a;border-radius:10px;padding:12px;z-index:50;display:none;box-shadow:0 4px 30px rgba(0,0,0,.55);">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+    <div style="color:#ff5a00;font-size:12px;text-transform:uppercase;letter-spacing:1px;font-weight:600;">Attached Results</div>
+    <div>
+      <button onclick="canvasCompareSelected()" style="background:none;border:1px solid #2a2a2a;color:#7aa2f7;font-size:11px;padding:3px 8px;border-radius:4px;cursor:pointer;margin-right:4px;">Compare</button>
+      <button onclick="canvasToggleAttachments()" style="background:none;border:none;color:#6b7787;font-size:18px;cursor:pointer;">×</button>
+    </div>
+  </div>
+  <div id="canvas-attachments-list" style="display:flex;flex-direction:column;gap:6px;">
+    <div style="color:#6b7787;font-style:italic;font-size:12px;">No results attached yet.</div>
+  </div>
+  <div id="canvas-compare-pane" style="display:none;margin-top:14px;padding-top:14px;border-top:1px solid #2a2a2a;">
+    <div style="color:#789;font-size:10px;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Compare</div>
+    <div id="canvas-compare-content"></div>
+  </div>
+</div>
+<button id="canvas-attachments-toggle" onclick="canvasToggleAttachments()" style="position:fixed;right:14px;top:14px;background:#181818;border:1px solid #2a2a2a;color:#ff5a00;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px;z-index:51;">📎 Results</button>
+<script>
+  // Canvas attachment API (PCR-021 / Phase 5)
+  window.canvasAttachments = window.canvasAttachments || [];
+
+  function canvasToggleAttachments() {
+    var el = document.getElementById('canvas-attachments');
+    el.style.display = (el.style.display === 'none' || !el.style.display) ? 'block' : 'none';
+  }
+  function canvasAttachResult(resultId, label) {
+    if (window.canvasAttachments.some(a => a.id === resultId)) return;
+    window.canvasAttachments.push({ id: resultId, label: label || resultId });
+    canvasRenderAttachments();
+  }
+  function canvasRemoveResult(resultId) {
+    window.canvasAttachments = window.canvasAttachments.filter(a => a.id !== resultId);
+    canvasRenderAttachments();
+  }
+  function canvasRenderAttachments() {
+    var list = document.getElementById('canvas-attachments-list');
+    if (!window.canvasAttachments.length) {
+      list.innerHTML = '<div style="color:#6b7787;font-style:italic;font-size:12px;">No results attached yet.</div>';
+      return;
+    }
+    list.innerHTML = window.canvasAttachments.map(a =>
+      '<div style="position:relative;">' +
+        '<murphy-readout result-id="' + a.id.replace(/[&<>"']/g, '') + '"></murphy-readout>' +
+        '<button onclick="canvasRemoveResult(\'' + a.id.replace(/[&<>"\']/g, '') + '\')" ' +
+        'style="position:absolute;top:6px;right:6px;background:none;border:none;color:#6b7787;cursor:pointer;font-size:14px;">×</button>' +
+      '</div>'
+    ).join('');
+  }
+  function canvasCompareSelected() {
+    var pane = document.getElementById('canvas-compare-pane');
+    var content = document.getElementById('canvas-compare-content');
+    if (window.canvasAttachments.length < 2) {
+      pane.style.display = 'block';
+      content.innerHTML = '<div style="color:#f0b86e;font-size:12px;">Need at least 2 attached results to compare.</div>';
+      return;
+    }
+    pane.style.display = 'block';
+    var pair = window.canvasAttachments.slice(0, 2);
+    content.innerHTML =
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
+        '<div><div style="color:#789;font-size:10px;margin-bottom:4px;">A</div>' +
+          '<murphy-readout result-id="' + pair[0].id.replace(/[&<>"']/g, '') + '" expanded="1"></murphy-readout></div>' +
+        '<div><div style="color:#789;font-size:10px;margin-bottom:4px;">B</div>' +
+          '<murphy-readout result-id="' + pair[1].id.replace(/[&<>"']/g, '') + '" expanded="1"></murphy-readout></div>' +
+      '</div>';
+  }
+  // Demo: attach the preview readout once on load so the panel isn't empty
+  // in dev. Real attaches will come from user actions (drag-drop or button click).
+  document.addEventListener('DOMContentLoaded', function() {
+    if (window.location.search.indexOf('demo=1') !== -1) {
+      canvasAttachResult('preview', 'Demo readout');
+      canvasToggleAttachments();
+    }
+  });
+</script>
+<!-- === PCR-021 END canvas attachments === -->
+
 
 <!-- TOP BAR -->
 <div class="topbar">

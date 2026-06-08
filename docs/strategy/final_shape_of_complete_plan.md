@@ -347,7 +347,7 @@ Mitigation: each phase's commit updates THIS doc with a status row
 | 2 — Backend Function Catalog | ✓ shipped | (this commit) | PASS — see commit |
 | 3 — Gap Map + Closure | ✓ shipped | (this commit) | PASS — see commit |
 | 4a — Drill-Down Foundation | ✓ shipped | (this commit) | schema + component + route + 6 of 12 translations |
-| 5 — Canvas Linking | ⏳ pending | — | — |
+| 5 — Canvas Linking | ✓ shipped | (this commit) | PASS — /canvas mounted, r427 deprecated |
 | 6 — Bottleneck + HITL | ⏳ pending | — | — |
 
 Updated at the end of each phase's session.

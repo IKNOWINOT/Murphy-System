@@ -2066,3 +2066,49 @@ Operating rules held (all 10 + L33 + L34):
 
 Progress: 4/6 phases complete. ~2 sessions to FINAL SHAPE OF COMPLETE.
 Next: Phase 5 — Canvas Linking (mount /canvas route, consolidate two canvas surfaces).
+
+## PCR-021 — Phase 5 of Final Shape of Complete (Canvas Linking) — 2026-06-08
+
+What shipped:
+- /canvas route mounted (was 404; now serves murphy-work-canvas.html)
+- murphy-work-canvas.html: <murphy-readout> script tag added + new
+  "Attached Results" sidebar with Compare action
+- r427_op_canvas.html: deprecation sentinel comment added (file kept
+  for git history, not deleted)
+- Patcher: scripts/pcr021_patch_canvas.py (idempotent, marker-based)
+- Verifier: scripts/phase5_check.py
+
+Snapshot: state_snapshots/PCR-021_pre/ — app.py, murphy-work-canvas.html,
+r427_op_canvas.html all restorable.
+
+Verifier output:
+  ✓ work-canvas readout script tag
+  ✓ work-canvas PCR-021 attachments block
+  ✓ r427 deprecation sentinel
+  ✓ /canvas: 200 (was 404)
+  ✓ all canonical surfaces still 200
+  ✓ all Phase 4b pages still 200
+  ✓ /api/canvas/* still 401 (Phase 3 finding confirmed)
+  PASS
+
+Canvas attachments API (JS, in work-canvas):
+  window.canvasAttachResult(resultId, label)  — attach a result
+  window.canvasRemoveResult(resultId)          — remove
+  window.canvasCompareSelected()               — side-by-side first 2
+  window.canvasToggleAttachments()             — open/close sidebar
+  ?demo=1 query param attaches preview readout on load (for testing)
+
+Each attached result renders as a <murphy-readout> tile reading from
+/api/provenance/<result_id> (the route shipped in Phase 4a).
+
+Operating rules held (all 10 + L33 + L34):
+  Snapshot before HTML modification (rule #2) ✓
+  Verifier PASS before commit (L32) ✓
+  Tight security sweep clean (L29) ✓
+  No set -e in heredocs (L30) ✓
+  Real UA + retry-once on probes (L31) ✓
+  Correct unit name (L33) ✓
+
+Progress: 5/6 phases complete. 1 session to FINAL SHAPE OF COMPLETE.
+Next: Phase 6 — Bottleneck Monitor + HITL (fixes /api/auth/verify-email 500
+      as the first HITL-gated action).

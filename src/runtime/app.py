@@ -1758,6 +1758,20 @@ def create_app() -> FastAPI:
         return _FR("/opt/Murphy-System/static/roi-calendar.html", media_type="text/html")
     # === PCR-020b END phase 4b routes ===
 
+        # === PCR-021 BEGIN canvas route ===
+    @app.get("/canvas", include_in_schema=False)
+    async def _pcr021_canvas_page():
+        """
+        Live Work Canvas (PCR-021 / Phase 5).
+        Mounts the existing murphy-work-canvas.html as the canonical
+        canvas surface. r427_op_canvas.html is deprecated (sentinel
+        comment added; file kept for git history).
+        """
+        from fastapi.responses import FileResponse as _FR
+        return _FR("/opt/Murphy-System/static/murphy-work-canvas.html",
+                   media_type="text/html")
+    # === PCR-021 END canvas route ===
+
     @app.get("/marketplace", include_in_schema=False)
     async def r444_marketplace_page():
         """Public: marketplace browser page."""
