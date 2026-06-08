@@ -14536,6 +14536,8 @@ def create_app() -> FastAPI:
     @app.get("/api/auth/verify-email")
     async def auth_verify_email(request: Request, token: str = ""):
         """Verify email address from the link sent during signup."""
+        # === PCR-023 verify-email HTMLResponse fix ===
+        from fastapi.responses import HTMLResponse  # PCR-023 / Phase 6b
         if not token:
             return HTMLResponse(
                 '<html><body style="background:#0a0a0a;color:#ff4444;font-family:sans-serif;'
@@ -28525,6 +28527,55 @@ def create_app() -> FastAPI:
     # === PCR-020 END provenance route ===
 
         # === PCR-022 BEGIN bottleneck flags route ===
+        # === PCR-023 BEGIN canvas hotspots route ===
+    @app.get("/api/canvas/hotspots")
+    async def _pcr023_canvas_hotspots(request: Request):
+        """Bottleneck flags reshaped for canvas consumption. Owner-only."""
+        import json, os
+        from pathlib import Path as _Path
+        _founder_email = os.environ.get("MURPHY_FOUNDER_EMAIL", "cpost@murphy.systems")
+        _caller = None
+        try:
+            _caller = request.headers.get("x-murphy-user")
+        except Exception:
+            pass
+        _is_founder = bool(_caller) and _caller == _founder_email
+        if not _is_founder:
+            try:
+                _host = (request.client.host if request.client else "") or ""
+                _is_founder = _host in ("127.0.0.1", "::1")
+            except Exception:
+                pass
+        if not _is_founder:
+            return JSONResponse({"error": "owner_only"}, status_code=401)
+
+        flags_path = _Path("/var/lib/murphy-production/bottleneck_flags.json")
+        if not flags_path.exists():
+            return JSONResponse({"hotspots": [], "note": "monitor has not yet produced output"})
+        try:
+            with flags_path.open() as f:
+                data = json.load(f)
+            hotspots = []
+            for fl in data.get("flags", []):
+                hotspots.append({
+                    "id": fl.get("flag_id"),
+                    "label": fl.get("flag_id", "flag"),
+                    "kind": fl.get("kind"),
+                    "target": fl.get("target"),
+                    "severity": fl.get("severity"),
+                    "summary": fl.get("rationale", "")[:200],
+                    "result_id": fl.get("flag_id", "preview"),
+                })
+            return JSONResponse({
+                "hotspots": hotspots,
+                "generated_at": data.get("generated_at"),
+                "count": len(hotspots),
+            })
+        except Exception as e:
+            return JSONResponse({"error": "read_failed", "detail": str(e)[:200]},
+                                status_code=500)
+    # === PCR-023 END canvas hotspots route ===
+
     @app.get("/api/bottleneck/flags")
     async def _pcr022_bottleneck_flags(request: Request):
         """

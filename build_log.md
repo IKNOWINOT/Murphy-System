@@ -2171,3 +2171,88 @@ Operating rules held (all 10 + L33 + L34):
 
 Progress: 5.5/6 phases complete. One half-phase to FINAL SHAPE OF COMPLETE.
 Next: Phase 6b — HITL writes + auto-fix matrix + verify-email 500 fix.
+
+## PCR-023 — Phase 6b of Final Shape of Complete (FINAL) — 2026-06-08
+
+**DIRECTIVE COMPLETE: 6/6 phases shipped.**
+
+What shipped:
+- src/bottleneck_hitl_writer.py (167 lines) — flag-to-HITL writer
+  with deterministic hitl_id (idempotent, no duplicate rows)
+- src/auto_fix_matrix.py (153 lines) — classify flags into
+  AUTO_FIX_SAFE vs HITL_REQUIRED with explicit reasoning
+- /api/auth/verify-email FIX: HTMLResponse import added inline
+  (root cause: name 'HTMLResponse' is not defined; matched
+   existing inline-import pattern used 8 other places in app.py)
+- /api/canvas/hotspots route — owner-only, reshapes flags for canvas
+- Canvas overlay JS — polls /api/canvas/hotspots and auto-attaches
+  flags as <murphy-readout> tiles in the sidebar
+- scripts/pcr023_patch_app.py v2 (after v1 failure — see L35)
+- scripts/pcr023_patch_canvas.py
+- scripts/phase6b_check.py (verifier — 18 conditions)
+
+THE FIX (front and center):
+  /api/auth/verify-email
+    BEFORE: GET / GET?token=abc → 500 (NameError: HTMLResponse not defined)
+    AFTER:  GET / GET?token=abc → 400 (correct: missing/invalid token)
+  Root cause from production journalctl:
+    "NameError: name 'HTMLResponse' is not defined"
+  Fix: inline `from fastapi.responses import HTMLResponse` as the first
+  line inside the auth_verify_email function body. This matches the
+  pattern already used in 8 other handlers in the same module.
+
+  Phase 3 ranked this #1 by founder-value. SHIPPED.
+
+L35 LEARNED (recorded in next session's memory):
+  v1 patcher anchored on `from fastapi.responses import JSONResponse`
+  which lives INSIDE a `try:` block at line 1062. The insertion split
+  the try from its except, breaking module compile. Auto-revert worked
+  (rule #2 + L32 held — verifier caught it BEFORE commit).
+  v2 anchored on the verify-email handler header directly. Safer.
+
+OPERATING RULE #6 (HITL queue sacred) HELD:
+  - HITL writer only INSERTs, never UPDATEs/DELETEs
+  - Only writes domain='bottleneck' (own lane, no collision with
+    domain='sales' rows already in queue)
+  - Deterministic hitl_id prevents duplicate rows
+  - Includes full evidence in dag_state_json for human review
+
+Auto-fix matrix self-test (committed alongside code):
+  HIGH_ERROR_auth                   → HITL_REQUIRED   action=patch_code
+  HIGH_ERROR_scheduler              → AUTO_FIX_SAFE   action=restart_unit
+  COST_SPIKE_llm_call               → HITL_REQUIRED   action=do_nothing
+  ROUTE_500_/api/auth/verify-email  → HITL_REQUIRED   action=patch_code
+
+Snapshot: state_snapshots/PCR-023_v2_pre/ — app.py, work-canvas,
+  hitl_queue.db all restorable.
+
+Verifier output (PASS before commit, L32):
+  ✓ 5 files present
+  ✓ Both modules importable
+  ✓ /api/auth/verify-email: 400 (no longer 500)
+  ✓ /api/canvas/hotspots: 401 (registered, owner-gated)
+  ✓ All 11 canonical/page surfaces still 200
+  ✓ /api/provenance/preview, /api/bottleneck/flags still 401
+
+OPERATING RULES HELD (all 10 + L33 + L34 + new L35):
+  Rule #2 snapshot before app.py + canvas + HITL DB ✓
+  Rule #6 HITL queue sacred — INSERT-only, own lane ✓
+  Rule #7 no phantom features — ground truth verified ✓
+  L29 tight security sweep clean ✓
+  L30 no set -e in heredocs ✓
+  L31 real UA + retry-once ✓
+  L32 verifier PASS before commit ✓ (rejected v1, accepted v2)
+  L33 correct unit name ✓
+  L35 (NEW) don't anchor patches inside try/except blocks ✓
+
+DIRECTIVE PROGRESS: 6/6 ✓ FINAL SHAPE OF COMPLETE
+
+Phase summary:
+  1. UI Surface Audit       ✓ 20058e89 + 9410424b
+  2. Backend Catalog        ✓ 71c82320
+  3. Gap Map + Closure      ✓ 774a51d7
+  4a. Provenance Foundation ✓ 684c5aa0
+  4b. UI Pages + Wiring     ✓ d6c28d37
+  5. Canvas Linking         ✓ 92cae91f
+  6a. Bottleneck Monitor    ✓ 77f69d7c
+  6b. HITL + Auto-fix + Fix ✓ (this commit) ← DIRECTIVE COMPLETE

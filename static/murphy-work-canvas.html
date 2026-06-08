@@ -1096,5 +1096,36 @@ async function poll() {
   setInterval(poll, 8000);
 })();
 </script>
+
+
+
+<!-- === PCR-023 BEGIN canvas hotspot overlay === -->
+<script>
+(function() {
+  // PCR-023 / Phase 6b: poll bottleneck flags and surface as canvas attachments
+  if (window.canvasHotspotsActive) return;
+  window.canvasHotspotsActive = true;
+  async function loadHotspots() {
+    try {
+      const r = await fetch('/api/canvas/hotspots', { credentials: 'include' });
+      if (r.status === 401) return; // not owner; silent
+      const data = await r.json();
+      const seen = new Set((window.canvasAttachments || []).map(a => a.id));
+      (data.hotspots || []).forEach(h => {
+        if (h.id && !seen.has(h.id)) {
+          if (typeof window.canvasAttachResult === 'function') {
+            window.canvasAttachResult(h.id, h.label || h.id);
+          }
+        }
+      });
+    } catch (e) {}
+  }
+  // First poll at 10s (let page settle), then every 5 min
+  setTimeout(loadHotspots, 10000);
+  setInterval(loadHotspots, 5 * 60 * 1000);
+})();
+</script>
+<!-- === PCR-023 END canvas hotspot overlay === -->
+
 </body>
 </html>
