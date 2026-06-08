@@ -91,15 +91,34 @@ BASE_URL = "https://murphy.systems"
 HTTP_TIMEOUT = 5
 
 
-def http_status(url: str) -> int | None:
-    """Return HTTP status code for url, or None on error."""
+USER_AGENT = "Mozilla/5.0 (Murphy-Verifier/PCR-017)"
+
+
+def http_status(url: str, _retry: int = 1) -> int | None:
+    """
+    Return HTTP status code for url, or None on error.
+
+    Uses a real User-Agent to avoid CDN/Cloudflare empty-UA gating
+    (lesson L31 — verifier hit transient 403s when UA was missing).
+    Retries once on 403/transient errors to filter false-fails.
+    """
     try:
-        req = urllib.request.Request(url, method="GET")
+        req = urllib.request.Request(url, method="GET",
+                                     headers={"User-Agent": USER_AGENT})
         with urllib.request.urlopen(req, timeout=HTTP_TIMEOUT) as r:
             return r.status
     except HTTPError as e:
+        # 403 from CDN edge can be transient — retry once with delay
+        if e.code == 403 and _retry > 0:
+            import time
+            time.sleep(0.5)
+            return http_status(url, _retry=0)
         return e.code
     except (URLError, TimeoutError):
+        if _retry > 0:
+            import time
+            time.sleep(0.5)
+            return http_status(url, _retry=0)
         return None
     except Exception:
         return None
