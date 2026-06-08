@@ -345,7 +345,7 @@ Mitigation: each phase's commit updates THIS doc with a status row
 |---|---|---|---|
 | 1 — UI Surface Audit | ✓ shipped | (this commit) | PASS — see commit |
 | 2 — Backend Function Catalog | ✓ shipped | (this commit) | PASS — see commit |
-| 3 — Gap Map + Closure | ⏳ pending | — | — |
+| 3 — Gap Map + Closure | ✓ shipped | (this commit) | PASS — see commit |
 | 4 — Drill-Down Readouts | ⏳ pending | — | — |
 | 5 — Canvas Linking | ⏳ pending | — | — |
 | 6 — Bottleneck + HITL | ⏳ pending | — | — |

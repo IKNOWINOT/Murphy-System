@@ -1935,3 +1935,66 @@ Founder go required.
 
 ### Progress
 2/6 phases complete. 4 sessions remaining to FINAL SHAPE OF COMPLETE.
+
+## PCR-019 — Phase 3 of Final Shape of Complete (Gap Map + Closure) — 2026-06-08
+
+### What shipped
+- docs/strategy/gap_map_and_closure.md — full decision matrix joining
+  Phase 1 (UI audit) and Phase 2 (backend catalog) into 14 named
+  closure proposals (sub-PCRs PCR-019.A1 through PCR-019.D-stub).
+- scripts/gap_map_check.py — verifier (structure check, sub-PCR ID
+  count, plus live regression probes for verify-email/canvas/kill targets).
+- Plan progress tracker updated: Phase 3 → shipped.
+
+### Findings + decisions
+- Section A (UI without backend): 5 findings → 1 fix, 3 doc-only
+  reclassifications, 1 kill.
+- Section B (Backend without UI): 99 GHOST routes →
+    ~14 PROMOTE to 5 new UI pages (Phase 4-5)
+    ~75 DOCUMENT as INTERNAL
+    ~10 DEDUP (Phase 6 with HITL)
+- Section C (Jargon labels): 12 button labels flagged for human-language
+  translation in Phase 4.
+- DEAD list (122 routes): pattern analysis →
+    ~30 are unmounted routers (KEEP, low-risk)
+    ~50 are prefix-misconfigured routers (Phase 6 cleanup)
+    ~15 are dev/test stubs (KILL with HITL)
+    1 critical real bug: /api/auth/verify-email 500 (Phase 6, HIGH priority)
+    ~26 to investigate
+
+### Closure priorities (founder-value ranked)
+14 closures mapped to sub-PCRs and routed to Phases 4-6 for execution:
+  - Phase 4: 7 closures (UI pages + label translations + minor cleanups)
+  - Phase 5: 2 closures (canvas mount + audit reclassification)
+  - Phase 6: 4 closures (DEAD-list decisions, all HITL-gated)
+  - Phase 3 (this commit): 1 closure (the 75 INTERNAL docs — done in catalog)
+
+### Critical fix queued for Phase 6
+/api/auth/verify-email returns 500 — user-facing auth path is broken.
+This is the highest founder-value closure (rank 1). HITL-gated.
+
+### Verifier
+$ python3 scripts/gap_map_check.py
+  Confirms doc structure, sub-PCR IDs (21 found vs 10 required),
+  re-probes verify-email/canvas/kill targets for regression detection.
+
+### Operating rules held (all 10)
+1-10: same as Phase 2 commit. Verifier PASS before commit ✓.
+
+### What this phase does NOT do
+- Does not modify any production route.
+- Does not fix verify-email (that's Phase 6).
+- Does not mount /canvas (that's Phase 5).
+- Does not create the System Health page (that's Phase 4).
+- Does not translate any UI label (that's Phase 4).
+- Does not kill any DEAD route (that's Phase 6 with HITL).
+
+### Progress
+3/6 phases complete. 3 sessions remaining to FINAL SHAPE OF COMPLETE.
+
+### Next
+Phase 4 — Drill-Down Readout System (PCR-020, ~8 credits).
+  Builds: result_provenance schema + <murphy-readout> web component +
+  wires 5 high-value CTAs to the readout. Plus the 7 closures Phase 3
+  routed here (5 new pages + 12 label translations + minor cleanups).
+Founder go required.
