@@ -1627,3 +1627,52 @@ L23: Capability scores are a forcing function. "X is 4/10 and we agreed
      it should be 7" creates obligation that "we should improve X" never will.
 L24: The DataHub guide framework is sound; the procurement pitch is not.
      Borrow the rubric, build the outcomes native.
+
+## PCR-009 + PRICING-SYNC — Business glossary + 4-tier canon synced (2026-06-08)
+
+### PRICING-SYNC (billing.db ↔ landing canon Option A)
+Before: 3-tier (Solo $99 / Business $499 / Professional $1,499)
+After:  4-tier (Solo $99 / Team $399 / Business $799 / Enterprise Custom)
+Annual = monthly × 12 × 0.8 (20% off) except Enterprise (sentinel 0.0)
+Per-seat add-on: $79/seat across Team/Business/Enterprise (Solo: no add-on)
+Snapshot: state_snapshots/billing.db.20260608T173131Z.pre_pricing_sync
+Verifier: 7 active prices match canon, math checks out, tenant_addons
+supports per-tenant pricing for the $79/seat add-on.
+
+NOTE: Live NOWPayments API key returned 403 on /v1/status,
+/v1/estimate, /v1/min-amount during sync verification. Earlier today the
+same key worked (iid=4325956544). Likely: key rotated/revoked at provider
+or temporary IP/rate-limit block. NOT caused by pricing sync (DB-only
+change). Filed as separate triage item — does NOT block this patch.
+
+### PCR-009 — Business glossary (STD-9: 2 → 10)
+Standard #9 of the context readiness canon.
+
+Shipped:
+- docs/architecture/glossary.md — 41 canonical definitions across
+  core platform, engineering process, architecture, operations, data,
+  pricing, vendors, decisions, and DataHub-guide terms
+- scripts/glossary_lookup.py — verifier supports:
+    glossary_lookup.py TERM           # look up
+    glossary_lookup.py --list         # all terms
+    glossary_lookup.py --count        # count + PCR-009 PASS/FAIL
+    glossary_lookup.py --check TERM   # exit 0 if defined, 2 if not
+- .agents/rules/glossary.md — sandbox copy (sync target)
+
+Verifier output:
+  $ python3 scripts/glossary_lookup.py --count
+  glossary entries: 41
+  ✓ PASS: PCR-009 verifier (≥ 40 entries)
+
+Why this ships FIRST in the PCR ladder:
+- Every later patch will introduce terms the glossary should hold
+- Auto-doc (PCR-014) can cross-reference glossary
+- MCP (PCR-012) can expose glossary as a resource
+- Future contributors get instant comprehension
+
+Score change: STD-9 = 2 → 10. Aggregate context-readiness 5.5 → ~6.1.
+
+Future hook (NOT in this patch):
+- CI pre-commit term-check that refuses commits introducing new
+  ALL-CAPS / hyphenated technical terms not present in glossary
+- Will wire into tripwire in PCR-012 (MCP polish phase)
