@@ -1998,3 +1998,29 @@ Phase 4 — Drill-Down Readout System (PCR-020, ~8 credits).
   wires 5 high-value CTAs to the readout. Plus the 7 closures Phase 3
   routed here (5 new pages + 12 label translations + minor cleanups).
 Founder go required.
+
+## PCR-020 — Phase 4a (Drill-Down Readout Foundation) — 2026-06-08
+
+What shipped:
+- result_provenance table added to entity_graph.db (4 indexes)
+- /api/provenance/{result_id} route (owner-only, 'preview' synthetic card)
+- <murphy-readout> web component (3-level drill: summary → inputs+refs → upstream)
+- Script tag wired into murphy-os.html
+- 6 of 12 UI label translations applied (Restart Idle → Wake sleeping agents, etc.)
+
+Honest sub-scoping (Phase 4a vs full Phase 4):
+- 4a (this commit): schema + route + component + 6 translations
+- 4b (next session): 5 new pages + 6 more translations + 5 CTA wirings + 4 nav-ref kills
+
+Snapshot: state_snapshots/PCR-020_pre/ — entity_graph.db, journey_history.db,
+app.py, murphy-os.html — all restorable.
+
+Verifier: scripts/readout_check.py — PASS before commit (L32 held).
+
+New lessons:
+- L33: probe the route as source of truth, not systemctl exit code
+       (unit name was 'murphy-production.service', not 'murphy.service')
+- L34: edge auth (murphy-edge.service) gates before per-handler check;
+       per-handler owner check is redundant but harmless
+
+Progress: 3.5/6 phases complete. ~2.5 sessions remaining.

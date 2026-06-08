@@ -28421,6 +28421,69 @@ def create_app() -> FastAPI:
             logger.error("self/patch error: %s", exc)
             return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
 
+        # === PCR-020 BEGIN provenance route ===
+    @app.get("/api/provenance/{result_id}")
+    async def _provenance_readout(result_id: str, request: Request):
+        """
+        Drill-down readout backing store. Returns the result_provenance
+        row for the given result_id. Owner-only.
+
+        result_id == 'preview' returns a synthetic demo card (no DB hit).
+        """
+        import sqlite3, os
+        # Owner check (same pattern as _self_audit)
+        _founder_email = os.environ.get("MURPHY_FOUNDER_EMAIL", "cpost@murphy.systems")
+        _caller_email = None
+        try:
+            _caller_email = request.headers.get("x-murphy-user")
+        except Exception:
+            pass
+        _is_founder = bool(_caller_email) and _caller_email == _founder_email
+        if not _is_founder:
+            try:
+                # Allow if request is from same-host (server-side render preview)
+                _host = (request.client.host if request.client else "") or ""
+                _is_founder = _host in ("127.0.0.1", "::1")
+            except Exception:
+                pass
+        if not _is_founder:
+            return JSONResponse({"error": "owner_only"}, status_code=401)
+
+        if result_id == "preview":
+            return JSONResponse({
+                "result_id": "preview",
+                "produced_at": "2026-06-08T20:30:00Z",
+                "produced_by": "demo",
+                "action_name": "Demo readout",
+                "output_summary": "This is a preview card.",
+                "inputs_json": '{"example":"preview"}',
+                "source_refs_json": "[]",
+                "parent_result_id": None,
+                "cost_usd": 0.0,
+            })
+
+        try:
+            conn = sqlite3.connect("/var/lib/murphy-production/entity_graph.db")
+            cur = conn.cursor()
+            cur.execute("""SELECT result_id, produced_at, produced_by, action_name,
+                                   inputs_json, source_refs_json, parent_result_id,
+                                   output_summary, output_json, cost_usd, job_id, tenant_id
+                            FROM result_provenance WHERE result_id = ?""",
+                        (result_id,))
+            row = cur.fetchone()
+            conn.close()
+            if not row:
+                return JSONResponse({"error": "not_found", "result_id": result_id},
+                                    status_code=404)
+            keys = ["result_id", "produced_at", "produced_by", "action_name",
+                    "inputs_json", "source_refs_json", "parent_result_id",
+                    "output_summary", "output_json", "cost_usd", "job_id", "tenant_id"]
+            return JSONResponse(dict(zip(keys, row)))
+        except Exception as e:
+            return JSONResponse({"error": "lookup_failed", "detail": str(e)[:200]},
+                                status_code=500)
+    # === PCR-020 END provenance route ===
+
     @app.get("/api/self/audit")
     async def _self_audit():
         """Ground-truth state snapshot — prevents hallucinated self-views."""

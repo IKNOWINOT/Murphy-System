@@ -1178,6 +1178,7 @@ body {
 }
 </style>
 <!-- _R460_PANELS -->
+  <script src="/static/components/murphy-readout.js"></script>
 </head>
 <body>
 <div class="sidebar-backdrop" onclick="toggleMobileMenu()"></div>
@@ -1702,7 +1703,7 @@ body {
       <div class="page-header" id="hdr-agents">
         <div class="page-header-title">Swarm Agents</div>
         <div class="sub-tabs"><button class="sub-tab active" data-page="agents" data-filter="all" onclick="subTab(event,'agents','all')">All</button><button class="sub-tab" data-page="agents" data-filter="active" onclick="subTab(event,'agents','active')">Active</button><button class="sub-tab" data-page="agents" data-filter="idle" onclick="subTab(event,'agents','idle')">Idle</button><button class="sub-tab" data-page="agents" data-filter="failed" onclick="subTab(event,'agents','failed')">Failed</button></div>
-        <div class="page-actions"><button class="page-action-btn" onclick="qaAction(event,'swarm_status'); loadAgents()">↻ Refresh</button><button class="page-action-btn" onclick="qaAction(event,'audit')">🩺 Health Check</button><button class="page-action-btn primary" onclick="tellMurphy('Check swarm agents and restart any that are idle. Report which were restarted and which were already running.', {priority:'high'})">🔄 Restart Idle</button></div>
+        <div class="page-actions"><button class="page-action-btn" onclick="qaAction(event,'swarm_status'); loadAgents()">↻ Refresh</button><button class="page-action-btn" onclick="qaAction(event,'audit')">🩺 Health Check</button><button class="page-action-btn primary" onclick="tellMurphy('Check swarm agents and restart any that are idle. Report which were restarted and which were already running.', {priority:'high'})">🔄 Wake sleeping agents</button></div>
       </div>
       <div style="padding:16px">
         <div class="section-title" style="margin-bottom:12px">Swarm Agents — Soul-Aware</div>
@@ -1735,7 +1736,7 @@ body {
       <div class="page-header" id="hdr-soul">
         <div class="page-header-title">Murphy Soul</div>
         <div class="sub-tabs"><button class="sub-tab active" data-page="soul" data-filter="northstar" onclick="subTab(event,'soul','northstar')">North Star</button><button class="sub-tab" data-page="soul" data-filter="covenant" onclick="subTab(event,'soul','covenant')">Covenant</button><button class="sub-tab" data-page="soul" data-filter="harm" onclick="subTab(event,'soul','harm')">Harm Thresholds</button><button class="sub-tab" data-page="soul" data-filter="world" onclick="subTab(event,'soul','world')">World Context</button></div>
-        <div class="page-actions"><button class="page-action-btn" onclick="loadSoul()">↻ Refresh</button><button class="page-action-btn" onclick="tellMurphy('Show me my recent soul and identity changes — the last 10 if available, with timestamps and what changed.', {})">📜 View History</button><button class="page-action-btn primary" onclick="r78SoulEdit()">✏️ Edit Soul</button></div>
+        <div class="page-actions"><button class="page-action-btn" onclick="loadSoul()">↻ Refresh</button><button class="page-action-btn" onclick="tellMurphy('Show me my recent soul and identity changes — the last 10 if available, with timestamps and what changed.', {})">📜 Show recent changes</button><button class="page-action-btn primary" onclick="r78SoulEdit()">✏️ Adjust how I work</button></div>
       </div>
       <div class="soul-page">
         <div class="section-title" style="margin-bottom:16px">Murphy Soul</div>
@@ -1769,7 +1770,7 @@ body {
       <div class="page-header" id="hdr-shield">
         <div class="page-header-title">Shield Wall</div>
         <div class="sub-tabs"><button class="sub-tab active" data-page="shield" data-filter="status" onclick="subTab(event,'shield','status')">Status</button><button class="sub-tab" data-page="shield" data-filter="vault" onclick="subTab(event,'shield','vault')">Vault</button><button class="sub-tab" data-page="shield" data-filter="tripwires" onclick="subTab(event,'shield','tripwires')">Tripwires</button><button class="sub-tab" data-page="shield" data-filter="sandbox" onclick="subTab(event,'shield','sandbox')">Sandbox</button></div>
-        <div class="page-actions"><button class="page-action-btn" onclick="loadShield()">↻ Refresh</button><button class="page-action-btn" onclick="qaAction(event,'audit')">🛡️ Run Audit</button><button class="page-action-btn primary" onclick="tellMurphy('Any tripwire events in the last hour? If yes, summarize each one with timestamp, file affected, and severity.', {})">📋 Tripwire Log</button></div>
+        <div class="page-actions"><button class="page-action-btn" onclick="loadShield()">↻ Refresh</button><button class="page-action-btn" onclick="qaAction(event,'audit')">🛡️ Check for problems</button><button class="page-action-btn primary" onclick="tellMurphy('Any tripwire events in the last hour? If yes, summarize each one with timestamp, file affected, and severity.', {})">📋 Recent security alerts</button></div>
       </div>
       <div style="padding:16px">
         <div class="section-title" style="margin-bottom:12px">Shield Wall</div>
