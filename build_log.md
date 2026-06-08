@@ -1565,3 +1565,65 @@ Verified end-to-end:
 - PATCH-410: canonical jobs table (promote one of 8 existing project tables)
 - PATCH-411: customer-facing invoice PDF generator
 - Voice/SMS/storage ledgers when those engines mature
+
+## CONTEXT READINESS CANON — Locked 2026-06-08
+
+### Founder directive
+"Get us up to ten in all standard. Make a plan add it to architectural
+cannon and tasks to match for full shape of complete."
+
+### Source
+Response to DataHub guide "Context: The Missing Link Between Your Data
+Stack and AI Success" (Acryl Data / DataHub, 2024). We accept the
+framework (3-layer context model + AI-agent layer). We reject the
+procurement pitch (DataHub Cloud). Murphy builds the outcomes natively.
+
+### 15 Standards (baseline → target)
+| # | Standard | Now | Target |
+|---|---|---|---|
+| 1 | Data lineage | 4 | 10 |
+| 2 | Schema registry | 5 | 10 |
+| 3 | Version control | 9 | 10 |
+| 4 | Runtime metrics | 8 | 10 |
+| 5 | Audit log unification | 8 | 10 |
+| 6 | Data SLAs | 2 | 10 |
+| 7 | Ownership / tenancy | 9 | 10 |
+| 8 | Job attribution | 8 | 10 |
+| 9 | Business glossary | 2 | 10 |
+| 10 | Unstructured docs | 5 | 10 |
+| 11 | Compliance modules | 7 | 10 |
+| 12 | MCP server | 7 | 10 |
+| 13 | Anomaly detection | 4 | 10 |
+| 14 | Auto-documentation | 2 | 10 |
+| 15 | E2E model lineage | 3 | 10 |
+
+Aggregate: 5.5 → 10.0. Total delta 75 score points.
+
+### Canon docs added
+- docs/architecture/context_readiness_canon.md  (defines the 15 standards
+  + what 10/10 looks like + verifier per standard)
+- docs/architecture/context_readiness_task_ladder.md  (PCR-001 .. PCR-015
+  task ladder with shape-of-complete + verifier + sequencing)
+- .agents/rules/context_readiness_canon.md  (sandbox copy)
+- .agents/memory/context_readiness_task_ladder.md  (sandbox copy)
+
+### Execution plan
+Phase 1 (Tier 1 quick wins, ~6h):  PCR-009, PCR-014, PCR-005, PCR-006
+  → moves aggregate 5.5 → ~7.4, every standard ≥ 5
+Phase 2 (Tier 2 structural, ~13h): PCR-001, PCR-015, PCR-002, PCR-013, PCR-010
+  → moves aggregate ~7.4 → ~9.0, every standard ≥ 8
+Phase 3 (Tier 3 polish, ~8h):      PCR-012, PCR-011, PCR-003/4/7/8
+  → moves aggregate 9.0 → 10.0, every standard = 10
+
+Total: ~27 engineering hours, 5-8 sessions.
+
+### Investment rule
+Time spent on PCR-NNN patches logged in cost ledger as
+caller='context_readiness'. Target: >20% engineering time on context
+until all standards ≥ 7, then >10% steady-state to prevent decay.
+
+### Lessons added
+L23: Capability scores are a forcing function. "X is 4/10 and we agreed
+     it should be 7" creates obligation that "we should improve X" never will.
+L24: The DataHub guide framework is sound; the procurement pitch is not.
+     Borrow the rubric, build the outcomes native.
