@@ -1283,6 +1283,233 @@ body {
   <!-- MAIN -->
   <main class="main">
 
+    <!-- EXEC-05 (2026-06-09) — EXECUTIVE PANEL: slots | pulse | CTAs -->
+    <div id="exec-panel" class="exec-panel">
+      <style>
+        .exec-panel {
+          background: var(--card, #181818);
+          border: 1px solid var(--border, #2a2a2a);
+          border-radius: 8px;
+          padding: 12px 16px;
+          margin: 12px 16px 8px;
+          font-family: var(--font, -apple-system, sans-serif);
+          color: var(--text, #e8e8e8);
+        }
+        .exec-panel-header {
+          display: flex; justify-content: space-between; align-items: center;
+          margin-bottom: 10px; font-size: 12px; color: var(--text-dim, #888);
+          text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .exec-panel-rows {
+          display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;
+        }
+        @media (max-width: 900px) {
+          .exec-panel-rows { grid-template-columns: 1fr; }
+        }
+        .exec-row {
+          background: var(--surface, #111); border: 1px solid var(--border, #2a2a2a);
+          border-radius: 6px; padding: 10px 12px; min-height: 80px;
+        }
+        .exec-row-title {
+          font-size: 11px; color: var(--text-dim, #888); margin-bottom: 6px;
+          text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .exec-slot {
+          display: inline-flex; align-items: center; gap: 6px;
+          background: var(--orange-dim, rgba(255,90,0,0.12));
+          border: 1px solid var(--orange, #ff5a00);
+          border-radius: 16px; padding: 3px 10px;
+          font-size: 11px; margin-right: 6px; margin-bottom: 4px;
+          font-family: var(--mono, monospace);
+        }
+        .exec-slot.empty {
+          background: transparent;
+          border: 1px dashed var(--border, #2a2a2a);
+          color: var(--text-muted, #555);
+        }
+        .exec-pulse-tick {
+          display: flex; justify-content: space-between; padding: 3px 0;
+          font-size: 11px; font-family: var(--mono, monospace);
+          border-bottom: 1px solid rgba(255,255,255,0.04);
+        }
+        .exec-pulse-tick:last-child { border-bottom: none; }
+        .exec-pulse-dot {
+          display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+          margin-right: 6px;
+        }
+        .exec-pulse-dot.ok    { background: var(--green, #22c55e); }
+        .exec-pulse-dot.warn  { background: var(--yellow, #f59e0b); }
+        .exec-pulse-dot.fail  { background: #e06c75; }
+        .exec-cta-card {
+          background: var(--blue-dim, rgba(59,130,246,0.12));
+          border-left: 3px solid var(--blue, #3b82f6);
+          border-radius: 4px; padding: 8px 10px; margin-bottom: 6px;
+          font-size: 12px;
+        }
+        .exec-cta-card.completion { border-color: var(--green, #22c55e);
+                                     background: var(--green-dim, rgba(34,197,94,0.12)); }
+        .exec-cta-card.threshold  { border-color: var(--yellow, #f59e0b);
+                                     background: var(--yellow-dim, rgba(245,158,11,0.12)); }
+        .exec-cta-card.steering   { border-color: var(--orange, #ff5a00);
+                                     background: var(--orange-dim, rgba(255,90,0,0.12)); }
+        .exec-cta-desc { color: var(--text-dim, #888); font-size: 11px;
+                          margin: 2px 0 6px; }
+        .exec-cta-actions { display: flex; gap: 6px; }
+        .exec-cta-btn {
+          background: var(--blue, #3b82f6); color: white;
+          border: none; border-radius: 4px; padding: 4px 10px;
+          font-size: 11px; cursor: pointer; font-family: var(--font);
+        }
+        .exec-cta-btn.dismiss {
+          background: transparent; color: var(--text-dim, #888);
+          border: 1px solid var(--border, #2a2a2a);
+        }
+        .exec-cta-btn:hover { opacity: 0.85; }
+        .exec-empty-state { color: var(--text-muted, #555); font-size: 11px;
+                             font-style: italic; padding: 8px 0; }
+        .exec-status-dot {
+          display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+          background: var(--green, #22c55e); margin-right: 5px;
+          animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+          0%, 100% { opacity: 0.5; } 50% { opacity: 1; }
+        }
+      </style>
+      <div class="exec-panel-header">
+        <span><span class="exec-status-dot"></span>Executive surface (live)</span>
+        <span id="exec-panel-clock" style="font-family: var(--mono, monospace);"></span>
+      </div>
+      <div class="exec-panel-rows">
+        <div class="exec-row">
+          <div class="exec-row-title">Slots <span id="exec-slot-count" style="opacity:.5;"></span></div>
+          <div id="exec-slots-body" class="exec-empty-state">…</div>
+        </div>
+        <div class="exec-row">
+          <div class="exec-row-title">Pulse (last 5)</div>
+          <div id="exec-pulse-body" class="exec-empty-state">…</div>
+        </div>
+        <div class="exec-row">
+          <div class="exec-row-title">CTAs <span id="exec-cta-count" style="opacity:.5;"></span></div>
+          <div id="exec-cta-body" class="exec-empty-state">…</div>
+        </div>
+      </div>
+    </div>
+    <script>
+      (function() {
+        // EXEC-05 panel poller. Polls /api/executive/status every 5s.
+        // Fail-soft: any fetch error renders an empty-state, not a crash.
+        const POLL_MS = 5000;
+
+        function escapeHtml(s) {
+          return String(s == null ? "" : s)
+            .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+        }
+
+        function renderSlots(slots) {
+          const body = document.getElementById("exec-slots-body");
+          const count = document.getElementById("exec-slot-count");
+          if (!slots) { body.innerHTML = "<span class=\"exec-empty-state\">offline</span>"; return; }
+          count.textContent = (slots.free_slots ?? "—") + "/" + (slots.slot_count ?? 2) + " free · q:" + (slots.queue_depth ?? 0);
+          const active = slots.active || [];
+          const queued = slots.queued || [];
+          let html = "";
+          const N = slots.slot_count || 2;
+          for (let i = 0; i < N; i++) {
+            const a = active[i];
+            if (a) {
+              const elapsed = (a.elapsed_ms / 1000).toFixed(1) + "s";
+              html += "<span class=\"exec-slot\">▶ " + escapeHtml(a.role) + " · " + elapsed + "</span>";
+            } else {
+              html += "<span class=\"exec-slot empty\">— idle —</span>";
+            }
+          }
+          if (queued.length > 0) {
+            html += "<div style=\"margin-top:6px;font-size:11px;color:var(--text-dim);\">+ " + queued.length + " queued: " + queued.slice(0,3).map(q => escapeHtml(q.role)).join(", ") + "</div>";
+          }
+          body.innerHTML = html;
+        }
+
+        function renderPulse(pulse) {
+          const body = document.getElementById("exec-pulse-body");
+          if (!pulse || !pulse.recent_ticks) {
+            body.innerHTML = "<span class=\"exec-empty-state\">no recent ticks</span>";
+            return;
+          }
+          const ticks = (pulse.recent_ticks || []).slice(0, 5);
+          if (ticks.length === 0) {
+            body.innerHTML = "<span class=\"exec-empty-state\">no recent ticks</span>";
+            return;
+          }
+          body.innerHTML = ticks.map(t => {
+            const dot = t.success ? "ok" : (t.status === "warn" ? "warn" : "fail");
+            const src = (t.source || "?").length > 28 ? (t.source || "?").substring(0, 25) + "…" : (t.source || "?");
+            const age = t.age_seconds != null ? Math.round(t.age_seconds) + "s" : "—";
+            return "<div class=\"exec-pulse-tick\"><span><span class=\"exec-pulse-dot " + dot + "\"></span>" + escapeHtml(src) + "</span><span style=\"color:var(--text-dim);\">" + age + "</span></div>";
+          }).join("");
+        }
+
+        function renderCtas(ctas) {
+          const body = document.getElementById("exec-cta-body");
+          const count = document.getElementById("exec-cta-count");
+          if (!ctas || ctas.length === 0) {
+            count.textContent = "0";
+            body.innerHTML = "<span class=\"exec-empty-state\">no pending CTAs</span>";
+            return;
+          }
+          count.textContent = ctas.length;
+          body.innerHTML = ctas.slice(0, 3).map(c => {
+            const cls = "exec-cta-card " + (c.category || "");
+            return "<div class=\"" + cls + "\">" +
+              "<div><strong>" + escapeHtml(c.label) + "</strong></div>" +
+              "<div class=\"exec-cta-desc\">" + escapeHtml(c.description) + "</div>" +
+              "<div class=\"exec-cta-actions\">" +
+              "<button class=\"exec-cta-btn\" onclick=\"execCtaCommit('" + escapeHtml(c.cta_id) + "')\">Commit</button>" +
+              "<button class=\"exec-cta-btn dismiss\" onclick=\"execCtaDismiss('" + escapeHtml(c.cta_id) + "')\">Dismiss</button>" +
+              "</div></div>";
+          }).join("");
+        }
+
+        async function poll() {
+          try {
+            const r = await fetch("/api/executive/status", {cache: "no-cache"});
+            if (!r.ok) throw new Error("HTTP " + r.status);
+            const d = await r.json();
+            renderSlots(d.slots);
+            renderPulse(d.pulse);
+            renderCtas(d.recent_ctas);
+            const clock = document.getElementById("exec-panel-clock");
+            if (clock) {
+              const dt = new Date();
+              clock.textContent = dt.toTimeString().substring(0, 8);
+            }
+          } catch (e) {
+            // Fail-soft: keep last render, log to console
+            console.debug("exec-panel poll skipped:", e.message);
+          }
+        }
+
+        window.execCtaCommit = async function(id) {
+          try {
+            await fetch("/api/executive/cta/" + encodeURIComponent(id) + "/commit", {method: "POST"});
+            poll();
+          } catch (e) { console.warn("commit failed:", e); }
+        };
+        window.execCtaDismiss = async function(id) {
+          try {
+            await fetch("/api/executive/cta/" + encodeURIComponent(id) + "/dismiss", {method: "POST"});
+            poll();
+          } catch (e) { console.warn("dismiss failed:", e); }
+        };
+
+        // Initial render + start polling
+        poll();
+        setInterval(poll, POLL_MS);
+      })();
+    </script>
+    <!-- EXEC-05 END -->
+
     <!-- R77.P3 (2026-06-07) — QUICK ACTIONS STRIP (visible across ALL pages) -->
     <div id="qa-strip" class="qa-strip">
       <div class="qa-strip-label">

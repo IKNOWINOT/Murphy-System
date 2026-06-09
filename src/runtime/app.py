@@ -26192,6 +26192,22 @@ def create_app() -> FastAPI:
                                     except Exception as _e_acc_045b:
                                         _notify("  [PCR-045b] acc write skipped: " + str(_e_acc_045b)[:80])
 
+                                    # EXEC-03 (2026-06-09): snapshot the graph per v1=b directive
+                                    # — every graph mutation gets a row, fully replayable timeline.
+                                    # Fail-soft — snapshot errors never break the dispatch.
+                                    try:
+                                        _snap_writer_03 = getattr(request.app.state, "exec_snapshot_writer", None)
+                                        if _snap_writer_03 is not None:
+                                            _snap_writer_03.snapshot(
+                                                dispatch_id=str(getattr(request.app.state, "_current_dispatch_id", None) or _aid_040b),
+                                                graph=_graph_040b,
+                                                trigger_role=_role_040b,
+                                                trigger_agent_id=_aid_040b,
+                                                success=True,
+                                            )
+                                    except Exception as _e_snap_03:
+                                        _notify("  [EXEC-03] snapshot skipped: " + str(_e_snap_03)[:80])
+
                                 except Exception as _e_agent_040b:
                                     # Mark all this agent's outputs as failed
                                     for _ot_040b in _outs_040b:

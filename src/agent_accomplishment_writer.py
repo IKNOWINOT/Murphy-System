@@ -161,6 +161,43 @@ def record_accomplishment(
             conn.commit()
         finally:
             conn.close()
+
+        # EXEC-04 (2026-06-09): publish to cadence + propose CTA on success.
+        # Fail-soft — pulse/CTA errors never break the accomplishment write.
+        try:
+            from src.cadence_emit import emit_heartbeat
+            emit_heartbeat(
+                source="agent.{}.{}".format(role_class or "unknown",
+                                            domain or "general"),
+                success=bool(success),
+                payload={
+                    "accomplishment_id": acc_id,
+                    "output_type":       output_type or "deliverable",
+                    "pass_number":       int(pass_number),
+                    "elapsed_ms":        round((elapsed_us or 0) / 1000, 2),
+                    "refined_from":      refined_from,
+                },
+            )
+        except Exception as _pulse_exc:
+            logger.debug("EXEC-04 pulse emit skipped: %s", _pulse_exc)
+
+        try:
+            from src.executive_cta import propose_completion_cta
+            # Quality heuristic: refinement passes get higher confidence
+            # (the system already self-corrected); first-pass success gets
+            # the baseline 0.80. Errors are filtered upstream by success=False.
+            _quality = 0.85 if (pass_number or 1) > 1 else 0.80
+            propose_completion_cta(
+                role=role_class or "unknown",
+                domain=domain or "general",
+                output_type=output_type or "deliverable",
+                accomplishment_id=acc_id,
+                success=bool(success),
+                quality_score=_quality,
+            )
+        except Exception as _cta_exc:
+            logger.debug("EXEC-04 CTA propose skipped: %s", _cta_exc)
+
         return acc_id
     except sqlite3.OperationalError as e:
         # Table might not exist (PCR-045a not applied) — log once, don't raise.
