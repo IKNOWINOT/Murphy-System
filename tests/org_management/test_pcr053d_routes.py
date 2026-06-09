@@ -118,9 +118,21 @@ class TestFloorLookupEndpoint:
         assert res["floor"]["max_decision_ceiling_usd"] == 50_000.0
 
     def test_missing_combination_returns_404_fail_closed(self, app):
+        # PCR-053e-test-fix: handler now returns JSONResponse OR (body, 404)
+        # tuple depending on whether fastapi is importable.
         h = app.routes["GET /api/org/floor/{jurisdiction}/{industry}/{role_family}"]
-        body, status = asyncio.run(h(jurisdiction="MARS", industry="interplanetary", role_family="rover"))
-        assert status == 404
+        res = asyncio.run(h(jurisdiction="MARS", industry="interplanetary", role_family="rover"))
+        import json as _json
+        try:
+            from fastapi.responses import JSONResponse
+        except Exception:
+            JSONResponse = None
+        if JSONResponse is not None and isinstance(res, JSONResponse):
+            assert res.status_code == 404
+            body = _json.loads(bytes(res.body))
+        else:
+            body, status = res
+            assert status == 404
         assert body["fail_closed"] is True
         assert body["ok"] is False
 

@@ -45,7 +45,28 @@ import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
+# PCR-053e-fix: explicit JSON status codes
+try:
+    from fastapi.responses import JSONResponse
+except Exception:
+    JSONResponse = None  # type: ignore
+
 LOG = logging.getLogger("murphy.org_compiler_routes")
+
+
+def _resolve_floor_key(jurisdiction, industry, role_family):
+    # PCR-053e-fix: tolerate case differences in jurisdiction code.
+    # Proxy lowercases path params; resolve to canonical table key.
+    from org_compiler.regulatory_floor import REGULATORY_FLOOR
+    if jurisdiction is None:
+        return None
+    j_norm = jurisdiction.strip().upper()
+    i_norm = industry.strip().lower()
+    r_norm = role_family.strip().lower()
+    for (j, i, r) in REGULATORY_FLOOR.keys():
+        if j.upper() == j_norm and i.lower() == i_norm and r.lower() == r_norm:
+            return (j, i, r)
+    return None
 
 
 def register_org_compiler(app: Any) -> Dict[str, Any]:
@@ -334,14 +355,16 @@ def register_org_compiler(app: Any) -> Dict[str, Any]:
         """Look up the regulatory floor for a (jurisdiction, industry, role) tuple."""
         try:
             from org_compiler.regulatory_floor import lookup_floor, FloorMissingError
-            try:
-                fp = lookup_floor(jurisdiction, industry, role_family)
+            # PCR-053e-fix: case-insensitive table lookup; proxy lowercases jurisdiction.
+            resolved = _resolve_floor_key(jurisdiction, industry, role_family)
+            if resolved is not None:
+                fp = lookup_floor(*resolved)
                 return {
                     "ok": True,
                     "floor": {
-                        "jurisdiction":             jurisdiction,
-                        "industry":                 industry,
-                        "role_family":              role_family,
+                        "jurisdiction":             resolved[0],
+                        "industry":                 resolved[1],
+                        "role_family":              resolved[2],
                         "min_observation_days":     fp.min_observation_days,
                         "min_distinct_operators":   fp.min_distinct_operators,
                         "max_decision_ceiling_usd": fp.max_decision_ceiling_usd,
@@ -350,14 +373,16 @@ def register_org_compiler(app: Any) -> Dict[str, Any]:
                         "citation":                 fp.citation,
                     },
                 }
-            except FloorMissingError as e:
-                # Fail-closed but informative
-                return {
-                    "ok": False,
-                    "fail_closed": True,
-                    "error": str(e),
-                    "key": list(e.key),
-                }, 404
+            # No matching row -> fail closed with explicit 404 status
+            body = {
+                "ok": False,
+                "fail_closed": True,
+                "error": f"No regulatory floor entry for ({jurisdiction!r}, {industry!r}, {role_family!r}). Promotion BLOCKED per fail-closed policy.",
+                "key": [jurisdiction, industry, role_family],
+            }
+            if JSONResponse is not None:
+                return JSONResponse(content=body, status_code=404)
+            return body, 404
         except Exception as e:
             LOG.exception("get_floor failed")
             return {"ok": False, "error": f"{type(e).__name__}: {e}"}, 500

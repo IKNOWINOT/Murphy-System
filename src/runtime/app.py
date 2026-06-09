@@ -311,6 +311,24 @@ def create_app() -> FastAPI:
                 except Exception as _exec_exc:
                     logger.warning("EXEC-02 wiring failed (non-fatal): %s", _exec_exc)
 
+                # PCR-053e (2026-06-09): wire org_compiler HTTP surface
+                # Attaches RoleTemplateCompiler + TelemetryCollector + ShadowLearningAgent
+                # to app.state, registers 5 /api/org/* routes. Idempotent. Fail-soft —
+                # wiring errors are logged but never crash startup.
+                try:
+                    from src.org_compiler_routes import register_org_compiler
+                    _org_status = register_org_compiler(app)
+                    logger.info(
+                        "PCR-053e: compiler=%s, collector=%s, agent=%s, routes=%d, errors=%d",
+                        _org_status.get("compiler"),
+                        _org_status.get("shadow_collector"),
+                        _org_status.get("shadow_agent"),
+                        len(_org_status.get("routes_added", [])),
+                        len(_org_status.get("errors", [])),
+                    )
+                except Exception as _org_exc:
+                    logger.warning("PCR-053e wiring failed (non-fatal): %s", _org_exc)
+
 
                 # Rosetta Soul + Coordinator — PATCH-130: all 9 agents registered
                 from src.rosetta_core import get_rosetta_soul, get_swarm_coordinator
