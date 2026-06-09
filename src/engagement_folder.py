@@ -39,8 +39,15 @@ from typing import Any, Dict, List, Optional, Tuple
 
 LOG = logging.getLogger("murphy.engagement_folder")
 
-DEFAULT_DB_PATH = "/var/murphy/audit/engagement_folders.db"
-DEFAULT_BROWSE_ROOT = "/var/murphy/engagements"
+# PCR-054c.1-fix: align with project convention (053f uses /var/lib/murphy-production/)
+DEFAULT_DB_PATH = os.environ.get(
+    "MURPHY_ENGAGEMENT_DB",
+    "/var/lib/murphy-production/engagement_folders.db",
+)
+DEFAULT_BROWSE_ROOT = os.environ.get(
+    "MURPHY_ENGAGEMENT_BROWSE_ROOT",
+    "/var/lib/murphy-production/engagements",
+)
 
 
 # ─────────────────────────────────────────────────────────────────────

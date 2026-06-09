@@ -348,6 +348,24 @@ def create_app() -> FastAPI:
                     logger.warning("PCR-053f wiring failed (non-fatal): %s", _hb_exc)
 
 
+                # PCR-054c.1 (2026-06-09): wire engagement-loop HTTP surface
+                # Registers 4 endpoints under /api/org/engagement{,/list,/transition}
+                # backed by the EngagementFolder state machine + SQLite at
+                # /var/murphy/audit/engagement_folders.db and browse mirror at
+                # /var/murphy/engagements/<id>/. Idempotent + fail-soft.
+                try:
+                    from src.engagement_routes import register_engagement_routes
+                    _eng_status = register_engagement_routes(app)
+                    logger.info(
+                        "PCR-054c.1: registered=%s, routes=%d, db=%s",
+                        _eng_status.get("registered"),
+                        len(_eng_status.get("routes_added", [])),
+                        _eng_status.get("db_path"),
+                    )
+                except Exception as _eng_exc:
+                    logger.warning("PCR-054c.1 wiring failed (non-fatal): %s", _eng_exc)
+
+
                 # Rosetta Soul + Coordinator — PATCH-130: all 9 agents registered
                 from src.rosetta_core import get_rosetta_soul, get_swarm_coordinator
                 from src.exec_admin_agent import get_exec_admin
