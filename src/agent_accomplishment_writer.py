@@ -167,8 +167,8 @@ def record_accomplishment(
         try:
             from src.cadence_emit import emit_heartbeat
             emit_heartbeat(
-                source="agent.{}.{}".format(role_class or "unknown",
-                                            domain or "general"),
+                source_name="agent.{}.{}".format(role_class or "unknown",
+                                                  domain or "general"),
                 success=bool(success),
                 payload={
                     "accomplishment_id": acc_id,
