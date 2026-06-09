@@ -71,6 +71,7 @@ class DecomposedPhase:
     success: bool = False
     error: Optional[str] = None
     elapsed_ms: int = 0
+    elapsed_us: int = 0  # PCR-036b: microsecond precision
 
 
 @dataclass
@@ -444,11 +445,13 @@ def execute_prerequisite_phases(
             completed[phase.phase_id] = phase
             continue
 
-        start = time.monotonic()
+        start_ns = time.perf_counter_ns()  # PCR-036b
         try:
             phase.output = _run_phase(phase, completed)
             phase.success = True
-            phase.elapsed_ms = int((time.monotonic() - start) * 1000)
+            _elapsed_ns = time.perf_counter_ns() - start_ns  # PCR-036b
+            phase.elapsed_us = _elapsed_ns // 1000
+            phase.elapsed_ms = _elapsed_ns // 1_000_000
 
             path_key = f"phase:{phase.phase_id}:{phase.phase_type.value}"
             _update_trajectory(trajectory, path_key, phase)
@@ -460,7 +463,9 @@ def execute_prerequisite_phases(
                 phase.elapsed_ms,
             )
         except Exception as exc:
-            phase.elapsed_ms = int((time.monotonic() - start) * 1000)
+            _elapsed_ns = time.perf_counter_ns() - start_ns  # PCR-036b
+            phase.elapsed_us = _elapsed_ns // 1000
+            phase.elapsed_ms = _elapsed_ns // 1_000_000
             phase.error = f"CTD-EXEC-ERR-001: {type(exc).__name__}: {exc}"
             phase.success = False
             logger.error(

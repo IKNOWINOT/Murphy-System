@@ -246,6 +246,7 @@ class DynamicRosettaPlanner:
         t0 = time.time()
         team_id = "team_" + uuid.uuid4().hex[:8]
         profile = self.analyze_task(prompt)
+        profile = self._pcr035b_adjust_team_size(profile)  # PCR-035b
         team    = self.select_team(profile, team_id)
         souls   = self.write_souls(team, prompt, profile)
         org     = self.build_org(team)
@@ -321,6 +322,17 @@ class DynamicRosettaPlanner:
             requires_auditor=domain in ("compliance","finance","legal") or stake == "critical",
             estimated_agents=COMPLEXITY_TO_TEAM_SIZE.get(complexity, 3),
         )
+
+    # PCR-035b BEGIN strategy team cap bump
+
+    def _pcr035b_adjust_team_size(self, profile):
+        """Bump team size for business_strategy so the full 5-agent
+        team (Strategy Lead + Researcher + Finance + Architect + Risk)
+        is selected even on 'medium'-complexity prompts."""
+        if profile.domain == "business_strategy" and profile.estimated_agents < 5:
+            profile.estimated_agents = 5
+        return profile
+    # PCR-035b END strategy team cap bump
 
     def select_team(self, profile: TaskProfile, team_id: str) -> List[AgentBlueprint]:
         templates = DOMAIN_ROLE_TEMPLATES.get(profile.domain, DOMAIN_ROLE_TEMPLATES["general"])
