@@ -1,0 +1,14 @@
+[Unit]
+Description=Run Murphy engagement-loop inbound processor every 5 min
+
+[Timer]
+# Fire first time 30s after timer becomes active (covers the activation-not-boot case)
+OnActiveSec=30s
+# Then every 5 minutes thereafter
+OnUnitActiveSec=5min
+# Also fire on boot for cold starts
+OnBootSec=3min
+AccuracySec=30s
+
+[Install]
+WantedBy=timers.target

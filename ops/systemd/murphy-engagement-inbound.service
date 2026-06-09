@@ -1,0 +1,13 @@
+[Unit]
+Description=Murphy engagement-loop inbound processor (PCR-054i)
+After=murphy-inbound-poller.service postfix.service
+Wants=murphy-inbound-poller.service
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/opt/Murphy-System
+ExecStart=/opt/Murphy-System/venv/bin/python3 /opt/Murphy-System/src/engagement_inbound_cli.py --limit 200
+StandardOutput=journal
+StandardError=journal
+TimeoutStartSec=120
