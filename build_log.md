@@ -2569,3 +2569,69 @@ OPERATING RULES HELD:
   Rule #7  ground truth verified ✓
   L29-L32  ✓
   L35      replaced function body at top-level scope ✓
+
+## PCR-028 — CRM outreach_log: orphan-to-canonical — 2026-06-09
+
+WRONG-TABLE PROBLEM (PCR-026-style), but on the CRM side.
+
+AUDIT FINDING:
+  Memory said "outreach_log table doesn't exist — CRM outreach gate ❌."
+  Audit confirmed: no DB has that table. But the data DOES exist in
+  `crm.db.activities` (78 sent, 62 followup, 34 unverified, 34 failed)
+  written by lead_prospector.py at line 749.
+
+  Two files referenced the phantom table:
+  - src/rosetta_selling_bridge.py — FALSE POSITIVE. "outreach" appears
+    in string literals for contract names like "outreach_history" and
+    "prospect_replied_to_outreach". No SQL reference. No change needed.
+  - src/db/query_outreach.py — REAL ORPHAN. Placeholder file that
+    queried `outreach_log` at the wrong DB path (`src/db/crm.db`
+    instead of `/var/lib/murphy-production/crm.db`). File comment
+    explicitly says "Placeholder function." Nothing imports it.
+
+WHAT SHIPPED:
+  src/db/query_outreach.py — rewrote to canonical
+    - get_last_reply_timestamp() → queries deal_reply_correlations
+    - get_last_outreach_timestamp(contact_id=None) → queries activities
+      where activity_type LIKE 'email_%'
+    - get_outreach_summary() → counts per activity_type
+    - All use the right DB path (/var/lib/murphy-production/crm.db)
+    - All handle missing tables gracefully (OperationalError → default)
+
+  src/db/__init__.py — created (was missing, blocked dotted imports)
+
+EVIDENCE (rule #7 ground truth):
+  Last outreach:  2026-06-09T00:04:30 (recent — lead_prospector active)
+  Summary:        email_sent=78, email_followup=62,
+                  email_followup_unverified=34, email_send_failed=34,
+                  email_followup_failed=7
+
+  All functions importable via dotted path now.
+  Prior phase verifiers 4b/5/6a/6b/7/8/9: all PASS.
+  Prod surfaces /, /os, /canvas, /api/health: all 200.
+
+SHAPE-OF-COMPLETE GATE STATUS UPDATE:
+  CRM outreach: a✅ b✅ c✅ d✅ e✅  COMPLETE (was a✅ b✅ c❓ d❌ e❌)
+
+  78 emails actually sent, gateable. Summary surface available for
+  dashboards. Reply tracking points at the canonical correlations table.
+
+R83 REACTIVATION GATE:
+  This was banked as "gates R83." With outreach tracking proven real,
+  R83 reactivation is now unblocked from a data-visibility standpoint.
+  Still gated on the *content quality* problem we identified earlier
+  (generic brochure copy ignoring 283 enriched contact contexts).
+
+BANKED FOR LATER:
+  - entity_graph events archaeology (OPT-9 half-migration of 6+ modules)
+  - Port 25 SMTP wiring test
+  - Unrestricted-write-endpoint audit
+  - R83 content-quality fix (use enriched CRM data)
+  - Twilio Console registration (founder action)
+
+OPERATING RULES HELD:
+  Rule #2  snapshot ✓ (PCR-028_pre/)
+  Rule #6  HITL queue untouched ✓
+  Rule #7  ground truth verified via real DB ✓
+  L29-L32  ✓
+  L35      no patcher needed — orphan file, direct rewrite ✓
