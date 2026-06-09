@@ -3305,3 +3305,104 @@ L45: When the original request CAN'T be served because of a system
      defect, fixing the defect is the work — not producing the answer
      manually and labeling it as system output. Patch the routing,
      re-run the request, prove it works.
+
+## PCR-036 — Wire Conductor + Decomposer + Rubix into dispatch — 2026-06-09
+
+CODE CHANGE: yes. src/runtime/app.py (orchestrator block ~90 lines +
+            compound_workflow response field). scripts/pcr036_dispatch_orchestrator.py
+            (marker-based patcher with --verify and --revert).
+
+FOUNDER DIRECTIVE: "Wire correctly." The orchestration loop (compound
+                   decomposer + conductor state machine + rubix path
+                   confidence) was already built in:
+                     - src/compound_task_decomposer.py
+                     - src/conductor/state_machine.py
+                     - bots/rubixcube_bot.PathConfidenceRegistry
+                   They simply were NOT connected to /api/rosetta/dispatch.
+                   This patch IS the connection.
+
+AUDIT PRE-WORK (.agents/memory/PCR_036_wiring_plan.md):
+  - Confirmed all 7 orchestration pieces exist and work in isolation
+  - Located exact insertion point (anchor: PATCH-361 ExecGen comment)
+  - 6-artifact plan per R355: 9 failure modes enumerated, 4 success modes,
+    9 error codes registered, ancillary changes mapped, rollback plan
+  - Estimated 7 credits; actual was ~7
+
+WHAT'S WIRED:
+  1. /api/rosetta/dispatch now calls compound_task_decomposer.detect_compound_query
+  2. If is_compound: per-phase team RE-CAST via DynamicRosettaPlanner.plan(fragment)
+     (this is the "Agent B becomes Agent D" mechanism the founder described)
+  3. execute_prerequisite_phases runs the phases with PathConfidenceRegistry
+     trajectory tracking
+  4. 33/66 latency canon applied per phase (soft/hard/over-budget flags)
+  5. Phase outputs enriched-context-injected back into prompt for downstream
+  6. compound_workflow field added to response with phase results +
+     trajectory_scores + enriched_context_chars
+  7. ALL paths wrapped in try/except — failure CANNOT break existing PCR-035
+
+LIVE VERIFICATION (9 gates):
+  Gate 1-3: verify+apply+compile  → all PASS
+  Gate 4-5: restart+surfaces      → all PASS (auto-reverted on first
+                                    attempt because /os and /canvas were
+                                    still warming up at 10s; second
+                                    attempt with 20s warmup + 3-retry
+                                    surface check passed cleanly)
+  Gate 6:   7 phase verifiers + tripwire → all PASS
+  Gate 7:   NON-compound prompt → compound_workflow=None (correct silence)
+  Gate 8:   COMPOUND prompt (vet specialty research then PawPath build):
+              is_compound=True
+              phase_count=2, succeeded=1/2 (phase 1 BUILD is correctly
+                deferred by design — _run_phase dispatch table only
+                handles RESEARCH/ANALYSIS/SELECTION/VALIDATE; BUILD
+                phases produce enriched_context for downstream)
+              decomposition_confidence=0.85
+              phase 0 RESEARCH: domain=research,
+                                source=competitive_intelligence_engine
+              phase 1 BUILD:    domain=business_strategy (PCR-035 routing
+                                still active for the re-cast)
+              enriched_context_chars=273 (fed back into prompt)
+              trajectory_scores={"phase:0:research":0.70}
+  Gate 9:   DLF-R package stored (cd913a36...) with rosetta_block + weaves
+
+SHAPE-OF-COMPLETE — Rosetta+DLF for prod tasks (UPDATED):
+  a) producers run:                ✅
+  b) format is rich:               ✅
+  c) content is concrete:          ✅
+  d) outputs drive action:         🟡 (PCR-034+PCR-035+PCR-036 closed
+                                       three more arrows — dispatch now
+                                       produces TRACEABLE multi-phase
+                                       workflow output with trajectory
+                                       scoring and per-phase team
+                                       re-casting)
+  e) loop closes (dedup/resolve):  🔴 unchanged (PCR-037 banked)
+
+OBSERVATIONS NOT FIXED (banked):
+  - elapsed_ms=0 on both phases because engines return cached/instant
+    (PCR-036b ~1 cr: use ns precision)
+  - Single-agent teams per phase (existing estimated_agents cap from
+    PCR-035 banking; PCR-035b ~1 cr unchanged)
+  - BUILD phase deferred to downstream by design — fine for now;
+    closing this loop is part of the larger Plan→Org→SOP→Execute
+    chain (PCR-038 banked)
+
+OPERATING RULES HELD:
+  Rule #1 (audit first) ✓ — full source-read audit before writing
+                            (.agents/memory/PCR_036_wiring_plan.md)
+  Rule #2 (snapshot) ✓ — /var/lib/murphy-production/state_snapshots/PCR-036_pre/
+  Rule #6 (HITL canon) ✓ — purely additive; no autonomy expansion
+  Rule #7 (ground truth) ✓ — end-to-end live dispatch verified, DLF-R
+                              package inspected
+  R355 error discipline ✓ — full 6-artifact plan written BEFORE code
+  L41 ✓ — verified each existing module by reading source, not memory
+  L43 ✓ — used existing infrastructure (decomposer, conductor, rubix)
+            instead of building new
+  L44 ✓ — all curl --max-time ≥ 120
+  L45 ✓ — fixed the system, didn't paper over the gap
+  Standing Decision 56 ✓ — wiring plan written + founder reviewed before
+                            code was touched
+
+L46: When a auto-revert fires on a transient surface failure during a
+     service restart, that does NOT mean the patch is broken. Wait for
+     full warmup (20s+, with retry-per-surface), re-baseline, then
+     decide. The auto-revert is correct conservatism but not
+     authoritative diagnosis.
