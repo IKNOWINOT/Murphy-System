@@ -3406,3 +3406,42 @@ L46: When a auto-revert fires on a transient surface failure during a
      full warmup (20s+, with retry-per-surface), re-baseline, then
      decide. The auto-revert is correct conservatism but not
      authoritative diagnosis.
+
+## PCR-035b + PCR-036b — polish pass — 2026-06-09 (commit d9395e96)
+
+CODE CHANGE: yes. Two surgical changes, one combined patcher.
+  src/dynamic_rosetta_planner.py — PCR-035b: business_strategy
+    domain now gets minimum 5-agent team regardless of complexity.
+  src/compound_task_decomposer.py — PCR-036b: time.perf_counter_ns
+    timer with both elapsed_ms and elapsed_us on DecomposedPhase.
+
+LIVE VERIFICATION:
+  PCR-035b — PawPath compound dispatch:
+    BEFORE: [361] Rosetta planned 3-agent team (Strategy Lead + Researcher + Finance)
+    AFTER:  [361] Rosetta planned 5-agent team
+              Strategy Lead [Executive]
+              Market Researcher [Research]
+              Financial Analyst [Finance]
+              Product Architect [Engineering]   ← NEW
+              Risk Assessor [Risk]              ← NEW
+            [PCR-036] phase 1 (build) team: business_strategy / 5 agents
+
+  PCR-036b — Direct python call to execute_prerequisite_phases:
+    phase 0 [research]  ms=12  us=12971  success=True
+    phase 1 [build]     ms=0   us=0      success=False (as designed)
+    Cached engine returns that previously rounded to ms=0 now show
+    proper microsecond precision.
+
+REGRESSION: All 7 phase verifiers pass, tripwire clean, all canonical
+            surfaces 200, non-compound dispatch unchanged.
+
+OBSERVATIONS:
+  - First HTTP test timed out at 120s. Diagnosis showed autonomous
+    executor loop hogging ThreadPoolExecutor on unrelated work (CRM
+    incident-response loop). NOT caused by patch. Waited 30s, retested
+    clean. L46 vindicated — auto-revert would have been wrong here.
+  - elapsed_us captured on phase but not yet surfaced through PCR-036
+    HTTP response wrapper. PCR-036c (~1 cr) for that.
+
+OPERATING RULES HELD: Rule #1 audit-first, Rule #2 snapshot, Rule #7
+                      ground-truth via direct python + HTTP, L43, L44, L46.
