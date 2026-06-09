@@ -26221,6 +26221,54 @@ def create_app() -> FastAPI:
 
             # ── STEP 4: Summary notification ─────────────────────────────────────
             _notify(f"Task dispatched to swarm — dag_id={dag_id} agents={len(assigned_agents)}")
+            # PCR-035 BEGIN dispatch DLF-R packaging
+            try:
+                from src.dlf_r import pack as _dlfr_pack_035, store as _dlfr_store_035
+                _dispatch_packet_local = locals().get("_dispatch_packet") or {}
+                _team_meta = _dispatch_packet_local.get("dynamic_team") or _dispatch_packet_local
+                _domain_035 = (_team_meta.get("task_profile", {}) or {}).get("domain") if isinstance(_team_meta, dict) else "unknown"
+                if not _domain_035:
+                    _domain_035 = _team_meta.get("domain", "unknown") if isinstance(_team_meta, dict) else "unknown"
+                _threads_035 = [{
+                    "id": "thr_prompt_" + (dag_id or "x")[:8],
+                    "payload": (prompt or "")[:2000],
+                    "created_at_utc": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(),
+                    "metadata": {"kind": "dispatch_prompt", "domain": _domain_035},
+                }]
+                _nodes_035 = [
+                    {"id": "node_dispatch_" + (dag_id or "x")[:8],
+                     "label": "dispatch:" + (dag_id or "unknown"),
+                     "thread_refs": ["thr_prompt_" + (dag_id or "x")[:8]],
+                     "metadata": {"domain": _domain_035, "agents": assigned_agents}}
+                ]
+                for _aid_035 in assigned_agents or []:
+                    _nodes_035.append({
+                        "id": "node_agent_" + str(_aid_035),
+                        "label": "agent:" + str(_aid_035),
+                        "thread_refs": [],
+                        "metadata": {"role": "assigned"},
+                    })
+                _weaves_035 = []
+                for _aid_035 in assigned_agents or []:
+                    _weaves_035.append({
+                        "id": "w_" + (dag_id or "x")[:6] + "_" + str(_aid_035)[:8],
+                        "source": "node_dispatch_" + (dag_id or "x")[:8],
+                        "target": "node_agent_" + str(_aid_035),
+                        "type": "ROUTED_TO",
+                        "confidence": 0.95,
+                        "provenance": "PCR-035 dispatch packaging",
+                    })
+                _blob_035 = _dlfr_pack_035(
+                    threads=_threads_035, nodes=_nodes_035, weaves=_weaves_035,
+                    metadata={"dag_id": dag_id, "patch": "PCR-035", "endpoint": "/api/rosetta/dispatch"},
+                    creator="rosetta_dispatch",
+                )
+                _pkg_id_035 = _dlfr_store_035(_blob_035, label="dispatch:" + (dag_id or "unknown"))
+                _notify("[PCR-035] DLF-R package stored: " + str(_pkg_id_035))
+            except Exception as _dlfr_err_035:
+                _notify("[PCR-035] DLF-R packaging failed (non-fatal): " + str(_dlfr_err_035)[:120])
+            # PCR-035 END dispatch DLF-R packaging
+
 
             return JSONResponse({
                 "success": True,

@@ -145,6 +145,17 @@ DOMAIN_ROLE_TEMPLATES: Dict[str, List[Tuple]] = {
         ("SRE Monitor",         "Engineering", "observant",  "system_health",  0.80, ["telemetry analysis","alert triage","capacity planning"],            ["Page on SLO breach","Trend before threshold"], "📡"),
         ("HITL Gate",           "Safety",      "cautious",   "caution",        0.00, ["deploy approval","rollback decision","outage escalation"],          ["Approve every production deploy","Founder approval for major incident"], "🔴"),
     ],
+    # PCR-035 BEGIN business_strategy team
+    "business_strategy": [
+        # role_class,         dept,          tone,        bias,             hitl, capabilities,                                                   bounds,                                         emoji
+        ("Strategy Lead",     "Executive",   "decisive",  "synthesis",      0.55, ["task decomposition","cross-team coordination","prioritization"], ["No fluff","Every claim has evidence"],       "🎯"),
+        ("Market Researcher", "Research",    "curious",   "evidence",       0.60, ["market sizing","competitive analysis","trend identification"],   ["Cite every source","Flag assumptions"],     "🔬"),
+        ("Financial Analyst", "Finance",     "precise",   "accuracy",       0.65, ["unit economics","pricing modeling","projections"],               ["Show math","No hand-waving on numbers"],    "📊"),
+        ("Product Architect", "Engineering", "rigorous",  "buildability",   0.55, ["system design","stack selection","integration mapping"],         ["Pick proven tech","Flag build vs buy"],     "🏗️"),
+        ("Risk Assessor",     "Risk",        "skeptical", "risk_first",     0.50, ["risk identification","scenario planning","mitigation design"],   ["Surface every risk","Rank by impact"],      "⚠️"),
+        ("HITL Gate",         "Governance",  "cautious",  "human_approval", 0.00, ["high-stake approvals","scope checks"],                            ["Block on critical","Defer to founder"],    "🚪"),
+    ],
+    # PCR-035 END business_strategy team
 }
 DOMAIN_ROLE_TEMPLATES["general"] = DOMAIN_ROLE_TEMPLATES["exec_admin"]
 
@@ -160,6 +171,22 @@ DOMAIN_SIGNALS: Dict[str, List[str]] = {
     "data":        ["data","etl","pipeline","analytics","dashboard","report","metrics","kpi","visualization","sql","query","dataset"],
     "prod_ops":    ["deploy","health","incident","monitor","server","service","uptime","latency","error","log","alert","outage","sre"],
     "exec_admin":  ["schedule","meeting","brief","summary","status","report","approve","coordinate","plan","strategy","decide"],
+    # PCR-035 BEGIN business_strategy domain
+    # High-precision multi-word signals for business-plan / architecture /
+    # strategy tasks. These should outweigh single-word signals like
+    # "email" or "pipeline" that happen to appear in business prompts.
+    "business_strategy": [
+        "business plan","go-to-market","gtm","v0 architecture","tech stack",
+        "icp","value prop","value proposition","competitive moat","wedge",
+        "pricing model","unit economics","mrr","aov","ltv","cac",
+        "case study","investor","fundraise","pitch deck","term sheet",
+        "build a business","build a product","build an mvp","build a v0",
+        "strategy for","business model","revenue model","go to market",
+        "founding team","first 10 customers","early adopters",
+        "highest-risk assumptions","riskiest assumption","validate first",
+        "market sizing","tam","sam","som","competitive analysis",
+    ],
+    # PCR-035 END business_strategy domain
 }
 
 STAKE_SIGNALS: Dict[str, List[str]] = {
@@ -236,11 +263,19 @@ class DynamicRosettaPlanner:
     def analyze_task(self, prompt: str) -> TaskProfile:
         lower = prompt.lower()
         words = re.findall(r"\w+", lower)
+        # PCR-035 BEGIN multi-word signal weighting
+        # Multi-word signals (e.g. "business plan", "go-to-market") count
+        # for 3 instead of 1 — they are higher precision than single words
+        # which can appear incidentally in prompts.
         domain_scores: Dict[str, int] = {}
         for domain, signals in DOMAIN_SIGNALS.items():
-            score = sum(1 for s in signals if s in lower)
+            score = 0
+            for s in signals:
+                if s in lower:
+                    score += 3 if " " in s or "-" in s else 1
             if score > 0:
                 domain_scores[domain] = score
+        # PCR-035 END multi-word signal weighting
         domain = max(domain_scores, key=domain_scores.get) if domain_scores else "exec_admin"
 
         stake = "low"
