@@ -281,6 +281,32 @@ def register_engagement_routes(
 
     status["routes_added"].append("POST /api/org/engagement/{id}/outreach")
 
+    # ── POST /api/org/engagement/process-inbound (PCR-054e) ───────
+    @app.post("/api/org/engagement/process-inbound")
+    async def engagement_process_inbound(body: Dict[str, Any]):
+        """Scan inbound_replies, push every matching folder forward.
+
+        Body fields (all optional):
+          since: ISO timestamp; only process rows received >= this time
+          limit: cap (default 200)
+        """
+        try:
+            from src.engagement_inbound import process_pending_replies
+        except Exception as e:
+            return _err(500, {"ok": False, "error": f"inbound module unavailable: {e}"})
+        kwargs = {
+            "since":   body.get("since"),
+            "limit":   body.get("limit", 200),
+            "db_path": db_path,
+        }
+        try:
+            return process_pending_replies(**kwargs)
+        except Exception as e:
+            LOG.exception("PCR-054e process-inbound failed")
+            return _err(500, {"ok": False, "error": f"{type(e).__name__}: {e}"})
+
+    status["routes_added"].append("POST /api/org/engagement/process-inbound")
+
     # Mark idempotent
     app.state._engagement_routes_registered = True
     status["registered"] = True

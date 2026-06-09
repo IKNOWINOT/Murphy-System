@@ -528,6 +528,50 @@ def store_attestation_payload(
         con.close()
 
 
+def record_attestation_payload(
+    engagement_id: str,
+    from_email: str,
+    raw_body: str,
+    *,
+    license_type_claimed: Optional[str] = None,
+    license_number_claimed: Optional[str] = None,
+    license_jurisdiction_claimed: Optional[str] = None,
+    attestation_language_present: bool = False,
+    parse_errors: Optional[List[str]] = None,
+    db_path: str = DEFAULT_DB_PATH,
+) -> int:
+    """Insert an attestation_payloads row. PCR-054e — used by engagement_inbound."""
+    import time
+    init_db(db_path)
+    con = _connect(db_path)
+    try:
+        cur = con.execute(
+            """
+            INSERT INTO attestation_payloads (
+                engagement_id, received_at, from_email, raw_body,
+                license_type_claimed, license_number_claimed,
+                license_jurisdiction_claimed,
+                attestation_language_present,
+                parse_errors_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                engagement_id,
+                time.time(),
+                from_email or "",
+                raw_body or "",
+                license_type_claimed,
+                license_number_claimed,
+                license_jurisdiction_claimed,
+                1 if attestation_language_present else 0,
+                json.dumps(parse_errors or []),
+            ),
+        )
+        return cur.lastrowid
+    finally:
+        con.close()
+
+
 def get_attestations(engagement_id: str, db_path: str = DEFAULT_DB_PATH) -> List[Dict[str, Any]]:
     con = _connect(db_path)
     try:
