@@ -292,6 +292,25 @@ def create_app() -> FastAPI:
                 except Exception as _rr_exc:
                     logger.warning("route_registry build failed: %s", _rr_exc)
 
+                # EXEC-02 (2026-06-09): wire executive layer
+                # Attaches ExecutivePlanningEngine + AgentSlotController +
+                # GraphSnapshotWriter to app.state, registers 4 /api/executive
+                # routes. Idempotent. Fail-soft — wiring errors are logged but
+                # never crash startup.
+                try:
+                    from src.executive_wiring import register_executive
+                    _exec_status = register_executive(app)
+                    logger.info(
+                        "EXEC-02: engine=%s, slots=%s, snapshots=%s, routes=%d, errors=%d",
+                        _exec_status.get("engine"),
+                        _exec_status.get("slot_controller"),
+                        _exec_status.get("snapshot_writer"),
+                        len(_exec_status.get("routes_added", [])),
+                        len(_exec_status.get("errors", [])),
+                    )
+                except Exception as _exec_exc:
+                    logger.warning("EXEC-02 wiring failed (non-fatal): %s", _exec_exc)
+
 
                 # Rosetta Soul + Coordinator — PATCH-130: all 9 agents registered
                 from src.rosetta_core import get_rosetta_soul, get_swarm_coordinator
