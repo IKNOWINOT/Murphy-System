@@ -2707,3 +2707,79 @@ RULES HELD:
   HITL canon (no autonomous external sends) ✓
   Rule #7 (ground truth via live LLM test) ✓
   Shape-of-Complete v2 (honest gate status, no theater) ✓
+
+## PCR-030 — CRM hygiene (test rows only, larger scope banked) — 2026-06-09
+
+ORIGINAL PLAN was ~2 credits "mark 15-19 synthetic so prospector skips."
+AUDIT revealed the scope is bigger AND riskier than memory predicted.
+
+WHAT THE AUDIT FOUND:
+  contact_type distribution (283 total):
+    business_directory_entry  169
+    lead                       70  ← prospector targets
+    synthetic_seed             15  ← marked synthetic
+    unqualified_auto_prospect  14
+    generated_persona           6  ← AMBIGUOUS (40 activities)
+    test                        5  ← safe to consolidate (0 activities)
+    prospect                    3  ← UI-VISIBLE in app.py:26801
+    self                        1
+
+  Prospector already filters contact_type='lead' (line 1148) — so the
+  15 synthetic_seed rows were ALREADY being skipped from outreach.
+  The memory note "PCR-030 unblocks safe reactivation" was based on
+  an unverified assumption.
+
+  Two findings made me NOT do the full consolidation:
+  1. The 3 contact_type='prospect' rows (alice/bob/jane.test@example.com)
+     ARE DISPLAYED in a UI surface (app.py:26801-26804). Silently
+     renaming them would change dashboard counts without UI alignment.
+  2. The 6 generated_persona rows have 40 activities and look like
+     plausible small-business contacts (Tom Briggs @ apexgc.com,
+     Donna Park @ fastroutelogistics.com). Without archaeology I
+     can't tell if those are AI-synthesized seeds or real prospects
+     enriched with AI personas. Marking them synthetic without
+     evidence would repeat the NO_FAKE_REVENUE category error in
+     the opposite direction.
+
+WHAT SHIPPED (narrow, safe):
+  Updated 5 contact_type='test' rows to contact_type='synthetic':
+    apc_187189a169 jane@test-sm.com
+    apc_7963430214 tom@test-mep.com
+    apc_97bfc26e48 prospect_2220ba@hvac-demo.com
+    c5f6f5fe-9ba   test2@test.com
+    ed3e1462-bc4   jsmith@acme.com
+  All had 0 activities. All have obvious test-pattern emails.
+  No code reads contact_type='test' — confirmed via grep.
+
+EVIDENCE:
+  - 5 rows updated, 0 activities orphaned
+  - Prospector still finds 70 leads (unchanged — it was never
+    targeting 'test' anyway)
+  - All 7 phase verifiers pass
+  - All prod surfaces 200
+
+WHAT'S BANKED FOR A FUTURE FOUNDER-DECISIONED PCR:
+  PCR-030b: Reconcile the 3 prospect+@example.com rows. Either
+    fix the dashboard to filter them out, or migrate both DB and
+    UI in the same PR. Founder picks.
+  PCR-030c: Audit the 6 generated_persona contacts. If AI-seeded
+    test data, mark synthetic. If real prospects with AI persona
+    enrichment, leave alone. Needs git archaeology + source check
+    of where contact_type='generated_persona' is set.
+  PCR-030d: Consider whether 15 synthetic_seed + 169 business_
+    directory_entry should be unified or kept distinct for
+    targeting rules.
+
+SHAPE-OF-COMPLETE GATE STATUS UPDATE:
+  R83 outreach pipeline: composer works, schedule paused.
+    Gate (d) still 🟡 — needs founder reactivation decision.
+    This PCR doesn't change that — synthetic_seed was already
+    being excluded by the contact_type='lead' filter.
+
+RULES HELD:
+  Rule #2 snapshot ✓ (test_rows_before.<TS>.sql)
+  Rule #7 ground truth verified ✓ (counts before/after)
+  no_fake_revenue canon ✓ (refused to recategorize ambiguous rows
+    without evidence — same discipline in the opposite direction)
+  HITL canon ✓ (no external action taken, prospector still paused)
+  Shape-of-Complete v2 ✓ (honest scope, banked the rest)
