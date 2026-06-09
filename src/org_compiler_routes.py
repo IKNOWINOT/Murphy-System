@@ -403,6 +403,53 @@ def register_org_compiler(app: Any) -> Dict[str, Any]:
         }
     status["routes_added"].append("GET /api/org/health")
 
+# PCR-053f-route
+    # PCR-053f-route: manual tick (also useful to confirm the heartbeat path works)
+    @app.post("/api/org/tick")
+    async def org_manual_tick():
+        """Fire one shadow-loop tick and return the summary."""
+        try:
+            from src.org_compiler_heartbeat import run_tick
+            col = app.state.shadow_collector
+            if col is None:
+                return JSONResponse(content={"ok": False, "error": "no shadow_collector"}, status_code=503) if JSONResponse else ({"ok": False, "error": "no shadow_collector"}, 503)
+            summary = run_tick(col)
+            return {"ok": True, "summary": summary}
+        except Exception as e:
+            LOG.exception("manual tick failed")
+            body = {"ok": False, "error": f"{type(e).__name__}: {e}"}
+            return JSONResponse(content=body, status_code=500) if JSONResponse else (body, 500)
+    status["routes_added"].append("POST /api/org/tick")
+
+    # GET /api/org/audit — show the last N snapshot rows so the founder
+    # can verify the tick is actually writing audit history.
+    @app.get("/api/org/audit")
+    async def org_audit(limit: int = 20):
+        try:
+            import sqlite3, json
+            from src.org_compiler_heartbeat import DEFAULT_AUDIT_DB
+            con = sqlite3.connect(DEFAULT_AUDIT_DB, timeout=5.0)
+            con.row_factory = sqlite3.Row
+            try:
+                cur = con.execute(
+                    "SELECT * FROM shadow_audit_snapshots "
+                    "ORDER BY snapshot_id DESC LIMIT ?",
+                    (max(1, min(int(limit), 200)),),
+                )
+                rows = [dict(r) for r in cur.fetchall()]
+                for r in rows:
+                    try:
+                        r["reasons"] = json.loads(r.pop("reasons_json"))
+                    except Exception:
+                        pass
+            finally:
+                con.close()
+            return {"ok": True, "count": len(rows), "snapshots": rows}
+        except Exception as e:
+            body = {"ok": False, "error": f"{type(e).__name__}: {e}"}
+            return JSONResponse(content=body, status_code=500) if JSONResponse else (body, 500)
+    status["routes_added"].append("GET /api/org/audit")
+
     # Mark idempotent
     app.state._org_compiler_routes_registered = True
     LOG.info("PCR-053d: registered %d org_compiler routes", len(status["routes_added"]))

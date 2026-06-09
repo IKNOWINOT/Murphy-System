@@ -329,6 +329,24 @@ def create_app() -> FastAPI:
                 except Exception as _org_exc:
                     logger.warning("PCR-053e wiring failed (non-fatal): %s", _org_exc)
 
+                # PCR-053f (2026-06-09): wire shadow-loop heartbeat tick
+                # Schedules a 10-minute periodic job that scans the shadow
+                # collector, evaluates each role against the regulatory floor,
+                # and writes a snapshot row to shadow_audit_snapshots. Idempotent.
+                # Fail-soft - errors logged but never crash startup.
+                try:
+                    from src.org_compiler_heartbeat import register_heartbeat
+                    _hb_status = register_heartbeat(app, interval_minutes=10)
+                    logger.info(
+                        "PCR-053f: scheduler=%s, scheduled=%s, interval=%dm, errors=%d",
+                        _hb_status.get("scheduler_present"),
+                        _hb_status.get("scheduled"),
+                        _hb_status.get("interval_minutes"),
+                        len(_hb_status.get("errors", [])),
+                    )
+                except Exception as _hb_exc:
+                    logger.warning("PCR-053f wiring failed (non-fatal): %s", _hb_exc)
+
 
                 # Rosetta Soul + Coordinator — PATCH-130: all 9 agents registered
                 from src.rosetta_core import get_rosetta_soul, get_swarm_coordinator
