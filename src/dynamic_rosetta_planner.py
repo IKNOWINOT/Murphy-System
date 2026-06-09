@@ -291,7 +291,10 @@ ROLE_IO_CONTRACTS = {
     # version — same role name, same contract.
     # ── engineering domain ───────────────────────────────────────────
     "Lead Engineer": (
-        ["prompt", "test_plan", "security_audit"],
+        # PCR-044 — Lead is the kickoff architect, fires on prompt alone.
+        # test_plan and security_audit are downstream feedback consumed in
+        # refinement passes (PCR-040c), not first-pass prerequisites.
+        ["prompt"],
         ["architecture_decision", "deliverable"],
     ),
     "Code Executor": (
