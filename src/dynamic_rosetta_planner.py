@@ -572,9 +572,83 @@ class DynamicRosettaPlanner:
     def write_souls(self, team: List[AgentBlueprint], prompt: str, profile: TaskProfile) -> Dict[str, str]:
         return {a.agent_id: self._render_soul(a, profile) for a in team}
 
+    def _render_l5_prior_receipts(self, agent: AgentBlueprint) -> str:
+        """
+        PCR-046 — L5 Prior Receipts layer.
+
+        Renders an agent's accumulated accomplishments under its
+        persistent_id (PCR-045c) as a soul layer. Cross-domain by
+        default — the receipts speak louder than the original
+        domain assignment.
+
+        Returns empty string when:
+          - no persistent_id on blueprint, OR
+          - no successful accomplishments under that persistent_id, OR
+          - any DB error (fail-soft)
+        """
+        pid = getattr(agent, "persistent_id", "") or ""
+        if not pid:
+            return ""
+        try:
+            import sqlite3 as _sqlite3_046
+            conn = _sqlite3_046.connect(
+                "/var/lib/murphy-production/murphy_identity.db", timeout=3.0
+            )
+            try:
+                rows = conn.execute(
+                    """
+                    SELECT domain, task_prompt, output_type, output_summary, fired_at
+                    FROM agent_accomplishments
+                    WHERE profile_id = ? AND success = 1
+                    ORDER BY fired_at DESC
+                    LIMIT 8
+                    """,
+                    (pid,),
+                ).fetchall()
+                # Aggregate domain counts for the header summary
+                stats = conn.execute(
+                    """
+                    SELECT domain, COUNT(*) FROM agent_accomplishments
+                    WHERE profile_id = ? AND success = 1
+                    GROUP BY domain ORDER BY COUNT(*) DESC
+                    """,
+                    (pid,),
+                ).fetchall()
+            finally:
+                conn.close()
+            if not rows:
+                return ""
+            total = sum(c for _, c in stats)
+            dom_line = ", ".join("{}({})".format(d or "general", c) for d, c in stats)
+            lines = [
+                "## L5 — Prior Receipts (track record under persistent_id={})".format(pid),
+                "",
+                "**Total successful fires:** {}  |  **Domains:** {}".format(total, dom_line),
+                "",
+                "**Recent wins (newest first):**",
+            ]
+            for domain, prompt_txt, output_type, summary, _fired in rows:
+                # Keep each receipt to one tight line
+                ptxt = (prompt_txt or "")[:80].replace("\n", " ")
+                stxt = (summary or "")[:120].replace("\n", " ")
+                lines.append(
+                    "- [{}] {} → {} :: {}".format(
+                        domain or "general", ptxt, output_type or "?", stxt
+                    )
+                )
+            lines.append("")
+            lines.append(
+                "_Use this track record to inform your approach. You have "
+                "done this kind of work before; lean on what worked._"
+            )
+            return "\n".join(lines)
+        except Exception:
+            return ""  # fail-soft
+
     def _render_soul(self, agent: AgentBlueprint, profile: TaskProfile) -> str:
         """
         PATCH-385 — Load full layered Deep Soul (L0-L4) from entity_graph.db.
+        PCR-046  — Append L5 Prior Receipts layer when priors exist.
 
         Rosetta has NO token limit. Layer selection is by relevance to the
         agent's role and the task domain. Full soul stack is returned —
@@ -595,26 +669,33 @@ class DynamicRosettaPlanner:
 
             # full_soul key already concatenates L0+L1+L2+L3+L4
             # If missing (older deep_soul_engine), build it ourselves
+            # PCR-046 — append L5 Prior Receipts when blueprint has priors
+            _l5_046 = self._render_l5_prior_receipts(agent)
             if "full_soul" in soul_layers and soul_layers["full_soul"]:
-                return soul_layers["full_soul"]
+                _base_046 = soul_layers["full_soul"]
+                return (_base_046 + "\n\n" + _l5_046) if _l5_046 else _base_046
 
-            return "\n\n".join(
+            _base_046 = "\n\n".join(
                 soul_layers.get(layer, "")
                 for layer in ("L0", "L1", "L2", "L3", "L4")
                 if soul_layers.get(layer)
             )
+            return (_base_046 + "\n\n" + _l5_046) if _l5_046 else _base_046
         except Exception as e:
             logger.warning(
                 "[PATCH-385] Deep soul load failed for %s — falling back to stub: %s",
                 agent.agent_id, e,
             )
             # Fallback to a minimal soul (NOT the old 95-word version — just identity)
-            return (
+            # PCR-046 — also include L5 priors in the fallback path
+            _stub_046 = (
                 f"# AGENT — {agent.agent_id}\n"
                 f"**Role:** {agent.role_class}\n"
                 f"**Reports to:** {agent.reports_to or 'CEO'}\n"
                 f"**Task domain:** {getattr(profile, 'domain', 'operations')}\n"
             )
+            _l5_046 = self._render_l5_prior_receipts(agent)
+            return (_stub_046 + "\n\n" + _l5_046) if _l5_046 else _stub_046
 
     def build_org(self, team: List[AgentBlueprint]) -> OrgChart:
         nodes: Dict[str, OrgNode] = {}
