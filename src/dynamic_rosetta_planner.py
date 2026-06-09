@@ -35,6 +35,9 @@ class AgentBlueprint:
     boundaries: List[str]
     task_brief: str
     emoji: str
+    # PCR-040a — Role I/O contracts
+    input_types: List[str] = field(default_factory=list)
+    output_types: List[str] = field(default_factory=list)
 
 @dataclass
 class OrgNode:
@@ -235,6 +238,100 @@ BRIEFS = {
 }
 
 
+# PCR-040a BEGIN role I/O contracts
+#
+# Each role_class declares what artifact-types it consumes (input_types)
+# and what artifact-types it produces (output_types). The graph wires
+# itself: output of agent A flows into input of agent B when B's input
+# slot matches A's output type.
+#
+# Convention:
+#   "prompt"  is the special root input every team has access to
+#   "*_v1"    means the first round artifact of that type
+#   "deliverable" is the special terminal output for the top coordinator
+#
+# Roles not listed here fall back to ([], []) which means "consumes
+# prompt only, produces artifact named after role." Safe default.
+ROLE_IO_CONTRACTS = {
+    # ── business_strategy domain ─────────────────────────────────────
+    "Strategy Lead": (
+        ["prompt", "market_landscape", "competitor_set"],
+        ["positioning_thesis", "value_prop", "go_to_market"],
+    ),
+    "Market Researcher": (
+        ["prompt"],
+        ["market_landscape", "competitor_set", "customer_segments"],
+    ),
+    "Financial Analyst": (
+        ["prompt", "customer_segments", "positioning_thesis"],
+        ["unit_economics", "revenue_model", "capital_plan"],
+    ),
+    "Product Architect": (
+        ["prompt", "positioning_thesis", "value_prop"],
+        ["system_design", "data_model", "integration_plan"],
+    ),
+    "Risk Assessor": (
+        ["positioning_thesis", "unit_economics", "system_design"],
+        ["risk_register", "mitigation_plan", "gate_criteria"],
+    ),
+    # ── sales domain ─────────────────────────────────────────────────
+    "Sales Coordinator": (
+        ["prompt", "pipeline_state", "outreach_draft"],
+        ["sales_plan", "deliverable"],
+    ),
+    "CRM Analyst": (
+        ["prompt"],
+        ["pipeline_state", "deal_priorities"],
+    ),
+    "Outreach Writer": (
+        ["prompt", "deal_priorities", "intel_signals"],
+        ["outreach_draft"],
+    ),
+    # Market Researcher in sales context shadows business_strategy's
+    # version — same role name, same contract.
+    # ── engineering domain ───────────────────────────────────────────
+    "Lead Engineer": (
+        ["prompt", "test_plan", "security_audit"],
+        ["architecture_decision", "deliverable"],
+    ),
+    "Code Executor": (
+        ["prompt", "architecture_decision"],
+        ["patch_set"],
+    ),
+    "QA Auditor": (
+        ["patch_set"],
+        ["test_plan", "regression_report"],
+    ),
+    "Security Reviewer": (
+        ["patch_set"],
+        ["security_audit"],
+    ),
+    # ── exec_admin domain ────────────────────────────────────────────
+    "Coordinator": (
+        ["prompt", "analysis_report", "schedule"],
+        ["deliverable"],
+    ),
+    "Executive Analyst": (
+        ["prompt"],
+        ["analysis_report"],
+    ),
+    "Scheduler": (
+        ["prompt", "analysis_report"],
+        ["schedule"],
+    ),
+    # ── universal roles ──────────────────────────────────────────────
+    "HITL Gate": (
+        ["deliverable"],
+        ["approval_decision"],
+    ),
+    "Auditor": (
+        ["deliverable"],
+        ["audit_report"],
+    ),
+}
+# PCR-040a END role I/O contracts
+
+
 class DynamicRosettaPlanner:
     """Pick your team for THIS task. plan() returns a DispatchPacket."""
 
@@ -357,12 +454,15 @@ class DynamicRosettaPlanner:
             if is_coord:
                 coordinator_id = agent_id
             brief = BRIEFS.get(role_class, "Execute " + role_class + " work on this task.")
+            # PCR-040a — pull I/O contract for this role (empty default)
+            _io_in, _io_out = ROLE_IO_CONTRACTS.get(role_class, ([], []))
             team.append(AgentBlueprint(
                 agent_id=agent_id, role_class=role_class, department=dept,
                 reports_to=coordinator_id if not is_coord else None,
                 tone=tone, bias=bias, hitl_threshold=hitl_thresh,
                 capabilities=caps, boundaries=bounds,
                 task_brief=brief, emoji=emoji,
+                input_types=list(_io_in), output_types=list(_io_out),
             ))
         return team
 
