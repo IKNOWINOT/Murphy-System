@@ -30,6 +30,7 @@ class ArtifactNode:
     produced_at: str = ""
     success: bool = True
     error: Optional[str] = None
+    version: int = 1  # PCR-040c — bumps on each refinement
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -40,6 +41,7 @@ class ArtifactNode:
             "produced_at":       self.produced_at,
             "success":           self.success,
             "error":             self.error,
+            "version":           self.version,
         }
 
 
@@ -56,10 +58,75 @@ class ArtifactGraph:
         return {"prompt"} | set(self.nodes.keys())
 
     def add(self, node: ArtifactNode) -> None:
+        # PCR-040c — versioning: if this output_type already has a node,
+        # archive the old one under {output_type}@v{n} and increment.
+        existing = self.nodes.get(node.output_type)
+        if existing is not None:
+            # Find current max version for this type
+            v = 1
+            for k in list(self.nodes.keys()):
+                if k.startswith(node.output_type + "@v"):
+                    try:
+                        n = int(k.split("@v")[-1])
+                        if n >= v: v = n + 1
+                    except Exception:
+                        pass
+            # If first overwrite, archive original as v1
+            if v == 1:
+                self.nodes[node.output_type + "@v1"] = existing
+                v = 2
+            # Mark the new node with its version
+            try:
+                node.version = v
+            except Exception:
+                pass
+            self.nodes[node.output_type + "@v" + str(v)] = node
+        else:
+            try:
+                node.version = 1
+            except Exception:
+                pass
+        # latest always lives at the unversioned key
         self.nodes[node.output_type] = node
 
     def get(self, output_type: str) -> Optional[ArtifactNode]:
         return self.nodes.get(output_type)
+
+    def ready_for_refinement(self, team: List[Any]) -> List[Any]:
+        """PCR-040c — agents whose outputs were consumed downstream.
+
+        An agent A is refinement-ready when:
+          - A has fired (its outputs are in the graph)
+          - Some other agent B has fired with A's outputs as inputs
+            (so A's work has been 'built on top of')
+          - Therefore A has new context to potentially revise against
+
+        Terminal agents (whose outputs nobody consumes) are not
+        refinement-eligible — there's nothing new for them to react to.
+        """
+        produced_types = set()
+        for k in self.nodes.keys():
+            if "@v" not in k:
+                produced_types.add(k)
+        eligible = []
+        for agent in team:
+            outs = set(getattr(agent, "output_types", []) or [])
+            if not outs: continue
+            if not outs.issubset(produced_types): continue  # didn't fire
+            # Is any downstream consumer producing now?
+            consumed = False
+            for other in team:
+                if other is agent: continue
+                other_ins = set(getattr(other, "input_types", []) or [])
+                if other_ins & outs:
+                    # other consumes some of agent's outputs
+                    other_outs = set(getattr(other, "output_types", []) or [])
+                    if other_outs and other_outs.issubset(produced_types):
+                        consumed = True
+                        break
+            if consumed:
+                eligible.append(agent)
+        return eligible
 
     def ready_agents(self, team: List[Any]) -> List[Any]:
         """Agents whose all input_types are satisfied, and which

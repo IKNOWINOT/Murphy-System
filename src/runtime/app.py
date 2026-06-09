@@ -26030,6 +26030,10 @@ def create_app() -> FastAPI:
                         _fired_040b = []
                         _failed_040b = []
 
+                        # PCR-040c — multi-pass refinement loop
+                        _max_passes_040c = int(_os_040b.environ.get("PCR040C_MAX_PASSES", "1"))
+                        _passes_040c = []  # per-pass summaries
+
                         while _round_040b < _max_rounds_040b:
                             _ready_040b = _graph_040b.ready_agents(_team_040b)
                             if not _ready_040b:
@@ -26160,6 +26164,108 @@ def create_app() -> FastAPI:
                                     _failed_040b.append(_aid_040b)
                                     _notify("  [PCR-040b] " + _role_040b + " FAILED: " + str(_e_agent_040b)[:80])
 
+                        # PCR-040c — refinement passes (default off, max_passes=1)
+                        _passes_040c.append({"pass": 1, "fired": len(_fired_040b),
+                                              "failed": len(_failed_040b)})
+                        _current_pass_040c = 1
+                        while _current_pass_040c < _max_passes_040c and _pcr040b_execute:
+                            _current_pass_040c += 1
+                            _refine_eligible_040c = _graph_040b.ready_for_refinement(_team_040b)
+                            if not _refine_eligible_040c:
+                                _notify("  [PCR-040c] pass " + str(_current_pass_040c) +
+                                        ": no refinement-eligible agents, converged")
+                                break
+                            _pass_refined_040c = []
+                            for _agent_040c in _refine_eligible_040c:
+                                _aid_040c = _agent_040c.agent_id
+                                _role_040c = _agent_040c.role_class
+                                _outs_040c = list(getattr(_agent_040c, "output_types", []) or [])
+                                try:
+                                    # Build refinement brief: prev output + downstream consumers
+                                    _prev_content_040c = {}
+                                    for _ot_040c in _outs_040c:
+                                        _prev_node_040c = _graph_040b.get(_ot_040c)
+                                        if _prev_node_040c:
+                                            _prev_content_040c[_ot_040c] = _prev_node_040c.content
+                                    # Find downstream consumers' outputs
+                                    _downstream_040c = []
+                                    for _other_040c in _team_040b:
+                                        if _other_040c is _agent_040c: continue
+                                        _other_ins_040c = set(getattr(_other_040c, "input_types", []) or [])
+                                        if _other_ins_040c & set(_outs_040c):
+                                            for _other_ot_040c in (_other_040c.output_types or []):
+                                                _dn_node_040c = _graph_040b.get(_other_ot_040c)
+                                                if _dn_node_040c and _dn_node_040c.success:
+                                                    _downstream_040c.append(
+                                                        "[" + _other_ot_040c + "] by " +
+                                                        _other_040c.role_class + ":\n" +
+                                                        str(_dn_node_040c.content)[:1500]
+                                                    )
+                                    _soul_040c = _souls_040b.get(_aid_040c, "")
+                                    _refine_brief_040c = (
+                                        "You are " + _role_040c + ". Your soul:\n" +
+                                        _soul_040c[:2000] +
+                                        "\n\n=== YOUR PREVIOUS OUTPUT ===\n" +
+                                        str(_prev_content_040c)[:2000] +
+                                        "\n\n=== WHAT DOWNSTREAM AGENTS BUILT ON TOP ===\n" +
+                                        "\n\n".join(_downstream_040c) +
+                                        "\n\n=== REFINEMENT TASK ===\n" +
+                                        "Given how downstream agents built on your work, would you " +
+                                        "revise your output to better support what they need or " +
+                                        "correct anything they exposed? If NO revision needed, " +
+                                        "return: {\"_no_change\": true}\n" +
+                                        "If YES, return JSON with keys " + str(_outs_040c) +
+                                        " containing your REVISED outputs. ONLY valid JSON.\n"
+                                    )
+                                    _llm_040c = _MLLM_040b()
+                                    _resp_040c = _llm_040c.complete(
+                                        prompt=_refine_brief_040c,
+                                        system="You are a refinement agent. Return only valid JSON.",
+                                        max_tokens=2000, temperature=0.5,
+                                    )
+                                    _raw_040c = getattr(_resp_040c, "content", "") or ""
+                                    _parsed_040c = None
+                                    try:
+                                        _parsed_040c = _json_040b.loads(_raw_040c)
+                                    except Exception:
+                                        _m_040c = _re_040b.search(r"\{.*\}", _raw_040c, _re_040b.DOTALL)
+                                        if _m_040c:
+                                            try: _parsed_040c = _json_040b.loads(_m_040c.group(0))
+                                            except Exception: pass
+                                    if _parsed_040c is None:
+                                        continue  # parse fail = no revision
+                                    if _parsed_040c.get("_no_change"):
+                                        continue  # agent declined to revise
+                                    # Write revised outputs (versioned by graph.add)
+                                    for _ot_040c in _outs_040c:
+                                        _revised_040c = _parsed_040c.get(_ot_040c)
+                                        if _revised_040c is None: continue
+                                        _graph_040b.add(_ArtifactNode_040b(
+                                            output_type=_ot_040c,
+                                            producer_role=_role_040c,
+                                            producer_agent_id=_aid_040c,
+                                            content=_revised_040c,
+                                            raw_response=_raw_040c[:5000],
+                                            produced_at=datetime.utcnow().isoformat() + "Z",
+                                            success=True,
+                                        ))
+                                    _pass_refined_040c.append(_aid_040c)
+                                    _notify("  [PCR-040c] pass " + str(_current_pass_040c) +
+                                            ": " + _role_040c + " revised " + str(_outs_040c))
+                                except Exception as _e_refine_040c:
+                                    _notify("  [PCR-040c] pass " + str(_current_pass_040c) +
+                                            ": " + _role_040c + " refine failed: " +
+                                            str(_e_refine_040c)[:80])
+                            _passes_040c.append({
+                                "pass": _current_pass_040c,
+                                "refined": _pass_refined_040c,
+                                "refined_count": len(_pass_refined_040c),
+                            })
+                            if not _pass_refined_040c:
+                                _notify("  [PCR-040c] pass " + str(_current_pass_040c) +
+                                        ": no agent revised, converged")
+                                break
+                        # PCR-040c — surface pass history
                         _unfilled_040b = _graph_040b.unfilled(_team_040b)
                         _pcr040b_graph_dict = _graph_040b.to_dict()
                         _pcr040b_graph_dict["mode"] = "live" if _pcr040b_execute else "dry"
@@ -26167,6 +26273,7 @@ def create_app() -> FastAPI:
                         _pcr040b_graph_dict["fired"] = _fired_040b
                         _pcr040b_graph_dict["failed"] = _failed_040b
                         _pcr040b_graph_dict["unfilled"] = _unfilled_040b
+                        _pcr040b_graph_dict["passes"] = _passes_040c  # PCR-040c
                         _notify("[PCR-040b] graph: rounds=" + str(_round_040b) +
                                 " fired=" + str(len(_fired_040b)) +
                                 " failed=" + str(len(_failed_040b)) +
