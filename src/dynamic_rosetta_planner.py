@@ -44,6 +44,13 @@ class AgentBlueprint:
     # leaving kickoff_inputs empty falls back to input_types.
     kickoff_inputs: List[str] = field(default_factory=list)
     refinement_inputs: List[str] = field(default_factory=list)
+    # PCR-045c — persistent identity layer. persistent_id is stable
+    # across dispatches for a (role_class, domain) combination; agent_id
+    # stays ephemeral for per-run tracing. Accomplishments accumulate
+    # under persistent_id so reuse signal grows over time.
+    persistent_id: str = ""
+    prior_accomplishments_count: int = 0
+    prior_keyword_overlap: int = 0
 
 @dataclass
 class OrgNode:
@@ -520,10 +527,33 @@ class DynamicRosettaPlanner:
             _io_in, _io_out = ROLE_IO_CONTRACTS.get(role_class, ([], []))
             # PCR-044 — kickoff inputs = ROLE_IO_CONTRACTS (pass 1 prereqs).
             # refinement_inputs come from ROLE_REFINEMENT_INPUTS (pass 2+).
-            # input_types stays = union for backward compat with any
-            # consumer that reads it directly.
             _refine_in = ROLE_REFINEMENT_INPUTS.get(role_class, [])
             _all_inputs = list(_io_in) + [x for x in _refine_in if x not in _io_in]
+            # PCR-045c — persistent identity + reuse lookup. Stable id from
+            # (role_class, domain); existing accomplishments rank candidates
+            # cross-domain. Fail-soft: if the lookup or DB hiccups, use the
+            # freshly-computed persistent_id with zero priors.
+            _persistent_id_045c = (
+                role_class.lower().replace(" ", "_") + "_" +
+                (profile.domain or "general")
+            )
+            _prior_count_045c = 0
+            _prior_overlap_045c = 0
+            try:
+                from agent_accomplishment_writer import find_reusable_agents as _fra_045c
+                _candidates_045c = _fra_045c(
+                    role_class=role_class,
+                    task_prompt=brief or "",
+                    limit=1,
+                    min_success_count=1,
+                )
+                if _candidates_045c:
+                    _best_045c = _candidates_045c[0]
+                    _persistent_id_045c = _best_045c["profile_id"]
+                    _prior_count_045c = _best_045c.get("success_count", 0)
+                    _prior_overlap_045c = _best_045c.get("keyword_overlap", 0)
+            except Exception:
+                pass  # fail-soft: stay with freshly-computed persistent_id
             team.append(AgentBlueprint(
                 agent_id=agent_id, role_class=role_class, department=dept,
                 reports_to=coordinator_id if not is_coord else None,
@@ -533,6 +563,9 @@ class DynamicRosettaPlanner:
                 input_types=_all_inputs, output_types=list(_io_out),
                 kickoff_inputs=list(_io_in),
                 refinement_inputs=list(_refine_in),
+                persistent_id=_persistent_id_045c,
+                prior_accomplishments_count=_prior_count_045c,
+                prior_keyword_overlap=_prior_overlap_045c,
             ))
         return team
 

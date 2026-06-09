@@ -26156,7 +26156,11 @@ def create_app() -> FastAPI:
                                             # and `prompt` (original input). NameError falls through to
                                             # the surrounding except — writer remains fail-soft.
                                             _record_acc_045b(
-                                                profile_id=getattr(_agent_040b, "agent_id", _aid_040b),
+                                                # PCR-045c — record under persistent_id so accomplishments
+                                                # accumulate across dispatches for same (role, domain).
+                                                # Falls back to agent_id if blueprint is missing the field
+                                                # (e.g. on a stale running team during deploy).
+                                                profile_id=getattr(_agent_040b, "persistent_id", None) or getattr(_agent_040b, "agent_id", _aid_040b),
                                                 role_class=_role_040b,
                                                 domain=getattr(_pkt360.task_profile, "domain", "general"),
                                                 task_prompt=prompt,
@@ -26280,7 +26284,8 @@ def create_app() -> FastAPI:
                                             _node_045b_r = _graph_040b.get(_ot_045b_r)
                                             # PCR-045b.1 — same fix on refinement path
                                             _record_acc_045b_r(
-                                                profile_id=getattr(_agent_040c, "agent_id", _aid_040c),
+                                                # PCR-045c — record under persistent_id (same as pass-1 path)
+                                                profile_id=getattr(_agent_040c, "persistent_id", None) or getattr(_agent_040c, "agent_id", _aid_040c),
                                                 role_class=_role_040c,
                                                 domain=getattr(_pkt360.task_profile, "domain", "general"),
                                                 task_prompt=prompt,
