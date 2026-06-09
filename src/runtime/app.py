@@ -26010,6 +26010,182 @@ def create_app() -> FastAPI:
                     except Exception as _drp_err_036:
                         _notify("[PCR-036] E_PCR036_0008 planner unavailable: " +
                                 str(_drp_err_036)[:80])
+
+                # PCR-040b BEGIN souled execution
+                # When PCR040B_EXECUTE=1, fire ready agents via LLM and
+                # mutate an artifact graph. Otherwise dry-run: show what
+                # WOULD execute without making LLM calls.
+                _pcr040b_graph_dict = None
+                try:
+                    import os as _os_040b
+                    _pcr040b_execute = _os_040b.environ.get("PCR040B_EXECUTE", "0") == "1"
+                    if "_pkt360" in locals() and _pkt360 is not None:
+                        from artifact_graph import new_graph as _new_graph_040b
+                        from artifact_graph import ArtifactNode as _ArtifactNode_040b
+                        _graph_040b = _new_graph_040b(prompt)
+                        _team_040b = _pkt360.team
+                        _souls_040b = _pkt360.soul_contexts or {}
+                        _max_rounds_040b = 8
+                        _round_040b = 0
+                        _fired_040b = []
+                        _failed_040b = []
+
+                        while _round_040b < _max_rounds_040b:
+                            _ready_040b = _graph_040b.ready_agents(_team_040b)
+                            if not _ready_040b:
+                                break
+                            _round_040b += 1
+                            for _agent_040b in _ready_040b:
+                                _aid_040b = _agent_040b.agent_id
+                                _role_040b = _agent_040b.role_class
+                                _outs_040b = list(getattr(_agent_040b, "output_types", []) or [])
+
+                                if not _pcr040b_execute:
+                                    # DRY RUN — mark would-fire, write stub
+                                    for _ot_040b in _outs_040b:
+                                        _node_040b = _ArtifactNode_040b(
+                                            output_type=_ot_040b,
+                                            producer_role=_role_040b,
+                                            producer_agent_id=_aid_040b,
+                                            content={"_dry_run": True,
+                                                     "_note": "PCR040B_EXECUTE=0"},
+                                            raw_response="",
+                                            produced_at=datetime.utcnow().isoformat() + "Z",
+                                            success=True,
+                                        )
+                                        _graph_040b.add(_node_040b)
+                                    _fired_040b.append(_aid_040b)
+                                    _notify("  [PCR-040b dry] would fire " + _role_040b + " -> " + str(_outs_040b))
+                                    continue
+
+                                # LIVE — build brief, call LLM, parse output
+                                try:
+                                    _ins_040b = list(getattr(_agent_040b, "input_types", []) or [])
+                                    _input_context_040b = []
+                                    for _it_040b in _ins_040b:
+                                        if _it_040b == "prompt":
+                                            _input_context_040b.append("PROMPT:\n" + prompt)
+                                        else:
+                                            _src_040b = _graph_040b.get(_it_040b)
+                                            if _src_040b and _src_040b.success:
+                                                _input_context_040b.append(
+                                                    "INPUT [" + _it_040b + "] (from " +
+                                                    _src_040b.producer_role + "):\n" +
+                                                    str(_src_040b.content)[:2000]
+                                                )
+                                    _soul_040b = _souls_040b.get(_aid_040b, "")
+                                    _brief_040b = (
+                                        "You are " + _role_040b + ". Your soul follows.\n\n" +
+                                        _soul_040b[:3000] +
+                                        "\n\n=== INPUT NODES ===\n" +
+                                        "\n\n".join(_input_context_040b) +
+                                        "\n\n=== YOUR TASK ===\n" +
+                                        "Produce JSON with these output keys: " + str(_outs_040b) + ".\n" +
+                                        "Each key should map to a structured object representing that artifact.\n" +
+                                        "Return ONLY valid JSON, no markdown, no commentary.\n"
+                                    )
+
+                                    # Call LLM
+                                    from src.llm_controller import LLMController as _LLMC_040b, LLMRequest as _LLMReq_040b
+                                    import asyncio as _asyncio_040b
+                                    _llm_040b = _LLMC_040b()
+                                    _req_040b = _LLMReq_040b(
+                                        query=_brief_040b,
+                                        context="",
+                                        max_tokens=2000,
+                                    ) if hasattr(_LLMReq_040b, "__init__") else _LLMReq_040b(query=_brief_040b)
+                                    # Use a fresh event loop per call (dispatch is sync)
+                                    _loop_040b = _asyncio_040b.new_event_loop()
+                                    try:
+                                        _resp_040b = _loop_040b.run_until_complete(
+                                            _asyncio_040b.wait_for(
+                                                _llm_040b.query_llm(_req_040b),
+                                                timeout=60.0
+                                            )
+                                        )
+                                    finally:
+                                        _loop_040b.close()
+
+                                    _raw_040b = getattr(_resp_040b, "content", "") or str(_resp_040b)
+
+                                    # Parse JSON, tolerant
+                                    import json as _json_040b
+                                    import re as _re_040b
+                                    _parsed_040b = None
+                                    try:
+                                        _parsed_040b = _json_040b.loads(_raw_040b)
+                                    except Exception:
+                                        # Try to extract JSON object from response
+                                        _m_040b = _re_040b.search(r"\{.*\}", _raw_040b, _re_040b.DOTALL)
+                                        if _m_040b:
+                                            try:
+                                                _parsed_040b = _json_040b.loads(_m_040b.group(0))
+                                            except Exception:
+                                                _parsed_040b = None
+
+                                    if _parsed_040b is None:
+                                        # Couldn't parse — store raw under first output
+                                        for _ot_040b in _outs_040b:
+                                            _graph_040b.add(_ArtifactNode_040b(
+                                                output_type=_ot_040b,
+                                                producer_role=_role_040b,
+                                                producer_agent_id=_aid_040b,
+                                                content={"_unparsed": _raw_040b[:1000]},
+                                                raw_response=_raw_040b[:5000],
+                                                produced_at=datetime.utcnow().isoformat() + "Z",
+                                                success=False,
+                                                error="JSON parse failed",
+                                            ))
+                                        _failed_040b.append(_aid_040b)
+                                        _notify("  [PCR-040b] " + _role_040b + " PARSE FAIL")
+                                        continue
+
+                                    # Write each declared output
+                                    for _ot_040b in _outs_040b:
+                                        _content_040b = _parsed_040b.get(_ot_040b, _parsed_040b)
+                                        _graph_040b.add(_ArtifactNode_040b(
+                                            output_type=_ot_040b,
+                                            producer_role=_role_040b,
+                                            producer_agent_id=_aid_040b,
+                                            content=_content_040b,
+                                            raw_response=_raw_040b[:5000],
+                                            produced_at=datetime.utcnow().isoformat() + "Z",
+                                            success=True,
+                                        ))
+                                    _fired_040b.append(_aid_040b)
+                                    _notify("  [PCR-040b] " + _role_040b + " produced " + str(_outs_040b))
+
+                                except Exception as _e_agent_040b:
+                                    # Mark all this agent's outputs as failed
+                                    for _ot_040b in _outs_040b:
+                                        _graph_040b.add(_ArtifactNode_040b(
+                                            output_type=_ot_040b,
+                                            producer_role=_role_040b,
+                                            producer_agent_id=_aid_040b,
+                                            content={},
+                                            raw_response="",
+                                            produced_at=datetime.utcnow().isoformat() + "Z",
+                                            success=False,
+                                            error=str(_e_agent_040b)[:200],
+                                        ))
+                                    _failed_040b.append(_aid_040b)
+                                    _notify("  [PCR-040b] " + _role_040b + " FAILED: " + str(_e_agent_040b)[:80])
+
+                        _unfilled_040b = _graph_040b.unfilled(_team_040b)
+                        _pcr040b_graph_dict = _graph_040b.to_dict()
+                        _pcr040b_graph_dict["mode"] = "live" if _pcr040b_execute else "dry"
+                        _pcr040b_graph_dict["rounds"] = _round_040b
+                        _pcr040b_graph_dict["fired"] = _fired_040b
+                        _pcr040b_graph_dict["failed"] = _failed_040b
+                        _pcr040b_graph_dict["unfilled"] = _unfilled_040b
+                        _notify("[PCR-040b] graph: rounds=" + str(_round_040b) +
+                                " fired=" + str(len(_fired_040b)) +
+                                " failed=" + str(len(_failed_040b)) +
+                                " unfilled=" + str(len(_unfilled_040b)))
+                except Exception as _e_040b:
+                    _notify("[PCR-040b] E_PCR040B_0001 graph execution failed: " +
+                            str(_e_040b)[:120])
+                # PCR-040b END souled execution
                     # Execute the phases — existing loop with rubix
                     # trajectory tracking (PathConfidenceRegistry).
                     try:
@@ -26394,6 +26570,7 @@ def create_app() -> FastAPI:
                 "dynamic_team": _dispatch_packet if "_dispatch_packet" in dir() else {},
                 "brief_packet_id": _brief_packet361.dispatch_id if "_brief_packet361" in dir() and _brief_packet361 else None,
                 "compound_workflow": locals().get("_pcr036_workflow"),  # PCR-036
+                "graph_state": locals().get("_pcr040b_graph_dict"),  # PCR-040b
             })
 
         except Exception as exc:
