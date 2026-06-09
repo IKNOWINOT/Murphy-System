@@ -19,6 +19,19 @@ from typing import Dict, List, Literal, Optional
 logger = logging.getLogger(__name__)
 
 
+class RoleClass(Enum):
+    # PCR-054b: distinguishes how a role's output gains legal force.
+    # OPERATION: repeatable patterns; correctness inferred from observation.
+    #            Eligible for AI auto-execution under PCR-053 multi-dim N gate.
+    # CREATION:  produces stamped artifacts whose legal force comes from a
+    #            licensed human's signature. AI may draft; humans must stamp.
+    #            Gated by PCR-054 6-point creation gate.
+    # HYBRID:    mix per task; the task_class field on the observation event
+    #            decides which gate applies.
+    OPERATION = "operation"
+    CREATION  = "creation"
+    HYBRID    = "hybrid"
+
 class AuthorityLevel(Enum):
     """Authority levels for decision-making"""
     NONE = "none"
@@ -145,6 +158,12 @@ class RoleTemplate:
     # JURISDICTION axis — primary geographic scope (fail-closed if None at gate time)
     primary_jurisdiction: Optional[str] = None  # e.g. "US-CA"; None ⇒ inherit from tenant
 
+    # PCR-054b: which gate applies to this role.
+    # Default OPERATION preserves backward compatibility with all PCR-053
+    # tests and any existing serialized RoleTemplate data; existing roles
+    # behave exactly as before unless explicitly marked CREATION/HYBRID.
+    role_class: "RoleClass" = field(default_factory=lambda: RoleClass.OPERATION)
+
     # Integrity
     integrity_hash: Optional[str] = None
 
@@ -185,6 +204,9 @@ class RoleTemplate:
             "decision_ceiling_usd": self.decision_ceiling_usd,
             "distinct_operators_required": self.distinct_operators_required,
             "primary_jurisdiction": self.primary_jurisdiction,
+            # PCR-054b: role_class participates in integrity so a CREATION role
+            # cannot silently degrade into OPERATION without the hash changing.
+            "role_class": self.role_class.value,
         }
         return hashlib.sha256(json.dumps(data, sort_keys=True).encode()).hexdigest()
 
@@ -399,3 +421,85 @@ class ProcessFlow:
     handoffs: List[Dict[str, any]]  # Handoff points between roles
     sla_targets: Dict[str, float]
     compliance_checkpoints: List[str]
+
+
+
+# ──────────────────────────────────────────────────────────────
+# PCR-054b: Licensed practitioner (storage shape for 054c registry)
+# ──────────────────────────────────────────────────────────────
+
+
+@dataclass
+class LicensedPractitioner:
+    """A human who can stamp/sign Creation artifacts.
+
+    Persistence shape, not the gate logic. The gate (PCR-054d) reads
+    these records to satisfy checks 1-3 of the 6-point Creation Gate:
+      1. License presence  -> this record exists for the practitioner
+      2. License currency  -> status == 'active' AND last_verified_at within max_age
+      3. Scope of practice -> license_type permits the artifact_type
+
+    Live verification uses the cached last_verified_at with a 30-day
+    max-age fallback when the live state-board API is unreachable.
+    Past max_age -> fail closed.
+    """
+    practitioner_id: str        # internal stable id (uuid or human-readable)
+    full_name: str
+    license_type: str           # 'PE' | 'CPA' | 'Architect' | 'Attorney' | 'Notary'
+    license_number: str         # exact number as issued
+    license_jurisdiction: str   # e.g. 'US-CA', 'US-TX', 'US-NY'
+    license_status: str         # 'active' | 'expired' | 'suspended' | 'revoked' | 'unknown'
+    issued_at: Optional[datetime] = None
+    expires_at: Optional[datetime] = None
+    last_verified_at: Optional[datetime] = None  # when state board was last queried
+    verification_source: Optional[str] = None    # e.g. 'NCEES', 'AICPA', 'state_bar:CA'
+    scope_endorsements: List[str] = field(default_factory=list)  # e.g. ['structural','electrical']
+    contact_email: Optional[str] = None
+    notes: str = ""
+
+    # Tenant binding — the practitioner belongs to a tenant org so cross-tenant
+    # leakage of stamping authority is structurally impossible.
+    tenant_id: Optional[str] = None
+
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+
+    def is_current(self, max_age_days: int = 30) -> bool:
+        """Currency check: active status AND verified within max_age window."""
+        if self.license_status != "active":
+            return False
+        if self.expires_at is not None and self.expires_at < datetime.now(timezone.utc):
+            return False
+        if self.last_verified_at is None:
+            return False
+        from datetime import timedelta
+        return (datetime.now(timezone.utc) - self.last_verified_at) <= timedelta(days=max_age_days)
+
+    def covers(self, artifact_type: str) -> bool:
+        """Scope check: does this license permit the given artifact type?"""
+        # Map from license_type to allowed artifact types.
+        # Conservative — only what the license actually authorizes.
+        scope_map = {
+            "PE":         {"structural_plan", "electrical_plan", "mech_plan",
+                           "civil_plan", "engineering_report"},
+            "CPA":        {"tax_return", "audited_financials", "financial_review",
+                           "compilation_report"},
+            "Architect":  {"sealed_building_plan", "architectural_drawing"},
+            "Attorney":   {"court_filing", "signed_contract", "legal_opinion",
+                           "will", "trust_doc"},
+            "Notary":     {"notarized_affidavit", "acknowledgment", "jurat"},
+        }
+        allowed = scope_map.get(self.license_type, set())
+        if artifact_type not in allowed:
+            return False
+        # PE sub-scope: structural endorsement required for structural plans, etc.
+        if self.license_type == "PE":
+            sub = {
+                "structural_plan":  "structural",
+                "electrical_plan":  "electrical",
+                "mech_plan":        "mechanical",
+                "civil_plan":       "civil",
+            }.get(artifact_type)
+            if sub is not None and sub not in self.scope_endorsements:
+                return False
+        return True
