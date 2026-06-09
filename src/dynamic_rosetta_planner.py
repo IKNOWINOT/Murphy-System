@@ -443,6 +443,47 @@ class DynamicRosettaPlanner:
             else:
                 selected[-1] = hitl_tmpl
 
+        # PCR-043c — dependency-closure team selection.
+        # For every input declared by a selected role, if no teammate produces
+        # it AND a domain template does, add that role. Iterate until closed.
+        # 'prompt' is the user-seed (PCR-043) — skipped from closure pulls.
+        # Rosetta writes any role; headcount is a floor, not a ceiling.
+        try:
+            _SEED_INPUTS_043c = {"prompt"}
+            _MAX_PASSES_043c = 6
+            _all_by_role_043c = {t[0]: t for t in regular}
+            for _pass_043c in range(_MAX_PASSES_043c):
+                _team_outputs_043c = set()
+                for _tmpl_043c in selected:
+                    _r043c = _tmpl_043c[0]
+                    _, _outs_043c = ROLE_IO_CONTRACTS.get(_r043c, ([], []))
+                    for _o043c in _outs_043c:
+                        _team_outputs_043c.add(_o043c)
+                _team_outputs_043c |= _SEED_INPUTS_043c
+                _missing_043c = set()
+                for _tmpl_043c in selected:
+                    _r043c = _tmpl_043c[0]
+                    _ins_043c, _ = ROLE_IO_CONTRACTS.get(_r043c, ([], []))
+                    for _i043c in _ins_043c:
+                        if _i043c not in _team_outputs_043c:
+                            _missing_043c.add(_i043c)
+                if not _missing_043c:
+                    break
+                _added_043c = False
+                for _name_043c, _tup_043c in _all_by_role_043c.items():
+                    if any(t[0] == _name_043c for t in selected):
+                        continue
+                    _, _outs_043c = ROLE_IO_CONTRACTS.get(_name_043c, ([], []))
+                    if set(_outs_043c) & _missing_043c:
+                        selected.append(_tup_043c)
+                        _added_043c = True
+                if not _added_043c:
+                    break
+        except Exception:
+            # If closure fails for any reason, fall back to the original
+            # headcount-based selection — preserves prior behavior.
+            pass
+
         team: List[AgentBlueprint] = []
         coordinator_id: Optional[str] = None
         for i, tmpl in enumerate(selected):

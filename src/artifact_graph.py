@@ -162,4 +162,25 @@ class ArtifactGraph:
 
 
 def new_graph(prompt: str) -> ArtifactGraph:
-    return ArtifactGraph(prompt=prompt)
+    # PCR-043 — seed graph with a 'prompt' ArtifactNode so agents whose
+    # declared inputs include 'prompt' can immediately be ready. Without
+    # this seed, short prompts produce empty graphs because no agent's
+    # input set is ever satisfied.
+    from datetime import datetime as _dt043
+    _g = ArtifactGraph(prompt=prompt)
+    try:
+        _seed = ArtifactNode(
+            output_type="prompt",
+            producer_role="user",
+            producer_agent_id="user",
+            content={"prompt": prompt},
+            raw_response=str(prompt)[:5000],
+            produced_at=_dt043.utcnow().isoformat() + "Z",
+            success=True,
+        )
+        _g.add(_seed)
+    except Exception:
+        # If seeding fails for any reason, return the empty graph —
+        # preserves prior behavior, just no PCR-043 benefit.
+        pass
+    return _g
