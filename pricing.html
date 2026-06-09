@@ -490,55 +490,7 @@
 </script>
 
 
-<!-- _R442_QUOTE_RENDER -->
-<script>
-(function(){
-  // Replace any rendered "$0/mo" or "$-1" for the Enterprise tier with "Contact us".
-  // Runs after the plans renderer finishes.
-  function fixEnterprise(){
-    document.querySelectorAll('[data-tier="enterprise"], .plan-enterprise, .tier-enterprise').forEach(el=>{
-      el.querySelectorAll('.price, .monthly, .annual, [data-price]').forEach(p=>{
-        const t = (p.textContent||'').trim();
-        if(t==='$0' || t==='$0/mo' || t==='$-1' || t==='$-1/mo' || t==='-$1' || t.includes('-1')){
-          p.textContent = 'Contact us';
-          p.style.fontSize = '1.4rem';
-        }
-      });
-      // Replace CTA "Subscribe" → "Contact sales" on enterprise card
-      el.querySelectorAll('a.btn, button.btn, .cta, [data-cta]').forEach(btn=>{
-        if(/subscribe|start|sign up|get started/i.test(btn.textContent||'')){
-          btn.textContent = 'Contact sales →';
-          btn.href = '/book?intent=enterprise';
-        }
-      });
-    });
-    // Also handle the simpler case where price renders raw from API: any element
-    // whose text starts with "$" and contains "-1" or "0/mo" inside enterprise card.
-    document.querySelectorAll('.tier, .plan, .card').forEach(card=>{
-      const name = (card.querySelector('h2,h3,.plan-name')||{}).textContent||'';
-      if(/enterprise/i.test(name)){
-        card.setAttribute('data-tier','enterprise');
-        card.classList.add('plan-enterprise');
-        // recursively fix
-        card.querySelectorAll('*').forEach(n=>{
-          if(n.children.length===0){
-            const t = (n.textContent||'').trim();
-            if(t==='$0' || t==='$0/mo' || t==='$-1' || t==='$-1/mo' || t==='Free'){
-              n.textContent = 'Contact us';
-            }
-          }
-        });
-      }
-    });
-  }
-  // Run after pricing populates
-  if(document.readyState==='loading'){
-    document.addEventListener('DOMContentLoaded', ()=>setTimeout(fixEnterprise, 500));
-  } else { setTimeout(fixEnterprise, 500); }
-  // Also re-run after 2s in case render is delayed
-  setTimeout(fixEnterprise, 2000);
-})();
-</script>
+<!-- PCR-051b — _R442_QUOTE_RENDER (fixEnterprise) removed; renderCTA in renderPlans now handles this -->
 
 </body>
 </html>
