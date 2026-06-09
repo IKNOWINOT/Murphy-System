@@ -2783,3 +2783,75 @@ RULES HELD:
     without evidence — same discipline in the opposite direction)
   HITL canon ✓ (no external action taken, prospector still paused)
   Shape-of-Complete v2 ✓ (honest scope, banked the rest)
+
+## PCR-031 — Juxtaposition Deliverable Endpoint — 2026-06-09
+
+CLOSES THE "DOES MURPHY MAKE JUXTAPOSITION DELIVERABLES ACROSS AN ORG CHART" GATE.
+
+CONTEXT:
+  Founder asked: "Does the system complete and work well making
+  juxtaposition deliverables across an org chart now?"
+  Honest answer was NO. Audit found infrastructure built but not wired:
+    - AGENT_ROSTER has 9 production-quality personas with full system
+      prompts (Morgan Vale CRO, Alex Reeves, Casey Torres, Taylor Kim,
+      Drew Nakamura, Murphy, Quinn Harper, Jordan Blake, Sam Ortega)
+    - rosetta_selling_bridge does per-persona prompt enrichment
+    - demo_deliverable_generator has FORGE-SWARM-ROLE-001 map for
+      role-specific sections
+    - But NO endpoint runs the same prompt through N personas and
+      contrasts their outputs.
+
+WHAT SHIPPED:
+  POST /api/deliverable/juxtapose
+    Body: {"query": "...", "personas": [...] optional}
+    Default: fans out to all 9 personas in AGENT_ROSTER
+    Each persona runs Together API with their own system_prompt
+    Writes one result_provenance row per persona, all tagged with
+    the same job_id (closes Phase 6b gate for multi-producer jobs)
+    Returns: {success, job_id, personas, sections[], document}
+
+  scripts/pcr031_juxtapose_endpoint.py
+    Idempotent, marker-based, --revert capable.
+    Inserts ABOVE existing /api/demo/generate-deliverable.
+
+EVIDENCE (rule #7 ground truth):
+  Live call: query="Should Murphy expand to enterprise sales in 2026?"
+  Result:
+    - 9 personas returned (not 5 as docstring claimed — roster has 9)
+    - 9/9 first-300-char bodies distinct (100% juxtaposition)
+    - Latency: 4765-6146ms per persona (Together API)
+    - Total response: 28,370 bytes
+    - Each take genuinely in-role:
+        Morgan Vale led with pipeline metrics and 25% MoM ARR
+        Alex Reeves opened with discovery questions
+        Casey Torres wrote in email subject-line format
+        Sam Ortega led with 99.97% uptime metrics
+  Provenance: 9 rows in result_provenance with same job_id
+              (500405f0837644258fd30e251515da17), distinct produced_by
+
+SHAPE-OF-COMPLETE GATE STATUS:
+  Before PCR-031:
+    a✅ b🟡 c🟡 d❌ e✅
+    (single-perspective output only, no multi-producer runs in 7d)
+  After PCR-031:
+    a✅ b✅ c✅ d✅ e✅
+    (end-to-end multi-role fan-out, provenance per persona)
+
+OPERATING RULES HELD:
+  Rule #2  snapshot ✓ (PCR-031_pre/app.py.<TS>)
+  Rule #6  HITL queue untouched ✓
+  Rule #7  ground truth verified via live LLM call ✓
+  L29-L32  ✓
+  L35      insertion above anchor, top-level scope ✓
+  HITL canon: owner-only via existing edge auth ✓
+
+WHAT'S NEXT (banked):
+  - Persona system-prompt review: 9 takes were distinct but some
+    overlap on framing. A round of editorial review could sharpen
+    each persona's unique angle. ~5 credits, founder editorial.
+  - Cross-role bonds: each persona currently runs in isolation. The
+    elite_org_simulator has "cross-functional bonds" infrastructure
+    that could be wired in for handoff/disagreement modeling.
+  - org_graph_nodes population: 35 task-kind nodes exist but 0 role-
+    kind nodes. Could populate role nodes from AGENT_ROSTER for graph
+    queries. ~3 credits.

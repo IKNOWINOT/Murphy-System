@@ -22685,6 +22685,155 @@ def create_app() -> FastAPI:
     # DEMO DELIVERABLE DOWNLOAD
     # ══════════════════════════════════════════════════════════════════════
 
+    
+    # PCR-031 BEGIN /api/deliverable/juxtapose
+    @app.post("/api/deliverable/juxtapose")
+    async def deliverable_juxtapose(request: Request):
+        """Cross-role juxtaposition deliverable.
+
+        Takes one prompt, fans out to N personas in AGENT_ROSTER,
+        returns N distinct labeled sections with provenance per persona.
+
+        Body: {"query": "...", "personas": ["morgan_vale", ...] (optional)}
+        Default: all 5 AGENT_ROSTER personas.
+
+        Owner-only endpoint (per HITL canon — no unauthenticated access
+        to LLM fan-out — costs N tokens per call).
+        """
+        import uuid as _uuid
+        import json as _json
+        import time as _time
+
+        # ── parse ──────────────────────────────────────────────────────
+        try:
+            body = await request.json()
+        except Exception:
+            body = {}
+
+        query = str(body.get("query", "")).strip()[:1500]
+        if not query:
+            return JSONResponse(
+                {"success": False, "error": "missing_query",
+                 "message": "query is required"},
+                status_code=400,
+            )
+
+        # ── load roster ────────────────────────────────────────────────
+        try:
+            from src.agent_persona_library import AGENT_ROSTER
+        except Exception as _e:
+            return JSONResponse(
+                {"success": False, "error": "roster_unavailable",
+                 "message": str(_e)},
+                status_code=500,
+            )
+
+        requested = body.get("personas") or list(AGENT_ROSTER.keys())
+        personas = []
+        for pid in requested:
+            if pid in AGENT_ROSTER:
+                personas.append((pid, AGENT_ROSTER[pid]))
+        if not personas:
+            return JSONResponse(
+                {"success": False, "error": "no_personas",
+                 "message": "no matching personas in roster",
+                 "available": list(AGENT_ROSTER.keys())},
+                status_code=400,
+            )
+
+        # ── shared job id for provenance ───────────────────────────────
+        job_id = _uuid.uuid4().hex
+
+        # ── llm caller (reuse existing path) ───────────────────────────
+        try:
+            from src.book_chapter_loop import _llm_call
+        except Exception as _e:
+            return JSONResponse(
+                {"success": False, "error": "llm_unavailable",
+                 "message": str(_e)},
+                status_code=500,
+            )
+
+        # ── provenance writer (PCR-025 producer) ───────────────────────
+        try:
+            from src.provenance_writer import write_provenance
+        except Exception:
+            write_provenance = None
+
+        # ── fan-out ────────────────────────────────────────────────────
+        sections = []
+        for pid, persona in personas:
+            t0 = _time.time()
+            persona_prompt = (
+                persona.system_prompt + "\n\n"
+                + "TASK: Respond IN YOUR ROLE'S VOICE to the prompt below. "
+                + "Take the angle that is UNIQUE to your function — do NOT "
+                + "produce a generic summary. Max 250 words. Plain text.\n\n"
+                + "PROMPT: " + query
+            )
+
+            try:
+                content = _llm_call(persona_prompt, max_tokens=600) or ""
+            except Exception as _e:
+                content = f"[error: {_e}]"
+
+            elapsed_ms = int((_time.time() - t0) * 1000)
+
+            sections.append({
+                "persona_id": pid,
+                "persona_name": persona.name,
+                "title": persona.title,
+                "department": persona.department,
+                "content": content,
+                "latency_ms": elapsed_ms,
+            })
+
+            # write provenance — one row per persona, same job_id
+            if write_provenance:
+                try:
+                    write_provenance(
+                        result_id=_uuid.uuid4().hex,
+                        produced_by=pid,
+                        action_name="/api/deliverable/juxtapose",
+                        inputs_json=_json.dumps(
+                            {"query": query[:200], "persona": pid}
+                        ),
+                        output_summary=(
+                            f"HTTP 200 \u00b7 {elapsed_ms}ms \u00b7 "
+                            + f"{len(content)}b"
+                        ),
+                        job_id=job_id,
+                    )
+                except Exception:
+                    pass  # fire-and-forget
+
+        # ── assemble document ──────────────────────────────────────────
+        doc_lines = [
+            "JUXTAPOSITION DELIVERABLE",
+            "=" * 60,
+            f"Prompt: {query}",
+            f"Job ID: {job_id}",
+            f"Personas: {len(sections)}",
+            "=" * 60,
+            "",
+        ]
+        for s in sections:
+            doc_lines.append("")
+            doc_lines.append(f"## {s['persona_name']} ({s['title']})")
+            doc_lines.append(f"Department: {s['department']}")
+            doc_lines.append("-" * 60)
+            doc_lines.append(s["content"])
+            doc_lines.append("")
+
+        return JSONResponse({
+            "success": True,
+            "job_id": job_id,
+            "personas": [s["persona_id"] for s in sections],
+            "sections": sections,
+            "document": "\n".join(doc_lines),
+        })
+    # PCR-031 END /api/deliverable/juxtapose
+
     @app.post("/api/demo/generate-deliverable")
     async def demo_generate_deliverable(request: Request):
         """Generate a branded .txt deliverable for the demo download feature.
