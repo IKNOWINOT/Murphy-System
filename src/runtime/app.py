@@ -26152,11 +26152,14 @@ def create_app() -> FastAPI:
                                         from agent_accomplishment_writer import record_accomplishment as _record_acc_045b
                                         for _ot_045b in _outs_040b:
                                             _node_045b = _graph_040b.get(_ot_045b)
+                                            # PCR-045b.1 — use _pkt360 (the real planner packet in scope)
+                                            # and `prompt` (original input). NameError falls through to
+                                            # the surrounding except — writer remains fail-soft.
                                             _record_acc_045b(
                                                 profile_id=getattr(_agent_040b, "agent_id", _aid_040b),
                                                 role_class=_role_040b,
-                                                domain=getattr(_packet_040b.task_profile, "domain", "general") if "_packet_040b" in dir() else "general",
-                                                task_prompt=_prompt_040b if "_prompt_040b" in dir() else "",
+                                                domain=getattr(_pkt360.task_profile, "domain", "general"),
+                                                task_prompt=prompt,
                                                 output_type=_ot_045b,
                                                 output_content=(_node_045b.content if _node_045b else None),
                                                 success=True,
@@ -26275,11 +26278,12 @@ def create_app() -> FastAPI:
                                         from agent_accomplishment_writer import record_accomplishment as _record_acc_045b_r
                                         for _ot_045b_r in _outs_040c:
                                             _node_045b_r = _graph_040b.get(_ot_045b_r)
+                                            # PCR-045b.1 — same fix on refinement path
                                             _record_acc_045b_r(
                                                 profile_id=getattr(_agent_040c, "agent_id", _aid_040c),
                                                 role_class=_role_040c,
-                                                domain=getattr(_packet_040b.task_profile, "domain", "general") if "_packet_040b" in dir() else "general",
-                                                task_prompt=_prompt_040b if "_prompt_040b" in dir() else "",
+                                                domain=getattr(_pkt360.task_profile, "domain", "general"),
+                                                task_prompt=prompt,
                                                 output_type=_ot_045b_r,
                                                 output_content=(_node_045b_r.content if _node_045b_r else None),
                                                 success=True,
