@@ -26147,6 +26147,24 @@ def create_app() -> FastAPI:
                                         ))
                                     _fired_040b.append(_aid_040b)
                                     _notify("  [PCR-040b] " + _role_040b + " produced " + str(_outs_040b))
+                                    # PCR-045b — record accomplishment per output (fail-soft)
+                                    try:
+                                        from agent_accomplishment_writer import record_accomplishment as _record_acc_045b
+                                        for _ot_045b in _outs_040b:
+                                            _node_045b = _graph_040b.get(_ot_045b)
+                                            _record_acc_045b(
+                                                profile_id=getattr(_agent_040b, "agent_id", _aid_040b),
+                                                role_class=_role_040b,
+                                                domain=getattr(_packet_040b.task_profile, "domain", "general") if "_packet_040b" in dir() else "general",
+                                                task_prompt=_prompt_040b if "_prompt_040b" in dir() else "",
+                                                output_type=_ot_045b,
+                                                output_content=(_node_045b.content if _node_045b else None),
+                                                success=True,
+                                                pass_number=1,
+                                                elapsed_us=0,
+                                            )
+                                    except Exception as _e_acc_045b:
+                                        _notify("  [PCR-045b] acc write skipped: " + str(_e_acc_045b)[:80])
 
                                 except Exception as _e_agent_040b:
                                     # Mark all this agent's outputs as failed
@@ -26252,6 +26270,24 @@ def create_app() -> FastAPI:
                                     _pass_refined_040c.append(_aid_040c)
                                     _notify("  [PCR-040c] pass " + str(_current_pass_040c) +
                                             ": " + _role_040c + " revised " + str(_outs_040c))
+                                    # PCR-045b — record refinement accomplishment (fail-soft)
+                                    try:
+                                        from agent_accomplishment_writer import record_accomplishment as _record_acc_045b_r
+                                        for _ot_045b_r in _outs_040c:
+                                            _node_045b_r = _graph_040b.get(_ot_045b_r)
+                                            _record_acc_045b_r(
+                                                profile_id=getattr(_agent_040c, "agent_id", _aid_040c),
+                                                role_class=_role_040c,
+                                                domain=getattr(_packet_040b.task_profile, "domain", "general") if "_packet_040b" in dir() else "general",
+                                                task_prompt=_prompt_040b if "_prompt_040b" in dir() else "",
+                                                output_type=_ot_045b_r,
+                                                output_content=(_node_045b_r.content if _node_045b_r else None),
+                                                success=True,
+                                                pass_number=_current_pass_040c,
+                                                elapsed_us=0,
+                                            )
+                                    except Exception as _e_acc_045b_r:
+                                        _notify("  [PCR-045b] refine acc write skipped: " + str(_e_acc_045b_r)[:80])
                                 except Exception as _e_refine_040c:
                                     _notify("  [PCR-040c] pass " + str(_current_pass_040c) +
                                             ": " + _role_040c + " refine failed: " +
