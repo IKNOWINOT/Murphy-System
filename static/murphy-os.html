@@ -1473,7 +1473,7 @@ body {
 
         async function poll() {
           try {
-            const r = await fetch("/api/executive/status", {cache: "no-cache"});
+            const r = await fetch("/api/executive/status", {cache: "no-cache", credentials: "same-origin"});
             if (!r.ok) throw new Error("HTTP " + r.status);
             const d = await r.json();
             renderSlots(d.slots);
@@ -1485,20 +1485,29 @@ body {
               clock.textContent = dt.toTimeString().substring(0, 8);
             }
           } catch (e) {
-            // Fail-soft: keep last render, log to console
-            console.debug("exec-panel poll skipped:", e.message);
+            // L77: surface error in panel so silent-fail doesn\u2019t hide bugs
+            console.debug("exec-panel poll error:", e.message);
+            const errBody = document.getElementById("exec-slots-body");
+            if (errBody && errBody.textContent === "\u2026") {
+              const msg = "<span class=\"exec-empty-state\" style=\"color:#e06c75;\">poll error: " + escapeHtml(e.message) + "</span>";
+              errBody.innerHTML = msg;
+              const p = document.getElementById("exec-pulse-body");
+              if (p) p.innerHTML = msg;
+              const c = document.getElementById("exec-cta-body");
+              if (c) c.innerHTML = msg;
+            }
           }
         }
 
         window.execCtaCommit = async function(id) {
           try {
-            await fetch("/api/executive/cta/" + encodeURIComponent(id) + "/commit", {method: "POST"});
+            await fetch("/api/executive/cta/" + encodeURIComponent(id) + "/commit", {method: "POST", credentials: "same-origin"});
             poll();
           } catch (e) { console.warn("commit failed:", e); }
         };
         window.execCtaDismiss = async function(id) {
           try {
-            await fetch("/api/executive/cta/" + encodeURIComponent(id) + "/dismiss", {method: "POST"});
+            await fetch("/api/executive/cta/" + encodeURIComponent(id) + "/dismiss", {method: "POST", credentials: "same-origin"});
             poll();
           } catch (e) { console.warn("dismiss failed:", e); }
         };

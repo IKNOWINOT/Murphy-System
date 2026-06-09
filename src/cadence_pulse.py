@@ -135,10 +135,53 @@ def get_pulse_summary(since_minutes: int = 15) -> Dict[str, Any]:
         for s in sources_info if s["status"] != "ok"
     ]
 
+    # EXEC-04 panel addition: fetch last 10 ticks for panel display
+    recent_ticks: List[Dict[str, Any]] = []
+    try:
+        tconn = sqlite3.connect(TICKS_DB, timeout=3)
+        tconn.row_factory = sqlite3.Row
+        trows = tconn.execute(
+            """SELECT source_name, ts, success, drift_ms, duration_ms, error_text
+               FROM pulse_ticks
+               ORDER BY ts DESC
+               LIMIT 10"""
+        ).fetchall()
+        tconn.close()
+        now = datetime.now(timezone.utc)
+        for r in trows:
+            try:
+                ts_str = r["ts"]
+                # ts can be "2026-06-09 20:08:00" (sqlite datetime), ISO with T, or with Z
+                if "T" not in ts_str and " " in ts_str:
+                    ts_str = ts_str.replace(" ", "T", 1)
+                if "Z" in ts_str:
+                    ts_str = ts_str.replace("Z", "+00:00")
+                if "+" not in ts_str and "-" not in ts_str[10:]:
+                    ts_str = ts_str + "+00:00"
+                t_dt = datetime.fromisoformat(ts_str)
+                age = (now - t_dt).total_seconds()
+            except Exception:
+                age = None
+            err = r["error_text"]
+            status = "ok" if r["success"] else ("warn" if (err and len(err) < 50) else "fail")
+            recent_ticks.append({
+                "source":      r["source_name"],
+                "ts":          r["ts"],
+                "age_seconds": round(age, 1) if age is not None else None,
+                "success":     bool(r["success"]),
+                "status":      status,
+                "drift_ms":    r["drift_ms"] or 0,
+                "duration_ms": r["duration_ms"] or 0,
+                "error_text":  (err[:80] if err else None),
+            })
+    except Exception as exc:
+        logger.warning("get_pulse_summary recent_ticks read failed: %s", exc)
+
     return {
         "color":          color,
         "reasons":        reasons,
         "sources":        sources_info,
+        "recent_ticks":   recent_ticks,
         "total":          len(sources_info),
         "window_minutes": since_minutes,
     }
