@@ -95,6 +95,8 @@ class ComplianceConstraint:
     human_signoff_required: bool
     audit_trail_required: bool
     immutable: bool = True
+    # PCR-053b: multi-dim N gate model — geographic scope for this constraint
+    jurisdiction: Optional[str] = None  # e.g. "US-CA", "EU-DE", "CH", or None for global
 
     def __post_init__(self):
         """Enforce compliance immutability"""
@@ -135,6 +137,14 @@ class RoleTemplate:
     version: str = "1.0"
     source_documents: List[str] = field(default_factory=list)
 
+    # PCR-053b: multi-dim N gate model fields
+    # MONEY axis — continuous USD ceiling complementing AuthorityLevel enum
+    decision_ceiling_usd: Optional[float] = None
+    # OPERATORS axis — distinct humans we must observe before promoting
+    distinct_operators_required: int = 1
+    # JURISDICTION axis — primary geographic scope (fail-closed if None at gate time)
+    primary_jurisdiction: Optional[str] = None  # e.g. "US-CA"; None ⇒ inherit from tenant
+
     # Integrity
     integrity_hash: Optional[str] = None
 
@@ -171,6 +181,10 @@ class RoleTemplate:
             "decision_authority": self.decision_authority.value,
             "escalation_paths": [p.path_id for p in self.escalation_paths],
             "compliance_constraints": [c.constraint_id for c in self.compliance_constraints],
+            # PCR-053b: include multi-dim N fields in integrity hash
+            "decision_ceiling_usd": self.decision_ceiling_usd,
+            "distinct_operators_required": self.distinct_operators_required,
+            "primary_jurisdiction": self.primary_jurisdiction,
         }
         return hashlib.sha256(json.dumps(data, sort_keys=True).encode()).hexdigest()
 
