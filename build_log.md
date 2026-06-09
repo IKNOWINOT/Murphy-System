@@ -2955,3 +2955,116 @@ BANKED FOR FOUNDER DECISION:
     after design is settled.
   PCR-031 scope: rename to /api/deliverable/persona-juxtapose to make
     its sales-side scope explicit. ~1 credit.
+
+## PCR-033 — Production output quality assessment + Fix-B scoping — 2026-06-09
+
+NO CODE CHANGE. QUALITY ASSESSMENT + ARCHITECTURE DECISION BANKED.
+
+CONTEXT:
+  Founder asked: "let me know the quality of outputs for production."
+  Per canon, audited 297 production-side DLF-R packages from last 24h
+  (151 mind_cycle + 146 incident), opened content not just metadata.
+
+QUALITY VERDICT:
+
+  PER-PACKAGE QUALITY: HIGH
+    - Well-structured (4T 10N 9W typical)
+    - Full Rosetta-block on every package (9 prod agents + 
+      north_star + harm_thresholds + world_context)
+    - Concrete content (named files, named functions, specific plans)
+      Example: priority_gap = "patch the function partial_status_update
+                                in src/dynamic_manifold.py"
+    - Real weave types: DEPENDS_ON, SEQUENCE, REFERENCE, SUPPORTS,
+      ESCALATED_TO, ROUTED_TO
+
+  AGGREGATE SIGNAL QUALITY: LOW
+    - mind_cycle ran 5 times in 37 min producing the SAME priority_gap
+      and SAME proposed_action each cycle. No execution between cycles.
+    - incident producer fired same 2 signals repeatedly over 24h:
+        "No inbound replies in 999 days" (capacity_watchdog) — ~once/20 min
+        "HITL queue has 11 pending items" — ~once/20 min
+    - 37,115 total packages but estimated ~50 unique content items.
+      High volume, low information density.
+
+  THE METAPHOR: "Org chart writes excellent meeting minutes about the
+  same problem every 20 min and never solves it."
+
+SHAPE-OF-COMPLETE — Rosetta+DLF for production tasks:
+  a) producers run:                ✅  297 packages/24h, parse cleanly
+  b) format is rich:               ✅  full constitutional layer
+  c) content is concrete:          ✅  named files/functions/plans
+  d) outputs drive action:         🔴  brain in a room
+  e) loop closes (dedup/resolve):  🔴  same incident every 20 min
+
+  3 of 5 green. Both reds are CONSUMER-SIDE, not producer.
+
+ASK-MURPHY ROUND (per canon):
+  Question: Fix-A (dedup) vs Fix-B (handoff) priority?
+  Murphy answer: Fix-B is higher priority. "I don't know yet — would
+                 need to grep src/executor_agent.py and src/dynamic_manifold.py
+                 to determine if similar code already exists."
+  Murphy's epistemic honesty improved vs PCR-032 round — explicitly
+  flagged what it hadn't verified.
+
+VERIFICATION RESULTS (per L41):
+  - executor_agent.py exists (536 lines, class ExecutorAgent)
+  - executor_agent has ZERO references to mind_cycle, proposed_action,
+    priority_gap, or dlf_r. No handoff exists.
+  - murphy_mind.py has ZERO references to executor or dispatch-to-action.
+  - NO incident dedup mechanism exists (grep on dedup|seen_count|
+    content_hash in incident-related code returned nothing).
+  - DISCOVERY: src/auto_fix_matrix.py lines 43-113 already implements
+    a classifier returning {classification, proposed_action, reasoning}
+    with values "patch_code", "restart_unit", "do_nothing". The
+    decision-layer Murphy proposed to build for Fix-B ALREADY EXISTS.
+
+REVISED FIX-B (banked, not implemented this turn):
+  Original framing: "build handoff mind_cycle → executor."
+  Corrected framing: "wire mind_cycle → auto_fix_matrix → executor."
+  Two arrows missing, not one.
+  Producer side (~2 cr): mind_cycle calls auto_fix_matrix.classify()
+                         on each proposed_action
+  Consumer side (~5 cr): runner takes classify() output and routes
+                         patch_code actions to executor_agent
+  Total ~7 credits. Wiring existing modules, not greenfield.
+
+WHY NOT IMPLEMENTED THIS TURN:
+  1. This would switch ON autonomous code-change routing in production
+     for the first time. That's the architectural bright line.
+  2. Rule #6 (HITL canon) + Standing Decision 56 (no unilateral
+     architectural choices) both require founder approval first.
+  3. ~19 credits left + verifier got caught wrong twice today = wrong
+     moment for me to unilaterally turn on autonomous patching.
+
+OPERATING RULES HELD:
+  Rule #1 (audit first) ✓ — opened actual package content, not just counts
+  Rule #2 (snapshot) ✓ — no action taken, snapshot not needed
+  Rule #6 (HITL canon) ✓ — autonomous patch routing NOT enabled
+  Rule #7 (ground truth) ✓ — sampled 50+ packages, parsed payloads
+  Ask-Murphy-First ✓ — Murphy consulted, picked Fix-B, partly right
+  L41 (verify own audit) ✓ — verified Murphy's claim and found
+                              auto_fix_matrix neither of us had cited
+  L42 (ask + verify both matter) ✓ — Murphy got priority right,
+                                       verification refined the scope
+  Standing Decision 56 ✓ — autonomous architecture decision banked
+                            for founder approval
+
+L43: When two parties (me + Murphy) both audit and agree on a fix,
+     STILL grep the broader codebase for adjacent infrastructure.
+     auto_fix_matrix.py was discoverable with one extra grep that
+     both Murphy and I skipped in the first round.
+
+BANKED FOR FOUNDER DECISION:
+  PCR-034 wire mind_cycle → auto_fix_matrix → executor:
+    Requires explicit founder authorization. Switches on autonomous
+    code-change pathway. Each patch still HITL-gated via existing
+    executor_agent checks, but the ROUTING becomes autonomous.
+    ~7 credits to implement after authorization.
+
+  PCR-035 incident content-hash dedup:
+    Lower-risk hygiene fix. Stops capacity_watchdog spam without
+    enabling any new action pathway. ~5 credits, can ship without
+    architectural authorization.
+
+  PCR-031 rename to /api/deliverable/persona-juxtapose:
+    ~1 credit. Sales-side scope clarification.
