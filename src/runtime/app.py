@@ -26085,27 +26085,16 @@ def create_app() -> FastAPI:
                                         "Return ONLY valid JSON, no markdown, no commentary.\n"
                                     )
 
-                                    # Call LLM
-                                    from src.llm_controller import LLMController as _LLMC_040b, LLMRequest as _LLMReq_040b
-                                    import asyncio as _asyncio_040b
-                                    _llm_040b = _LLMC_040b()
-                                    _req_040b = _LLMReq_040b(
-                                        query=_brief_040b,
-                                        context="",
+                                    # PCR-040b hotfix #2: use MurphyLLMProvider.complete() —
+                                    # loop-aware sync wrapper (PATCH-R281), no async dance.
+                                    from src.llm_provider import MurphyLLMProvider as _MLLM_040b
+                                    _llm_040b = _MLLM_040b()
+                                    _resp_040b = _llm_040b.complete(
+                                        prompt=_brief_040b,
+                                        system="You are a structured-output agent. Return only valid JSON, no markdown, no commentary.",
                                         max_tokens=2000,
-                                    ) if hasattr(_LLMReq_040b, "__init__") else _LLMReq_040b(query=_brief_040b)
-                                    # Use a fresh event loop per call (dispatch is sync)
-                                    _loop_040b = _asyncio_040b.new_event_loop()
-                                    try:
-                                        _resp_040b = _loop_040b.run_until_complete(
-                                            _asyncio_040b.wait_for(
-                                                _llm_040b.query_llm(_req_040b),
-                                                timeout=60.0
-                                            )
-                                        )
-                                    finally:
-                                        _loop_040b.close()
-
+                                        temperature=0.7,
+                                    )
                                     _raw_040b = getattr(_resp_040b, "content", "") or str(_resp_040b)
 
                                     # Parse JSON, tolerant
