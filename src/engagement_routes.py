@@ -244,6 +244,43 @@ def register_engagement_routes(
 
     status["routes_added"].append("GET /api/org/engagements")
 
+    # ── POST /api/org/engagement/{id}/outreach (PCR-054d) ─────────
+    @app.post("/api/org/engagement/{engagement_id}/outreach")
+    async def engagement_outreach(engagement_id: str, body: Dict[str, Any]):
+        """Compose + send the engagement_request email for this folder.
+
+        Body fields (all optional):
+          hours_estimated:       float, default 8.0
+          salutation_name:       str
+          response_deadline_days: int, default 5
+          rate_source:           "bls" | "gsa", default "bls"
+          rate_percentile:       50 | 75 | 90, default 90
+          dry_run:               bool, default True (safety: caller must opt in)
+        """
+        try:
+            from src.engagement_outreach import send_engagement_request
+        except Exception as e:
+            return _err(500, {"ok": False, "error": f"outreach module unavailable: {e}"})
+        kwargs = {
+            "hours_estimated":        body.get("hours_estimated", 8.0),
+            "salutation_name":        body.get("salutation_name"),
+            "response_deadline_days": body.get("response_deadline_days", 5),
+            "rate_source":            body.get("rate_source", "bls"),
+            "rate_percentile":        body.get("rate_percentile", 90),
+            "dry_run":                body.get("dry_run", True),
+            "db_path":                db_path,
+        }
+        try:
+            result = send_engagement_request(engagement_id, **kwargs)
+            if not result.get("ok"):
+                return _err(400, result)
+            return result
+        except Exception as e:
+            LOG.exception("PCR-054d outreach failed")
+            return _err(500, {"ok": False, "error": f"{type(e).__name__}: {e}"})
+
+    status["routes_added"].append("POST /api/org/engagement/{id}/outreach")
+
     # Mark idempotent
     app.state._engagement_routes_registered = True
     status["registered"] = True

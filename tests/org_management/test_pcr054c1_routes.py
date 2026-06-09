@@ -40,7 +40,7 @@ class TestRegistration:
             db_path=str(tmp_path / "db.sqlite"),
             browse_root=str(tmp_path / "br"),
         )
-        assert len(s["routes_added"]) == 4
+        assert len(s["routes_added"]) == 5  # PCR-054d: outreach added
 
 
 # ─────────────────────────────────────────────────────────────────────

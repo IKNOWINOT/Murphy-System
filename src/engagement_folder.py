@@ -348,6 +348,9 @@ def create_folder(
 
 
 def get_folder(engagement_id: str, db_path: str = DEFAULT_DB_PATH) -> Optional[EngagementFolder]:
+    # PCR-054d-fix: auto-init schema so a missing DB returns None
+    # (folder-not-found) rather than crashing with OperationalError.
+    init_db(db_path)
     con = _connect(db_path)
     try:
         row = con.execute(
@@ -365,6 +368,7 @@ def list_folders(
     limit: int = 50,
     db_path: str = DEFAULT_DB_PATH,
 ) -> List[EngagementFolder]:
+    init_db(db_path)  # PCR-054d-fix: auto-init for fresh DBs
     con = _connect(db_path)
     try:
         sql = "SELECT * FROM engagement_folders WHERE 1=1"
