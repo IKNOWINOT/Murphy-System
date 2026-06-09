@@ -392,14 +392,12 @@
           <h2>${escapeHtml(plan.name)}</h2>
           <div class="tagline">${tagline(plan.tier)}</div>
           <div class="price">
-            <span class="amount">$${price.toFixed(0)}</span>
-            <span class="period">${periodLabel}</span>
-            <div class="annual-note">${annualNote}</div>
+            ${(plan.pricing_mode === 'contact_us' || price < 0)
+              ? `<span class="amount" style="font-size:1.5rem">Custom</span><span class="period" style="display:block;font-size:0.9rem;opacity:0.7;margin-top:4px">Quoted per deployment</span>`
+              : `<span class="amount">$${price.toFixed(0)}</span><span class="period">${periodLabel}</span><div class="annual-note">${annualNote}</div>`}
           </div>
           <ul class="features">${features}</ul>
-          <button class="cta" onclick="startCheckout('${plan.tier}')">
-            Start with ${escapeHtml(plan.name)}
-          </button>
+          ${renderCTA(plan)}
         </div>
       `;
     }).join('');
@@ -412,6 +410,24 @@
       professional: 'For organizations that need 24/7 autonomous ops.',
       pro: 'For teams scaling beyond manual oversight.',
     }[tier] || '';
+  }
+
+  // PCR-051 — CTA respects API cta_text/cta_href/pricing_mode.
+  // For tiers in contact-us mode (enterprise), render a link to the
+  // sales-contact URL the backend provides, not a checkout button.
+  function renderCTA(plan) {
+    const mode = (plan.pricing_mode || '').toLowerCase();
+    const ctaText = plan.cta_text || `Start with ${escapeHtml(plan.name)}`;
+    const ctaHref = plan.cta_href || '';
+    if (mode === 'contact_us' || mode === 'contact-us') {
+      const href = ctaHref || '/book?intent=' + encodeURIComponent(plan.tier);
+      return `<a class="cta" href="${escapeHtml(href)}" style="display:block;text-align:center;text-decoration:none">
+        ${escapeHtml(ctaText)} →
+      </a>`;
+    }
+    return `<button class="cta" onclick="startCheckout('${plan.tier}')">
+      ${escapeHtml(ctaText.startsWith('Start') ? ctaText : `Start with ${plan.name}`)}
+    </button>`;
   }
 
   function escapeHtml(s) {
