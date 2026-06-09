@@ -216,30 +216,87 @@ def scan_cost_spikes(window_minutes: int) -> tuple[list[dict], dict]:
 # === PCR-026 END rewired scan_cost_spikes ===
 
 
+
+
+# === PCR-027 BEGIN scan_provenance_latency p95 ===
+def _parse_latency_ms(output_summary: str) -> int:
+    """Parse latency_ms from PCR-025 output_summary format:
+       'HTTP 200 · 14ms · 8046b'. Returns -1 on parse failure."""
+    if not output_summary:
+        return -1
+    try:
+        import re as _re
+        m = _re.search(r"\b(\d+)ms\b", output_summary)
+        return int(m.group(1)) if m else -1
+    except Exception:
+        return -1
+
+
 def scan_provenance_latency(window_minutes: int) -> tuple[list[dict], dict]:
-    """Read result_provenance for time-grouped latency.
-       Since we don't have explicit duration in the schema yet, this
-       phase only counts volume per producer. p95-vs-p50 latency will
-       come once produced_at + finished_at are both recorded.
-       In 6a we just report volume; we don't flag yet."""
-    stats = {"provenance_scanned": 0, "producers_seen": 0}
+    """Read result_provenance for action-level p95 vs p50 latency.
+       PCR-027: now parses latency_ms from PCR-025's output_summary
+       and emits HIGH_LATENCY_<action> flags when p95 > 2x p50."""
+    stats = {"provenance_scanned": 0, "producers_seen": 0,
+             "actions_with_samples": 0}
+    flags: list[dict] = []
     if not ENTITY_DB.exists():
-        return [], stats
+        return flags, stats
     cutoff = _iso_minutes_ago(window_minutes)
     try:
         conn = sqlite3.connect(str(ENTITY_DB))
         cur = conn.cursor()
+        # Volume per producer (preserves Phase 6a stats shape)
         cur.execute("""SELECT produced_by, COUNT(*)
                          FROM result_provenance
                         WHERE produced_at >= ?
                      GROUP BY produced_by""", (cutoff,))
+        producer_rows = cur.fetchall()
+        stats["provenance_scanned"] = sum(r[1] for r in producer_rows)
+        stats["producers_seen"] = len(producer_rows)
+
+        # Latency per action_name (the new PCR-027 logic)
+        cur.execute("""SELECT action_name, output_summary
+                         FROM result_provenance
+                        WHERE produced_at >= ?""", (cutoff,))
         rows = cur.fetchall()
-        stats["provenance_scanned"] = sum(r[1] for r in rows)
-        stats["producers_seen"] = len(rows)
         conn.close()
     except Exception as e:
-        return [], {"error": f"provenance scan failed: {e}"}
-    return [], stats  # 6a: no latency flags emitted yet
+        return flags, {"error": f"provenance scan failed: {e}"}
+
+    by_action: dict[str, list[int]] = {}
+    for action_name, output_summary in rows:
+        ms = _parse_latency_ms(output_summary)
+        if ms < 0 or not action_name:
+            continue
+        by_action.setdefault(action_name, []).append(ms)
+
+    for action_name, latencies in by_action.items():
+        n = len(latencies)
+        if n < MIN_SAMPLES:
+            continue
+        stats["actions_with_samples"] += 1
+        sorted_ms = sorted(latencies)
+        p50 = sorted_ms[n // 2]
+        p95 = sorted_ms[max(0, int(n * 0.95) - 1)]
+        if p50 <= 0:
+            continue
+        ratio = p95 / p50
+        if ratio > LATENCY_RATIO_THRESHOLD:
+            flags.append({
+                "flag_id": f"HIGH_LATENCY_{action_name}",
+                "kind": "high_latency",
+                "target": action_name,
+                "severity": "high" if ratio > 4.0 else "medium",
+                "evidence": {
+                    "p50_ms": p50,
+                    "p95_ms": p95,
+                    "ratio": round(ratio, 2),
+                    "sample_size": n,
+                    "source": "result_provenance",
+                },
+            })
+    return flags, stats
+# === PCR-027 END scan_provenance_latency p95 ===
 
 
 def compute_flags(window_minutes: int) -> dict[str, Any]:

@@ -2504,3 +2504,68 @@ OPERATING RULES HELD:
   L31      real UA + retry ✓
   L32      verifier PASS before commit ✓
   L35      anchored on def signature, no try/except split ✓
+
+## PCR-027 — Phase 9: HIGH_LATENCY flag — 2026-06-09
+
+USES THE LATENCY DATA THAT PCR-025 STARTED WRITING.
+
+scan_provenance_latency() was a Phase 6a stub: "count volume only,
+no flags emitted yet." PCR-025's provenance producer made the data
+available; PCR-027 promotes the stub to a real p95/p50 detector.
+
+WHAT SHIPPED:
+  src/bottleneck_monitor.py — scan_provenance_latency() promoted
+    Parses latency_ms from output_summary 'HTTP <code> · <ms>ms · <b>b'
+    (the format PCR-025 writes from audit_middleware).
+    For each action_name with >= MIN_SAMPLES (10), computes p50 and
+    p95. Flags HIGH_LATENCY_<action> when p95 > 2x p50.
+
+  scripts/pcr027_patch_latency_v2.py
+    Idempotent, marker-based, --revert capable.
+    Replaces function body in-place (L35-safe — top-level scope only).
+    First attempt (v1) wrote a new function + invocation hook but the
+    main() variable names didn't match. v2 is cleaner: just promote the
+    existing stub, which is already wired into compute_flags().
+
+  scripts/phase9_check.py
+    Verifier: marker + helper + compile + live call + no regression.
+
+EVIDENCE (rule #7 ground truth):
+  After: scan_provenance_latency(240min):
+    provenance_scanned=111 (was 0 before PCR-025)
+    actions_with_samples=2  (/api/rosetta/status, /api/hitl/pending
+                              both had >= 10 samples)
+    flags emitted=0  (correct — p95 isn't 2x p50 yet, steady-state OK)
+
+  Bottleneck monitor now scans 3 dimensions on live data:
+    events (0 — still pending entity_graph producer)
+    costs  (362 — PCR-026 working)
+    latency (112 — PCR-025+PCR-027 working)
+
+ZERO FLAGS = HEALTHY, NOT BROKEN:
+  The monitor is correctly seeing no anomalies. The point of Phase 6b
+  was to detect spikes when they happen, not manufacture them.
+
+SHAPE-OF-COMPLETE GATE STATUS:
+  Phase 4a (provenance schema):  a✅ b✅ c✅ d✅ e✅  COMPLETE
+  Phase 4b (drill-down UI):      a✅ b✅ c✅ d✅ e✅  COMPLETE
+  Phase 5  (canvas linking):     a✅ b✅ c✅ d✅ e✅  COMPLETE
+  Phase 6a (bottleneck monitor): a✅ b✅ c✅ d✅ e✅  COMPLETE
+  Phase 6b (HITL writer):        a✅ b✅ c✅ d🟡 e✅  (still waits for flag)
+  Phase 7  (provenance producer):a✅ b✅ c✅ d✅ e✅  COMPLETE
+  Phase 8  (cost monitor rewire):a✅ b✅ c✅ d✅ e✅  COMPLETE
+  Phase 9  (HIGH_LATENCY flag):  a✅ b✅ c✅ d✅ e✅  COMPLETE
+
+  Twilio SMS:    a✅ b✅ c❌ d❌ e✅  A2P 10DLC registration in Console
+  Twilio voice:  a✅ b✅ c❌ d❌ e✅  Trust Hub / CNAM in Console
+  NOWPayments:   a✅ b✅ c✅ d❌ e✅  Sales problem, not code
+  Outbound email:a✅ b❓ c✅ d❓ e✅  Port 25 unblocked, needs wiring test
+  CRM outreach:  a✅ b✅ c❓ d❌ e❌  outreach_log table doesn't exist
+  entity_graph events: a✅ b✅ c❌ d❌ e❌  Producer commented out
+
+OPERATING RULES HELD:
+  Rule #2  snapshot ✓ (PCR-027_pre/)
+  Rule #6  HITL queue untouched ✓
+  Rule #7  ground truth verified ✓
+  L29-L32  ✓
+  L35      replaced function body at top-level scope ✓
