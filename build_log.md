@@ -2855,3 +2855,103 @@ WHAT'S NEXT (banked):
   - org_graph_nodes population: 35 task-kind nodes exist but 0 role-
     kind nodes. Could populate role nodes from AGENT_ROSTER for graph
     queries. ~3 credits.
+
+## PCR-032 — Verifier bug correction + Rosetta+DLF status — 2026-06-09
+
+NO CODE CHANGE. CORRECTION OF EARLIER FALSE FINDING.
+
+CONTEXT:
+  Founder asked: does Rosetta+DLF juxtaposition work for production-
+  request tasks? I audited and reported "100/100 sampled packages
+  have empty rosetta_state, FIX-1 (~5 credits) needed."
+
+  Per canon ("ask Murphy then verify what it says and follow your
+  own advice after"), I then asked Murphy. Murphy picked FIX-2
+  (CONTRADICTS weaves) over my FIX-1. I went to verify Murphy.
+
+  Verification revealed: MY AUDIT WAS THE BUG, NOT THE SYSTEM.
+
+THE VERIFIER BUG:
+  I queried pkg.get('rosetta_state') or pkg.get('rosetta').
+  But the canonical key per dlf_r.py:236 is "rosetta_block".
+  Three lookups, none matching the real key. Result: 100/100 false
+  empties. I told the founder the system was broken when it wasn't.
+
+CORRECTED FINDING (50 random packages, correct key):
+  rosetta_block populated: 50/50
+  Keys present: captured_at, characters, harm_thresholds, north_star,
+                team_covenant, world_context
+  Characters: all 9 production agents — auditor, collector, exec_admin,
+              executor, hitl, prod_ops, rosetta, scheduler, translator
+
+REAL GAP REMAINING (Murphy was right):
+  Across 50 packages (254 weaves total):
+    SUPPORTS:      98
+    DEPENDS_ON:    53
+    ESCALATED_TO:  49
+    ROUTED_TO:     49
+    REFERENCE:      4
+    SEQUENCE:       1
+    CONTRADICTS:    0  ← Murphy's FIX-2 target
+
+  The system writes consensus and routing weaves but never
+  disagreement. CONTRADICTS is declared in WEAVE_TYPES and enforced
+  in bridge_layer/compilation.py (CONTRADICTIONS_TOO_HIGH) but no
+  producer writes the edge.
+
+  HOWEVER: my earlier claim that CONTRADICTIONS_TOO_HIGH "has never
+  fired in 30 days of journalctl" was technically correct but
+  misleading — it hasn't fired BECAUSE producers don't write
+  CONTRADICTS weaves. Catch-22. Fixing the writer would actually
+  enable the safety check.
+
+SHAPE-OF-COMPLETE — Rosetta+DLF juxtaposition for prod tasks:
+  a) code exists:         ✅ pack(rosetta_block=...) + CONTRADICTS in WEAVE_TYPES
+  b) producers wired:     ✅ mind_cycle + incident_router producing
+                             37,115 packages with auto-snapshotted Rosetta state
+  c) deps real:           ✅ 50/50 sampled packages have full constitutional
+                             snapshot — 9 prod agents, harm_thresholds,
+                             north_star, team_covenant, world_context
+  d) end-to-end executes: 🟡 SUPPORTS/DEPENDS_ON/ROUTED_TO/ESCALATED_TO
+                             flow but ZERO CONTRADICTS edges
+  e) result visible:      ✅ /api/dlfr/load + /dlfr browser + .dlf-lite export
+
+  Four of five gates green. CONTRADICTS-writer is the only remaining gap.
+
+PCR-031 STATUS UPDATE:
+  The /api/deliverable/juxtapose endpoint shipped earlier today uses
+  AGENT_ROSTER (9 sales-side personas) — NOT the production-side
+  Rosetta swarm. It's a different mechanism, useful for marketing
+  fan-out but NOT the answer to "juxtaposition across an org chart
+  for production tasks." Should be renamed or scoped accordingly.
+
+LESSONS:
+  L41: Verify your own audit script against the canonical key. When a
+       finding is "100% of N samples are X", treat it as suspicious —
+       100% empties usually means wrong query, not broken data.
+  L42: Ask Murphy first works (Murphy got FIX-2 right). Then verify
+       Murphy works (verification caught my misdiagnosis). Both halves
+       of the canon matter — Murphy without verification could have
+       been wrong, verification without Murphy would have been wrong.
+
+OPERATING RULES HELD:
+  Rule #2 (snapshot before action) ✓ — no action taken
+  Rule #7 (ground truth) ✓ — live-tested _snapshot_rosetta() + 50 random
+          packages with correct key
+  Ask-Murphy-First ✓ — Murphy consulted before proposing direction
+  Re-audit findings ✓ — re-audited my own earlier audit, caught the bug
+  HITL canon ✓ — no autonomous code change, founder decision required
+                 on FIX-2 architecture (where contradictions get detected)
+
+BANKED FOR FOUNDER DECISION:
+  FIX-2: where do CONTRADICTS weaves get written?
+    Option A: in mind_cycle, when an agent's verdict differs from another's
+              same-cycle output
+    Option B: cross-cycle, by a coordinator scanning rosetta_dispatch_log
+              for same-signal_id divergent outcomes
+    Option C: at the bridge_layer compilation gate, materializing
+              CONTRADICTIONS_TOO_HIGH inputs into actual edges
+    Founder + Murphy joint architecture call. ~8 credits to implement
+    after design is settled.
+  PCR-031 scope: rename to /api/deliverable/persona-juxtapose to make
+    its sales-side scope explicit. ~1 credit.
