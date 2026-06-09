@@ -1340,6 +1340,15 @@ body {
         .exec-pulse-dot.ok    { background: var(--green, #22c55e); }
         .exec-pulse-dot.warn  { background: var(--yellow, #f59e0b); }
         .exec-pulse-dot.fail  { background: #e06c75; }
+        .exec-cta-head { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+        .exec-cta-meta { font-size:11px; color:#7c8597; margin-top:4px; font-family:var(--font-mono); }
+        .exec-conf { font-size:11px; padding:2px 8px; border-radius:10px; font-weight:600; font-family:var(--font-mono); }
+        .exec-conf.high { background:rgba(34,197,94,.15); color:#22c55e; border:1px solid rgba(34,197,94,.4); }
+        .exec-conf.med  { background:rgba(245,158,11,.15); color:#f59e0b; border:1px solid rgba(245,158,11,.4); }
+        .exec-conf.low  { background:rgba(239,68,68,.15);  color:#ef4444; border:1px solid rgba(239,68,68,.4); }
+        #exec-cta-toast { position:fixed; bottom:24px; right:24px; padding:10px 16px; border-radius:8px; background:#0f1419; border:1px solid #22c55e; color:#22c55e; font-family:var(--font-mono); font-size:13px; opacity:0; transition:opacity .25s; pointer-events:none; z-index:9999; box-shadow:0 4px 12px rgba(0,0,0,.4); }
+        #exec-cta-toast.show { opacity:1; }
+        #exec-cta-toast.dismiss-toast { border-color:#7c8597; color:#7c8597; }
         .exec-cta-card {
           background: var(--blue-dim, rgba(59,130,246,0.12));
           border-left: 3px solid var(--blue, #3b82f6);
@@ -1461,9 +1470,23 @@ body {
           count.textContent = ctas.length;
           body.innerHTML = ctas.slice(0, 3).map(c => {
             const cls = "exec-cta-card " + (c.category || "");
+            const conf = Number(c.confidence || 0);
+            let pillCls = "exec-conf low";
+            if (conf >= 0.90) pillCls = "exec-conf high";
+            else if (conf >= 0.75) pillCls = "exec-conf med";
+            const pillTxt = conf.toFixed(2);
+            const ageS = Number(c.age_seconds || 0);
+            let ageTxt;
+            if (ageS < 60) ageTxt = "just now";
+            else if (ageS < 3600) ageTxt = Math.floor(ageS/60) + " min ago";
+            else ageTxt = Math.floor(ageS/3600) + "h " + Math.floor((ageS%3600)/60) + "m ago";
             return "<div class=\"" + cls + "\">" +
-              "<div><strong>" + escapeHtml(c.label) + "</strong></div>" +
+              "<div class=\"exec-cta-head\">" +
+                "<strong>" + escapeHtml(c.label) + "</strong>" +
+                "<span class=\"" + pillCls + "\" title=\"confidence " + pillTxt + "\">" + pillTxt + "</span>" +
+              "</div>" +
               "<div class=\"exec-cta-desc\">" + escapeHtml(c.description) + "</div>" +
+              "<div class=\"exec-cta-meta\">produced " + escapeHtml(ageTxt) + "</div>" +
               "<div class=\"exec-cta-actions\">" +
               "<button class=\"exec-cta-btn\" onclick=\"execCtaCommit('" + escapeHtml(c.cta_id) + "')\">Commit</button>" +
               "<button class=\"exec-cta-btn dismiss\" onclick=\"execCtaDismiss('" + escapeHtml(c.cta_id) + "')\">Dismiss</button>" +
@@ -1499,15 +1522,25 @@ body {
           }
         }
 
+        window._execShowToast = function(msg, kind) {
+          let t = document.getElementById("exec-cta-toast");
+          if (!t) { t = document.createElement("div"); t.id = "exec-cta-toast"; document.body.appendChild(t); }
+          t.className = (kind === "dismiss") ? "dismiss-toast show" : "show";
+          t.textContent = msg;
+          setTimeout(function() { t.className = (kind === "dismiss") ? "dismiss-toast" : ""; }, 1800);
+        };
         window.execCtaCommit = async function(id) {
           try {
-            await fetch("/api/executive/cta/" + encodeURIComponent(id) + "/commit", {method: "POST", credentials: "same-origin"});
+            const r = await fetch("/api/executive/cta/" + encodeURIComponent(id) + "/commit", {method: "POST", credentials: "same-origin"});
+            if (r.ok) window._execShowToast("Committed to ledger", "commit");
+            else window._execShowToast("Commit failed: " + r.status, "dismiss");
             poll();
-          } catch (e) { console.warn("commit failed:", e); }
+          } catch (e) { console.warn("commit failed:", e); window._execShowToast("Commit error", "dismiss"); }
         };
         window.execCtaDismiss = async function(id) {
           try {
-            await fetch("/api/executive/cta/" + encodeURIComponent(id) + "/dismiss", {method: "POST", credentials: "same-origin"});
+            const r = await fetch("/api/executive/cta/" + encodeURIComponent(id) + "/dismiss", {method: "POST", credentials: "same-origin"});
+            if (r.ok) window._execShowToast("Dismissed", "dismiss");
             poll();
           } catch (e) { console.warn("dismiss failed:", e); }
         };

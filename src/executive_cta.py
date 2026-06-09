@@ -180,6 +180,34 @@ def _is_duplicate(
 # Category-A: completion CTAs (from agent_accomplishment_writer)
 # ─────────────────────────────────────────────────────────────
 
+
+# ─────────────────────────────────────────────────────────────
+# PCR-052: human-friendly labels (output_type → "Title Case Name")
+# ─────────────────────────────────────────────────────────────
+_OUTPUT_TYPE_LABELS = {
+    "deal_priorities":   "Deal Priorities",
+    "pipeline_state":    "Pipeline State Snapshot",
+    "customer_segments": "Customer Segments",
+    "competitor_set":    "Competitor Set",
+    "market_landscape":  "Market Landscape Brief",
+    "security_audit":    "Security Audit",
+    "regression_report": "Regression Test Report",
+    "test_plan":         "Test Plan",
+    "code_review":       "Code Review",
+    "feature_spec":      "Feature Spec",
+    "incident_report":   "Incident Report",
+    "outreach_copy":     "Outreach Copy Draft",
+}
+
+def humanize_output_type(output_type: str) -> str:
+    """snake_case → Title Case, with overrides for known schemas."""
+    if not output_type:
+        return "Deliverable"
+    if output_type in _OUTPUT_TYPE_LABELS:
+        return _OUTPUT_TYPE_LABELS[output_type]
+    return " ".join(w.capitalize() for w in output_type.replace("-", "_").split("_"))
+
+
 def propose_completion_cta(
     *,
     role: str,
@@ -207,8 +235,8 @@ def propose_completion_cta(
     }
     return _emit_cta(
         category=CtaCategory.COMPLETION.value,
-        label=f"View {output_type}",
-        description=f"{role} (in {domain}) produced {output_type}",
+        label=f"Review {humanize_output_type(output_type)}",
+        description=f"{humanize_output_type(output_type)} from {role} — confidence {quality_score:.2f} — awaiting your review.",
         action_uri=f"/os#accomplishment/{accomplishment_id}",
         confidence=quality_score,
         source_signal=signal,
