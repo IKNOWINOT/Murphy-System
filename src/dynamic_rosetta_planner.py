@@ -38,6 +38,12 @@ class AgentBlueprint:
     # PCR-040a — Role I/O contracts
     input_types: List[str] = field(default_factory=list)
     output_types: List[str] = field(default_factory=list)
+    # PCR-044 — kickoff vs refinement input separation. When kickoff_inputs
+    # is set, ready_agents() uses it for pass 1; refinement_inputs are
+    # consumed via ready_for_refinement() in pass 2+. Backward compatible:
+    # leaving kickoff_inputs empty falls back to input_types.
+    kickoff_inputs: List[str] = field(default_factory=list)
+    refinement_inputs: List[str] = field(default_factory=list)
 
 @dataclass
 class OrgNode:
@@ -160,6 +166,16 @@ DOMAIN_ROLE_TEMPLATES: Dict[str, List[Tuple]] = {
     ],
     # PCR-035 END business_strategy team
 }
+# PCR-044 — refinement inputs (consumed in pass 2+ via ready_for_refinement).
+# These are NOT prerequisites for the agent to fire pass 1. They let an
+# agent collapse downstream feedback into a revised output OR a pivot.
+# Keyed by role_class; missing roles default to no refinement inputs.
+ROLE_REFINEMENT_INPUTS: Dict[str, List[str]] = {
+    "Lead Engineer": ["test_plan", "security_audit"],
+    # Future: other roles can opt in to refinement here as the loop
+    # proves itself in engineering domain.
+}
+
 DOMAIN_ROLE_TEMPLATES["general"] = DOMAIN_ROLE_TEMPLATES["exec_admin"]
 
 COMPLEXITY_TO_TEAM_SIZE = {"trivial": 1, "low": 2, "medium": 3, "high": 5, "critical": 5}
@@ -291,9 +307,11 @@ ROLE_IO_CONTRACTS = {
     # version — same role name, same contract.
     # ── engineering domain ───────────────────────────────────────────
     "Lead Engineer": (
-        # PCR-044 — Lead is the kickoff architect, fires on prompt alone.
-        # test_plan and security_audit are downstream feedback consumed in
-        # refinement passes (PCR-040c), not first-pass prerequisites.
+        # PCR-044 — kickoff inputs: pass 1 architecture from the prompt alone.
+        # Refinement inputs (test_plan, security_audit) consumed in pass 2+
+        # via ready_for_refinement(), letting Lead collapse downstream
+        # feedback into a revised architecture OR pivot to a different
+        # deliverable (e.g. CAD redesign).
         ["prompt"],
         ["architecture_decision", "deliverable"],
     ),
@@ -500,13 +518,21 @@ class DynamicRosettaPlanner:
             brief = BRIEFS.get(role_class, "Execute " + role_class + " work on this task.")
             # PCR-040a — pull I/O contract for this role (empty default)
             _io_in, _io_out = ROLE_IO_CONTRACTS.get(role_class, ([], []))
+            # PCR-044 — kickoff inputs = ROLE_IO_CONTRACTS (pass 1 prereqs).
+            # refinement_inputs come from ROLE_REFINEMENT_INPUTS (pass 2+).
+            # input_types stays = union for backward compat with any
+            # consumer that reads it directly.
+            _refine_in = ROLE_REFINEMENT_INPUTS.get(role_class, [])
+            _all_inputs = list(_io_in) + [x for x in _refine_in if x not in _io_in]
             team.append(AgentBlueprint(
                 agent_id=agent_id, role_class=role_class, department=dept,
                 reports_to=coordinator_id if not is_coord else None,
                 tone=tone, bias=bias, hitl_threshold=hitl_thresh,
                 capabilities=caps, boundaries=bounds,
                 task_brief=brief, emoji=emoji,
-                input_types=list(_io_in), output_types=list(_io_out),
+                input_types=_all_inputs, output_types=list(_io_out),
+                kickoff_inputs=list(_io_in),
+                refinement_inputs=list(_refine_in),
             ))
         return team
 

@@ -129,14 +129,25 @@ class ArtifactGraph:
         return eligible
 
     def ready_agents(self, team: List[Any]) -> List[Any]:
-        """Agents whose all input_types are satisfied, and which
-        haven't yet been fired (no outputs produced)."""
+        """PCR-044 — Agents whose KICKOFF inputs are satisfied, and which
+        haven't yet been fired. kickoff_inputs (if declared) lets a role
+        fire on a subset of its full input list, with refinement inputs
+        deferred to ready_for_refinement() in pass 2+.
+
+        Backward compatible: agents without kickoff_inputs use input_types.
+        """
         produced = self.produced()
         ready = []
         for agent in team:
-            inputs = set(getattr(agent, "input_types", []) or [])
+            # PCR-044 — prefer kickoff_inputs (pass-1 requirements) when
+            # the agent declares them. Fall back to input_types otherwise.
+            _kickoff = getattr(agent, "kickoff_inputs", None)
+            if _kickoff:
+                inputs = set(_kickoff)
+            else:
+                inputs = set(getattr(agent, "input_types", []) or [])
             outputs = set(getattr(agent, "output_types", []) or [])
-            # not ready if any input missing
+            # not ready if any kickoff input missing
             if not inputs.issubset(produced):
                 continue
             # already-fired if any of its outputs already in graph
