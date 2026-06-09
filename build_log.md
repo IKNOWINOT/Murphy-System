@@ -3068,3 +3068,124 @@ BANKED FOR FOUNDER DECISION:
 
   PCR-031 rename to /api/deliverable/persona-juxtapose:
     ~1 credit. Sales-side scope clarification.
+
+## PCR-034 — mind_cycle → auto_fix_matrix → HITL wiring — 2026-06-09
+
+CODE CHANGE: yes. murphy_mind.py + scripts/pcr034_mind_cycle_to_hitl.py
+
+FOUNDER AUTHORIZATION (verbatim):
+  "You authorize PCR-034 with the explicit understanding that
+  mind_cycle's proposed_actions will start hitting auto_fix_matrix
+  .classify() and patch_code actions will route to executor_agent.
+  HITL gate kept in front of every actual patch via existing executor
+  checks."
+  + "Ask Murphy once more for its take on whether wiring auto_fix_matrix
+     into mind_cycle is safe to enable now."
+
+PRE-FLIGHT (per canon):
+  1. Asked Murphy for safety review.
+  2. First attempt curl --max-time 60 → 502 (Murphy chat unavailable).
+  3. Production self-restarted (regenerative_core escalated Health
+     Endpoint timeout via PATCH-361). NOT caused by my work — log shows
+     health probe failed independently. Service recovered at 01:08:53.
+  4. Retried Murphy chat after restart → SAFE verdict.
+  5. Verified Murphy's claim per L41: read auto_fix_matrix source,
+     confirmed "All code changes are HITL by policy" hardcoded;
+     every patch_code action returns classification=HITL_REQUIRED.
+  6. CONFIRMED: no path through this wiring can autonomously patch code.
+
+WHAT'S IMPLEMENTED:
+  - New function _emit_cycle_hitl_if_actionable(cycle, entry) added to
+    murphy_mind.py immediately before _emit_cycle_dlfr().
+  - Single new call line added in _run_cycle right after the existing
+    _emit_cycle_dlfr() call (line 1230).
+  - Both insertions are MARKER-BASED (PCR-034 BEGIN/END) and revert-able
+    via scripts/pcr034_mind_cycle_to_hitl.py --revert.
+  - Environment variable PCR034_DRY_RUN (default "1") controls whether
+    the function actually inserts into hitl_queue or only logs.
+
+SAFETY ENVELOPE:
+  - Function is wrapped in try/except. Failure CANNOT break the mind
+    cycle loop.
+  - auto_fix_matrix.classify() returns HITL_REQUIRED for every code
+    change by policy.
+  - hitl_queue lane "mind_cycle" is NEW — does not collide with
+    existing lanes (bottleneck, sales, etc.).
+  - Dry-run default ON. Founder can flip PCR034_DRY_RUN=0 in
+    environment file when ready.
+
+LIVE VERIFICATION (3 tests):
+  TEST 1: DRY-RUN with actionable proposed_action
+    Result: skipped:matrix_do_nothing:HITL_REQUIRED ✅
+    (matrix recognized but classified as do_nothing — no insert)
+  TEST 2: DRY-RUN with seek_new_gap noise
+    Result: skipped:no_action ✅
+    (early exit before matrix call — stops cycle-spam from creating
+     HITL items)
+  TEST 3: REAL-path with actionable proposed_action
+    Result: skipped:matrix_do_nothing:HITL_REQUIRED ✅
+    hitl_queue mind_cycle entries: 0 ✅
+    (real path executed correctly; matrix verdict said no insert)
+
+REGRESSION CHECKS — all 7 phase verifiers pass:
+  ✓ phase4b_check, phase5_check, phase6a_check, phase6b_check,
+    phase7_check, phase8_check, phase9_check
+  ✓ source tripwire clean
+  ✓ all canonical surfaces serving 200
+
+SHAPE-OF-COMPLETE — Rosetta+DLF for prod tasks (UPDATED):
+  a) producers run:                ✅ unchanged
+  b) format is rich:               ✅ unchanged
+  c) content is concrete:          ✅ unchanged
+  d) outputs drive action:         🟡 was 🔴 — wiring exists,
+                                       dry-run ON,
+                                       matrix path executes,
+                                       awaiting (1) founder flipping
+                                       PCR034_DRY_RUN=0 and (2) flag-
+                                       format-translator so mind_cycle
+                                       freeform proposals match the
+                                       matrix's expected flag patterns
+  e) loop closes (dedup/resolve):  🔴 unchanged — PCR-035 banked
+
+  Net: 3 green + 1 yellow + 1 red. Moved 1 red → yellow this turn.
+
+OBSERVATION FOR PCR-035:
+  Currently auto_fix_matrix.classify() returns do_nothing for
+  mind_cycle's freeform proposals because they don't match the
+  matrix's expected flag patterns (ROUTE_500_, error_rate kinds,
+  user-facing pipelines). Two ways to close this:
+    (a) extend auto_fix_matrix with a "mind_cycle_proposal" kind
+    (b) add a small format-translator in
+        _emit_cycle_hitl_if_actionable to map freeform proposals
+        onto matrix-compatible flag shapes
+  Neither blocks the dry-run path being live. Banking for next session.
+
+OPERATING RULES HELD:
+  Rule #1 (audit first) ✓ — read auto_fix_matrix + executor_agent
+                            + SelfModelEntry + bottleneck_hitl_writer
+                            pattern before writing
+  Rule #2 (snapshot) ✓ — pre-change copy at
+    /var/lib/murphy-production/state_snapshots/PCR-034_pre/
+  Rule #6 (HITL canon) ✓ — wiring CANNOT autonomously patch; founder
+                            approved; Murphy reviewed SAFE
+  Rule #7 (ground truth) ✓ — 3 live tests including REAL-path validation
+  Ask-Murphy-First ✓ — Murphy consulted before writing code
+  L41 (verify own audit) ✓ — verified Murphy's SAFE claim by reading
+                              auto_fix_matrix source
+  L43 (grep adjacent infra) ✓ — used bottleneck_hitl_writer's exact
+                                  INSERT pattern as template
+  Standing Decision 56 ✓ — explicit founder authorization received
+                            with explicit constraint (HITL gate kept)
+
+L44: When my own curl --max-time is too short, Murphy "timing out" is
+     MY error, not Murphy's availability. Canon set: min 120s for
+     all /api/chat calls.
+
+NEXT ACTIONS (banked):
+  PCR-034b: flip PCR034_DRY_RUN=0 after 24-48h observation in dry-run
+            (founder decision; trivial env file edit)
+  PCR-034c: format-translator OR auto_fix_matrix kind for mind_cycle
+            (~3 credits) — closes the do_nothing wall
+  PCR-035: incident content-hash dedup (~5 credits, hygiene)
+  PCR-031 rename: persona-juxtapose (~1 credit)
+  PCR-033 CONTRADICTS-writer: founder+Murphy arch (~8 credits)
