@@ -2635,3 +2635,75 @@ OPERATING RULES HELD:
   Rule #7  ground truth verified via real DB ✓
   L29-L32  ✓
   L35      no patcher needed — orphan file, direct rewrite ✓
+
+## PCR-029 — R82 composer audit + reality check — 2026-06-09
+
+NO CODE CHANGE. AUDIT RESOLVED A MISDIAGNOSED GATE.
+
+PRIOR MEMORY SAID:
+  "R83 outreach reactivation depends on content fix — generic brochure
+  copy ignoring 283 enriched contact contexts."
+
+AUDIT FOUND:
+  The content fix already shipped on 2026-06-07 as R82.P3 (_R82_CUSTOMER_CENTRIC):
+  - _compose_outreach() → _r82_compose_with_llm() with full enrichment
+  - Together API system prompt explicitly bans generic openers
+  - Hard rules: lead with their situation, name ONE specific problem,
+    max 120 words, no markdown, single ask
+  - Enrichment-aware static fallback for LLM failures
+
+  The 78 emails actually sent (all "Quick question about AI reliability
+  at X") all predate R82 (last send 2026-06-04, R82 shipped 2026-06-07).
+
+LIVE TEST (rule #7 ground truth):
+  Tested _r82_compose_with_llm() on a real lead (help@redbean.ai).
+  - LLM latency: 7019ms
+  - Subject: "Scaling AI-Driven Storytelling"
+  - Body: references their actual product (Ophiuchus), their stack
+    (React), names a concrete problem, positions Murphy in one line.
+  - Customer-centric. Not generic. Spec satisfied.
+
+REAL GATE STATUS:
+  a) code exists:         ✅ R82 LLM composer + static fallback + lineage
+  b) code wired:          ✅ _compose_outreach → _r82_compose_with_llm
+  c) deps real:           ✅ Together API responds, enrichment loads
+  d) end-to-end executes: 🟡 only ONE manual test — no scheduled send
+                             since R82 shipped
+  e) result visible:      ✅ activities table tracks every send
+
+WHAT'S ACTUALLY MISSING:
+  The PROSPECTOR ISN'T RUNNING. No cron, no scheduler, no service.
+  Last send 2026-06-04. R82 shipped 2026-06-07. Zero sends since.
+
+  Per shape_of_complete v2 + active_user_instructions:
+  - "Approve every external email send" → HITL canon
+  - "No bulk without founder sign-off" → HITL canon
+  Reactivating the prospector is a FOUNDER DECISION, not autonomous-
+  Murphy work. Murphy should not auto-schedule outbound to real
+  companies without an explicit, scoped go-ahead.
+
+WHAT FOUNDER NEEDS TO DECIDE:
+  1) Reactivate cadence? (paused per audit on 2026-06-04)
+  2) Send-rate? (founder rule of thumb: < 50/day, with reply tracking)
+  3) Target list? (283 contacts in CRM; mark synthetic vs real first;
+     15 are explicitly tagged 'marked_synthetic_at')
+  4) Approval mode? (queue each into hitl_jobs for review, or fire
+     directly?) — current code path queues into hitl_jobs already.
+
+CRM HYGIENE PRECONDITION:
+  Before any reactivation, the 15 explicitly-synthetic contacts and
+  any test pattern (@example.com, test*, audit_*) should be marked
+  contact_type='synthetic' so the prospector skips them by default.
+  PCR-030 candidate, ~2 credits.
+
+BANKED:
+  - Reactivation decision (founder)
+  - Synthetic-contact suppression (PCR-030, ~2 credits)
+  - Entity_graph events archaeology
+  - Port 25 SMTP wiring test
+  - Twilio Console registration (founder)
+
+RULES HELD:
+  HITL canon (no autonomous external sends) ✓
+  Rule #7 (ground truth via live LLM test) ✓
+  Shape-of-Complete v2 (honest gate status, no theater) ✓
