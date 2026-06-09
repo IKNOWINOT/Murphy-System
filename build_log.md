@@ -2435,3 +2435,72 @@ OPERATING RULES HELD:
   L31      real UA + retry ✓
   L32      verifier PASS before commit ✓
   L35      anchors top-level scope only ✓ (no try/except split this time)
+
+## PCR-026 — Phase 8: Cost monitor rewired to canonical ledger — 2026-06-09
+
+CLOSES SHAPE-OF-COMPLETE GATE (d) FOR PHASE 6a.
+
+Audit found bottleneck_monitor.scan_cost_spikes() was reading
+economic_pulse.cost_events — DEAD since 2026-05-12 (1,436 historical
+rows, then silence for 27 days). Meanwhile llm_cost_ledger.calls
+(the canonical ledger per vault_and_accounting_canon.md) had 44,485
+rows including 1,172 in the last 24h, still writing live.
+
+WHAT SHIPPED:
+  src/bottleneck_monitor.py — scan_cost_spikes() rewired
+    Field map:
+      cost_events.action_type → calls.caller
+      cost_events.cost_usd    → calls.cost_usd (same)
+      cost_events.ts          → calls.ts (same)
+    Schema honors canon (one canonical cost ledger, not two).
+    Flag evidence now includes source='llm_cost_ledger.calls'.
+
+  scripts/pcr026_patch_monitor.py
+    Idempotent, marker-based, --revert capable, L35-safe.
+
+  scripts/phase8_check.py
+    Verifier confirms marker + compile + live call + no regression.
+
+EVIDENCE (rule #7 ground truth):
+  Before: costs_scanned = 0 forever
+  After:  costs_scanned = 298 (one cycle) → 300 (verifier later)
+          provenance_scanned = 28 (PCR-025 writer feeding too)
+  Flags emitted: 0 (only 1 unique caller in window — correct
+  behavior, no variance to detect yet)
+
+ROOT CAUSE WAS NOT A MISSING WRITER:
+  Unlike PCR-025, the producer wasn't missing — economic_pulse.db
+  has a deprecated producer that stopped 2026-05-12, and the
+  canonical cost data has been flowing into llm_cost_ledger.calls
+  the whole time. This was a consumer-pointed-at-dead-table bug,
+  not a missing-producer bug.
+
+  PCR-026 = redirect consumer to canonical source (~2 credits)
+  PCR-025 = supply missing producer (was ~6 credits)
+
+SHAPE-OF-COMPLETE GATE STATUS AFTER THIS COMMIT:
+  Phase 4a (provenance schema):   a✅ b✅ c✅ d✅ e✅  COMPLETE
+  Phase 4b (drill-down UI):       a✅ b✅ c✅ d✅ e✅  COMPLETE
+  Phase 5  (canvas linking):      a✅ b✅ c✅ d✅ e✅  COMPLETE
+  Phase 6a (bottleneck monitor):  a✅ b✅ c✅ d✅ e✅  ← COMPLETE
+  Phase 6b (HITL writer):         a✅ b✅ c✅ d🟡 e✅  (fires when flag)
+
+PHASE 6b's 🟡 is now the only remaining open gate. It closes
+naturally the first time a real cost spike is detected.
+
+BANKED FOR LATER:
+  - entity_graph.events producer (events_scanned still 0; ~3 credits)
+  - HIGH_LATENCY flag using new latency_ms from provenance
+  - Port 25 / SMTP wiring audit
+  - CRM outreach_log investigation
+  - The original unrestricted-write-endpoint audit
+
+OPERATING RULES HELD:
+  Rule #2  snapshot before bottleneck_monitor modification ✓
+  Rule #6  HITL queue untouched ✓
+  Rule #7  ground truth (296 cost rows on first call) ✓
+  L29      security clean ✓
+  L30      no set -e ✓
+  L31      real UA + retry ✓
+  L32      verifier PASS before commit ✓
+  L35      anchored on def signature, no try/except split ✓

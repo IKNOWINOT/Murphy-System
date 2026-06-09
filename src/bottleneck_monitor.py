@@ -140,35 +140,46 @@ def scan_event_outcomes(window_minutes: int) -> tuple[list[dict], dict]:
     return flags, stats
 
 
+# === PCR-026 BEGIN rewired scan_cost_spikes ===
+LLM_COST_DB = Path("/var/lib/murphy-production/llm_cost_ledger.db")
+
+
 def scan_cost_spikes(window_minutes: int) -> tuple[list[dict], dict]:
-    """Read economic_pulse.cost_events; flag action_types whose window
-       avg cost > 2× lifetime avg."""
+    """Read llm_cost_ledger.calls (canonical cost ledger per
+       vault_and_accounting_canon.md); flag callers whose window
+       avg cost > 2x lifetime avg.
+
+       PCR-026: rewired from economic_pulse.cost_events (dead since
+       2026-05-12) to llm_cost_ledger.calls (alive, 44k+ rows).
+       Field map: caller→action_type, cost_usd→cost_usd, ts→ts."""
     flags: list[dict] = []
     stats = {"costs_scanned": 0, "action_types_seen": 0}
-    if not ECONOMIC_DB.exists():
+    if not LLM_COST_DB.exists():
         return flags, stats
 
     cutoff = _iso_minutes_ago(window_minutes)
     try:
-        conn = sqlite3.connect(str(ECONOMIC_DB))
+        conn = sqlite3.connect(str(LLM_COST_DB))
         cur = conn.cursor()
 
-        # Lifetime average per action_type (excluding the recent window
+        # Lifetime average per caller (excluding the recent window
         # to avoid contamination)
-        cur.execute("""SELECT action_type, AVG(cost_usd), COUNT(*)
-                         FROM cost_events
+        cur.execute("""SELECT caller, AVG(cost_usd), COUNT(*)
+                         FROM calls
                         WHERE ts < ?
                           AND cost_usd > 0
-                     GROUP BY action_type""", (cutoff,))
+                          AND caller IS NOT NULL
+                     GROUP BY caller""", (cutoff,))
         lifetime = {row[0]: (row[1], row[2]) for row in cur.fetchall()
                     if row[0] and row[1] is not None}
 
-        # Window average per action_type
-        cur.execute("""SELECT action_type, AVG(cost_usd), COUNT(*)
-                         FROM cost_events
+        # Window average per caller
+        cur.execute("""SELECT caller, AVG(cost_usd), COUNT(*)
+                         FROM calls
                         WHERE ts >= ?
                           AND cost_usd > 0
-                     GROUP BY action_type""", (cutoff,))
+                          AND caller IS NOT NULL
+                     GROUP BY caller""", (cutoff,))
         window_rows = cur.fetchall()
         stats["costs_scanned"] = sum(r[2] for r in window_rows)
         stats["action_types_seen"] = len(window_rows)
@@ -198,17 +209,11 @@ def scan_cost_spikes(window_minutes: int) -> tuple[list[dict], dict]:
                     "ratio": round(ratio, 2),
                     "window_sample_size": win_count,
                     "lifetime_sample_size": life_count,
-                    "window_minutes": window_minutes,
+                    "source": "llm_cost_ledger.calls",
                 },
-                "hitl_required": True,
-                "auto_fix_eligible": False,
-                "rationale": (f"Action '{action_type}' is averaging "
-                              f"${win_avg:.4f} per call in last {window_minutes} min, "
-                              f"vs lifetime average ${life_avg:.4f} "
-                              f"(ratio {ratio:.1f}×). Investigate."),
             })
-
     return flags, stats
+# === PCR-026 END rewired scan_cost_spikes ===
 
 
 def scan_provenance_latency(window_minutes: int) -> tuple[list[dict], dict]:
