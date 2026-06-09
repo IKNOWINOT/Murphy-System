@@ -31585,6 +31585,18 @@ def create_app() -> FastAPI:
         account_id = body.get('account_id', '')
         email = body.get('email', '') or f'{account_id}@guest.murphy.systems'
 
+        # PCR-047 — enterprise is manual-invoice only (per
+        # nowpayments_billing.py:66). Block automated checkout to
+        # prevent the $0-invoice bypass and route buyer to sales.
+        if (tier or '').lower() == 'enterprise':
+            return JSONResponse({
+                'ok': False,
+                'error': 'enterprise_requires_sales_contact',
+                'message': 'Enterprise tier is custom-quoted. Email sales@murphy.systems or use the Contact Sales button to get started.',
+                'contact_email': 'sales@murphy.systems',
+                'contact_url': '/contact?subject=Enterprise+inquiry',
+            }, status_code=400)
+
         # Look up the price from nowpayments_plans (PATCH-441 seeded)
         try:
             _c = _sq441.connect('/var/lib/murphy-production/billing.db')
