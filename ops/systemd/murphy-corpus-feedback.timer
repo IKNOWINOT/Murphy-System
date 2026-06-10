@@ -1,0 +1,11 @@
+[Unit]
+Description=Run Murphy corpus feedback every 15 min
+
+[Timer]
+OnActiveSec=90s
+OnUnitActiveSec=15min
+OnBootSec=8min
+AccuracySec=30s
+
+[Install]
+WantedBy=timers.target

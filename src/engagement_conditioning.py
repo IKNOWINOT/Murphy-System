@@ -128,6 +128,7 @@ def condition_outreach(
     p_voice = voice_for_practitioner_at_tenant(
         practitioner_id, tenant_id,
         limit=50, db_path=db_path,
+        include_weights=True,  # PCR-054l.1: condition on weighted voice
     )
     p_count = p_voice.get("count", 0)
 
