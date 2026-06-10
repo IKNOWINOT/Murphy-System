@@ -39,6 +39,7 @@ from __future__ import annotations
 import logging
 import re
 import sqlite3
+import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
@@ -236,6 +237,45 @@ def run_gate(
 # ─────────────────────────────────────────────────────────────────────
 
 
+def _ensure_inbound_processed_columns(inbound_db_path: str) -> None:
+    """PCR-054n: idempotently add engagement_processed_at/_corr_id
+    to inbound_replies. Safe to call repeatedly."""
+    try:
+        con = sqlite3.connect(inbound_db_path)
+        cols = {r[1] for r in con.execute('PRAGMA table_info(inbound_replies)').fetchall()}
+        if 'engagement_processed_at' not in cols:
+            con.execute('ALTER TABLE inbound_replies ADD COLUMN engagement_processed_at REAL')
+            con.commit()
+        if 'engagement_processed_corr_id' not in cols:
+            con.execute('ALTER TABLE inbound_replies ADD COLUMN engagement_processed_corr_id TEXT')
+            con.commit()
+        # Index on the new column so the WHERE-IS-NULL filter is cheap
+        con.execute('CREATE INDEX IF NOT EXISTS idx_inbound_unprocessed ON inbound_replies (engagement_processed_at) WHERE engagement_processed_at IS NULL')
+        con.commit()
+    except sqlite3.OperationalError:
+        # Table doesn't exist yet — nothing to migrate
+        pass
+    finally:
+        try: con.close()
+        except Exception: pass
+
+
+def _mark_reply_processed(reply_id: int, corr_id: str, inbound_db_path: str) -> None:
+    """PCR-054n: mark a reply as engagement-processed."""
+    try:
+        con = sqlite3.connect(inbound_db_path)
+        con.execute(
+            'UPDATE inbound_replies SET engagement_processed_at = ?, engagement_processed_corr_id = ? WHERE id = ?',
+            (time.time(), corr_id, reply_id),
+        )
+        con.commit()
+    except sqlite3.OperationalError:
+        pass
+    finally:
+        try: con.close()
+        except Exception: pass
+
+
 def fetch_candidate_replies(
     *,
     since: Optional[str] = None,
@@ -256,10 +296,13 @@ def fetch_candidate_replies(
         # initial filter — the regex in parse_attestation makes the
         # final determination.
         params: List[Any] = []
+        # PCR-054n: ensure dedupe columns exist before SELECT
+        _ensure_inbound_processed_columns(inbound_db_path)
         sql = """
             SELECT id, received_at, from_addr, to_addr, subject, body_preview
             FROM inbound_replies
             WHERE (subject LIKE '%eng_%' OR body_preview LIKE '%eng_%')
+              AND engagement_processed_at IS NULL
         """
         if since:
             sql += " AND received_at >= ?"
@@ -295,6 +338,7 @@ def process_reply(
     reply: Dict[str, Any],
     *,
     db_path: str = ENGAGEMENT_DB_PATH,
+    inbound_db_path: str = INBOUND_DB_PATH,
 ) -> Dict[str, Any]:
     """Process a single inbound reply row against the engagement state machine.
 
@@ -308,11 +352,19 @@ def process_reply(
     # Find engagement_id in the message
     m = ENGAGEMENT_ID_RE.search(combined)
     if not m:
+        # PCR-054n: mark skipped rows so they're not re-scanned forever
+        reply_id = reply.get("id")
+        if isinstance(reply_id, int):
+            _mark_reply_processed(reply_id, "skip:no_engagement_id", inbound_db_path)
         return {"ok": False, "skipped": True, "reason": "no engagement_id in subject/body"}
     engagement_id = m.group(1).lower()
 
     folder = get_folder(engagement_id, db_path=db_path)
     if folder is None:
+        # PCR-054n: mark skipped rows so they're not re-scanned forever
+        reply_id = reply.get("id")
+        if isinstance(reply_id, int):
+            _mark_reply_processed(reply_id, f"skip:not_found:{engagement_id}", inbound_db_path)
         return {"ok": False, "skipped": True, "reason": f"engagement {engagement_id} not found"}
 
     # ── PCR-054j: attach correspondence to thread FIRST, regardless of state ──
@@ -359,7 +411,7 @@ def process_reply(
     #   is used to detect declines/revisions for accurate audit, but the gate
     #   itself decides terminal state.
     if folder.state is not FolderState.AWAITING_ATTESTATION:
-        attach_correspondence(
+        corr = attach_correspondence(
             engagement_id=engagement_id,
             direction="in",
             from_email=reply.get("from_addr") or "",
@@ -369,6 +421,10 @@ def process_reply(
             gate_applied=False,
             db_path=db_path,
         )
+        # PCR-054n: mark reply processed so timer doesn't re-attach
+        reply_id = reply.get("id")
+        if isinstance(reply_id, int):
+            _mark_reply_processed(reply_id, corr.corr_id, inbound_db_path)
         return {
             "ok":            True,
             "skipped":       False,   # NOT skipped — attached to thread
@@ -394,7 +450,7 @@ def process_reply(
     )
 
     # PCR-054j: attach to thread (with gate result captured)
-    attach_correspondence(
+    corr = attach_correspondence(
         engagement_id=engagement_id,
         direction="in",
         from_email=reply.get("from_addr") or "",
@@ -405,6 +461,10 @@ def process_reply(
         gate_result=gate.as_dict(),
         db_path=db_path,
     )
+    # PCR-054n: mark reply processed so timer doesn't re-attach
+    reply_id = reply.get("id")
+    if isinstance(reply_id, int):
+        _mark_reply_processed(reply_id, corr.corr_id, inbound_db_path)
 
     # Record raw payload for forensics
     record_attestation_payload(
@@ -489,7 +549,7 @@ def process_pending_replies(
     skipped = 0
 
     for r in replies:
-        outcome = process_reply(r, db_path=db_path)
+        outcome = process_reply(r, db_path=db_path, inbound_db_path=inbound_db_path)
         results.append(outcome)
         if outcome.get("skipped"):
             skipped += 1
