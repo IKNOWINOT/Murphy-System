@@ -123,13 +123,7 @@ def _load_store():
         p = Path(_STORE_PATH)
         if p.exists():
             data = _json.loads(p.read_text())
-            # L171 fix: filter unknown kwargs (e.g. rejected_by/rejected_at from
-            # bulk_reject API) so the dataclass __init__ doesn't blow up.
-            _allowed = set(PatchProposal.__dataclass_fields__.keys())
-            _proposals = {
-                k: PatchProposal(**{kk: vv for kk, vv in v.items() if kk in _allowed})
-                for k, v in data.items()
-            }
+            _proposals = {k: PatchProposal(**v) for k, v in data.items()}
             logger.info("SELF-PATCH-001: Loaded %d proposals from disk", len(_proposals))
     except Exception as exc:
         logger.warning("SELF-PATCH-001: Could not load proposals: %s", exc)
