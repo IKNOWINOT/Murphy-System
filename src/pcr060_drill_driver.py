@@ -226,6 +226,128 @@ def f_curve_from_magnify(
     ]
 
 
+
+
+# ─────────────────────────────────────────────────────────────────────
+# PCR-060i.1: Adapter — TrajectoryAnalysis → TrajectoryDelta
+# ─────────────────────────────────────────────────────────────────────
+
+
+def trajectory_delta_from_analysis(
+    analysis: TrajectoryAnalysis,
+    *,
+    f_history: Optional[List[float]] = None,
+    r_history: Optional[List[float]] = None,
+    delta_history: Optional[List[float]] = None,
+) -> Any:
+    """Convert PCR-060e TrajectoryAnalysis into the v3 detector's
+    TrajectoryDelta shape.
+
+    The detector expects flat List[float] for f_t / r_t / delta_t —
+    one number per iteration over time, not per t-sample. So we pass
+    in optional cumulative history (the drill driver accumulates this
+    across iterations).
+
+    On iteration 0, f_history/r_history/delta_history are None or [];
+    the detector handles that case by skipping trajectory grading.
+    """
+    try:
+        from src.pcr060_boundary_v2 import TrajectoryDelta
+    except ImportError:
+        return None
+
+    return TrajectoryDelta(
+        f_t=list(f_history or []),
+        r_t=list(r_history or []),
+        delta_t=list(delta_history or [analysis.delta_at_present]),
+        d_delta_dt=analysis.d_delta_dt,
+        tolerance=analysis.tolerance,
+        iteration=analysis.iteration,
+    )
+
+
+# ─────────────────────────────────────────────────────────────────────
+# Default detector — wraps evaluate_v3 with trajectory injection
+# ─────────────────────────────────────────────────────────────────────
+
+
+def make_default_detector(
+    business_spec: Dict[str, Any],
+    *,
+    max_iterations: int = MAX_ITERATIONS,
+    budget_initial: float = LLM_BUDGET_CAP_USD,
+):
+    """Build a boundary_detector callable that uses evaluate_v3 with
+    the deterministic trajectory math injected per Q3=R.
+
+    The returned callable is closure-bound to business_spec and
+    accepts (deliverable_text, trajectory_analysis, iteration,
+    budget_remaining, prior_history) and returns BoundaryResultV3.
+
+    drive_boundary_loop accepts simpler detector signatures (prompt,
+    magnify_response) for backwards compat — the default detector
+    sniffs the call shape and adapts.
+    """
+    try:
+        from src.pcr060_boundary_v3 import evaluate_v3
+    except ImportError:
+        evaluate_v3 = None
+
+    if evaluate_v3 is None:
+        return None
+
+    state = {"f_history": [], "r_history": [], "delta_history": []}
+
+    def _detector_call(
+        prompt: str,
+        magnify_response: Optional[Dict[str, Any]],
+        *,
+        trajectory_analysis: Optional[TrajectoryAnalysis] = None,
+        iteration: int = 0,
+        budget_remaining: float = budget_initial,
+    ):
+        if not magnify_response:
+            return None
+        deliverable = (magnify_response.get("result", {}) or {}).get("output", {})
+        deliverable_text = json.dumps(deliverable) if isinstance(deliverable, dict) else str(deliverable)
+
+        # Accumulate history per Q3=R
+        if trajectory_analysis is not None:
+            state["delta_history"].append(trajectory_analysis.delta_at_present)
+            # f_t / r_t are time-series of the END points across iterations
+            if trajectory_analysis.deltas:
+                state["f_history"].append(0.0)  # placeholder — present quality
+                state["r_history"].append(trajectory_analysis.deltas[-1])
+
+        td = (
+            trajectory_delta_from_analysis(
+                trajectory_analysis,
+                f_history=state["f_history"],
+                r_history=state["r_history"],
+                delta_history=state["delta_history"],
+            )
+            if trajectory_analysis is not None
+            else None
+        )
+
+        try:
+            result = evaluate_v3(
+                deliverable=deliverable_text,
+                business_spec=business_spec,
+                goal_plot=None,  # already factored into trajectory
+                trajectory=td,
+                iteration=iteration,
+                max_iterations=max_iterations,
+                budget_remaining=budget_remaining,
+                budget_initial=budget_initial,
+            )
+            return result
+        except Exception as e:
+            LOG.warning("PCR-060i.1 evaluate_v3 raised: %s", e)
+            return None
+
+    return _detector_call
+
 # ─────────────────────────────────────────────────────────────────────
 # Q2=X: Magnify HTTP call
 # ─────────────────────────────────────────────────────────────────────
@@ -471,10 +593,22 @@ def drive_boundary_loop(
         weakest_link: Optional[str] = None
         if boundary_detector and magnify_ok:
             try:
-                detector_result = boundary_detector(prompt, magnify_response)
+                # PCR-060i.1: prefer the trajectory-aware signature
+                import inspect
+                sig = inspect.signature(boundary_detector)
+                if "trajectory_analysis" in sig.parameters:
+                    detector_result = boundary_detector(
+                        prompt, magnify_response,
+                        trajectory_analysis=traj,
+                        iteration=n,
+                        budget_remaining=budget_cap_usd - cumulative_cost,
+                    )
+                else:
+                    detector_result = boundary_detector(prompt, magnify_response)
                 # Best-effort: read .satisfied and .weakest_link if present
-                boundary_satisfied = bool(getattr(detector_result, "satisfied", False))
-                weakest_link = getattr(detector_result, "weakest_link", None)
+                if detector_result is not None:
+                    boundary_satisfied = bool(getattr(detector_result, "satisfied", False))
+                    weakest_link = getattr(detector_result, "weakest_link", None)
             except Exception as e:
                 LOG.warning("PCR-060i detector call failed at iter=%d: %s", n, e)
 
