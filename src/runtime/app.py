@@ -38434,6 +38434,16 @@ def create_app() -> FastAPI:
         _r405_patch(_r405_ledger_obj)
         app.state.llm_cost_ledger = _r405_ledger_obj
         app.include_router(_r405_router)
+
+        # PCR-090a: Convergence Layer router
+        try:
+            from src.convergence.router import router as _convergence_router
+            app.include_router(_convergence_router)
+            import logging as _l
+            _l.getLogger('murphy.convergence').info('PCR-090a: convergence router mounted — /api/converge/*')
+        except Exception as _e:
+            import logging as _l
+            _l.getLogger('murphy.convergence').warning('PCR-090a registration failed: %s', _e)
         import logging as _lg_r405
         _lg_r405.getLogger("murphy.r405").info("R405: LLM cost ledger active — /api/llm-cost/* live")
     except Exception as _r405_e:
