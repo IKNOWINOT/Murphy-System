@@ -78,6 +78,71 @@ class BoundaryVerdict:
 # Extraction (LLM at iter 0, cached for the drill)
 # ─────────────────────────────────────────────────────────────────────
 
+def _parse_json_array_lenient(reply: str) -> list:
+    """Parse a JSON array from an LLM reply that may be:
+    - clean (full array)
+    - truncated mid-element (clipped by response cap)
+    - wrapped in prose/markdown
+
+    Strategy:
+      1. Find first '['
+      2. Walk forward tracking brace depth, collect each {...} object
+         at depth-1 boundaries
+      3. Try json.loads on each candidate object
+      4. Return list of objects that parsed cleanly
+
+    Robust against truncation: a clipped reply just yields fewer
+    complete objects rather than zero.
+    """
+    if not reply:
+        return []
+    start = reply.find("[")
+    if start == -1:
+        return []
+    objects: list = []
+    depth = 0
+    obj_start: int = -1
+    in_str = False
+    escape = False
+    i = start + 1
+    while i < len(reply):
+        ch = reply[i]
+        if escape:
+            escape = False
+            i += 1
+            continue
+        if ch == "\\":
+            escape = True
+            i += 1
+            continue
+        if ch == '"':
+            in_str = not in_str
+            i += 1
+            continue
+        if in_str:
+            i += 1
+            continue
+        if ch == "{":
+            if depth == 0:
+                obj_start = i
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0 and obj_start != -1:
+                candidate = reply[obj_start:i + 1]
+                try:
+                    obj = json.loads(candidate)
+                    objects.append(obj)
+                except Exception:
+                    pass
+                obj_start = -1
+        elif ch == "]" and depth == 0:
+            # Clean array close — stop here
+            break
+        i += 1
+    return objects
+
+
 EXTRACT_PROMPT_TEMPLATE = """You are extracting REQUIREMENTS from a user prompt.
 A requirement is a discrete, testable thing the deliverable must do or be.
 DO NOT include style/quality preferences; those are measured separately.
@@ -139,19 +204,17 @@ def extract_requirements(
             },
             method="POST",
         )
-        with urllib.request.urlopen(req, timeout=30) as resp:
+        with urllib.request.urlopen(req, timeout=60) as resp:
             data = json.loads(resp.read().decode("utf-8"))
 
         reply = data.get("reply", "")
-        # Extract first JSON array from the reply
-        start = reply.find("[")
-        end = reply.rfind("]")
-        if start == -1 or end == -1 or end < start:
-            log.warning("[060j] no JSON array in reply")
-            return []
-
-        items = json.loads(reply[start:end + 1])
-        if not isinstance(items, list):
+        # PCR-060k/L144: lenient parse — survive truncation
+        items = _parse_json_array_lenient(reply)
+        if not items:
+            log.warning(
+                "[060j] no complete JSON objects in reply (len=%d)",
+                len(reply),
+            )
             return []
 
         reqs: List[Requirement] = []
@@ -268,24 +331,21 @@ def evaluate_solved(
                 data = json.loads(resp.read().decode("utf-8"))
 
             reply = data.get("reply", "")
-            start = reply.find("[")
-            end = reply.rfind("]")
-            if start != -1 and end > start:
-                items = json.loads(reply[start:end + 1])
-                if isinstance(items, list):
-                    for item in items:
-                        if not isinstance(item, dict):
-                            continue
-                        rid = str(item.get("requirement_id", ""))
-                        status = str(item.get("status", "unaddressed")).lower()
-                        if status not in ("addressed", "partial", "unaddressed", "impossible"):
-                            status = "unaddressed"
-                        statuses.append(RequirementStatus(
-                            requirement_id=rid,
-                            status=status,
-                            evidence=str(item.get("evidence", ""))[:200],
-                            confidence=str(item.get("confidence", "medium")).lower(),
-                        ))
+            # PCR-060k/L144: lenient parse — survive truncation
+            items = _parse_json_array_lenient(reply)
+            for item in items:
+                if not isinstance(item, dict):
+                    continue
+                rid = str(item.get("requirement_id", ""))
+                status = str(item.get("status", "unaddressed")).lower()
+                if status not in ("addressed", "partial", "unaddressed", "impossible"):
+                    status = "unaddressed"
+                statuses.append(RequirementStatus(
+                    requirement_id=rid,
+                    status=status,
+                    evidence=str(item.get("evidence", ""))[:200],
+                    confidence=str(item.get("confidence", "medium")).lower(),
+                ))
         except Exception as e:
             log.warning("[060j] evaluate_solved failed: %s", e)
             # Fill missing with unaddressed verdicts so we don't lie
