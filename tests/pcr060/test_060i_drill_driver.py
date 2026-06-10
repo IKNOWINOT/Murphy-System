@@ -33,20 +33,23 @@ class _StubGoalPlot:
 
 def _good_goal_plot():
     return _StubGoalPlot([
-        _StubTrajectoryPoint(0.0, {"resolution_score": 95, "density_index": 80,
-                                    "coherence_score": 90, "iqs": 88, "cqi": 92},
+        _StubTrajectoryPoint(0.0, {"resolution_score": 4.5, "density_index": 0.9,
+                                    "coherence_score": 0.9, "iqs": 0.9, "cqi": 0.95},
                               {}, "goal"),
-        _StubTrajectoryPoint(0.5, {"resolution_score": 70, "density_index": 60,
-                                    "coherence_score": 70, "iqs": 65, "cqi": 70},
+        _StubTrajectoryPoint(0.5, {"resolution_score": 3.0, "density_index": 0.6,
+                                    "coherence_score": 0.7, "iqs": 0.65, "cqi": 0.7},
                               {}, "midway"),
-        _StubTrajectoryPoint(1.0, {"resolution_score": 50, "density_index": 40,
-                                    "coherence_score": 50, "iqs": 45, "cqi": 50},
+        _StubTrajectoryPoint(1.0, {"resolution_score": 1.5, "density_index": 0.4,
+                                    "coherence_score": 0.5, "iqs": 0.45, "cqi": 0.5},
                               {}, "present"),
     ])
 
 
-# Mock Magnify responses
-def _good_magnify(extra_score: float = 50):
+# Mock Magnify responses (PCR-060e.1: use realistic in-range values
+# matching what IQE.assess() actually produces — resolution_score 0-5,
+# quality scores 0-1).
+def _good_magnify(extra_score: float = 0.5):
+    """extra_score: 0-1 for quality dims; resolution_score gets *5 inside."""
     return {
         "success": True,
         "result": {
@@ -57,12 +60,14 @@ def _good_magnify(extra_score: float = 50):
                 "cost_complexity_estimate": "moderate",
             },
             "input_quality": {
-                "resolution_score": 50, "density_index": 40,
-                "coherence_score": 50, "iqs": 45, "cqi": 50,
+                "resolution_score": 1.5, "density_index": 0.3,
+                "coherence_score": 0.4, "iqs": 0.3, "cqi": 0.4,
             },
             "output_quality": {
-                "resolution_score": extra_score, "density_index": extra_score - 10,
-                "coherence_score": extra_score, "iqs": extra_score - 5,
+                "resolution_score": min(5.0, extra_score * 5.0),
+                "density_index": max(0.0, extra_score - 0.1),
+                "coherence_score": extra_score,
+                "iqs": max(0.0, extra_score - 0.05),
                 "cqi": extra_score,
             },
         },
@@ -110,7 +115,7 @@ class TestDriveLoop:
     def test_converges_when_magnify_matches_goal(self, db_path):
         # If Magnify returns output_quality matching goal scores → Δ=0 → terminate
         with patch("src.pcr060_drill_driver.call_magnify") as mock:
-            mock.return_value = _good_magnify(extra_score=95)
+            mock.return_value = _good_magnify(extra_score=0.95)
             result = drive_boundary_loop(
                 "build accounting SaaS",
                 goal_plot=_good_goal_plot(),
@@ -126,7 +131,7 @@ class TestDriveLoop:
     def test_runs_full_budget_when_never_converging(self, db_path):
         # Magnify always returns BAD output_quality → Δ stays high → iterate
         with patch("src.pcr060_drill_driver.call_magnify") as mock:
-            mock.return_value = _good_magnify(extra_score=20)
+            mock.return_value = _good_magnify(extra_score=0.20)
             result = drive_boundary_loop(
                 "build accounting SaaS",
                 goal_plot=_good_goal_plot(),
@@ -141,7 +146,7 @@ class TestDriveLoop:
 
     def test_budget_cap_halts_loop(self, db_path):
         with patch("src.pcr060_drill_driver.call_magnify") as mock:
-            mock.return_value = _good_magnify(extra_score=20)
+            mock.return_value = _good_magnify(extra_score=0.20)
             result = drive_boundary_loop(
                 "build accounting SaaS",
                 goal_plot=_good_goal_plot(),
@@ -176,7 +181,7 @@ class TestDriveLoop:
 class TestPersistence:
     def test_iterations_persist_to_sqlite(self, db_path):
         with patch("src.pcr060_drill_driver.call_magnify") as mock:
-            mock.return_value = _good_magnify(extra_score=20)
+            mock.return_value = _good_magnify(extra_score=0.20)
             result = drive_boundary_loop(
                 "test prompt",
                 goal_plot=_good_goal_plot(),
@@ -195,7 +200,7 @@ class TestPersistence:
 
     def test_cumulative_cost_increases_monotonically(self, db_path):
         with patch("src.pcr060_drill_driver.call_magnify") as mock:
-            mock.return_value = _good_magnify(extra_score=20)
+            mock.return_value = _good_magnify(extra_score=0.20)
             result = drive_boundary_loop(
                 "test", goal_plot=_good_goal_plot(),
                 db_path=db_path, max_iterations=3,
@@ -220,7 +225,7 @@ class TestDetectorIntegration:
             weakest_link = None
 
         with patch("src.pcr060_drill_driver.call_magnify") as mock:
-            mock.return_value = _good_magnify(extra_score=20)  # bad quality
+            mock.return_value = _good_magnify(extra_score=0.20)  # bad quality
             result = drive_boundary_loop(
                 "test", goal_plot=_good_goal_plot(),
                 db_path=db_path, max_iterations=3,
@@ -236,7 +241,7 @@ class TestDetectorIntegration:
             weakest_link = "unit_economics"
 
         with patch("src.pcr060_drill_driver.call_magnify") as mock:
-            mock.return_value = _good_magnify(extra_score=20)
+            mock.return_value = _good_magnify(extra_score=0.20)
             drive_boundary_loop(
                 "test", goal_plot=_good_goal_plot(),
                 db_path=db_path, max_iterations=2,

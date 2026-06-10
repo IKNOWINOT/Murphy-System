@@ -10438,15 +10438,19 @@ def create_app() -> FastAPI:
             if not text:
                 return JSONResponse({"success": False, "error": "text is required"}, status_code=400)
 
-            # PCR-060d Q2=Y: prepend scope_focus directive when scope provided.
-            # The LLM/CTE inside magnify() will weight this directive as
-            # part of its analogue translation step.
+            # PCR-060d.2 Q1=A: ENRICH directive (replaces 060d FOCUS).
+            # Live testing showed FOCUS narrowed the deliverable on scope but
+            # lost breadth, moving Δ in the wrong direction. ENRICH frames the
+            # scope as additive — strengthen this dimension without losing
+            # the others. Same single-call cost, better semantics.
             effective_text = text
             if scope and isinstance(scope, str) and scope.strip():
                 effective_text = (
-                    f"[SCOPE_FOCUS: Re-examine and PRIORITIZE addressing this specific\n"
-                    f"  aspect of the deliverable: {scope}\n"
-                    f"  All other dimensions remain in scope but secondary to this one.]\n\n"
+                    f"[SCOPE_ENRICH: Strengthen the existing deliverable along this\n"
+                    f"  dimension: {scope}\n"
+                    f"  Preserve all current scope, depth, and breadth — this is\n"
+                    f"  an ADDITION not a refocus. Deepen this aspect while keeping\n"
+                    f"  everything that is already correct.]\n\n"
                     f"{text}"
                 )
 
@@ -10466,6 +10470,15 @@ def create_app() -> FastAPI:
             # weighting, and audit echo work; verification is via quality.
             if scope and isinstance(scope, str) and scope.strip():
                 result_dict["scope_requested"] = scope
+                # PCR-060d.2 Q2=Z: structural breadth check. Count
+                # top-level output keys — caller can compare across
+                # iterations to detect breadth loss (Y component of Z).
+                # Quality delta (X component) is read from output_quality
+                # which is already in the response.
+                output = result_dict.get("output", {}) or {}
+                if isinstance(output, dict):
+                    result_dict["output_breadth"] = len(output)
+                    result_dict["output_keys"] = sorted(output.keys())
 
             return JSONResponse({"success": True, "result": result_dict})
         except Exception as exc:

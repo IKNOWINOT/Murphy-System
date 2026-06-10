@@ -214,8 +214,11 @@ def f_curve_from_magnify(
         }
         return {k: v for k, v in s.items() if v is not None}
 
-    in_state = _state(input_q)
-    out_state = _state(output_q)
+    # PCR-060e.1: normalize at data boundary so all dimensions
+    # are 0-1 before state_vector_distance sees them.
+    from src.pcr060_trajectory_plotter import normalize_state as _norm
+    in_state = _norm(_state(input_q))
+    out_state = _norm(_state(output_q))
     if not in_state and not out_state:
         # No quality data at all → empty curve so caller can apnea
         return []

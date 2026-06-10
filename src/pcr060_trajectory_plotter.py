@@ -143,6 +143,55 @@ def _normalize_numeric(value: Any) -> Optional[float]:
     return None
 
 
+
+
+# ─────────────────────────────────────────────────────────────────────
+# PCR-060e.1: Dimension range registry + state normalizer
+#
+# state_vector_distance treats all dims as equal weight. When dims span
+# different scales (resolution_score 0-5, iqs 0-1), the larger-scale
+# dimension dominates and Δ moves toward whichever dimension has the
+# widest range. Pre-normalize each dimension to [0,1] before distance.
+# ─────────────────────────────────────────────────────────────────────
+
+DIMENSION_RANGES: Dict[str, tuple] = {
+    # Resolution scores from IQE.assess() — historically 0-5 range
+    "resolution_score":  (0.0, 5.0),
+    # Quality scores from IQE — all 0-1
+    "density_index":     (0.0, 1.0),
+    "coherence_score":   (0.0, 1.0),
+    "iqs":               (0.0, 1.0),
+    "cqi":               (0.0, 1.0),
+}
+
+
+def normalize_state(state: Dict[str, Any]) -> Dict[str, Any]:
+    """Normalize each known dimension to [0,1] using DIMENSION_RANGES.
+
+    Unknown keys pass through unchanged (preserves backwards compat
+    for free-form fields). Non-numeric values pass through unchanged.
+    Out-of-range values are clipped to [0,1] after normalization.
+    """
+    out: Dict[str, Any] = {}
+    for k, v in state.items():
+        if k not in DIMENSION_RANGES:
+            out[k] = v
+            continue
+        try:
+            v_num = float(v)
+        except (TypeError, ValueError):
+            out[k] = v
+            continue
+        lo, hi = DIMENSION_RANGES[k]
+        if hi == lo:
+            out[k] = 0.0
+            continue
+        normalized = (v_num - lo) / (hi - lo)
+        # Clip to [0,1]
+        out[k] = max(0.0, min(1.0, normalized))
+    return out
+
+
 def state_vector_distance(a: Dict[str, Any], b: Dict[str, Any]) -> float:
     """L1 normalized distance between two target dicts.
 
@@ -321,6 +370,9 @@ def r_curve_from_goal_plot(goal_plot: Any) -> List[Dict[str, Any]]:
         state = {}
         state.update(getattr(tp, "operational_targets", {}) or {})
         state.update(getattr(tp, "money_ratio_targets", {}) or {})
+        # PCR-060e.1: normalize at the data boundary so all dimensions
+        # are 0-1 before state_vector_distance sees them.
+        state = normalize_state(state)
         out.append({
             "t":     getattr(tp, "t", 0.0),
             "state": state,
