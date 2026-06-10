@@ -26,6 +26,7 @@ from .rollups.learning import rollup_learning
 from .rollups.system import rollup_system
 from .rollups.founder import rollup_founder
 from .rollups.tenant import rollup_tenant
+from .forecast import enrich_rollup
 
 LOG = logging.getLogger("murphy.convergence")
 
@@ -87,6 +88,11 @@ async def get_domain_rollup(domain: str, request: Request):
     if "_errors" in payload:
         errors.extend(payload.pop("_errors"))
 
+    # PCR-090b: enrich items with closure_forecast
+    try:
+        payload = enrich_rollup(payload)
+    except Exception as _e:
+        errors.append(f"FCST_E_enrich: {_e}")
     out = {
         "domain": domain,
         "summary": payload.get("summary", {}),
