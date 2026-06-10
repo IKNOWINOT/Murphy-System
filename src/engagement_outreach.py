@@ -25,8 +25,8 @@ DEFAULT POLICY (founder-implicit "follow recommendations"):
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
-from typing import Any, Dict, Optional
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional
 
 from src.engagement_folder import (
     DEFAULT_DB_PATH as ENGAGEMENT_DB_PATH,
@@ -115,6 +115,10 @@ class ComposedEmail:
     subject:   str
     body:      str
     quote:     RateQuote
+    # PCR-054l: conditioning audit fields (empty when disabled)
+    voice_match_confidence: str = "disabled"
+    signature_phrases:      List[str] = field(default_factory=list)
+    faq_items_count:        int = 0
 
 
 # ─────────────────────────────────────────────────────────────────────
@@ -135,6 +139,10 @@ def compose_engagement_request(
     response_deadline_days: int = 5,
     rate_source: str = "bls",
     rate_percentile: int = 90,
+    # PCR-054l: corpus-based conditioning
+    use_corpus_conditioning: bool = True,
+    role_id: Optional[str] = None,
+    db_path: Optional[str] = None,
 ) -> ComposedEmail:
     """Compose the engagement_request email body + subject. Pure function.
 
@@ -169,12 +177,41 @@ def compose_engagement_request(
     subject = DEFAULT_SUBJECT.format(artifact_type=artifact_type)
     from_name = DEFAULT_FROM_NAME.format(tenant_id=tenant_id)
 
+    # PCR-054l: optionally condition the draft on practitioner corpus
+    conditioning_confidence = "disabled"
+    signature_phrases: List[str] = []
+    faq_items_count = 0
+    if use_corpus_conditioning and role_id:
+        try:
+            from src.engagement_conditioning import condition_outreach
+            kwargs = {"db_path": db_path} if db_path else {}
+            conditioning = condition_outreach(
+                practitioner_email=practitioner_email,
+                tenant_id=tenant_id,
+                role_id=role_id,
+                jurisdiction=jurisdiction_required,
+                **kwargs,
+            )
+            conditioning_confidence = conditioning.voice_match_confidence
+            signature_phrases = list(conditioning.signature_phrases)
+            faq_items_count = len(conditioning.faq_items)
+            if conditioning.faq_block:
+                body = body.rstrip() + "\n" + conditioning.faq_block
+        except Exception as e:
+            import logging
+            logging.getLogger("murphy.engagement_outreach").warning(
+                "PCR-054l conditioning failed (proceeding without): %s", e,
+            )
+
     return ComposedEmail(
         to_addr=practitioner_email,
         from_name=from_name,
         subject=subject,
         body=body,
         quote=quote,
+        voice_match_confidence=conditioning_confidence,
+        signature_phrases=signature_phrases,
+        faq_items_count=faq_items_count,
     )
 
 
