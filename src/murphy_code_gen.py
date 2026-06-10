@@ -15,6 +15,10 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
+
+# PCR-080a: refuse oversized targets — full-file regen impossible past this size
+MAX_TARGET_LINES = 5000
+
 _PROJECT_ROOT = Path("/opt/Murphy-System")
 
 
@@ -81,6 +85,37 @@ def generate_diff_for_proposal(proposal_id: str) -> Dict[str, Any]:
     prop = get_proposal(proposal_id)
     if prop is None:
         return {"ok": False, "error": "Proposal not found"}
+
+    # PCR-080a size guard: full-file regeneration cannot produce a correct
+    # output for oversized targets in an 8k-token output window. Refuse
+    # explicitly rather than silently fail.
+    try:
+        from pathlib import Path as _P
+        _root = _P("/opt/Murphy-System")
+        _candidates = [_root / prop.affected_file, _root / "src" / prop.affected_file]
+        _target = next((c for c in _candidates if c.exists()), None)
+        if _target is not None:
+            _line_count = sum(1 for _ in _target.open(encoding="utf-8", errors="replace"))
+            if _line_count > MAX_TARGET_LINES:
+                logger.warning(
+                    "CODE-GEN-001: refusing oversized target %s (%d lines > %d max)",
+                    prop.affected_file, _line_count, MAX_TARGET_LINES,
+                )
+                prop.proposed_change = (
+                    f"NEEDS_MANUAL: target file {prop.affected_file} is "
+                    f"{_line_count} lines ({MAX_TARGET_LINES} max). "
+                    f"Full-file regeneration not viable. Founder triage required."
+                )
+                add_proposal(prop)
+                return {
+                    "ok": False,
+                    "error": "oversized_target",
+                    "proposal_id": proposal_id,
+                    "lines": _line_count,
+                    "max": MAX_TARGET_LINES,
+                }
+    except Exception as _szexc:
+        logger.warning("CODE-GEN-001: size check failed for %s: %s", prop.affected_file, _szexc)
 
     filepath = prop.affected_file
     original_src = _read_file_safe(filepath)
