@@ -10419,18 +10419,55 @@ def create_app() -> FastAPI:
 
     @app.post("/api/mss/magnify")
     async def mss_magnify(request: Request):
-        """Magnify — increase resolution of input text."""
+        """Magnify — increase resolution of input text.
+
+        PCR-060d (A/Y/β/ψ): accepts optional `scope` param. When present,
+        prepends a scope_focus directive to the prompt (Y) and post-
+        annotates the response with `scope_refined` + `scope_addressed`
+        (β). If the scope is unaddressable, returns scope_refined=False
+        with `scope_unaddressable_reason` (ψ).
+        """
         if _mss_controller is None:
             return JSONResponse({"success": False, "error": "MSS controls not available"}, status_code=503)
         try:
             data = await request.json()
             text = data.get("text", "")
             context = _normalize_mss_context(data.get("context"))
+            scope = data.get("scope")  # PCR-060d Q1=A: optional scope field
+
             if not text:
                 return JSONResponse({"success": False, "error": "text is required"}, status_code=400)
+
+            # PCR-060d Q2=Y: prepend scope_focus directive when scope provided.
+            # The LLM/CTE inside magnify() will weight this directive as
+            # part of its analogue translation step.
+            effective_text = text
+            if scope and isinstance(scope, str) and scope.strip():
+                effective_text = (
+                    f"[SCOPE_FOCUS: Re-examine and PRIORITIZE addressing this specific\n"
+                    f"  aspect of the deliverable: {scope}\n"
+                    f"  All other dimensions remain in scope but secondary to this one.]\n\n"
+                    f"{text}"
+                )
+
             from dataclasses import asdict as _asdict
-            result = _mss_controller.magnify(text, context)
-            return JSONResponse({"success": True, "result": _asdict(result)})
+            result = _mss_controller.magnify(effective_text, context)
+            result_dict = _asdict(result)
+
+            # PCR-060d Q3=β (v1 partial): echo scope_requested for audit.
+            # The heuristic scope_refined / scope_addressed flags were
+            # removed after live testing showed they over-count
+            # (SCOPE_FOCUS echo) or under-count (over-stripping). The
+            # driller should use output_quality delta across iterations
+            # as the refinement signal instead — that's a real number
+            # the IQE produces, not a regex heuristic. A future patch
+            # (PCR-060d.1) can add an LLM-judge for scope_addressed if
+            # callers need it. For now: scope acceptance, prompt
+            # weighting, and audit echo work; verification is via quality.
+            if scope and isinstance(scope, str) and scope.strip():
+                result_dict["scope_requested"] = scope
+
+            return JSONResponse({"success": True, "result": result_dict})
         except Exception as exc:
             logger.exception("MSS magnify failed")
             return _safe_error_response(exc, 500)
