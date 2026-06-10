@@ -394,6 +394,7 @@ def voice_for_practitioner_at_tenant(
     intents: Optional[List[str]] = None,
     limit: int = 100,
     db_path: str = ENGAGEMENT_DB_PATH,
+    include_weights: bool = False,
 ) -> Dict[str, Any]:
     """Jane's voice WITH Acme (tenant-isolated per D1).
 
@@ -422,12 +423,38 @@ def voice_for_practitioner_at_tenant(
         con.close()
 
     entries = [CorpusEntry.from_row(r) for r in rows]
+
+    # PCR-054m Y strategy: rank by weight if requested
+    entries_serialized = [e.as_dict() for e in entries]
+    if include_weights and entries:
+        try:
+            from src.corpus_feedback import get_entry_weights_bulk
+            entry_ids = [e.entry_id for e in entries]
+            weights = get_entry_weights_bulk(entry_ids, db_path=db_path)
+            for d in entries_serialized:
+                d["weight"] = weights.get(d["entry_id"], 1.0)
+            # Stable sort: weight DESC, then received_at DESC
+            entries_serialized.sort(
+                key=lambda d: (-d.get("weight", 1.0), d.get("received_at", "")),
+            )
+            # Re-aggregate signature in weight-ranked order for top-N
+            # bigram extraction. We re-derive entry objects in the new
+            # order so _aggregate_signature respects the rank.
+            id_to_entry = {e.entry_id: e for e in entries}
+            entries = [id_to_entry[d["entry_id"]] for d in entries_serialized]
+        except Exception as e:
+            import logging
+            logging.getLogger("murphy.practitioner_corpus").warning(
+                "PCR-054m weight ranking failed (falling back to unweighted): %s", e,
+            )
+
     return {
         "practitioner_id": practitioner_id,
         "tenant_id":       tenant_id,
-        "entries":         [e.as_dict() for e in entries],
+        "entries":         entries_serialized,
         "count":           len(entries),
         "aggregated":      _aggregate_signature(entries),
+        "weights_applied": include_weights,
     }
 
 
