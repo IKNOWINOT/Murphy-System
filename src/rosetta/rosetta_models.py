@@ -810,6 +810,38 @@ class TaskPipeline(BaseModel):
 # 7. RosettaDocument — the full enriched per-agent document
 # ---------------------------------------------------------------------------
 
+
+# ---------------------------------------------------------------------------
+# 9. SubjectMatterPerspective (PCR-070 Stage 2)
+# ---------------------------------------------------------------------------
+
+class SubjectMatterPerspective(BaseModel):
+    """
+    Distilled subject-matter expertise for a specific (role_id, jurisdiction).
+
+    PCR-070 Stage 1 produces these documents from accumulated practitioner
+    corpus, engagement correspondence, and boundary requirements.
+
+    Stage 2 (this) attaches the current perspective to the RosettaDocument
+    so the agent reasons WITH accumulated knowledge instead of cold.
+
+    Failure-safe: if no perspective exists for the (role, jur) pair, the
+    field is None and the agent operates exactly as before Stage 2.
+    """
+    model_config = ConfigDict(use_enum_values=True)
+
+    role_id: str
+    jurisdiction: str
+    tenant_id: Optional[str] = None
+    distilled_at: float
+    sources: Dict[str, int] = Field(default_factory=dict)
+    top_phrases: List[Dict[str, Any]] = Field(default_factory=list)
+    intent_distribution: Dict[str, Dict[str, int]] = Field(default_factory=dict)
+    work_demands: Dict[str, Dict[str, int]] = Field(default_factory=dict)
+    age_hours: Optional[float] = None
+    regulatory_note: str = "Attestation payload bodies are counted, not read (L161)."
+
+
 class RosettaDocument(BaseModel):
     """
     The complete enriched Rosetta document for a single agent.
@@ -867,6 +899,10 @@ class RosettaDocument(BaseModel):
 
     # Shadow observations (shadow agents only)
     shadow_observations: List[Dict[str, Any]] = Field(default_factory=list)
+
+    # PCR-070 Stage 2: distilled subject-matter perspective for (role, jurisdiction)
+    # Failure-safe: None when no perspective exists or lookup fails.
+    subject_matter_perspective: Optional["SubjectMatterPerspective"] = None
 
     # Document metadata
     document_version: str = "2.0"

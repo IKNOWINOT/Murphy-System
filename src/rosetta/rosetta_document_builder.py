@@ -691,3 +691,50 @@ class RosettaDocumentBuilder:
         text = f"{task.title} {task.description}".lower()
         matches = sum(1 for kw in terminology.domain_keywords if kw.lower() in text)
         return matches / len(terminology.domain_keywords)
+
+
+# PCR-070 Stage 2: bind helper method onto RosettaDocumentBuilder
+def _pcr070_attach_subject_matter_perspective(self, document) -> None:
+    """Look up distilled perspective and attach to document.
+    Failure-safe — non-fatal on any error."""
+    from rosetta.rosetta_models import SubjectMatterPerspective
+    try:
+        from pcr070_perspective_distiller import get_current
+    except ImportError:
+        return
+
+    contract = getattr(document, "contract", None)
+    if not contract:
+        return
+    role = getattr(contract, "role_title", None)
+    jurisdiction = (
+        getattr(self, "_jurisdiction_hint", None)
+        or getattr(contract, "location", None)
+        or ""
+    )
+    tenant_id = getattr(contract, "organisation_id", None) or None
+    if not role or not jurisdiction:
+        return
+
+    doc = get_current(role, jurisdiction, tenant_id) or get_current(role, jurisdiction, None)
+    if not doc:
+        return
+
+    try:
+        perspective = SubjectMatterPerspective(
+            role_id=doc.get("role_id", role),
+            jurisdiction=doc.get("jurisdiction", jurisdiction),
+            tenant_id=doc.get("tenant_id"),
+            distilled_at=float(doc.get("distilled_at", 0)),
+            sources=dict(doc.get("sources") or {}),
+            top_phrases=list((doc.get("voice_signature") or {}).get("top_phrases") or []),
+            intent_distribution=dict(doc.get("intent_distribution") or {}),
+            work_demands=dict(doc.get("work_demands") or {}),
+            age_hours=(doc.get("freshness") or {}).get("age_hours_at_distill"),
+        )
+        document.subject_matter_perspective = perspective
+    except Exception:
+        return
+
+
+RosettaDocumentBuilder._attach_subject_matter_perspective = _pcr070_attach_subject_matter_perspective
