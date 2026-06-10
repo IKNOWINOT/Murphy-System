@@ -337,6 +337,13 @@ def create_app() -> FastAPI:
                 try:
                     from src.org_compiler_heartbeat import register_heartbeat
                     _hb_status = register_heartbeat(app, interval_minutes=10)
+                    # PCR-070 Stage 3: schedule perspective re-distillation
+                    try:
+                        from src.pcr070_perspective_heartbeat import register_heartbeat as _pcr070_register
+                        _pcr070_status = _pcr070_register(app, interval_minutes=60)
+                        logger.info("PCR-070 Stage 3: heartbeat status: %s", _pcr070_status)
+                    except Exception as _e:
+                        logger.exception("PCR-070 heartbeat registration failed: %s", _e)
                     logger.info(
                         "PCR-053f: scheduler=%s, scheduled=%s, interval=%dm, errors=%d",
                         _hb_status.get("scheduler_present"),
