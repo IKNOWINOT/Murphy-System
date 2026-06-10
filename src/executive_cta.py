@@ -58,7 +58,7 @@ AUDIT_DB_PATH = "/var/lib/murphy-production/murphy_audit.db"
 DEFAULT_TTL_S = 1800   # 30 min
 
 # Dedupe window — same (category, source_hash) collapses within this
-DEDUPE_WINDOW_S = 60
+DEDUPE_WINDOW_S = 1800  # CTA-DEDUP-FIX: 60s → 1800s (30 min) — match TTL
 
 
 class CtaCategory(str, Enum):
@@ -226,13 +226,18 @@ def propose_completion_cta(
     if not success or quality_score < 0.7:
         return None
 
+    # CTA-DEDUP-FIX (2026-06-10): dedup key is (role, domain, output_type) only.
+    # accomplishment_id and quality_score are deliverable-specific metadata that
+    # change every run, which defeated dedup (31 unique hashes → 31 rows).
+    # Now we collapse: same role+domain+output_type within window = ONE CTA.
     signal = {
-        "role":              role,
-        "domain":            domain,
-        "output_type":       output_type,
-        "accomplishment_id": accomplishment_id,
-        "quality_score":     quality_score,
+        "role":        role,
+        "domain":      domain,
+        "output_type": output_type,
     }
+    # Keep the accomplishment_id and score in the description/uri so the
+    # surface still points to the latest deliverable — just not in the
+    # dedup key.
     return _emit_cta(
         category=CtaCategory.COMPLETION.value,
         label=f"Review {humanize_output_type(output_type)}",
