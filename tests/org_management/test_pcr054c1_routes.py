@@ -40,7 +40,7 @@ class TestRegistration:
             db_path=str(tmp_path / "db.sqlite"),
             browse_root=str(tmp_path / "br"),
         )
-        assert len(s["routes_added"]) == 9  # PCR-054j: correspondence route added
+        assert len(s["routes_added"]) == 14  # PCR-054k: 5 corpus routes added
 
 
 # ─────────────────────────────────────────────────────────────────────

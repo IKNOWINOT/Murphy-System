@@ -367,6 +367,106 @@ def register_engagement_routes(
 
     status["routes_added"].append("GET /api/org/engagement/{id}/correspondence")
 
+    # ── POST /api/org/engagement/{id}/harvest-corpus (PCR-054k) ───
+    @app.post("/api/org/engagement/{engagement_id}/harvest-corpus")
+    async def engagement_harvest_corpus(engagement_id: str):
+        """Harvest the engagement's thread into the practitioner corpus."""
+        try:
+            from src.practitioner_corpus import harvest_from_thread
+        except Exception as e:
+            return _err(500, {"ok": False, "error": f"corpus module unavailable: {e}"})
+        try:
+            return harvest_from_thread(engagement_id, db_path=db_path)
+        except Exception as e:
+            LOG.exception("PCR-054k harvest failed")
+            return _err(500, {"ok": False, "error": f"{type(e).__name__}: {e}"})
+
+    # ── POST /api/org/corpus/harvest-all (PCR-054k) ───────────────
+    @app.post("/api/org/corpus/harvest-all")
+    async def corpus_harvest_all(body: Dict[str, Any]):
+        """Batch-harvest all FINALIZED/VERIFIED/FLAGGED folders."""
+        try:
+            from src.practitioner_corpus import harvest_all_finalized
+        except Exception as e:
+            return _err(500, {"ok": False, "error": f"corpus module unavailable: {e}"})
+        try:
+            return harvest_all_finalized(
+                limit=body.get("limit", 500), db_path=db_path,
+            )
+        except Exception as e:
+            LOG.exception("PCR-054k harvest-all failed")
+            return _err(500, {"ok": False, "error": f"{type(e).__name__}: {e}"})
+
+    # ── GET /api/org/corpus/voice (PCR-054k) ──────────────────────
+    @app.get("/api/org/corpus/voice")
+    async def corpus_voice(
+        practitioner_id: str,
+        tenant_id: str,
+        intents: Optional[str] = None,
+        limit: int = 100,
+    ):
+        """Per-(practitioner, tenant) voice view. Tenant-isolated."""
+        try:
+            from src.practitioner_corpus import voice_for_practitioner_at_tenant
+        except Exception as e:
+            return _err(500, {"ok": False, "error": f"corpus module unavailable: {e}"})
+        try:
+            intent_list = intents.split(",") if intents else None
+            return voice_for_practitioner_at_tenant(
+                practitioner_id, tenant_id,
+                intents=intent_list, limit=limit, db_path=db_path,
+            )
+        except Exception as e:
+            LOG.exception("PCR-054k voice failed")
+            return _err(500, {"ok": False, "error": f"{type(e).__name__}: {e}"})
+
+    # ── GET /api/org/corpus/domain-prior (PCR-054k) ───────────────
+    @app.get("/api/org/corpus/domain-prior")
+    async def corpus_domain_prior(
+        role_id: str,
+        jurisdiction: str,
+        limit: int = 200,
+    ):
+        """Domain prior across practitioners. Cold-start fallback for 054l."""
+        try:
+            from src.practitioner_corpus import voice_for_role_jurisdiction
+        except Exception as e:
+            return _err(500, {"ok": False, "error": f"corpus module unavailable: {e}"})
+        try:
+            return voice_for_role_jurisdiction(
+                role_id, jurisdiction, limit=limit, db_path=db_path,
+            )
+        except Exception as e:
+            LOG.exception("PCR-054k domain-prior failed")
+            return _err(500, {"ok": False, "error": f"{type(e).__name__}: {e}"})
+
+    # ── GET /api/org/corpus/recurring-questions (PCR-054k) ────────
+    @app.get("/api/org/corpus/recurring-questions")
+    async def corpus_recurring_questions(
+        practitioner_id: str,
+        tenant_id: str,
+        min_repeat: int = 2,
+    ):
+        """Questions this practitioner asks repeatedly at this tenant."""
+        try:
+            from src.practitioner_corpus import recurring_questions
+        except Exception as e:
+            return _err(500, {"ok": False, "error": f"corpus module unavailable: {e}"})
+        try:
+            return recurring_questions(
+                practitioner_id, tenant_id,
+                min_repeat=min_repeat, db_path=db_path,
+            )
+        except Exception as e:
+            LOG.exception("PCR-054k recurring-questions failed")
+            return _err(500, {"ok": False, "error": f"{type(e).__name__}: {e}"})
+
+    status["routes_added"].append("POST /api/org/engagement/{id}/harvest-corpus")
+    status["routes_added"].append("POST /api/org/corpus/harvest-all")
+    status["routes_added"].append("GET /api/org/corpus/voice")
+    status["routes_added"].append("GET /api/org/corpus/domain-prior")
+    status["routes_added"].append("GET /api/org/corpus/recurring-questions")
+
     # Mark idempotent
     app.state._engagement_routes_registered = True
     status["registered"] = True
