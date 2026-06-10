@@ -38439,6 +38439,14 @@ def create_app() -> FastAPI:
         try:
             from src.convergence.router import router as _convergence_router
             app.include_router(_convergence_router)
+
+            # PCR-070 Stage 1: subject-matter perspective distiller
+            try:
+                from src.pcr070_router import router as _pcr070_router
+                app.include_router(_pcr070_router)
+                logger.info('PCR-070 Stage 1: perspective router mounted at /api/perspective/*')
+            except Exception as _e:
+                logger.exception('PCR-070 router mount failed: %s', _e)
             import logging as _l
             _l.getLogger('murphy.convergence').info('PCR-090a: convergence router mounted — /api/converge/*')
         except Exception as _e:
