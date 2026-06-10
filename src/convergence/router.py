@@ -27,6 +27,8 @@ from .rollups.system import rollup_system
 from .rollups.founder import rollup_founder
 from .rollups.tenant import rollup_tenant
 from .forecast import enrich_rollup
+from .today import build_today
+from .button_commission import get_commissioning_audit
 
 LOG = logging.getLogger("murphy.convergence")
 
@@ -57,6 +59,12 @@ async def list_domains():
         "version": "0.1.0-pcr090a",
         "generated_at": _now_iso(),
     }
+
+
+@router.get("/today")
+async def converge_today(top_n: int = 3):
+    """OS-FIN: Today panel — top N highest-scoring items across all domains."""
+    return build_today(top_n=top_n)
 
 
 @router.get("/{domain}")
@@ -106,3 +114,17 @@ async def get_domain_rollup(domain: str, request: Request):
     if errors:
         out["_errors"] = errors
     return out
+
+
+
+@router.get("/buttons/audit")
+async def buttons_audit_all():
+    """PCR-090e: button commissioning ledger — all pages."""
+    return get_commissioning_audit()
+
+
+@router.get("/buttons/audit/{page:path}")
+async def buttons_audit_page(page: str):
+    """PCR-090e: button commissioning ledger for one page."""
+    return get_commissioning_audit(page=page)
+
