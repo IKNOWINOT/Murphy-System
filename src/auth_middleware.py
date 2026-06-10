@@ -695,6 +695,13 @@ class OIDCAuthMiddleware(BaseHTTPMiddleware):
         "/api/perspective/list",   # PCR-070 Stage 1 distilled list (signals panel)
         "/api/executive/status",   # EXEC-05 slots/pulse/CTAs (exec panel)
         "/api/executive/cta/",     # EXEC-05 commit/dismiss endpoints
+        # OS-FIX-2 (2026-06-10): additional /os read-only panel surfaces
+        "/api/swarm/bus/feed",     # event stream — drives openEventDrill / closeDrill
+        "/api/roi-calendar/live-v2", # ROI drill panel (already public-similar via landing)
+        "/api/soul/entity-map",    # Soul panel + runDispatch dependency
+        # NOTE: /api/hitl-v2/queue, /api/crm/deals, /api/mail/outbound/*
+        # intentionally NOT whitelisted — they require founder key or tenant session
+        # (matches solute-zone direction PCR-091: founder-only by intent)
         # PATCH-049a: payment webhooks public (signature-verified by provider)
         # checkout + plans public (user supplies account_id in body)
         "/api/billing/webhooks/",
