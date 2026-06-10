@@ -48,3 +48,40 @@
 - Modify auth_middleware.py
 - Create or wire solute_kernel.py into the live request path
 
+
+---
+
+## DEFERRAL — locked 2026-06-10
+
+Founder explicit: "I'm afraid of getting locked out of my own system
+so let's defer for now."
+
+This applies to BOTH:
+  - OS-FIX-3 (founder browser session-cookie path)
+  - PCR-091 v1 (solute kernel + founder-key infrastructure)
+
+Reason: any change to who-is-founder or how-founder-proves-identity
+carries real lockout risk. The founder is the sovereign; if the
+sovereign cannot reach their own system, the system is broken
+regardless of how secure it is.
+
+DO NOT RESUME without explicit founder go-ahead. Specifically:
+  - Do not modify auth_middleware.py for session/founder paths
+  - Do not generate or place /etc/murphy-production/founder.key
+  - Do not create solute_kernel.py in the live tree
+  - Do not wire HMAC verification into any request path
+  - Do not propose these as "next steps" — they are gated
+
+What stays acceptable WITHOUT founder go-ahead:
+  - Continuing to whitelist new read-only public-safe endpoints
+    (the OS-FIX-1/2 pattern), one at a time, with browser verify
+  - Editing static UI to surface data we already have
+  - Author-and-stage drafts in workspace ONLY (no /opt/, no /etc/)
+
+When founder returns to this, the natural starting move is a
+LOCKOUT REHEARSAL on staging:
+  1. Stand up the founder-key path on a non-prod box
+  2. Prove the key works
+  3. Prove recovery works if the key is lost
+  4. Only THEN consider any prod change
+
