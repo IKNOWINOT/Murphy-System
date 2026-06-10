@@ -108,14 +108,52 @@ CREATE INDEX IF NOT EXISTS idx_bli_dispatch
 
 CREATE INDEX IF NOT EXISTS idx_bli_created
     ON boundary_loop_iterations (created_at);
+
+-- PCR-060k: per-requirement detail rows (ω)
+CREATE TABLE IF NOT EXISTS boundary_loop_requirements (
+    req_id_row            TEXT PRIMARY KEY,
+    dispatch_id           TEXT NOT NULL,
+    iteration             INTEGER NOT NULL,
+    requirement_id        TEXT NOT NULL,
+    requirement_text      TEXT NOT NULL,
+    category              TEXT NOT NULL,
+    status                TEXT NOT NULL,
+    evidence              TEXT,
+    confidence            TEXT,
+    created_at            REAL NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_blr_dispatch_iter
+    ON boundary_loop_requirements (dispatch_id, iteration);
+
+CREATE INDEX IF NOT EXISTS idx_blr_req
+    ON boundary_loop_requirements (requirement_id);
 """
 
 
 def init_drill_db(db_path: str = DEFAULT_DB_PATH) -> None:
-    """Idempotent — safe to call at startup or per-drive."""
+    """Idempotent — safe to call at startup or per-drive.
+
+    PCR-060k: also migrates pre-060k schemas via idempotent ALTER ADD COLUMN.
+    """
     con = sqlite3.connect(db_path)
     try:
         con.executescript(SCHEMA)
+        # PCR-060k: idempotent migration for pre-060k databases
+        existing_cols = {
+            row[1] for row in con.execute(
+                "PRAGMA table_info(boundary_loop_iterations)"
+            ).fetchall()
+        }
+        migrations = [
+            ("solved_ratio",   "ALTER TABLE boundary_loop_iterations ADD COLUMN solved_ratio REAL"),
+            ("solved_count",   "ALTER TABLE boundary_loop_iterations ADD COLUMN solved_count INTEGER"),
+            ("total_count",    "ALTER TABLE boundary_loop_iterations ADD COLUMN total_count INTEGER"),
+            ("boundary_state", "ALTER TABLE boundary_loop_iterations ADD COLUMN boundary_state TEXT"),
+        ]
+        for col, ddl in migrations:
+            if col not in existing_cols:
+                con.execute(ddl)
         con.commit()
     finally:
         con.close()
@@ -141,6 +179,11 @@ class IterationRecord:
     cumulative_cost_usd:  float
     f_curve:              List[Dict[str, Any]]
     reason:               str
+    # PCR-060k: requirements layer (None when track_requirements=False)
+    solved_ratio:         Optional[float] = None
+    solved_count:         Optional[int] = None
+    total_count:          Optional[int] = None
+    boundary_state:       Optional[str] = None
 
     def as_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -403,7 +446,16 @@ def _persist_iteration(
     record: IterationRecord,
     *,
     db_path: str = DEFAULT_DB_PATH,
+    requirement_statuses: Optional[list] = None,
+    requirements_map: Optional[dict] = None,
 ) -> None:
+    """Persist iteration to boundary_loop_iterations + (optionally)
+    boundary_loop_requirements detail rows.
+
+    PCR-060k: writes new summary columns when track_requirements was True.
+    Backwards compat: kwargs default to None, called sites that don't
+    pass them get the same behavior as pre-060k.
+    """
     init_drill_db(db_path)
     con = sqlite3.connect(db_path)
     try:
@@ -412,8 +464,9 @@ def _persist_iteration(
             "(iteration_id, dispatch_id, iteration, delta_at_present, "
             " d_delta_dt, recommendation, converged, flatlining, "
             " boundary_satisfied, weakest_link, magnify_ok, cost_usd, "
-            " cumulative_cost_usd, f_curve_json, reason, created_at) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            " cumulative_cost_usd, f_curve_json, reason, created_at, "
+            " solved_ratio, solved_count, total_count, boundary_state) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 f"bli_{uuid.uuid4().hex[:14]}",
                 dispatch_id,
@@ -431,8 +484,38 @@ def _persist_iteration(
                 json.dumps(record.f_curve),
                 record.reason,
                 time.time(),
+                record.solved_ratio,
+                record.solved_count,
+                record.total_count,
+                record.boundary_state,
             ),
         )
+        # PCR-060k: write per-requirement detail rows (ω)
+        if requirement_statuses and requirements_map:
+            now = time.time()
+            for status in requirement_statuses:
+                req = requirements_map.get(status.requirement_id)
+                if not req:
+                    continue
+                con.execute(
+                    "INSERT INTO boundary_loop_requirements "
+                    "(req_id_row, dispatch_id, iteration, requirement_id, "
+                    " requirement_text, category, status, evidence, "
+                    " confidence, created_at) "
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    (
+                        f"blr_{uuid.uuid4().hex[:14]}",
+                        dispatch_id,
+                        record.iteration,
+                        status.requirement_id,
+                        req.text,
+                        req.category,
+                        status.status,
+                        status.evidence,
+                        status.confidence,
+                        now,
+                    ),
+                )
         con.commit()
     finally:
         con.close()
@@ -477,6 +560,11 @@ def drive_boundary_loop(
     db_path: str = DEFAULT_DB_PATH,
     api_key: Optional[str] = None,
     magnify_url: str = MAGNIFY_URL,
+    # PCR-060k: requirements tracking (opt-in)
+    track_requirements: bool = False,
+    halt_on_impossible: bool = True,
+    solved_threshold: float = 0.85,
+    delta_polish_threshold: float = 0.20,
 ) -> DrillResult:
     """The control loop. Drives one dispatch from prompt to deliverable.
 
@@ -499,6 +587,26 @@ def drive_boundary_loop(
     """
     dispatch_id = dispatch_id or f"drill_{uuid.uuid4().hex[:14]}"
     business_spec = business_spec or {}
+
+    # PCR-060k: extract requirements once at iter 0 (cached for whole drill)
+    _requirements: list = []
+    _req_map: dict = {}
+    _prior_solved_set = None
+    _flatline_streak = 0
+    _prior_solved_ratio: Optional[float] = None
+    if track_requirements:
+        try:
+            from src.pcr060_requirement_tracker import extract_requirements as _extract_reqs
+            _requirements = _extract_reqs(prompt, api_key=api_key)
+            _req_map = {r.id: r for r in _requirements}
+            LOG.info(
+                "PCR-060k dispatch=%s extracted %d requirements",
+                dispatch_id, len(_requirements),
+            )
+        except Exception as e:
+            LOG.warning("PCR-060k requirement extraction failed: %s", e)
+            _requirements = []
+            _req_map = {}
 
     # Step 1: R(t) from Goal Plotter
     if goal_plot is None:
@@ -631,11 +739,81 @@ def drive_boundary_loop(
             f_curve=f_curve,
             reason=traj.reason,
         )
+
+        # PCR-060k: evaluate requirements (Z-sampled) + compute boundary
+        _solved_set = None
+        _boundary_verdict = None
+        if track_requirements and _requirements and magnify_ok and last_deliverable:
+            try:
+                from src.pcr060_requirement_tracker import (
+                    evaluate_solved as _eval_solved,
+                    compute_boundary as _compute_boundary,
+                )
+                _solved_set = _eval_solved(
+                    last_deliverable, _requirements,
+                    iteration=n, prior=_prior_solved_set, api_key=api_key,
+                )
+                # Compute dS/dt for failure_stalled check
+                _ds_dt = None
+                if _prior_solved_ratio is not None:
+                    _ds_dt = _solved_set.solved_ratio - _prior_solved_ratio
+                # Track flatline streak
+                if (_ds_dt is not None and abs(_ds_dt) < 0.02
+                        and traj.d_delta_dt is not None and abs(traj.d_delta_dt) < 0.02):
+                    _flatline_streak += 1
+                else:
+                    _flatline_streak = 0
+                _boundary_verdict = _compute_boundary(
+                    _solved_set, traj.delta_at_present,
+                    solved_threshold=solved_threshold,
+                    delta_threshold=delta_polish_threshold,
+                    d_solved_dt=_ds_dt,
+                    d_delta_dt=traj.d_delta_dt,
+                    flatline_streak=_flatline_streak,
+                )
+                # Update record with requirements summary
+                record.solved_ratio = _solved_set.solved_ratio
+                record.solved_count = _solved_set.solved_count
+                record.total_count = _solved_set.total_count
+                record.boundary_state = _boundary_verdict.state
+                _prior_solved_set = _solved_set
+                _prior_solved_ratio = _solved_set.solved_ratio
+                LOG.info(
+                    "PCR-060k dispatch=%s iter=%d |S|/|R̂|=%.2f Δ=%.3f state=%s",
+                    dispatch_id, n, _solved_set.solved_ratio,
+                    traj.delta_at_present, _boundary_verdict.state,
+                )
+            except Exception as e:
+                LOG.warning("PCR-060k evaluate/boundary failed at iter=%d: %s", n, e)
+
         iteration_log.append(record)
         try:
-            _persist_iteration(dispatch_id, record, db_path=db_path)
+            _persist_iteration(
+                dispatch_id, record, db_path=db_path,
+                requirement_statuses=(_solved_set.statuses if _solved_set else None),
+                requirements_map=_req_map if track_requirements else None,
+            )
         except Exception as e:
             LOG.warning("PCR-060i iteration persist failed: %s", e)
+
+        # PCR-060k: halt on impossible requirement (γ-α failure surface)
+        if (track_requirements and halt_on_impossible
+                and _boundary_verdict and _boundary_verdict.state == "failure_impossible"):
+            LOG.info(
+                "PCR-060k dispatch=%s HALT on impossible requirement at iter=%d",
+                dispatch_id, n,
+            )
+            return DrillResult(
+                dispatch_id=dispatch_id,
+                success=False,
+                deliverable_quality="impossible_requirement",
+                iterations_run=n + 1,
+                final_delta=traj.delta_at_present,
+                cumulative_cost_usd=cumulative_cost,
+                deliverable=last_deliverable,
+                iteration_log=iteration_log,
+                reason=_boundary_verdict.reason,
+            )
 
         prior_delta = traj.delta_at_present
         last_weakest_link = weakest_link
