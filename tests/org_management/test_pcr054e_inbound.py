@@ -343,7 +343,9 @@ class TestProcessReply:
         assert result["ok"] is False
         assert "not found" in result["reason"]
 
-    def test_folder_not_awaiting_is_skipped(self, paths):
+    def test_folder_not_awaiting_attaches_to_thread(self, paths):
+        """PCR-054j: messages on non-AWAITING folders attach to thread,
+        no longer dropped. Old contract was {ok: False, skipped: True}."""
         f = create_folder(
             tenant_id="t", role_id="r", artifact_type="tax_return",
             license_type_required="CPA", jurisdiction_required="US-CA",
@@ -357,8 +359,19 @@ class TestProcessReply:
             "body_preview": good_attestation_body(f.engagement_id),
         }
         result = process_reply(reply, db_path=paths["db_path"])
-        assert result["ok"] is False
-        assert "drafting" in result["reason"]
+        # PCR-054j: no longer skipped — attached to thread
+        assert result["ok"] is True
+        assert result["attached"] is True
+        assert result["folder_state"] == "drafting"
+        # Folder state unchanged
+        from src.engagement_folder import get_folder, FolderState
+        f2 = get_folder(f.engagement_id, db_path=paths["db_path"])
+        assert f2.state is FolderState.DRAFTING
+        # Message is now on the thread
+        from src.engagement_correspondence import get_thread
+        thread = get_thread(f.engagement_id, db_path=paths["db_path"])
+        assert len(thread) == 1
+        assert thread[0].folder_state_at_time == "drafting"
 
     def test_attestation_payload_recorded(self, staged_awaiting_folder):
         eid, paths = staged_awaiting_folder

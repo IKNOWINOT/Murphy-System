@@ -43,6 +43,11 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
+from src.engagement_correspondence import (
+    attach_correspondence,
+    classify_intent,
+    is_recoverable_followup,
+)
 from src.engagement_folder import (
     DEFAULT_DB_PATH as ENGAGEMENT_DB_PATH,
     FolderState,
@@ -310,15 +315,72 @@ def process_reply(
     if folder is None:
         return {"ok": False, "skipped": True, "reason": f"engagement {engagement_id} not found"}
 
+    # ── PCR-054j: attach correspondence to thread FIRST, regardless of state ──
+    # No message is ever dropped. Classifier always returns *something*.
+    intent_result = classify_intent(body, subject)
+
+    # ── PCR-054j: recovery from DECLINED_OR_EDITS_ASKED ──
+    # Per founder's reframe (2026-06-09): a folder bounced to
+    # DECLINED_OR_EDITS_ASKED is NOT terminal. If the practitioner sends a
+    # real attestation later, reset to AWAITING so the gate runs again.
+    if (folder.state is FolderState.DECLINED_OR_EDITS_ASKED
+            and intent_result.intent == "attestation"
+            and intent_result.confidence in ("high", "medium")):
+        transition(
+            engagement_id,
+            FolderState.DRAFTING,
+            actor="system:engagement_inbound",
+            reason=f"PCR-054j recovery: attestation intent on declined folder ({intent_result.confidence} confidence)",
+            db_path=db_path,
+        )
+        transition(
+            engagement_id,
+            FolderState.OUTREACH_QUEUED,
+            actor="system:engagement_inbound",
+            reason="PCR-054j recovery: re-queueing for attestation",
+            db_path=db_path,
+        )
+        transition(
+            engagement_id,
+            FolderState.AWAITING_ATTESTATION,
+            actor="system:engagement_inbound",
+            reason="PCR-054j recovery: re-armed for gate",
+            db_path=db_path,
+        )
+        # Refresh folder state for the gate path below
+        folder = get_folder(engagement_id, db_path=db_path)
+
+    # PCR-054j contract:
+    # - Folder NOT in AWAITING: attach to thread, no state change, no gate.
+    #   (The recovery path above already handled the high-conf attestation
+    #    arriving on a DECLINED folder.)
+    # - Folder IN AWAITING: ALWAYS run the gate. The gate is the source of
+    #   truth for whether the reply is a valid attestation. Classifier intent
+    #   is used to detect declines/revisions for accurate audit, but the gate
+    #   itself decides terminal state.
     if folder.state is not FolderState.AWAITING_ATTESTATION:
+        attach_correspondence(
+            engagement_id=engagement_id,
+            direction="in",
+            from_email=reply.get("from_addr") or "",
+            body=body,
+            subject=subject,
+            folder_state_at_time=folder.state.value,
+            gate_applied=False,
+            db_path=db_path,
+        )
         return {
-            "ok": False,
-            "skipped": True,
-            "reason": f"folder in state {folder.state.value}, not awaiting_attestation",
+            "ok":            True,
+            "skipped":       False,   # NOT skipped — attached to thread
+            "attached":      True,
             "engagement_id": engagement_id,
+            "intent":        intent_result.intent,
+            "confidence":    intent_result.confidence,
+            "folder_state":  folder.state.value,
+            "reason":        f"intent={intent_result.intent} state={folder.state.value} — captured without state change",
         }
 
-    # Parse + gate
+    # Parse + gate (only when intent is attestation AND folder is AWAITING)
     parsed = parse_attestation(
         combined,
         folder_license_type=folder.license_type_required,
@@ -329,6 +391,19 @@ def process_reply(
         expected_engagement_id=engagement_id,
         folder_license_type=folder.license_type_required or "",
         folder_jurisdiction=folder.jurisdiction_required or "",
+    )
+
+    # PCR-054j: attach to thread (with gate result captured)
+    attach_correspondence(
+        engagement_id=engagement_id,
+        direction="in",
+        from_email=reply.get("from_addr") or "",
+        body=body,
+        subject=subject,
+        folder_state_at_time=folder.state.value,
+        gate_applied=True,
+        gate_result=gate.as_dict(),
+        db_path=db_path,
     )
 
     # Record raw payload for forensics

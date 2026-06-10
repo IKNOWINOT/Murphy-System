@@ -345,6 +345,28 @@ def register_engagement_routes(
     status["routes_added"].append("POST /api/org/engagement/verify-finalized")
     status["routes_added"].append("POST /api/org/engagement/{id}/verify")
 
+    # ── GET /api/org/engagement/{id}/correspondence (PCR-054j) ────
+    @app.get("/api/org/engagement/{engagement_id}/correspondence")
+    async def engagement_correspondence_get(engagement_id: str):
+        """Return the full correspondence thread for an engagement."""
+        try:
+            from src.engagement_correspondence import get_thread
+        except Exception as e:
+            return _err(500, {"ok": False, "error": f"correspondence module unavailable: {e}"})
+        try:
+            thread = get_thread(engagement_id, db_path=db_path)
+            return {
+                "ok":            True,
+                "engagement_id": engagement_id,
+                "thread":        [c.as_dict() for c in thread],
+                "count":         len(thread),
+            }
+        except Exception as e:
+            LOG.exception("PCR-054j correspondence GET failed")
+            return _err(500, {"ok": False, "error": f"{type(e).__name__}: {e}"})
+
+    status["routes_added"].append("GET /api/org/engagement/{id}/correspondence")
+
     # Mark idempotent
     app.state._engagement_routes_registered = True
     status["registered"] = True
