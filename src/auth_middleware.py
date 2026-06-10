@@ -688,6 +688,13 @@ class OIDCAuthMiddleware(BaseHTTPMiddleware):
         "/api/lcm",
         "/api/convergence/",
         "/api/convergence",
+        # OS-FIX-1 (2026-06-10): /os panel data surfaces — read-only public
+        "/api/converge/",          # PCR-090a convergence rollups (today panel + sidebar)
+        "/api/converge",
+        "/api/compliance/stats",   # PCR-090h.1 30-day aggregate (signals panel)
+        "/api/perspective/list",   # PCR-070 Stage 1 distilled list (signals panel)
+        "/api/executive/status",   # EXEC-05 slots/pulse/CTAs (exec panel)
+        "/api/executive/cta/",     # EXEC-05 commit/dismiss endpoints
         # PATCH-049a: payment webhooks public (signature-verified by provider)
         # checkout + plans public (user supplies account_id in body)
         "/api/billing/webhooks/",
