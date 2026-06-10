@@ -1347,6 +1347,93 @@ body {
     })();
     </script>
 
+    <!-- SIGNALS PANEL (2026-06-10) — Compliance + Perspective surfaces -->
+    <div id="signals-panel" style="background:linear-gradient(135deg,#1c1a0f,#16140a);border:1px solid #4a4a1a;border-radius:10px;padding:14px 18px;margin:12px 16px 8px;color:#e8e8e8;font-family:var(--font,-apple-system,sans-serif);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <h2 style="margin:0;color:#e0c45e;font-size:14px;text-transform:uppercase;letter-spacing:1px;">📡 Signals — compliance &amp; perspective</h2>
+        <span id="signals-meta" style="font-size:11px;color:#8d8a7a;font-family:var(--mono,monospace);">loading…</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div id="compliance-block" style="background:#14120a;border:1px solid #4a4a1a;border-radius:6px;padding:10px 12px;">
+          <div style="font-size:11px;color:#e0c45e;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Compliance gate · 30d</div>
+          <div id="compliance-stats" style="font-size:12px;color:#8d8a7a;">loading…</div>
+        </div>
+        <div id="perspective-block" style="background:#14120a;border:1px solid #4a4a1a;border-radius:6px;padding:10px 12px;">
+          <div style="font-size:11px;color:#e0c45e;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Perspectives · live</div>
+          <div id="perspective-stats" style="font-size:12px;color:#8d8a7a;">loading…</div>
+        </div>
+      </div>
+      <div style="margin-top:8px;text-align:right;">
+        <button onclick="loadSignalsPanel()" style="background:transparent;border:1px solid #4a4a1a;color:#e0c45e;font-size:11px;padding:3px 10px;border-radius:4px;cursor:pointer;font-family:var(--mono,monospace);">refresh</button>
+      </div>
+    </div>
+
+    <script>
+    (function() {
+      async function loadSignalsPanel() {
+        const elMeta = document.getElementById('signals-meta');
+        const elC = document.getElementById('compliance-stats');
+        const elP = document.getElementById('perspective-stats');
+        if (!elMeta || !elC || !elP) return;
+        elMeta.textContent = 'loading…';
+        try {
+          const [cR, pR] = await Promise.all([
+            fetch('/api/compliance/stats', {credentials:'same-origin',cache:'no-cache'}),
+            fetch('/api/perspective/list', {credentials:'same-origin',cache:'no-cache'})
+          ]);
+          if (!cR.ok || !pR.ok) throw new Error('HTTP ' + cR.status + '/' + pR.status);
+          const cData = await cR.json();
+          const pData = await pR.json();
+
+          // Compliance summary
+          const v = cData.by_verdict || {};
+          const total = cData.total || 0;
+          const passN = v.pass || 0, warnN = v.warn || 0, blockN = v.block || 0;
+          const passColor = '#5ee0c4', warnColor = '#f5d76e', blockColor = '#ff8a4a';
+          elC.innerHTML =
+            '<div style="font-size:18px;color:#e8e8e8;font-family:var(--mono,monospace);margin-bottom:4px;">' + total + ' <span style="font-size:11px;color:#8d8a7a;">runs</span></div>' +
+            '<div style="display:flex;gap:8px;flex-wrap:wrap;font-size:11px;font-family:var(--mono,monospace);">' +
+              '<span style="color:' + passColor  + ';">✓ ' + passN  + ' pass</span>' +
+              '<span style="color:' + warnColor  + ';">⚠ ' + warnN  + ' warn</span>' +
+              '<span style="color:' + blockColor + ';">⛔ ' + blockN + ' block</span>' +
+            '</div>';
+
+          // Perspective summary
+          const ps = pData.perspectives || [];
+          if (!ps.length) {
+            elP.innerHTML = '<div style="color:#8d8a7a;font-size:12px;">No perspectives distilled yet.</div>';
+          } else {
+            const rows = ps.slice(0, 4).map(function(p) {
+              const tenant = p.tenant_id || 'all';
+              const corr = p.source_corr_count || 0;
+              const corp = p.source_corpus_count || 0;
+              return '<div style="display:flex;justify-content:space-between;gap:8px;font-size:11px;font-family:var(--mono,monospace);padding:2px 0;border-bottom:1px solid #2a2810;">' +
+                     '<span style="color:#e8e8e8;">' + p.role_id + '/' + p.jurisdiction + '</span>' +
+                     '<span style="color:#8d8a7a;">' + tenant + ' · ' + corp + 'c/' + corr + 'r</span>' +
+                     '</div>';
+            }).join('');
+            elP.innerHTML =
+              '<div style="font-size:18px;color:#e8e8e8;font-family:var(--mono,monospace);margin-bottom:4px;">' + ps.length + ' <span style="font-size:11px;color:#8d8a7a;">distilled</span></div>' +
+              rows;
+          }
+
+          elMeta.textContent = 'compliance ' + total + ' · perspectives ' + ps.length + ' — ' + new Date().toLocaleTimeString();
+        } catch (e) {
+          elMeta.textContent = 'error: ' + e.message;
+          elC.innerHTML = '<div style="color:#ff8a4a;font-size:11px;">fetch failed</div>';
+          elP.innerHTML = '<div style="color:#ff8a4a;font-size:11px;">fetch failed</div>';
+        }
+      }
+      window.loadSignalsPanel = loadSignalsPanel;
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', loadSignalsPanel);
+      } else {
+        loadSignalsPanel();
+      }
+      setInterval(loadSignalsPanel, 30000);
+    })();
+    </script>
+
     <!-- EXEC-05 (2026-06-09) — EXECUTIVE PANEL: slots | pulse | CTAs -->
     <div id="exec-panel" class="exec-panel">
       <style>
