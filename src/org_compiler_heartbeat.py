@@ -279,7 +279,17 @@ def _find_scheduler(app):
     reaches it (e.g. forge_rate_limiter) is via sys.modules.
     """
     import sys
-    # Try 1: app.state.murphy_scheduler (canonical attachment, may be added later)
+    # PCR-053f.2: Try 0 — the canonical SwarmScheduler singleton lives in
+    # src.swarm_scheduler as module-level _scheduler, accessed via
+    # get_scheduler(). This is the path that actually has the running
+    # APScheduler instance in production. Checked FIRST.
+    try:
+        from src.swarm_scheduler import get_scheduler as _gs, _scheduler as _sched_mod
+        if _sched_mod is not None and getattr(_sched_mod, "_scheduler", None) is not None:
+            return _sched_mod._scheduler
+    except Exception:
+        pass
+    # Try 1: app.state.scheduler (canonical attachment, may be added later)
     sched = getattr(getattr(app, "state", None), "scheduler", None)
     if sched is not None:
         return sched
@@ -366,7 +376,7 @@ def register_heartbeat(
     # Defer
     import threading
     def _waiter():
-        for attempt in range(60):  # 60 * 5s = 5 min
+        for attempt in range(60):  # 60 * 5s = 5 min (PCR-053f.2: lookup fixed, defer rarely fires)
             time.sleep(5)
             sched = _find_scheduler(app)
             if sched is not None:
