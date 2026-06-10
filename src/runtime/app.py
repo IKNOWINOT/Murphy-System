@@ -38454,6 +38454,14 @@ def create_app() -> FastAPI:
                 logger.info('PCR-070 Stage 1: perspective router mounted at /api/perspective/*')
             except Exception as _e:
                 logger.exception('PCR-070 router mount failed: %s', _e)
+
+            # PCR-090h.1: outbound compliance gate
+            try:
+                from src.pcr090h1_router import router as _pcr090h1_router
+                app.include_router(_pcr090h1_router)
+                logger.info('PCR-090h.1: compliance gate router mounted at /api/compliance/*')
+            except Exception as _e:
+                logger.exception('PCR-090h.1 router mount failed: %s', _e)
             import logging as _l
             _l.getLogger('murphy.convergence').info('PCR-090a: convergence router mounted — /api/converge/*')
         except Exception as _e:
