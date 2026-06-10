@@ -113,6 +113,9 @@ class EngagementFolder:
     created_at: float = field(default_factory=time.time)
     updated_at: float = field(default_factory=time.time)
     finalized_at: Optional[float] = None
+    verified_at: Optional[float] = None         # PCR-054h
+    verified_via: Optional[str] = None          # PCR-054h
+    verification_notes: Optional[str] = None    # PCR-054h
     metadata_json: str = "{}"
 
     def to_row(self) -> Tuple:
@@ -123,7 +126,9 @@ class EngagementFolder:
             self.license_type_required, self.jurisdiction_required,
             self.rate_quote_usd, self.rate_quote_source,
             self.deadline_at, self.created_at, self.updated_at,
-            self.finalized_at, self.metadata_json,
+            self.finalized_at,
+            self.metadata_json,
+            self.verified_at, self.verified_via, self.verification_notes,
         )
 
     @classmethod
@@ -145,6 +150,9 @@ class EngagementFolder:
             created_at=row["created_at"],
             updated_at=row["updated_at"],
             finalized_at=row["finalized_at"],
+            verified_at=row["verified_at"] if "verified_at" in row.keys() else None,
+            verified_via=row["verified_via"] if "verified_via" in row.keys() else None,
+            verification_notes=row["verification_notes"] if "verification_notes" in row.keys() else None,
             metadata_json=row["metadata_json"] or "{}",
         )
 
@@ -268,6 +276,19 @@ def init_db(db_path: str = DEFAULT_DB_PATH) -> None:
     con = _connect(db_path)
     try:
         con.executescript(SCHEMA)
+        # PCR-054h: idempotent column additions for existing DBs that
+        # predate the verification fields.
+        import sqlite3 as _sql
+        for col_name, col_type in (
+            ("verified_at",        "REAL"),
+            ("verified_via",       "TEXT"),
+            ("verification_notes", "TEXT"),
+        ):
+            try:
+                con.execute(f"ALTER TABLE engagement_folders ADD COLUMN {col_name} {col_type}")
+            except _sql.OperationalError:
+                pass  # column already exists
+        con.commit()
     finally:
         con.close()
 
@@ -330,7 +351,7 @@ def create_folder(
     try:
         con.execute(
             "INSERT INTO engagement_folders VALUES "
-            "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             folder.to_row(),
         )
         _record_event(
@@ -606,5 +627,8 @@ def folder_summary(folder: EngagementFolder) -> Dict[str, Any]:
         "created_at":            folder.created_at,
         "updated_at":            folder.updated_at,
         "finalized_at":          folder.finalized_at,
+        "verified_at":           folder.verified_at,
+        "verified_via":          folder.verified_via,
+        "verification_notes":    folder.verification_notes,
         "browse_path":           browse_path_for(folder.engagement_id),
     }

@@ -307,6 +307,44 @@ def register_engagement_routes(
 
     status["routes_added"].append("POST /api/org/engagement/process-inbound")
 
+    # ── POST /api/org/engagement/verify-finalized (PCR-054h) ──────
+    @app.post("/api/org/engagement/verify-finalized")
+    async def engagement_verify_finalized(body: Dict[str, Any]):
+        """Verify license claims on all FINALIZED folders.
+
+        Body fields (all optional):
+          limit: cap (default 100)
+        """
+        try:
+            from src.engagement_verification import verify_finalized_engagements
+        except Exception as e:
+            return _err(500, {"ok": False, "error": f"verification module unavailable: {e}"})
+        try:
+            return verify_finalized_engagements(
+                limit=body.get("limit", 100),
+                db_path=db_path,
+            )
+        except Exception as e:
+            LOG.exception("PCR-054h verify-finalized failed")
+            return _err(500, {"ok": False, "error": f"{type(e).__name__}: {e}"})
+
+    # ── POST /api/org/engagement/{id}/verify (PCR-054h) ───────────
+    @app.post("/api/org/engagement/{engagement_id}/verify")
+    async def engagement_verify_one(engagement_id: str):
+        """Verify a single FINALIZED folder by engagement_id."""
+        try:
+            from src.engagement_verification import verify_folder
+        except Exception as e:
+            return _err(500, {"ok": False, "error": f"verification module unavailable: {e}"})
+        try:
+            return verify_folder(engagement_id, db_path=db_path)
+        except Exception as e:
+            LOG.exception("PCR-054h verify failed")
+            return _err(500, {"ok": False, "error": f"{type(e).__name__}: {e}"})
+
+    status["routes_added"].append("POST /api/org/engagement/verify-finalized")
+    status["routes_added"].append("POST /api/org/engagement/{id}/verify")
+
     # Mark idempotent
     app.state._engagement_routes_registered = True
     status["registered"] = True

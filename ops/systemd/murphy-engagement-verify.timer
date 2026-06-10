@@ -1,0 +1,11 @@
+[Unit]
+Description=Run Murphy engagement-loop license verification every 10 min
+
+[Timer]
+OnActiveSec=45s
+OnUnitActiveSec=10min
+OnBootSec=5min
+AccuracySec=30s
+
+[Install]
+WantedBy=timers.target
