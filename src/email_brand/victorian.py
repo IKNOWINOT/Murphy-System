@@ -21,7 +21,10 @@ _BRASS_DIM  = "#8a7240"
 _PARCHMENT  = "#0c1411"      # dark inked parchment (still Murphy bg)
 _INKWELL    = "#070c0a"      # darker pool for cartouche
 _SURFACE    = "#101a16"
-_RULE       = "rgba(201,165,90,0.22)"  # brass hairline
+_RULE       = "rgba(201,165,90,0.22)"
+_RULE_HEX      = "#8a7240"  # brass, hex-form for bgcolor= attrs
+_RULE_TEAL_HEX = "#00a380"  # teal, hex-form for bgcolor= attrs
+  # brass hairline
 _RULE_TEAL  = "rgba(0,212,170,0.32)"
 _TEXT       = "#e4ebe6"
 _TEXT_DIM   = "#8a9b91"
@@ -267,9 +270,7 @@ def render_victorian_email(
     html_doc = (
         '<!doctype html><html><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width,initial-scale=1">'
-        '<link href="https://fonts.googleapis.com/css2?'
-        'family=Cinzel:wght@500;700&family=EB+Garamond:ital,wght@0,400;0,600;1,400&'
-        'family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">'
+        ''
         f'<title>{_esc(subject or "Murphy")}</title></head>'
         '<body style="margin:0;padding:0;background:#e8eaec;'
         f'font-family:{_SERIF};">'
@@ -316,12 +317,12 @@ def render_victorian_email(
         # Gmail-safe triple-rule: table rows with bgcolor (no <div> height tricks)
         f'<table role="presentation" cellspacing="0" cellpadding="0" '
         f'border="0" width="100%"><tr><td height="1" '
-        f'bgcolor="{_RULE.replace(chr(34),chr(39))}" '
-        f'style="line-height:1px;font-size:0;background:{_RULE};">&nbsp;</td></tr>'
+        f'bgcolor="{_RULE_HEX}" '
+        f'style="line-height:1px;font-size:0;background-color:{_RULE_HEX};height:1px;">&nbsp;</td></tr>'
         f'<tr><td height="2" style="line-height:2px;font-size:0;'
-        'background:transparent;">&nbsp;</td></tr>'
-        f'<tr><td height="1" bgcolor="{_RULE_TEAL.replace(chr(34),chr(39))}" '
-        f'style="line-height:1px;font-size:0;background:{_RULE_TEAL};">&nbsp;</td></tr>'
+        'height:2px;">&nbsp;</td></tr>'
+        f'<tr><td height="1" bgcolor="{_RULE_TEAL_HEX}" '
+        f'style="line-height:1px;font-size:0;background-color:{_RULE_TEAL_HEX};height:1px;">&nbsp;</td></tr>'
         '</table>'
 
         # ── Cartouche header for body ──
