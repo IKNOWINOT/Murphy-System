@@ -185,6 +185,16 @@ def _send_via_postfix(from_addr, to_list, subject, body_text):
             msg['Reply-To'] = from_addr
             msg['Date'] = formatdate(localtime=True)
             msg['Message-ID'] = make_msgid(domain='murphy.systems')
+            # Ship 31ae — Gmail/Yahoo 2024 bulk-sender header compliance
+            try:
+                from src.deliverability_headers import add_deliverability_headers
+                add_deliverability_headers(
+                    msg, from_addr=from_addr,
+                    recipient_email=to_list[0] if to_list else None,
+                    campaign_id='stranger-reply', is_transactional=True,
+                )
+            except Exception:
+                log.exception('Ship 31ae header injection failed (sending anyway)')
             msg.attach(MIMEText(plain, 'plain', 'utf-8'))
             msg.attach(MIMEText(html, 'html', 'utf-8'))
         except Exception:
@@ -196,6 +206,16 @@ def _send_via_postfix(from_addr, to_list, subject, body_text):
             msg['Subject'] = subject
             msg['Date'] = formatdate(localtime=True)
             msg['Message-ID'] = make_msgid(domain='murphy.systems')
+            # Ship 31ae — Gmail/Yahoo 2024 bulk-sender header compliance
+            try:
+                from src.deliverability_headers import add_deliverability_headers
+                add_deliverability_headers(
+                    msg, from_addr=from_addr,
+                    recipient_email=to_list[0] if to_list else None,
+                    campaign_id='stranger-reply', is_transactional=True,
+                )
+            except Exception:
+                log.exception('Ship 31ae header injection failed (sending anyway)')
             msg.set_content(body_text)
 
         with smtplib.SMTP('127.0.0.1', 25, timeout=10) as smtp:
@@ -710,6 +730,16 @@ def init_outbound_routes(app) -> None:
         msg["Subject"] = subject
         msg["Date"] = formatdate(localtime=False)
         msg["Message-ID"] = make_msgid(domain="murphy.systems")
+        # Ship 31ae — bulk-sender header compliance
+        try:
+            from src.deliverability_headers import add_deliverability_headers
+            add_deliverability_headers(
+                msg, from_addr=from_addr or "sales@murphy.systems",
+                recipient_email=to_list[0] if to_list else None,
+                campaign_id='outbound', is_transactional=True,
+            )
+        except Exception:
+            pass
         msg.set_content(body_text)
         
         send_ok = False

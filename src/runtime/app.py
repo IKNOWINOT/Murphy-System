@@ -5122,6 +5122,78 @@ question to <a href="mailto:murphy@murphy.systems">murphy@murphy.systems</a>.</p
                 status_code=400,
             )
 
+    # ── Ship 31ae: /unsubscribe + /u/{token} RFC 8058 endpoints ──
+    @app.post("/unsubscribe", include_in_schema=False)
+    async def murphy_unsubscribe_post(e: str = "", t: str = "", request: Request = None):
+        '''RFC 8058 one-click. Returns 200 immediately.'''
+        import sqlite3, time as _t
+        DB = "/var/lib/murphy-production/entity_graph.db"
+        try:
+            with sqlite3.connect(DB) as c:
+                c.execute('''CREATE TABLE IF NOT EXISTS unsubscribe_registry (
+                    email_addr TEXT PRIMARY KEY, token TEXT,
+                    unsubscribed_at TEXT NOT NULL, source TEXT, user_agent TEXT)''')
+                ua = request.headers.get("user-agent", "")[:200] if request else ""
+                c.execute('''INSERT OR REPLACE INTO unsubscribe_registry
+                    (email_addr, token, unsubscribed_at, source, user_agent)
+                    VALUES (?, ?, ?, ?, ?)''',
+                    (e.lower(), t, _t.strftime("%Y-%m-%dT%H:%M:%SZ"), "one_click", ua))
+        except Exception:
+            pass
+        from fastapi.responses import JSONResponse
+        return JSONResponse({"ok": True, "unsubscribed": e})
+
+    @app.get("/unsubscribe", include_in_schema=False)
+    async def murphy_unsubscribe_get(e: str = "", t: str = ""):
+        '''Browser-fallback unsubscribe with confirmation page.'''
+        import sqlite3, time as _t
+        DB = "/var/lib/murphy-production/entity_graph.db"
+        try:
+            with sqlite3.connect(DB) as c:
+                c.execute('''CREATE TABLE IF NOT EXISTS unsubscribe_registry (
+                    email_addr TEXT PRIMARY KEY, token TEXT,
+                    unsubscribed_at TEXT NOT NULL, source TEXT, user_agent TEXT)''')
+                c.execute('''INSERT OR REPLACE INTO unsubscribe_registry
+                    (email_addr, token, unsubscribed_at, source, user_agent)
+                    VALUES (?, ?, ?, ?, ?)''',
+                    (e.lower(), t, _t.strftime("%Y-%m-%dT%H:%M:%SZ"), "browser_get", ""))
+        except Exception:
+            pass
+        from fastapi.responses import HTMLResponse
+        return HTMLResponse(f'''<!doctype html><html><head><meta charset="utf-8">
+<title>Unsubscribed — Murphy</title>
+<style>body{{font-family:system-ui,-apple-system,sans-serif;background:#111a15;color:#e9eae6;
+display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:24px;}}
+.card{{max-width:480px;background:#1a2520;border:1px solid #00d4aa33;border-radius:12px;
+padding:32px;text-align:center;}} h1{{color:#00d4aa;margin:0 0 12px;}}
+.email{{color:#7fa890;font-family:ui-monospace,monospace;font-size:13px;margin:16px 0;}}
+a{{color:#00d4aa;}}</style></head><body><div class="card">
+<h1>Unsubscribed</h1>
+<p>You won't receive further automated emails from Murphy.</p>
+<div class="email">{e}</div>
+<p style="font-size:13px;color:#7fa890;">If this was a mistake, email
+<a href="mailto:hello@murphy.systems">hello@murphy.systems</a> to restore.</p>
+</div></body></html>''')
+
+    @app.get("/u/{token}", include_in_schema=False)
+    async def murphy_unsub_short(token: str):
+        '''Shortlink that always shows the unsubscribe confirmation.'''
+        from fastapi.responses import HTMLResponse
+        return HTMLResponse(f'''<!doctype html><html><head><meta charset="utf-8">
+<title>Unsubscribe — Murphy</title>
+<style>body{{font-family:system-ui,sans-serif;background:#111a15;color:#e9eae6;
+display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:24px;}}
+.card{{max-width:480px;background:#1a2520;border:1px solid #00d4aa33;border-radius:12px;
+padding:32px;text-align:center;}} a.btn{{display:inline-block;background:#00d4aa;color:#111a15;
+padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:600;margin-top:16px;}}
+</style></head><body><div class="card">
+<h1 style="color:#00d4aa;">Confirm unsubscribe</h1>
+<p>Click below to stop receiving Murphy emails.</p>
+<form method="post" action="/unsubscribe?t={token}">
+<button class="btn" style="border:0;cursor:pointer;font-size:15px;">Unsubscribe me</button>
+</form>
+</div></body></html>''')
+
     # ── Ship 31v: /verify/{token} domain-claim endpoint ──
     @app.get("/verify/{token}", include_in_schema=False)
     async def verify_claim(token: str, request: Request):
