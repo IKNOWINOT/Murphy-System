@@ -90,6 +90,29 @@ def _parse(path: Path) -> dict:
         delivery_mode = "direct"
     
     import json as _json
+    # Ship 31g: extract attachments + role + forward signals
+    attachment_context = None
+    try:
+        from src.attachment_parser import (
+            parse_attachments, detect_forward,
+            extract_role_signals, summarize_attachments,
+        )
+        attachments = parse_attachments(msg)
+        fwd = detect_forward(msg)
+        role = extract_role_signals(from_addr, body_preview)
+        if attachments or fwd["is_forward"] or role["role_class"] != "unknown":
+            attachment_context = _json.dumps({
+                "attachments": [
+                    {k: v for k, v in a.items() if k != "text"}  # metadata only in column
+                    for a in attachments
+                ],
+                "attachment_summary": summarize_attachments(attachments)[:6000],
+                "forward": fwd,
+                "role": role,
+            })
+    except Exception as _ape:
+        attachment_context = _json.dumps({"error": str(_ape)})
+    
     return {
         "from_addr": from_addr,
         "from_domain": from_domain,
@@ -102,6 +125,7 @@ def _parse(path: Path) -> dict:
         "is_internal": 1 if from_domain in INTERNAL_DOMAINS else 0,
         "is_prospect_domain": 1 if from_domain in PROSPECT_DOMAINS else 0,
         "prospect_deal_id": PROSPECT_DOMAINS.get(from_domain),
+        "attachment_context": attachment_context,
     }
 
 def _iter_messages(limit: int | None = None) -> Iterable[tuple[str, Path]]:
@@ -136,12 +160,13 @@ def run(limit: int | None = None) -> dict:
             con.execute(
                 "INSERT INTO inbound_replies (msg_hash, mailbox, from_addr, from_domain, "
                 "to_addr, cc_addrs, delivery_mode, subject, date_header, is_internal, is_prospect_domain, "
-                "prospect_deal_id, body_preview) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                "prospect_deal_id, body_preview, attachment_context) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (h, mb, parsed["from_addr"], parsed["from_domain"],
                  parsed["to_addr"], parsed.get("cc_addrs"), parsed.get("delivery_mode","direct"),
                  parsed["subject"], parsed["date_header"],
                  parsed["is_internal"], parsed["is_prospect_domain"],
-                 parsed["prospect_deal_id"], parsed["body_preview"]),
+                 parsed["prospect_deal_id"], parsed["body_preview"],
+                 parsed.get("attachment_context")),
             )
             stats["inserted"] += 1
             if parsed["is_prospect_domain"]: stats["prospect_replies"] += 1

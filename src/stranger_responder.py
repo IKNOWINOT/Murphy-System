@@ -231,6 +231,86 @@ Content-Type: text/plain; charset=utf-8
 
 
 
+
+
+def _magnify_drill_perspective(subject: str, body: str, principal_addr: str,
+                                attachment_summary: str, role: dict,
+                                forward: dict) -> Optional[Dict]:
+    """Ship 31g: forwarded-message-with-attachment analysis from forwarder's
+    role perspective. The forwarder is asking Murphy to analyze the attached
+    document THROUGH THEIR ROLE LENS.
+    
+    Example: CFO forwards a contract → analyze financial terms, payment
+    schedule, indemnification caps, etc. (the CFO lens).
+    """
+    role_class = role.get("role_class", "unknown")
+    lens = role.get("lens", "general business implications")
+    job_title = role.get("job_title", role_class)
+    inner_from = forward.get("inner_from", "")
+    inner_subject = forward.get("inner_subject", "")
+    
+    prompt = f"""You are Murphy, providing PERSPECTIVE-AWARE analysis. A {job_title} ({principal_addr}) forwarded a document to you and wants your read on it through their lens.
+
+WHO FORWARDED IT:   {principal_addr}
+THEIR ROLE:         {job_title} (class={role_class})
+THEIR LENS (what they care about): {lens}
+
+ORIGINAL SENDER:    {inner_from}
+ORIGINAL SUBJECT:   {inner_subject}
+THEIR ASK (forwarder's body):
+{(body or '')[:1500]}
+
+ATTACHMENT CONTENT (summarized):
+{attachment_summary[:5000]}
+
+Generate a TAILORED agent description specific to analyzing this document FROM THE {role_class.upper()} LENS. Use exactly this format:
+
+WHO: [3 sentences: identity as a {role_class}-perspective analyst for this specific document type, scope of authority, what you will NOT do]
+HOW: [3 sentences: how you analyze a document through the {role_class} lens — what you look for first, what you flag, how you structure findings]  
+WHY: [3 sentences: why {role_class}s typically need this perspective on this document type, what success looks like for {principal_addr}]
+STOP: [3 sentences: confidentiality (do not share inner_from's content back to inner_from), legal/professional boundaries, when to defer to a real expert]
+
+Output ONLY the 4-field block."""
+    return _llm_complete(prompt, model_hint="fast", max_tokens=700)
+
+
+def _generate_perspective_reply(agent_desc: str, subject: str, body: str,
+                                 principal_addr: str, attachment_summary: str,
+                                 role: dict, forward: dict) -> Optional[Dict]:
+    """Generate the perspective-aware analysis reply."""
+    role_class = role.get("role_class", "unknown")
+    lens = role.get("lens", "")
+    job_title = role.get("job_title", "")
+    
+    prompt = f"""You are now this agent:
+
+=== AGENT DESCRIPTION ===
+{agent_desc}
+=== END AGENT DESCRIPTION ===
+
+You are analyzing a forwarded document for {principal_addr} ({job_title}). They want your read FROM THE {role_class.upper()} LENS, specifically: {lens}.
+
+THEIR ASK:
+{(body or '')[:1500]}
+
+ATTACHMENT CONTENT:
+{attachment_summary[:5500]}
+
+Write a SHORT analysis reply (under 250 words) addressed to {principal_addr}. Structure:
+1. Open line: "Murphy automates the rule-bound periodic work you've been doing manually."
+2. ONE sentence acknowledging what you analyzed and from what lens
+3. 3-5 BULLETS — the specific findings ranked by importance to a {role_class}. Each bullet must be CONCRETE and reference an actual fact from the attachment, not generic boilerplate.
+4. ONE sentence on the highest-leverage next step  
+5. Close: "Reply with questions or YES to drill deeper on any of the above. — Murphy (automated reply; reply STOP to opt out)"
+
+CRITICAL:
+- Use specific numbers/terms from the attachment, NOT vague phrases
+- Frame everything through the {role_class} lens — what would a {job_title} actually care about?
+- Do NOT cc the original sender ({forward.get('inner_from', 'unknown')})
+- Do NOT speculate beyond what's in the document"""
+    
+    return _llm_complete(prompt, model_hint="chat", max_tokens=600)
+
 def _magnify_drill_ambient(email_subject: str, email_body: str, principal_addr: str) -> Optional[Dict]:
     """AMBIENT mode: principal CC'd Murphy on a conversation with someone else.
     Murphy must SYNTHESIZE the implicit task without quoting the thread to non-principal.
@@ -307,7 +387,8 @@ def process_stranger_inquiries(limit: int = 5) -> Dict:
     placeholders = ",".join("?" * len(_ALLOWLIST_OWNED))
     rows = conn.execute(f"""
         SELECT id, from_addr, from_domain, subject, body_preview, intent_class,
-               COALESCE(delivery_mode, 'direct') AS delivery_mode, cc_addrs
+               COALESCE(delivery_mode, 'direct') AS delivery_mode, cc_addrs,
+               attachment_context
         FROM inbound_replies
         WHERE intent_class IN ('inquiry')
           AND auto_response_status IS NULL
@@ -394,18 +475,69 @@ def process_stranger_inquiries(limit: int = 5) -> Dict:
 
         principal_addr = from_addr  # the human who composed the email is principal in both modes
 
-        # Branch: ambient (CC'd) gets synthesis flow; direct (To'd) gets request flow.
-        if delivery_mode == "ambient":
-            md = _magnify_drill_ambient(subject, body, principal_addr)
-        else:
-            md = _magnify_drill(subject, body)
+        # Ship 31f: classify category + check for starter agent BEFORE magnify-drill
+        starter_used = False
+        starter_id = None
+        category = {"slug": "unclassified", "label": "unclassified", "vertical": "other"}
+        try:
+            from src.category_learning import classify_category, lookup_starter, log_inquiry
+            category = classify_category(subject, body)
+            starter = lookup_starter(category["slug"]) if category["slug"] not in ("unclassified","unknown") else None
+            if starter:
+                # Bootstrap from starter — skip the cold magnify-drill, use the curated description
+                starter_used = True
+                starter_id = starter["agent_id"]
+                md = {
+                    "text": starter["duties_text"],
+                    "tokens_prompt": 0,
+                    "tokens_completion": 0,
+                    "cost_usd": 0.0,  # starter is free to fetch
+                }
+        except Exception as _cl_e:
+            md = None
+
+        # Ship 31g: PERSPECTIVE-AWARE path when attachments + role are present
+        attachment_ctx = None
+        try:
+            if row["attachment_context"]:
+                attachment_ctx = json.loads(row["attachment_context"])
+        except Exception:
+            attachment_ctx = None
+        
+        use_perspective = (
+            attachment_ctx
+            and (attachment_ctx.get("forward", {}).get("is_forward")
+                 or attachment_ctx.get("attachments"))
+            and attachment_ctx.get("role", {}).get("role_class", "unknown") != "unknown"
+        )
+        
+        # Branch: perspective > ambient > direct
+        if not starter_used:
+            if use_perspective:
+                md = _magnify_drill_perspective(
+                    subject, body, principal_addr,
+                    attachment_ctx.get("attachment_summary", ""),
+                    attachment_ctx["role"],
+                    attachment_ctx.get("forward", {}),
+                )
+            elif delivery_mode == "ambient":
+                md = _magnify_drill_ambient(subject, body, principal_addr)
+            else:
+                md = _magnify_drill(subject, body)
         if not md or len(md.get("text", "")) < 50:
             errors.append({"id": rid, "reason": "magnify_drill_failed", "mode": delivery_mode})
             continue
         agent_desc = md["text"]
         cycle_cost += md["cost_usd"]
 
-        if delivery_mode == "ambient":
+        if use_perspective:
+            rep = _generate_perspective_reply(
+                agent_desc, subject, body, principal_addr,
+                attachment_ctx.get("attachment_summary", ""),
+                attachment_ctx["role"],
+                attachment_ctx.get("forward", {}),
+            )
+        elif delivery_mode == "ambient":
             rep = _generate_ambient_offer(agent_desc, subject, body, principal_addr)
         else:
             rep = _generate_reply(agent_desc, subject, body, from_addr)
@@ -426,6 +558,24 @@ def process_stranger_inquiries(limit: int = 5) -> Dict:
         })
         # PAY GATE: record the reply toward the stranger's quota
         record_reply(from_addr, delivery_mode, total_cost, was_upgrade_offer=False)
+        # Ship 31f: feed every reply into the category demand ledger
+        try:
+            from src.category_learning import log_inquiry as _log_cat
+            _log_cat(
+                category=category,
+                inquiry_id=rid,
+                delivery_mode=delivery_mode,
+                from_addr=from_addr,
+                from_domain=row["from_domain"] or "",
+                subject=subject,
+                agent_desc=agent_desc,
+                cost_usd=total_cost,
+                quality_score=None,  # filled in later by founder review or auto-scorer
+                starter_used=starter_used,
+                starter_id=starter_id,
+            )
+        except Exception:
+            pass  # never block reply path on ledger write failure
 
         if _SHADOW_MODE:
             # Shadow draft via sendmail (founder-direct, fast)
