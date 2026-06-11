@@ -22,7 +22,7 @@ Kill criterion: code without verified production execution = theater.
 | 4 | DLF injection (build_deep_soul) | ✅ | ✅ | ✅ | ✅ | ✅ | **COMPLETE** (Ship 31i.B) |
 | 5 | MAGNIFY-DRILL synthesis | ✅ | ✅ | ✅ | ✅ | ✅ | **COMPLETE** |
 | 6 | GENERATIVE reply (no templates) | ✅ | ✅ | ✅ | ✅ | ✅ | **COMPLETE** (reply text in /os/stranger) |
-| 7 | FOLLOW-UP question generation | 🟡 | ❌ | ❌ | ❌ | ❌ | exists, not email-wired |
+| 7 | FOLLOW-UP question generation | ✅ | ✅ | ✅ | ✅ | ✅ | **COMPLETE** (Ship 31u: appended between reply & ad, role-aware, tracked) |
 | 8 | EMAIL GRAPHICS / multipart MIME | ✅ | ✅ | ✅ | ✅ | ✅ | **COMPLETE** (Ship 31t: branded HTML + plain fallback, live-tested to founder inbox) |
 | 9 | AD INJECTION (contextual) | ✅ | ✅ | ✅ | ✅ | ✅ | **COMPLETE** (Ship 31m, in-house inventory) |
 | 10 | EMAIL VERIFICATION → unlock | ✅ | ✅ | 🟡 | ❌ | ❌ | endpoint only |

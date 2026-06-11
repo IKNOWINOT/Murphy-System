@@ -391,6 +391,24 @@ Write a SHORT email reply (under 200 words) that:
 Do NOT make up specific commitments about pricing, timelines, or features. Be concrete about what Murphy CAN do, honest about what it CAN'T."""
     out = _llm_complete(prompt, model_hint="chat", max_tokens=400, soul_system=soul)
     if out and out.get("text"):
+        # Ship 31u: append follow-up question BEFORE ad injection
+        # (so the question sits between reply body and ad block)
+        try:
+            from src.follow_up_generator import maybe_append_followup
+            new_text, fu_meta = maybe_append_followup(
+                out["text"], role_hint=role_hint, vertical=vertical,
+                inbound_subject=email_subject, inbound_body=email_body,
+                from_addr=from_addr,
+            )
+            out["text"] = new_text
+            out["followup_meta"] = fu_meta
+            if fu_meta.get("appended"):
+                logger.info("_generate_reply: followup appended role=%s q=%r",
+                            role_hint, (fu_meta.get("question") or "")[:80])
+        except Exception as fu_exc:
+            logger.warning("_generate_reply: followup failed: %s", fu_exc)
+            out["followup_meta"] = {"appended": False, "reason": "exception"}
+
         new_text, ad_meta = _inject_contextual_ad(out["text"], role_hint, vertical,
                                                    email_subject, email_body, from_addr, tier="free")
         out["text"] = new_text

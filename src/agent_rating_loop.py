@@ -171,10 +171,8 @@ def _llm_judge(reply_text: str, subject: str, body: str,
     Falls back to heuristic scoring if LLM is unavailable.
     """
     try:
-        from together import Together
-        api_key = os.environ.get("TOGETHER_API_KEY")
-        if not api_key:
-            return _heuristic_score(reply_text, body)
+        # Use production LLM helper
+        from src.stranger_responder import _llm_complete
 
         prompt = (
             "You are an impartial quality judge for an AI assistant's email replies.\n\n"
@@ -187,15 +185,10 @@ def _llm_judge(reply_text: str, subject: str, body: str,
             "{\"relevance\": 0.X, \"actionability\": 0.X, \"role_fit\": 0.X, "
             "\"clarity\": 0.X, \"overall\": 0.X, \"notes\": \"one line\"}"
         )
-        client = Together(api_key=api_key)
-        r = client.chat.completions.create(
-            model="meta-llama/Llama-3.3-70B-Instruct-Turbo",
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=200,
-            temperature=0.1,
-            timeout=LLM_JUDGE_TIMEOUT_S,
-        )
-        raw = r.choices[0].message.content.strip()
+        out = _llm_complete(prompt, model_hint="fast", max_tokens=200)
+        if not out or not out.get("text"):
+            return _heuristic_score(reply_text, body)
+        raw = (out.get("text") or "").strip()
         # Extract JSON from response
         import re
         m = re.search(r"\{[^}]+\}", raw, re.DOTALL)
