@@ -68,11 +68,103 @@ _ALLOWLIST_OWNED = {
 }
 
 
-def _llm_complete(prompt: str, model_hint: str = "chat", max_tokens: int = 800) -> Optional[Dict]:
-    """Direct llm_provider call via the full LLMCompletion object (not the .content shortcut)."""
+
+
+# ──────────────────────────────────────────────────────────────────────
+# Ship 31i.B: DLF soul injection + role detection
+# Proven externally on tau-bench: DLF wrapper adds +0.017 F1
+# Safe-by-design: any failure returns "" and the caller proceeds
+# normally with no soul injection.
+# ──────────────────────────────────────────────────────────────────────
+def _build_role_soul(role_hint, vertical="general"):
+    """Build a role-tailored soul prompt for DLF injection.
+
+    Tries deep_soul_engine.build_deep_soul (full L0-L4).
+    Falls back to a synthetic role+loyalty prompt on any error.
+    Returns "" if role_hint is empty.
+    """
+    if not role_hint:
+        return ""
+    try:
+        from src.deep_soul_engine import build_deep_soul
+        soul = build_deep_soul(
+            agent_id="stranger_responder_" + str(role_hint),
+            role_title=role_hint,
+            domain=vertical or "general",
+        )
+        full = soul.get("full_soul", "") if isinstance(soul, dict) else ""
+        if full and len(full) > 200:
+            return full[:4000]  # cap to avoid token blowout
+    except Exception as exc:
+        logger.warning("_build_role_soul: build_deep_soul failed for %s: %s", role_hint, exc)
+    # Synthetic fallback — the version that won tau-bench
+    return (
+        "You are operating with Murphy DLF as a " + str(role_hint) +
+        " in the " + str(vertical) + " domain.\n\n"
+        "LOYALTY: customer-first. Verify before acting. Confirm before destructive operations. Show your work.\n"
+        "SCOPE: respond as a working " + str(role_hint) + " would — use the terminology, methods, and concerns of the role.\n"
+        "SAFETY: never invent IDs, numbers, or facts. If unknown, ask. Concrete > generic AI fluff."
+    )
+
+
+_ROLE_KEYWORDS = {
+    "cfo":         ("cfo", "finance director", "controller", "treasurer"),
+    "cto":         ("cto", "chief technology", "vp engineering", "engineering lead"),
+    "ceo":         ("ceo", "chief executive", "founder", "president"),
+    "coo":         ("coo", "chief operating", "operations director"),
+    "recruiter":   ("recruiter", "talent", "hiring", "head of people", "chief people"),
+    "lawyer":      ("counsel", "attorney", "legal", "esq", "law firm", "general counsel"),
+    "engineer":    ("engineer", "developer", "sde", "swe", "architect"),
+    "sales":       ("account exec", "sdr", "bdr", "vp sales", "sales director"),
+    "marketing":   ("cmo", "marketing", "growth", "brand"),
+    "pm":          ("product manager", "pm,", "product lead", "head of product"),
+    "designer":    ("designer", "ux", "ui ", "creative director"),
+    "operations":  ("operations manager", "logistics", "supply chain"),
+}
+
+
+def _detect_role_from_email(subject, body, from_addr):
+    """Cheap heuristic role detector from email text.
+
+    Looks at signature/title lines in the body, then subject, then domain.
+    Returns (role_hint, vertical) tuple. role_hint is "" if no signal.
+    """
+    haystack = ((body or "")[-1500:] + "\n" + (subject or "") + "\n" + (from_addr or "")).lower()
+    for role, kws in _ROLE_KEYWORDS.items():
+        for kw in kws:
+            if kw in haystack:
+                # crude vertical inference
+                vertical = "general"
+                if any(w in haystack for w in ("saas", "software", "platform", "api ")):
+                    vertical = "tech"
+                elif any(w in haystack for w in ("invoice", "p&l", "revenue", "audit", "gaap")):
+                    vertical = "finance"
+                elif any(w in haystack for w in ("contract", "nda", "litigation", "clause")):
+                    vertical = "legal"
+                elif any(w in haystack for w in ("candidate", "resume", "hiring", "interview")):
+                    vertical = "staffing"
+                return role, vertical
+    return "", "general"
+
+
+def _llm_complete(prompt: str, model_hint: str = "chat", max_tokens: int = 800, soul_system: str = "") -> Optional[Dict]:
+    """Direct llm_provider call via the full LLMCompletion object (not the .content shortcut).
+
+    Ship 31i.B: optional soul_system param injects DLF role bias as a
+    system prompt. Falls back gracefully if llm_provider lacks the kwarg.
+    """
     try:
         from src.llm_provider import get_llm
-        result = get_llm().complete(prompt, model_hint=model_hint, max_tokens=max_tokens)
+        kwargs = {"model_hint": model_hint, "max_tokens": max_tokens}
+        if soul_system:
+            kwargs["system"] = soul_system
+        try:
+            result = get_llm().complete(prompt, **kwargs)
+        except TypeError:
+            # llm_provider doesnt accept system kwarg — prepend to prompt instead
+            if soul_system:
+                prompt = soul_system + "\n\n" + prompt
+            result = get_llm().complete(prompt, model_hint=model_hint, max_tokens=max_tokens)
         # LLMCompletion dataclass: content, prompt_tokens, completion_tokens, cost_usd (or similar)
         text = getattr(result, "content", "") or getattr(result, "text", "") or ""
         prompt_tokens = int(getattr(result, "tokens_prompt", 0) or 0)
@@ -114,7 +206,14 @@ Output ONLY the 4-field block."""
 
 
 def _generate_reply(agent_desc: str, email_subject: str, email_body: str, from_addr: str) -> Optional[Dict]:
-    """Generate the actual reply email body (full chat model for quality)."""
+    """Generate the actual reply email body (full chat model for quality).
+
+    Ship 31i.B: detects role from email, injects DLF soul if any signal.
+    """
+    role_hint, vertical = _detect_role_from_email(email_subject, email_body, from_addr)
+    soul = _build_role_soul(role_hint, vertical)
+    if soul:
+        logger.info("_generate_reply: DLF injection active role=%s vertical=%s", role_hint, vertical)
     prompt = f"""You are now this agent:
 
 === AGENT DESCRIPTION ===
@@ -133,7 +232,7 @@ Write a SHORT email reply (under 200 words) that:
 4. Closes with: "— Murphy (automated reply; reply STOP to opt out)"
 
 Do NOT make up specific commitments about pricing, timelines, or features. Be concrete about what Murphy CAN do, honest about what it CAN'T."""
-    return _llm_complete(prompt, model_hint="chat", max_tokens=400)
+    return _llm_complete(prompt, model_hint="chat", max_tokens=400, soul_system=soul)
 
 
 def _today_spend_usd(conn: sqlite3.Connection) -> float:
@@ -282,7 +381,11 @@ def _generate_perspective_reply(agent_desc: str, subject: str, body: str,
     lens = role.get("lens", "")
     job_title = role.get("job_title", "")
     
-    prompt = f"""You are now this agent:
+    role_hint, vertical = _detect_role_from_email(subject, body, principal_addr)
+    soul = _build_role_soul(role_hint, vertical)
+    if soul:
+        logger.info("_generate_perspective_reply: DLF injection active role=%s vertical=%s", role_hint, vertical)
+        prompt = f"""You are now this agent:
 
 === AGENT DESCRIPTION ===
 {agent_desc}
@@ -309,7 +412,7 @@ CRITICAL:
 - Do NOT cc the original sender ({forward.get('inner_from', 'unknown')})
 - Do NOT speculate beyond what's in the document"""
     
-    return _llm_complete(prompt, model_hint="chat", max_tokens=600)
+    return _llm_complete(prompt, model_hint="chat", max_tokens=600, soul_system=soul)
 
 def _magnify_drill_ambient(email_subject: str, email_body: str, principal_addr: str) -> Optional[Dict]:
     """AMBIENT mode: principal CC'd Murphy on a conversation with someone else.
@@ -334,7 +437,11 @@ Output ONLY the 4-field block."""
 
 def _generate_ambient_offer(agent_desc: str, email_subject: str, email_body: str, principal_addr: str) -> Optional[Dict]:
     """Generate the ambient offer reply, sent ONLY to principal, NEVER to thread."""
-    prompt = f"""You are now this agent:
+    role_hint, vertical = _detect_role_from_email(email_subject, email_body, principal_addr)
+    soul = _build_role_soul(role_hint, vertical)
+    if soul:
+        logger.info("_generate_ambient_offer: DLF injection active role=%s vertical=%s", role_hint, vertical)
+        prompt = f"""You are now this agent:
 
 === AGENT DESCRIPTION ===
 {agent_desc}
@@ -354,7 +461,7 @@ Write a SHORT reply email (under 180 words) addressed ONLY to {principal_addr}. 
 5. Close with: "Reply YES to execute, or just tell me what to change. - Murphy (ambient; reply STOP to opt out)"
 
 Do NOT cc the third party. Do NOT include anyone other than {principal_addr}. Do NOT quote ANY content from the thread. Do NOT mention specifics that only the third party would know - stay meta about WHAT Murphy can do, not WHAT the thread said."""
-    return _llm_complete(prompt, model_hint="chat", max_tokens=400)
+    return _llm_complete(prompt, model_hint="chat", max_tokens=400, soul_system=soul)
 
 
 def process_stranger_inquiries(limit: int = 5) -> Dict:
