@@ -19,7 +19,7 @@ Kill criterion: code without verified production execution = theater.
 | 1 | INBOUND email (postfix + intake) | ✅ | ✅ | ✅ | ✅ | 🟡 | FUNCTIONAL |
 | 2 | CLASSIFY direct vs ambient | ✅ | ✅ | ✅ | ✅ | ✅ | **COMPLETE** |
 | 3 | PAY GATE / quota check | ✅ | ✅ | ✅ | ✅ | 🟡 | FUNCTIONAL |
-| 4 | DLF injection (build_deep_soul) | ✅ | ❌ | ✅ | ❌ | ❌ | ⚠ THEATER for email arc |
+| 4 | DLF injection (build_deep_soul) | ✅ | ✅ | ✅ | ✅ | ✅ | **COMPLETE** (Ship 31i.B) |
 | 5 | MAGNIFY-DRILL synthesis | ✅ | ✅ | ✅ | ✅ | ✅ | **COMPLETE** |
 | 6 | GENERATIVE reply (no templates) | ✅ | ✅ | ✅ | ✅ | 🟡 | FUNCTIONAL |
 | 7 | FOLLOW-UP question generation | 🟡 | ❌ | ❌ | ❌ | ❌ | exists, not email-wired |
