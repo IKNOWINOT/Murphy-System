@@ -166,11 +166,13 @@ def _structure_answer_html(raw: str) -> str:
              'font-weight:600;">\\1</span>'),
             esc,
         )
+        # Gmail-safe paragraph: table row with explicit padding cell
         out.append(
-            f'<p style="margin:0 0 18px;line-height:1.85;color:{_TEXT_INK};'
-            f'font-family:{_SERIF};font-size:16px;'
-            'text-align:justify;hyphens:auto;">'
-            + esc + '</p>'
+            f'<table role="presentation" cellspacing="0" cellpadding="0" '
+            f'border="0" width="100%" style="border-collapse:collapse;">'
+            f'<tr><td style="padding:0 0 18px;line-height:1.7;color:{_TEXT_INK};'
+            f'font-family:{_SERIF};font-size:16px;text-align:left;">'
+            + esc + '</td></tr></table>'
         )
     return "\n".join(out)
 
@@ -311,12 +313,16 @@ def render_victorian_email(
         + '</td></tr></table>'
 
         # Hairline brass rule
-        f'<div style="height:1px;background:{_RULE};line-height:1px;'
-        'font-size:0;">&nbsp;</div>'
-        f'<div style="height:2px;background:transparent;line-height:1px;'
-        'font-size:0;">&nbsp;</div>'
-        f'<div style="height:1px;background:{_RULE_TEAL};line-height:1px;'
-        'font-size:0;">&nbsp;</div>'
+        # Gmail-safe triple-rule: table rows with bgcolor (no <div> height tricks)
+        f'<table role="presentation" cellspacing="0" cellpadding="0" '
+        f'border="0" width="100%"><tr><td height="1" '
+        f'bgcolor="{_RULE.replace(chr(34),chr(39))}" '
+        f'style="line-height:1px;font-size:0;background:{_RULE};">&nbsp;</td></tr>'
+        f'<tr><td height="2" style="line-height:2px;font-size:0;'
+        'background:transparent;">&nbsp;</td></tr>'
+        f'<tr><td height="1" bgcolor="{_RULE_TEAL.replace(chr(34),chr(39))}" '
+        f'style="line-height:1px;font-size:0;background:{_RULE_TEAL};">&nbsp;</td></tr>'
+        '</table>'
 
         # ── Cartouche header for body ──
         f'<div style="background:{_PARCHMENT};padding:24px 36px 0;">'
@@ -330,7 +336,7 @@ def render_victorian_email(
         '</div>'
 
         # ── ANSWER BODY ──
-        f'<div style="background:{_PARCHMENT};padding:0 36px 8px;">'
+        f'<div style="background:{_PARCHMENT};padding:8px 36px 16px;">'
         + answer_html +
         '</div>'
 
