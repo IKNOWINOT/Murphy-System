@@ -21,11 +21,10 @@ _BRASS_DIM  = "#8a7240"
 _PARCHMENT  = "#0c1411"      # dark inked parchment (still Murphy bg)
 _INKWELL    = "#070c0a"      # darker pool for cartouche
 _SURFACE    = "#101a16"
-_RULE       = "rgba(201,165,90,0.22)"
-_RULE_HEX      = "#8a7240"  # brass, hex-form for bgcolor= attrs
-_RULE_TEAL_HEX = "#00a380"  # teal, hex-form for bgcolor= attrs
-  # brass hairline
+_RULE       = "rgba(201,165,90,0.22)"  # brass hairline
 _RULE_TEAL  = "rgba(0,212,170,0.32)"
+_RULE_HEX      = "#8a7240"
+_RULE_TEAL_HEX = "#00a380"
 _TEXT       = "#e4ebe6"
 _TEXT_DIM   = "#8a9b91"
 _TEXT_INK   = "#cfd6d0"
@@ -169,7 +168,6 @@ def _structure_answer_html(raw: str) -> str:
              'font-weight:600;">\\1</span>'),
             esc,
         )
-        # Gmail-safe paragraph: table row with explicit padding cell
         out.append(
             f'<table role="presentation" cellspacing="0" cellpadding="0" '
             f'border="0" width="100%" style="border-collapse:collapse;">'
@@ -271,6 +269,8 @@ def render_victorian_email(
         '<!doctype html><html><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width,initial-scale=1">'
         ''
+        'family=Cinzel:wght@500;700&family=EB+Garamond:ital,wght@0,400;0,600;1,400&'
+        'family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">'
         f'<title>{_esc(subject or "Murphy")}</title></head>'
         '<body style="margin:0;padding:0;background:#e8eaec;'
         f'font-family:{_SERIF};">'
@@ -313,14 +313,12 @@ def render_victorian_email(
         + (f'<div style="margin-top:14px;">{badge}</div>' if badge else '')
         + '</td></tr></table>'
 
-        # Hairline brass rule
-        # Gmail-safe triple-rule: table rows with bgcolor (no <div> height tricks)
-        f'<table role="presentation" cellspacing="0" cellpadding="0" '
-        f'border="0" width="100%"><tr><td height="1" '
-        f'bgcolor="{_RULE_HEX}" '
+        # Hairline brass rule — table rows w/ hex bgcolor (Gmail-safe)
+        '<table role="presentation" cellspacing="0" cellpadding="0" '
+        'border="0" width="100%">'
+        f'<tr><td height="1" bgcolor="{_RULE_HEX}" '
         f'style="line-height:1px;font-size:0;background-color:{_RULE_HEX};height:1px;">&nbsp;</td></tr>'
-        f'<tr><td height="2" style="line-height:2px;font-size:0;'
-        'height:2px;">&nbsp;</td></tr>'
+        '<tr><td height="2" style="line-height:2px;font-size:0;height:2px;">&nbsp;</td></tr>'
         f'<tr><td height="1" bgcolor="{_RULE_TEAL_HEX}" '
         f'style="line-height:1px;font-size:0;background-color:{_RULE_TEAL_HEX};height:1px;">&nbsp;</td></tr>'
         '</table>'
@@ -341,15 +339,17 @@ def render_victorian_email(
         + answer_html +
         '</div>'
 
-        # ── FOLLOW-UP ──
-        f'<div style="background:{_PARCHMENT};padding:0 36px;">'
-        + follow_block +
-        '</div>'
-
-        # ── SPONSOR ──
-        f'<div style="background:{_PARCHMENT};padding:0 36px 12px;">'
-        + sponsor_block +
-        '</div>'
+        # ── FOLLOW-UP + SPONSOR (only when present, no empty divs) ──
+        + (
+            f'<div style="background:{_PARCHMENT};padding:0 36px 8px;">'
+            + follow_block + '</div>'
+            if follow_block else ''
+        )
+        + (
+            f'<div style="background:{_PARCHMENT};padding:0 36px 12px;">'
+            + sponsor_block + '</div>'
+            if sponsor_block else ''
+        )
 
         # Hairline brass rule above footer
         f'<div style="background:{_PARCHMENT};padding:16px 24px 0;">'
