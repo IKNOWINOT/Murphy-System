@@ -1,0 +1,114 @@
+[
+  {
+    "id": "tau-001",
+    "domain": "retail",
+    "turns": [
+      {
+        "role": "user",
+        "content": "I need to return my order #12345."
+      },
+      {
+        "role": "agent",
+        "content": "I'll look up your order."
+      },
+      {
+        "role": "user",
+        "content": "The item was defective."
+      }
+    ],
+    "expected_action": "initiate_return",
+    "requires_hitl": true
+  },
+  {
+    "id": "tau-002",
+    "domain": "airline",
+    "turns": [
+      {
+        "role": "user",
+        "content": "I want to change my flight from NYC to LA."
+      },
+      {
+        "role": "agent",
+        "content": "When would you like to travel?"
+      },
+      {
+        "role": "user",
+        "content": "Next Monday, morning preferred."
+      },
+      {
+        "role": "agent",
+        "content": "I found available flights."
+      },
+      {
+        "role": "user",
+        "content": "Book the 9am flight please."
+      }
+    ],
+    "expected_action": "book_flight",
+    "requires_hitl": false
+  },
+  {
+    "id": "tau-003",
+    "domain": "finance",
+    "turns": [
+      {
+        "role": "user",
+        "content": "Transfer $5000 to account 987654."
+      },
+      {
+        "role": "agent",
+        "content": "I need to verify your identity first."
+      },
+      {
+        "role": "user",
+        "content": "My PIN is 1234."
+      }
+    ],
+    "expected_action": "initiate_transfer",
+    "requires_hitl": true
+  },
+  {
+    "id": "tau-004",
+    "domain": "it_support",
+    "turns": [
+      {
+        "role": "user",
+        "content": "My laptop won't connect to VPN."
+      },
+      {
+        "role": "agent",
+        "content": "Have you tried restarting the VPN client?"
+      },
+      {
+        "role": "user",
+        "content": "Yes, still not working."
+      },
+      {
+        "role": "agent",
+        "content": "Let me check your network configuration."
+      }
+    ],
+    "expected_action": "escalate_ticket",
+    "requires_hitl": false
+  },
+  {
+    "id": "tau-005",
+    "domain": "hr",
+    "turns": [
+      {
+        "role": "user",
+        "content": "I want to request 5 days of PTO starting Monday."
+      },
+      {
+        "role": "agent",
+        "content": "I'll check your balance and availability."
+      },
+      {
+        "role": "user",
+        "content": "Please submit the request."
+      }
+    ],
+    "expected_action": "submit_pto_request",
+    "requires_hitl": true
+  }
+]
