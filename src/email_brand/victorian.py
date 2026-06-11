@@ -223,7 +223,7 @@ def render_victorian_email(
             f'color:{_BRASS};letter-spacing:.22em;text-transform:uppercase;'
             'margin-bottom:8px;">'
             f'<span style="color:{_TEAL};">&#10070;</span> '
-            'Inquiry of the House '
+            'Follow-up '
             f'<span style="color:{_TEAL};">&#10070;</span>'
             '</div>'
             f'<div style="color:{_TEXT};font-family:{_SERIF};'
@@ -246,7 +246,7 @@ def render_victorian_email(
             f'color:{_BRASS_DIM};font-weight:700;'
             'letter-spacing:.22em;text-transform:uppercase;'
             'margin-bottom:8px;">'
-            'Patronage &middot; Sponsored Notice'
+            'Sponsored'
             '</div>'
             f'<a href="{_esc(sponsor["url"])}" '
             f'style="color:{_TEAL};text-decoration:none;'
@@ -299,7 +299,7 @@ def render_victorian_email(
                 f'<div style="font-family:{_DISPLAY};font-size:10px;'
                 f'color:{_TEAL};font-weight:700;letter-spacing:.22em;'
                 'text-transform:uppercase;margin-bottom:8px;">'
-                'Bureau Membership'
+                'Free Account'
                 '</div>'
                 f'<div style="font-family:{_SERIF};font-size:15px;'
                 f'color:{_TEXT_INK};font-weight:600;line-height:1.4;'
@@ -368,7 +368,7 @@ def render_victorian_email(
         f'<div style="font-family:{_SERIF};color:{_BRASS};'
         'font-style:italic;font-size:13px;margin-top:6px;'
         'letter-spacing:.04em;">'
-        '&mdash; Bureau of Autonomous Operations &mdash;'
+        'AI agents that run your business'
         '</div>'
         + (f'<div style="margin-top:14px;">{badge}</div>' if badge else '')
         + '</td></tr></table>'
@@ -424,16 +424,16 @@ def render_victorian_email(
         'margin-bottom:8px;">'
         '<a href="https://murphy.systems/" '
         f'style="color:{_TEAL};text-decoration:none;">murphy.systems</a> '
-        f'<span style="color:{_BRASS};">&middot;</span> Inoni LLC, Proprietors'
+        ''
         '</div>'
         '<div style="font-style:italic;margin-top:4px;">'
-        'An automated despatch. Verify all measurements before acting upon '
-        'them. Murphy is an autonomous intelligence and may err.'
+        'An automated message from Murphy. Verify details before acting on '
+        'them. Murphy is an autonomous AI and may make mistakes.'
         '</div>'
         '<div style="margin-top:10px;">'
         '<a href="mailto:murphy@murphy.systems?subject=STOP" '
         f'style="color:{_BRASS_DIM};text-decoration:underline;font-size:11px;">'
-        'beg leave to discontinue these despatches'
+        'unsubscribe'
         '</a>'
         '</div>'
         '</td></tr></table>'
@@ -443,34 +443,34 @@ def render_victorian_email(
         f'<div style="max-width:660px;margin:14px auto 0;text-align:center;'
         f'color:#7a8088;font-size:10px;letter-spacing:.18em;'
         f'font-family:{_DISPLAY};text-transform:uppercase;">'
-        f'Despatch No. {seal_number}'
+        f'Ref. {seal_number}'
         '</div>'
         '</td></tr></table>'
         '</body></html>'
     )
 
-    plain_lines = ["MURPHY — Bureau of Autonomous Operations"]
+    plain_lines = ["MURPHY", "AI agents that run your business"]
     if role_label:
         plain_lines.append(f"[{role_label}]")
-    plain_lines.append(f"Despatch No. {seal_number}")
+    plain_lines.append(f"Ref. {seal_number}")
     plain_lines.append("═" * 60)
     plain_lines.append("")
     plain_lines.append((answer or "").strip())
     plain_lines.append("")
     if follow_up:
-        plain_lines.append("◆ Inquiry of the House:")
+        plain_lines.append("Follow-up:")
         plain_lines.append(f'  "{follow_up}"')
         plain_lines.append("")
     if sponsor and sponsor.get("url"):
-        plain_lines.append(f"Patronage — Sponsored Notice")
+        plain_lines.append(f"Sponsored")
         plain_lines.append(f"  {sponsor.get('title','')}")
         if sponsor.get("blurb"):
             plain_lines.append(f"  {sponsor['blurb']}")
         plain_lines.append(f"  {sponsor['url']}")
         plain_lines.append("")
     plain_lines.append("─" * 60)
-    plain_lines.append("murphy.systems · Inoni LLC, Proprietors")
-    plain_lines.append("An automated despatch. Verify all measurements.")
-    plain_lines.append("Reply STOP to beg leave to discontinue.")
+    plain_lines.append("murphy.systems")
+    plain_lines.append("An automated message from Murphy. Verify details before acting on them.")
+    plain_lines.append("Reply STOP to unsubscribe.")
     plain = "\n".join(plain_lines)
     return html_doc, plain
