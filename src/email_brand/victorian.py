@@ -23,8 +23,6 @@ _INKWELL    = "#070c0a"      # darker pool for cartouche
 _SURFACE    = "#101a16"
 _RULE       = "rgba(201,165,90,0.22)"  # brass hairline
 _RULE_TEAL  = "rgba(0,212,170,0.32)"
-_RULE_HEX      = "#8a7240"
-_RULE_TEAL_HEX = "#00a380"
 _TEXT       = "#e4ebe6"
 _TEXT_DIM   = "#8a9b91"
 _TEXT_INK   = "#cfd6d0"
@@ -169,11 +167,10 @@ def _structure_answer_html(raw: str) -> str:
             esc,
         )
         out.append(
-            f'<table role="presentation" cellspacing="0" cellpadding="0" '
-            f'border="0" width="100%" style="border-collapse:collapse;">'
-            f'<tr><td style="padding:0 0 18px;line-height:1.7;color:{_TEXT_INK};'
-            f'font-family:{_SERIF};font-size:16px;text-align:left;">'
-            + esc + '</td></tr></table>'
+            f'<p style="margin:0 0 18px;line-height:1.85;color:{_TEXT_INK};'
+            f'font-family:{_SERIF};font-size:16px;'
+            'text-align:justify;hyphens:auto;">'
+            + esc + '</p>'
         )
     return "\n".join(out)
 
@@ -268,7 +265,7 @@ def render_victorian_email(
     html_doc = (
         '<!doctype html><html><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width,initial-scale=1">'
-        ''
+        '<link href="https://fonts.googleapis.com/css2?'
         'family=Cinzel:wght@500;700&family=EB+Garamond:ital,wght@0,400;0,600;1,400&'
         'family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">'
         f'<title>{_esc(subject or "Murphy")}</title></head>'
@@ -313,15 +310,13 @@ def render_victorian_email(
         + (f'<div style="margin-top:14px;">{badge}</div>' if badge else '')
         + '</td></tr></table>'
 
-        # Hairline brass rule — table rows w/ hex bgcolor (Gmail-safe)
-        '<table role="presentation" cellspacing="0" cellpadding="0" '
-        'border="0" width="100%">'
-        f'<tr><td height="1" bgcolor="{_RULE_HEX}" '
-        f'style="line-height:1px;font-size:0;background-color:{_RULE_HEX};height:1px;">&nbsp;</td></tr>'
-        '<tr><td height="2" style="line-height:2px;font-size:0;height:2px;">&nbsp;</td></tr>'
-        f'<tr><td height="1" bgcolor="{_RULE_TEAL_HEX}" '
-        f'style="line-height:1px;font-size:0;background-color:{_RULE_TEAL_HEX};height:1px;">&nbsp;</td></tr>'
-        '</table>'
+        # Hairline brass rule
+        f'<div style="height:1px;background:{_RULE};line-height:1px;'
+        'font-size:0;">&nbsp;</div>'
+        f'<div style="height:2px;background:transparent;line-height:1px;'
+        'font-size:0;">&nbsp;</div>'
+        f'<div style="height:1px;background:{_RULE_TEAL};line-height:1px;'
+        'font-size:0;">&nbsp;</div>'
 
         # ── Cartouche header for body ──
         f'<div style="background:{_PARCHMENT};padding:24px 36px 0;">'
@@ -335,21 +330,19 @@ def render_victorian_email(
         '</div>'
 
         # ── ANSWER BODY ──
-        f'<div style="background:{_PARCHMENT};padding:8px 36px 16px;">'
+        f'<div style="background:{_PARCHMENT};padding:0 36px 8px;">'
         + answer_html +
         '</div>'
 
-        # ── FOLLOW-UP + SPONSOR (only when present, no empty divs) ──
-        + (
-            f'<div style="background:{_PARCHMENT};padding:0 36px 8px;">'
-            + follow_block + '</div>'
-            if follow_block else ''
-        )
-        + (
-            f'<div style="background:{_PARCHMENT};padding:0 36px 12px;">'
-            + sponsor_block + '</div>'
-            if sponsor_block else ''
-        )
+        # ── FOLLOW-UP ──
+        f'<div style="background:{_PARCHMENT};padding:0 36px;">'
+        + follow_block +
+        '</div>'
+
+        # ── SPONSOR ──
+        f'<div style="background:{_PARCHMENT};padding:0 36px 12px;">'
+        + sponsor_block +
+        '</div>'
 
         # Hairline brass rule above footer
         f'<div style="background:{_PARCHMENT};padding:16px 24px 0;">'
