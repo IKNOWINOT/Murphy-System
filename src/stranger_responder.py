@@ -138,6 +138,18 @@ _ROLE_KEYWORDS = {
                     "chief product officer", "cpo", "director of product"),
     "designer":    ("designer", "ux designer", "ui designer", "product designer",
                     "creative director", "head of design", "director of design"),
+    "mep_engineer": ("mep", "mechanical engineer", "electrical engineer",
+                     "plumbing engineer", "hvac engineer", "mep coordinator",
+                     "mep designer", "professional engineer",
+                     "stamped drawing", "engineer of record"),
+    "fde":          ("forward deployed engineer", "fde,",
+                     "automation engineer", "solutions engineer",
+                     "implementation engineer", "deployment engineer",
+                     "rpa developer", "process automation"),
+    "risk_lawyer":  ("risk counsel", "risk officer", "chief risk officer",
+                     "compliance counsel", "regulatory counsel",
+                     "risk management", "risk assessment", "enterprise risk",
+                     "risk attorney"),
     "operations":  ("operations manager", "ops lead", "head of ops",
                     "logistics manager", "supply chain", "supply chain director"),
 }
@@ -148,6 +160,7 @@ _ROLE_DEFAULT_VERTICAL = {
     "cto": "tech", "engineer": "tech", "pm": "tech", "designer": "tech",
     "recruiter": "staffing", "lawyer": "legal",
     "sales": "general", "marketing": "general", "operations": "general",
+    "mep_engineer": "construction", "fde": "automation", "risk_lawyer": "risk",
 }
 
 
@@ -158,9 +171,21 @@ def _detect_role_from_email(subject, body, from_addr):
     Returns (role_hint, vertical) tuple. role_hint is "" if no signal.
     """
     haystack = ((body or "")[-1500:] + "\n" + (subject or "") + "\n" + (from_addr or "")).lower()
+    # Score every role: pick the role whose matched keyword is LONGEST
+    # (i.e. most specific). "mep coordinator" beats "operations director"
+    # which only matched on "coordinator" substring.
+    best_role = None
+    best_kw = ""
     for role, kws in _ROLE_KEYWORDS.items():
         for kw in kws:
-            if kw in haystack:
+            if kw in haystack and len(kw) > len(best_kw):
+                best_role = role
+                best_kw = kw
+    if best_role:
+        role = best_role
+        kw = best_kw
+        for _ in [None]:  # preserve original control flow / variable names
+            if True:
                 # Vertical follows ROLE first (CFO is always finance unless STRONG override)
                 vertical = _ROLE_DEFAULT_VERTICAL.get(role, "general")
                 # STRONG content overrides
@@ -249,6 +274,50 @@ def _inject_contextual_ad(reply_text, role_hint, vertical, subject, body, to_add
     except Exception as exc:
         logger.warning("_inject_contextual_ad failed: %s", exc)
         return reply_text, None
+
+
+def _should_send_live(from_addr, from_domain):
+    """Per-recipient launch gate: True = real reply, False = shadow to founder."""
+    try:
+        from src.launch_gate import is_allowlisted, is_unsubscribed
+        if is_unsubscribed(from_addr):
+            return False, "unsubscribed"
+        if is_allowlisted(from_domain):
+            return True, "allowlisted_live"
+        return False, "not_allowlisted_shadow"
+    except Exception as exc:
+        logger.warning("_should_send_live failed: " + str(exc))
+        return False, "gate_error_shadow"
+
+
+def _append_compliance_footer(body, reply_to_addr):
+    try:
+        from src.launch_gate import compliance_footer
+        return body + compliance_footer(reply_to_addr)
+    except Exception:
+        return body
+
+
+def _record_adoption(from_domain, from_addr, role, vertical,
+                     actionable_count=0, last_action=None, direction="inbound"):
+    try:
+        from src.launch_gate import record_adoption_signal
+        record_adoption_signal(from_domain, from_addr, role, vertical,
+                               actionable_count, last_action, direction)
+    except Exception:
+        pass
+
+
+def _maybe_handle_stop(from_addr, body):
+    try:
+        from src.launch_gate import check_stop_keyword, register_unsubscribe
+        if check_stop_keyword(body):
+            register_unsubscribe(from_addr, "stop_keyword", body[:300])
+            logger.info("_maybe_handle_stop: registered " + str(from_addr))
+            return True
+    except Exception as exc:
+        logger.warning("_maybe_handle_stop failed: " + str(exc))
+    return False
 
 
 def _generate_reply(agent_desc: str, email_subject: str, email_body: str, from_addr: str) -> Optional[Dict]:
@@ -621,7 +690,8 @@ def process_stranger_inquiries(limit: int = 5) -> Dict:
                                     shadow_offer)
                 status = "stranger_upgrade_offer_shadow" if ok else "stranger_upgrade_offer_failed"
             else:
-                qid = _queue_outbound(from_addr, offer_subject, offer, "normal")
+                _offer_w_footer = _append_compliance_footer(offer, from_addr)
+                qid = _queue_outbound(from_addr, offer_subject, _offer_w_footer, "normal")
                 ok = bool(qid)
                 status = "stranger_upgrade_offered" if ok else "stranger_upgrade_offer_failed"
             
@@ -773,7 +843,8 @@ def process_stranger_inquiries(limit: int = 5) -> Dict:
         else:
             # Live: queue through outbound_email_queue (paced + compliance-gated)
             # Live mode: send ONLY to principal (CC'er in ambient mode, never the third party)
-            qid = _queue_outbound(principal_addr, f"Re: {subject}", reply_body, "normal")
+            _reply_w_footer = _append_compliance_footer(reply_body, principal_addr)
+            qid = _queue_outbound(principal_addr, f"Re: {subject}", _reply_w_footer, "normal")
             ok = bool(qid)
             status = "stranger_queued" if ok else "stranger_queue_failed"
             mode = "queued"

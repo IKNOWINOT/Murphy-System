@@ -27,9 +27,10 @@ Kill criterion: code without verified production execution = theater.
 | 9 | AD INJECTION (contextual) | ✅ | ✅ | ✅ | ✅ | ✅ | **COMPLETE** (Ship 31m, in-house inventory) |
 | 10 | EMAIL VERIFICATION → unlock | ✅ | ✅ | 🟡 | ❌ | ❌ | endpoint only |
 | 11 | OUTBOUND SEND (postfix queue) | ✅ | ✅ | ✅ | ✅ | ✅ | **COMPLETE** (sent_at + status in /os/stranger) |
-| 12 | COMPLIANCE gate (PCR-090h.1) | ✅ | ❌ | 🟡 | ❌ | ❌ | ⚠ THEATER |
+| 12 | COMPLIANCE footer (CAN-SPAM) | ✅ | ✅ | ✅ | ✅ | 🟡 | FUNCTIONAL (footer wired, full gate still pending) |
 | 13 | ML one-request learning loop | ✅ | 🟡 | 🟡 | ❌ | ❌ | half-wired |
 | 14 | EXTERNAL BENCHMARK (tau-bench) | ✅ | ✅ | ✅ | ✅ | ✅ | **COMPLETE** (Ship 31h.2) |
+| 17 | LAUNCH GATE (allowlist + STOP + adoption) | ✅ | ✅ | ✅ | ✅ | ✅ | **COMPLETE** (Ship 31p) |
 | 16 | ATTACHMENT SYNTHESIS + chunking + resume + honest-limits | ✅ | ✅ | ✅ | ✅ | ✅ | **COMPLETE** (Ship 31i.A) |
 | 15 | FOUNDER DASHBOARD (/os/stranger) | ✅ | ✅ | ✅ | ✅ | ✅ | **COMPLETE** (Ship 31i.C) |
 
