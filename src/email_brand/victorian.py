@@ -35,48 +35,81 @@ _DISPLAY    = ("'Cinzel', 'Cormorant Garamond', "
                "'Trajan Pro', Georgia, serif")
 
 
-def _eye_engraved(size: int = 64, gaze: str = "down") -> str:
-    """The Murphy eye, set into a brass-bordered Victorian cartouche."""
-    offsets = {"center":(0,0), "down":(0,9), "down-right":(10,7),
-               "right":(16,0), "up":(0,-7)}
+def _eye_engraved(size: int = 64, gaze: str = "center") -> str:
+    """The Murphy eye — EXACTLY the live landing-page logo-live.svg,
+    with iris+pupil gaze offset baked in for static email rendering.
+
+    Drops the eye into a brass-bordered Victorian cartouche by wrapping
+    the live SVG with a laurel ring + clock-face engraving.
+    """
+    # Live landing eye lives in a 240x240 viewBox. Gaze deltas
+    # match murphy-gaze.js: MAX_IRIS_DX_VBU=22, MAX_IRIS_DY_VBU=12,
+    # PUPIL_MULT=1.55. Scaled here to the 240vbu coordinate system.
+    offsets = {
+        "center":     (0, 0),
+        "down":       (0, 5),
+        "down-right": (10, 4),
+        "right":      (16, 0),
+        "up":         (0, -5),
+        "left":       (-16, 0),
+    }
     ix, iy = offsets.get(gaze, (0, 0))
     px, py = ix * 1.55, iy * 1.55
+    # Outer cartouche overlays a 100-vbu ring; render the live eye at
+    # full 240vbu inside a 100-vbu group at scale 0.66 centered at 50,50.
+    # 240*0.66 = 158.4, so we offset -29.2 to center it in our 100x100.
+    scale = 0.31  # fit 240vbu eye into ~75vbu visible inside laurel ring
+    offset = 50 - 240 * scale / 2
     return (
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" '
         f'width="{size}" height="{size}" style="display:block;'
-        'filter:drop-shadow(0 0 14px rgba(0,212,170,0.5));">'
-        # Outer brass laurel ring (ornamental)
-        f'<circle cx="50" cy="50" r="46" fill="none" stroke="{_BRASS}" '
-        'stroke-width="0.6"/>'
-        f'<circle cx="50" cy="50" r="43" fill="none" stroke="{_BRASS}" '
-        'stroke-width="0.4" stroke-dasharray="1 2"/>'
-        # 12 tick marks (clock-face engraving)
+        'filter:drop-shadow(0 0 14px rgba(0,212,170,0.55));">'
+        # Outer brass laurel ring
+        f'<circle cx="50" cy="50" r="46" fill="none" stroke="{_BRASS}" stroke-width="0.6"/>'
+        f'<circle cx="50" cy="50" r="43" fill="none" stroke="{_BRASS}" stroke-width="0.35" stroke-dasharray="1 2"/>'
         + "".join(
             f'<line x1="50" y1="6" x2="50" y2="10" stroke="{_BRASS}" '
-            f'stroke-width="0.6" transform="rotate({a} 50 50)"/>'
+            f'stroke-width="0.55" transform="rotate({a} 50 50)"/>'
             for a in range(0, 360, 30)
         ) +
-        # Inner gear (smaller, fits engraved frame)
-        '<g transform="translate(50 50) scale(0.62) translate(-32 -32)">'
-        # Gear body
-        '<path d="M32,3 L38.8,11.08 L49.05,8.54 L49.8,19.07 L59.58,23.04 '
-        'L54,32 L59.58,40.96 L49.8,44.93 L49.05,55.46 L38.8,52.92 L32,61 '
-        'L25.2,52.92 L14.95,55.46 L14.2,44.93 L4.42,40.96 L10,32 '
-        'L4.42,23.04 L14.2,19.07 L14.95,8.54 L25.2,11.08 Z '
-        'M32,47 A15,15 0 1,1 32,17 A15,15 0 1,1 32,47 Z" '
-        f'fill="{_TEAL}" fill-rule="evenodd"/>'
-        f'<circle cx="32" cy="32" r="15" fill="none" stroke="{_TEAL}" '
-        'stroke-width="1"/>'
-        '<ellipse cx="32" cy="32" rx="9" ry="5.5" fill="#E6ECF2"/>'
-        f'<g transform="translate({ix},{iy})">'
-        f'<circle cx="32" cy="32" r="4" fill="{_TEAL}"/></g>'
-        f'<g transform="translate({px:.1f},{py:.1f})">'
-        '<circle cx="32" cy="32" r="1.9" fill="#080E14"/>'
-        f'<circle cx="{33.2+px:.1f}" cy="{30.8+py:.1f}" r="0.9" '
-        'fill="rgba(255,255,255,0.6)"/>'
+        # The real landing-page eye, scaled + placed inside the ring
+        f'<g transform="translate({offset:.2f} {offset:.2f}) scale({scale})">'
+        # Mask for gear annulus
+        '<defs>'
+        f'<mask id="ml-em-mask-{gaze}">'
+        '<rect width="240" height="240" fill="#000"/>'
+        '<circle cx="120" cy="120" r="98" fill="#fff"/>'
+        '<circle cx="120" cy="120" r="78" fill="#000"/>'
+        '</mask>'
+        f'<clipPath id="ml-em-clip-{gaze}">'
+        '<path d="M 55 120 Q 120 75 185 120 Q 120 165 55 120 Z"/>'
+        '</clipPath>'
+        '</defs>'
+        # 10 gear teeth (the real ones, rectangular rounded)
+        '<g fill="#00D4AA" transform="translate(120 120)">'
+        + "".join(
+            f'<rect x="-11" y="-118" width="22" height="24" rx="3" transform="rotate({a})"/>'
+            for a in range(0, 360, 36)
+        ) +
         '</g>'
-        f'<ellipse cx="32" cy="32" rx="9" ry="5.5" fill="none" '
-        f'stroke="{_TEAL}" stroke-width="0.9"/>'
+        # Gear annulus body
+        f'<rect x="0" y="0" width="240" height="240" fill="#00D4AA" mask="url(#ml-em-mask-{gaze})"/>'
+        # Eye sclera (almond)
+        '<path d="M 55 120 Q 120 75 185 120 Q 120 165 55 120 Z" fill="#d8ebe3"/>'
+        # Iris + pupil with gaze offset
+        f'<g clip-path="url(#ml-em-clip-{gaze})">'
+        f'<g transform="translate({ix} {iy})">'
+        '<circle cx="120" cy="120" r="26" fill="#00D4AA"/>'
+        '<circle cx="120" cy="120" r="26" fill="none" stroke="#008f74" stroke-width="1.5"/>'
+        f'<g transform="translate({(px-ix):.1f} {(py-iy):.1f})">'
+        '<circle cx="120" cy="120" r="11" fill="#0a1a14"/>'
+        '<circle cx="114.5" cy="114.5" r="2.8" fill="#deeae4" opacity="0.75"/>'
+        '</g>'
+        '</g>'
+        '</g>'
+        # Eye outline on top
+        '<path d="M 55 120 Q 120 75 185 120 Q 120 165 55 120 Z" '
+        'fill="none" stroke="#00D4AA" stroke-width="2.5"/>'
         '</g>'
         '</svg>'
     )
@@ -167,7 +200,7 @@ def render_victorian_email(
         ).hexdigest()[:6].upper()
 
     answer_html = _structure_answer_html(answer)
-    eye_html = _eye_engraved(size=72, gaze="down")
+    eye_html = _eye_engraved(size=78, gaze="center")
     ornament = _ornament_top(width=620)
 
     badge = ""
