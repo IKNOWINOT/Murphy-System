@@ -186,3 +186,6 @@ if __name__ == "__main__":
           f"dup={s['skipped_dup']} err={s['errors']} "
           f"prospect_replies={s['prospect_replies']} internal={s['internal']}")
     sys.exit(0)
+import sys
+if "/opt/Murphy-System" not in sys.path:
+    sys.path.insert(0, "/opt/Murphy-System")

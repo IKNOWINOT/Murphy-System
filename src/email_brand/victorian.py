@@ -35,16 +35,17 @@ _DISPLAY    = ("'Cinzel', 'Cormorant Garamond', "
                "'Trajan Pro', Georgia, serif")
 
 
-def _eye_engraved(size: int = 64, gaze: str = "center") -> str:
-    """The Murphy eye — EXACTLY the live landing-page logo-live.svg,
-    with iris+pupil gaze offset baked in for static email rendering.
+def _eye_engraved(size: int = 64, gaze: str = "center",
+                  bg_color: str = "#070c0a") -> str:
+    """The Murphy eye — Gmail-safe rebuild.
 
-    Drops the eye into a brass-bordered Victorian cartouche by wrapping
-    the live SVG with a laurel ring + clock-face engraving.
+    Renders the live landing-page logo geometry WITHOUT <defs>,
+    <mask>, or <clipPath> (Gmail strips those). Uses only basic
+    primitives so it renders identically in browser and Gmail.
+
+    bg_color = the surface the eye sits on (used to fake the gear
+    annulus inner cut-out).
     """
-    # Live landing eye lives in a 240x240 viewBox. Gaze deltas
-    # match murphy-gaze.js: MAX_IRIS_DX_VBU=22, MAX_IRIS_DY_VBU=12,
-    # PUPIL_MULT=1.55. Scaled here to the 240vbu coordinate system.
     offsets = {
         "center":     (0, 0),
         "down":       (0, 5),
@@ -55,16 +56,16 @@ def _eye_engraved(size: int = 64, gaze: str = "center") -> str:
     }
     ix, iy = offsets.get(gaze, (0, 0))
     px, py = ix * 1.55, iy * 1.55
-    # Outer cartouche overlays a 100-vbu ring; render the live eye at
-    # full 240vbu inside a 100-vbu group at scale 0.66 centered at 50,50.
-    # 240*0.66 = 158.4, so we offset -29.2 to center it in our 100x100.
-    scale = 0.31  # fit 240vbu eye into ~75vbu visible inside laurel ring
-    offset = 50 - 240 * scale / 2
+    # Map to 240vbu coordinate system (landing eye native size)
+    # Place inside 100vbu cartouche at scale 0.31
+    scale = 0.31
+    offset = (100 - 240 * scale) / 2  # ~13.8
+
     return (
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" '
         f'width="{size}" height="{size}" style="display:block;'
         'filter:drop-shadow(0 0 14px rgba(0,212,170,0.55));">'
-        # Outer brass laurel ring
+        # ── Brass laurel ring + tick engravings ──
         f'<circle cx="50" cy="50" r="46" fill="none" stroke="{_BRASS}" stroke-width="0.6"/>'
         f'<circle cx="50" cy="50" r="43" fill="none" stroke="{_BRASS}" stroke-width="0.35" stroke-dasharray="1 2"/>'
         + "".join(
@@ -72,42 +73,32 @@ def _eye_engraved(size: int = 64, gaze: str = "center") -> str:
             f'stroke-width="0.55" transform="rotate({a} 50 50)"/>'
             for a in range(0, 360, 30)
         ) +
-        # The real landing-page eye, scaled + placed inside the ring
+        # ── Live eye, scaled into the ring ──
         f'<g transform="translate({offset:.2f} {offset:.2f}) scale({scale})">'
-        # Mask for gear annulus
-        '<defs>'
-        f'<mask id="ml-em-mask-{gaze}">'
-        '<rect width="240" height="240" fill="#000"/>'
-        '<circle cx="120" cy="120" r="98" fill="#fff"/>'
-        '<circle cx="120" cy="120" r="78" fill="#000"/>'
-        '</mask>'
-        f'<clipPath id="ml-em-clip-{gaze}">'
-        '<path d="M 55 120 Q 120 75 185 120 Q 120 165 55 120 Z"/>'
-        '</clipPath>'
-        '</defs>'
-        # 10 gear teeth (the real ones, rectangular rounded)
+        # 10 rounded-rectangle gear teeth, fanned every 36°
         '<g fill="#00D4AA" transform="translate(120 120)">'
         + "".join(
             f'<rect x="-11" y="-118" width="22" height="24" rx="3" transform="rotate({a})"/>'
             for a in range(0, 360, 36)
         ) +
         '</g>'
-        # Gear annulus body
-        f'<rect x="0" y="0" width="240" height="240" fill="#00D4AA" mask="url(#ml-em-mask-{gaze})"/>'
-        # Eye sclera (almond)
+        # Gear annulus — outer teal circle + inner bg-color circle
+        # (this is the no-mask version of the live mask trick)
+        '<circle cx="120" cy="120" r="98" fill="#00D4AA"/>'
+        f'<circle cx="120" cy="120" r="78" fill="{bg_color}"/>'
+        # Sclera (almond)
         '<path d="M 55 120 Q 120 75 185 120 Q 120 165 55 120 Z" fill="#d8ebe3"/>'
-        # Iris + pupil with gaze offset
-        f'<g clip-path="url(#ml-em-clip-{gaze})">'
+        # Iris (gaze offset)
         f'<g transform="translate({ix} {iy})">'
         '<circle cx="120" cy="120" r="26" fill="#00D4AA"/>'
         '<circle cx="120" cy="120" r="26" fill="none" stroke="#008f74" stroke-width="1.5"/>'
-        f'<g transform="translate({(px-ix):.1f} {(py-iy):.1f})">'
+        '</g>'
+        # Pupil (gaze offset, parallax)
+        f'<g transform="translate({px:.1f} {py:.1f})">'
         '<circle cx="120" cy="120" r="11" fill="#0a1a14"/>'
         '<circle cx="114.5" cy="114.5" r="2.8" fill="#deeae4" opacity="0.75"/>'
         '</g>'
-        '</g>'
-        '</g>'
-        # Eye outline on top
+        # Eye outline drawn LAST so it sits on top
         '<path d="M 55 120 Q 120 75 185 120 Q 120 165 55 120 Z" '
         'fill="none" stroke="#00D4AA" stroke-width="2.5"/>'
         '</g>'

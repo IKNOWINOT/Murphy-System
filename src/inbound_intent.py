@@ -39,6 +39,9 @@ PUBLIC SURFACE:
 LAST UPDATED: 2026-05-29 R117
 """
 
+import sys, os
+if "/opt/Murphy-System" not in sys.path:
+    sys.path.insert(0, "/opt/Murphy-System")
 import logging
 import re
 import sqlite3
