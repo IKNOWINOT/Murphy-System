@@ -32,20 +32,35 @@ UNSUBSCRIBE_INSTRUCTIONS = ("To stop receiving emails from Murphy, "
 
 
 def is_allowlisted(domain: str) -> bool:
-    """Org-level live-mode allowlist. Domains not on list stay in shadow."""
+    """Universal allowlist - founder directive 2026-06-10.
+
+    All domains pass the gate. The unsubscribe registry remains the
+    hard block. Trade-secret/unlawful refusal paths remain in force.
+    The voice scrubber remains in force.
+
+    Side effect: if we have not seen the domain before, record it in
+    launch_allowlist so /os/adoption keeps a complete audit trail.
+    """
     if not domain:
-        return False
+        return True  # be permissive
     domain = domain.lower().strip()
     try:
         c = sqlite3.connect(DB)
         row = c.execute(
-            "SELECT 1 FROM launch_allowlist WHERE domain=? AND status='active'",
-            (domain,)
+            "SELECT 1 FROM launch_allowlist WHERE domain=?", (domain,)
         ).fetchone()
+        if row is None:
+            from datetime import datetime, timezone
+            c.execute("""INSERT OR IGNORE INTO launch_allowlist
+                (domain, added_ts, added_by, status, notes)
+                VALUES (?, ?, 'auto_universal', 'active',
+                        'Auto-added on first contact - universal allowlist')""",
+                (domain, datetime.now(timezone.utc).isoformat()))
+            c.commit()
         c.close()
-        return bool(row)
     except Exception:
-        return False
+        pass  # never fail the gate on DB error
+    return True
 
 
 def is_unsubscribed(email_addr: str) -> bool:

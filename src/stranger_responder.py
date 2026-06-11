@@ -55,7 +55,7 @@ _MAIL_DB = "/var/lib/murphy-production/murphy_mail.db"
 _FOUNDER_EMAIL = "cpost@murphy.systems"
 
 # Safety toggles
-_SHADOW_MODE = True
+_SHADOW_MODE = False  # founder directive 2026-06-10: we aren't blocking
 
 # Ship 31s: per-call routing trace (set by _build_role_soul, read after reply)
 _LAST_ROUTING_DECISION = ""
