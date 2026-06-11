@@ -5107,6 +5107,17 @@ def create_app() -> FastAPI:
                 status_code=500,
             )
 
+    @app.get("/api/reply-back/run", include_in_schema=False)
+    async def reply_back_manual_run():
+        try:
+            from src.reply_back_tracker import reconcile_replies, get_stats
+            stats = reconcile_replies()
+            agg = get_stats()
+            return {"reconcile": stats, "stats": agg}
+        except Exception as exc:
+            import traceback
+            return {"error": str(exc), "traceback": traceback.format_exc()}
+
     @app.get("/os/verifications", include_in_schema=False)
     async def os_verifications():
         try:
@@ -15644,6 +15655,28 @@ font-weight:600;color:#c9d1d9}}</style></head><body>
                     import logging as _tl2
                     _tl2.getLogger("murphy.treasury").warning("PATCH-378: treasury scheduler registration failed: %s", _te2)
                 logger.info("PATCH-155: Daily compliance scan scheduled at 06:00 UTC")
+
+                # Ship 31x: reply-back tracker — every 15 minutes
+                try:
+                    def _run_reply_back_reconcile():
+                        try:
+                            from src.reply_back_tracker import reconcile_replies
+                            r = reconcile_replies()
+                            logger.info("Ship 31x reply-back reconcile: %s", r)
+                        except Exception as _rbe:
+                            logger.warning("reply_back_tracker error: %s", _rbe)
+
+                    from apscheduler.triggers.interval import IntervalTrigger as _IntervalRBT
+                    _scheduler.add_job(
+                        _run_reply_back_reconcile,
+                        _IntervalRBT(minutes=15),
+                        id="reply_back_reconcile",
+                        replace_existing=True,
+                        name="Ship 31x Reply-Back Reconcile",
+                    )
+                    logger.info("Ship 31x: reply-back reconcile registered (every 15min)")
+                except Exception as _rb_sched_exc:
+                    logger.warning("Ship 31x: reply-back schedule failed: %s", _rb_sched_exc)
         except Exception as _csched_exc:
             logger.warning("PATCH-155: Could not schedule compliance scan: %s", _csched_exc)
 

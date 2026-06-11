@@ -44,6 +44,7 @@ import subprocess
 import sys
 from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Optional
+import re
 
 logger = logging.getLogger("stranger_responder")
 
@@ -206,16 +207,109 @@ _ROLE_DEFAULT_VERTICAL = {
 }
 
 
+# Ship 31x LEAK 1: boost roles when domain-context words co-occur
+_ROLE_CONTEXT_BOOSTS = {
+    "mep_engineer": ("rfi", "duct", "coordination", "cds", "cd set", "stamped",
+                     "drawing", "level 4", "level 5", "riser", "bus duct",
+                     "clash", "shop drawing", "submittal", "addendum",
+                     "specification", "spec section", "code review"),
+    "risk_lawyer":  ("nda", "indemnif", "limitation of liability", "damages cap",
+                     "subrogation", "force majeure", "breach"),
+    "cfo":          ("invoice", "p&l", "ebitda", "gaap", "audit trail",
+                     "close the books", "month-end", "fiscal year"),
+    "lawyer":       ("contract", "clause", "counterparty", "execute the",
+                     "redline", "matter type", "billable"),
+    "recruiter":    ("candidate", "resume", "interview", "sourcing", "req",
+                     "ats", "pipeline"),
+    "engineer":     ("kubernetes", "deploy", "ci/cd", "k8s", "production incident",
+                     "rollout", "on-call"),
+    "fde":          ("forward deployed", "fde", "onboarding integration",
+                     "customer-side deploy"),
+    "designer":     ("figma", "wireframe", "mockup", "user research"),
+    "pm":           ("roadmap", "user story", "prd", "okr"),
+    "sales":        ("pipeline", "qbr", "quota", "renewal", "champion"),
+    "marketing":    ("campaign", "attribution", "funnel", "cac", "ltv"),
+}
+
+# Words that DISQUALIFY short ambiguous matches (e.g. "ops" can match
+# "operations" which then needs context to not be ops vs mep)
+_ROLE_KEYWORDS_NEED_BOUNDARY = {"mep", "cfo", "cto", "ceo", "coo", "cmo",
+                                "pm", "sde", "swe", "sdr", "bdr", "fde",
+                                "cpo", "cro", "chro", "esq"}
+
+
 def _detect_role_from_email(subject, body, from_addr):
     """Cheap heuristic role detector from email text.
 
-    Looks at signature/title lines in the body, then subject, then domain.
+    Ship 31x improvements:
+      - Short acronyms (mep, cfo, etc.) require word-boundary match
+      - Roles with domain-context word matches get a +5 bonus
+      - Vertical inferred from BOTH role default and content overrides
     Returns (role_hint, vertical) tuple. role_hint is "" if no signal.
     """
     haystack = ((body or "")[-1500:] + "\n" + (subject or "") + "\n" + (from_addr or "")).lower()
-    # Score every role: pick the role whose matched keyword is LONGEST
-    # (i.e. most specific). "mep coordinator" beats "operations director"
-    # which only matched on "coordinator" substring.
+
+    # Score every role: base score = keyword length (specificity proxy)
+    # + boost when domain-context word appears
+    scores = {}
+    matched_kw = {}
+    for role, kws in _ROLE_KEYWORDS.items():
+        for kw in kws:
+            # Word-boundary check for short acronyms
+            if kw in _ROLE_KEYWORDS_NEED_BOUNDARY:
+                if not re.search(r"\b" + re.escape(kw) + r"\b", haystack):
+                    continue
+            elif kw not in haystack:
+                continue
+            base = len(kw)
+            # Domain-context boost
+            ctx_words = _ROLE_CONTEXT_BOOSTS.get(role, ())
+            boost = sum(5 for w in ctx_words if w in haystack)
+            total = base + boost
+            if total > scores.get(role, -1):
+                scores[role] = total
+                matched_kw[role] = kw
+
+    if not scores:
+        # Ship 31x context-only fallback: if 2+ domain words for one role appear,
+        # infer the role from context even without a title match.
+        ctx_scores = {}
+        for role, ctx_words in _ROLE_CONTEXT_BOOSTS.items():
+            hits = sum(1 for w in ctx_words if w in haystack)
+            if hits >= 2:
+                ctx_scores[role] = hits
+        if ctx_scores:
+            best_role = max(ctx_scores, key=ctx_scores.get)
+            vertical = _ROLE_DEFAULT_VERTICAL.get(best_role, "general")
+            # apply same vertical overrides
+            if any(w in haystack for w in ("invoice", "p&l", "gaap", "audit", "ebitda")):
+                vertical = "finance"
+            elif any(w in haystack for w in ("nda", "litigation", "clause", "indemnif", "damages cap", "limitation of liability")):
+                vertical = "legal"
+            elif any(w in haystack for w in ("rfi", "duct", "coordination", "stamped", "drawing", "submittal")):
+                vertical = "construction"
+            return best_role, vertical
+        return "", "general"
+
+    best_role = max(scores, key=scores.get)
+
+    # Vertical follows role default unless content explicitly overrides
+    vertical = _ROLE_DEFAULT_VERTICAL.get(best_role, "general")
+    if any(w in haystack for w in ("invoice", "p&l", "gaap", "audit", "ebitda")):
+        vertical = "finance"
+    elif any(w in haystack for w in ("nda", "litigation", "clause", "indemnif")):
+        vertical = "legal"
+    elif any(w in haystack for w in ("candidate", "resume", "interview", "sourcing")):
+        vertical = "staffing"
+    elif any(w in haystack for w in ("rfi", "duct", "coordination", "stamped", "drawing", "submittal")):
+        vertical = "construction"
+    elif any(w in haystack for w in ("saas", "api endpoint", "deploy", "kubernetes")):
+        vertical = "tech"
+    return best_role, vertical
+
+# Legacy fallthrough kept for any old import that calls the old name pattern
+def _detect_role_from_email_legacy(subject, body, from_addr):
+    haystack = ((body or "")[-1500:] + "\n" + (subject or "") + "\n" + (from_addr or "")).lower()
     best_role = None
     best_kw = ""
     for role, kws in _ROLE_KEYWORDS.items():
@@ -382,39 +476,72 @@ The person who emailed you (from {from_addr}) wrote:
 SUBJECT: {email_subject}
 BODY: {email_body[:2000]}
 
-Write a SHORT email reply (under 200 words) that:
-1. Opens with one line: "{_VALUE_LINE}"
-2. Directly addresses their actual question or need
-3. Names ONE concrete next step Murphy can take to help them
-4. Closes with: "— Murphy (automated reply; reply STOP to opt out)"
+Write a working reply under two hundred words. Two or three paragraphs of natural prose — no bullets, no headers, no Markdown.
 
-Do NOT make up specific commitments about pricing, timelines, or features. Be concrete about what Murphy CAN do, honest about what it CAN'T."""
+Paragraph one opens with: "{_VALUE_LINE}" and addresses the actual question they asked, in the working language of their field.
+
+Paragraph two gives the most experienced read you can offer on the substance. Where there is uncertainty, say so plainly. Where you assume something, name it in one phrase. Speak to the matter, not the process.
+
+Paragraph three names one concrete next step the work can take, offered rather than imposed. Close with: "— Murphy (automated reply; reply STOP to opt out)".
+
+Match the correspondent's register and vocabulary. If they wrote like an MEP engineer, you write like one. If a CFO, then like one. Plain professional English in the dialect of their field.
+
+Do not invent prices, timelines, or features. Be precise about what the work can do, honest about what it cannot."""
+    # Ship 31x: append niche-aware moral code + register to soul
+    try:
+        from src.voice_aristocrat import style_instruction
+        soul = (soul or "") + "\n\n" + style_instruction(role_hint=role_hint)
+    except Exception as _vexc:
+        logger.warning("voice_aristocrat style inject failed: %s", _vexc)
+
     out = _llm_complete(prompt, model_hint="chat", max_tokens=400, soul_system=soul)
-    if out and out.get("text"):
-        # Ship 31u: append follow-up question BEFORE ad injection
-        # (so the question sits between reply body and ad block)
-        try:
-            from src.follow_up_generator import maybe_append_followup
-            new_text, fu_meta = maybe_append_followup(
-                out["text"], role_hint=role_hint, vertical=vertical,
-                inbound_subject=email_subject, inbound_body=email_body,
-                from_addr=from_addr,
-            )
-            out["text"] = new_text
-            out["followup_meta"] = fu_meta
-            if fu_meta.get("appended"):
-                logger.info("_generate_reply: followup appended role=%s q=%r",
-                            role_hint, (fu_meta.get("question") or "")[:80])
-        except Exception as fu_exc:
-            logger.warning("_generate_reply: followup failed: %s", fu_exc)
-            out["followup_meta"] = {"appended": False, "reason": "exception"}
 
-        new_text, ad_meta = _inject_contextual_ad(out["text"], role_hint, vertical,
-                                                   email_subject, email_body, from_addr, tier="free")
-        out["text"] = new_text
-        out["ad_meta"] = ad_meta
-        if ad_meta and ad_meta.get("injected"):
-            logger.info("_generate_reply: ad injected ad_id=%s score=%.2f", ad_meta.get("ad_id"), ad_meta.get("score", 0))
+    # Ship 31w: master gate — trade-secret / unlawful / scrub
+    if out and out.get("text"):
+        try:
+            from src.voice_aristocrat import enforce as _voice_enforce
+            verdict = _voice_enforce(email_subject, email_body, out["text"], from_addr)
+            out["text"] = verdict["text"]
+            out["voice_action"] = verdict["action"]
+            out["voice_scrubbed"] = verdict["scrubbed"]
+            if verdict["action"] != "pass":
+                logger.info("_generate_reply: voice_action=%s from=%s", verdict["action"], from_addr)
+        except Exception as _vexc:
+            logger.warning("voice_aristocrat enforce failed: %s", _vexc)
+
+    if out and out.get("text"):
+        # Ship 31w: on refusal paths, skip follow-up AND ads entirely.
+        # A trade-secret probe or unlawful request should receive only the
+        # graceful refusal — no follow-up question, no sponsor card.
+        refusal_action = out.get("voice_action") in ("refuse_trade_secret", "refuse_unlawful")
+
+        if not refusal_action:
+            # Ship 31u: append follow-up question BEFORE ad injection
+            try:
+                from src.follow_up_generator import maybe_append_followup
+                new_text, fu_meta = maybe_append_followup(
+                    out["text"], role_hint=role_hint, vertical=vertical,
+                    inbound_subject=email_subject, inbound_body=email_body,
+                    from_addr=from_addr,
+                )
+                out["text"] = new_text
+                out["followup_meta"] = fu_meta
+                if fu_meta.get("appended"):
+                    logger.info("_generate_reply: followup appended role=%s q=%r",
+                                role_hint, (fu_meta.get("question") or "")[:80])
+            except Exception as fu_exc:
+                logger.warning("_generate_reply: followup failed: %s", fu_exc)
+                out["followup_meta"] = {"appended": False, "reason": "exception"}
+
+            new_text, ad_meta = _inject_contextual_ad(out["text"], role_hint, vertical,
+                                                       email_subject, email_body, from_addr, tier="free")
+            out["text"] = new_text
+            out["ad_meta"] = ad_meta
+            if ad_meta and ad_meta.get("injected"):
+                logger.info("_generate_reply: ad injected ad_id=%s score=%.2f", ad_meta.get("ad_id"), ad_meta.get("score", 0))
+        else:
+            out["followup_meta"] = {"appended": False, "reason": "refusal_path"}
+            out["ad_meta"] = {"injected": False, "reason": "refusal_path"}
     return out
 
 
