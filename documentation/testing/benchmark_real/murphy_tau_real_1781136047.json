@@ -1,0 +1,134 @@
+{
+  "benchmark_name": "murphy-tau-bench-style",
+  "benchmark_version": "0.1.0-real",
+  "model": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+  "run_timestamp": "2026-06-11T00:00:14.408742+00:00",
+  "tasks_total": 10,
+  "tasks_succeeded": 3,
+  "tasks_partial": 3,
+  "tasks_failed": 4,
+  "mean_score": 0.45,
+  "mean_latency_seconds": 2.89,
+  "domains": [
+    "finance",
+    "airline",
+    "it_support",
+    "hr",
+    "retail"
+  ],
+  "domain_scores": {
+    "finance": 0.25,
+    "airline": 0.5,
+    "it_support": 0.25,
+    "hr": 0.5,
+    "retail": 0.75
+  },
+  "results": [
+    {
+      "task_id": "tau-r-001",
+      "domain": "retail",
+      "score": 0.5,
+      "latency_seconds": 2.681342840194702,
+      "predicted": "initiate_return_process",
+      "expected": "initiate_return",
+      "raw_response": "{\n  \"action\": \"initiate_return_process\",\n  \"reasoning\": \"The customer has reported a defective item in their order, which requires a return or replacement.\"\n}",
+      "error": null
+    },
+    {
+      "task_id": "tau-a-002",
+      "domain": "airline",
+      "score": 1,
+      "latency_seconds": 1.3490843772888184,
+      "predicted": "book_flight",
+      "expected": "book_flight",
+      "raw_response": "{\n  \"action\": \"book_flight\",\n  \"reasoning\": \"The user has confirmed their flight selection and requested to book the 9am flight from NYC to LA for next Monday.\"\n}",
+      "error": null
+    },
+    {
+      "task_id": "tau-f-003",
+      "domain": "finance",
+      "score": 0.5,
+      "latency_seconds": 1.6173889636993408,
+      "predicted": "verify_security_pin",
+      "expected": "verify_identity",
+      "raw_response": "{\n  \"action\": \"verify_security_pin\",\n  \"reasoning\": \"The user provided their PIN, which needs to be verified before proceeding with the sensitive transfer action.\"\n}",
+      "error": null
+    },
+    {
+      "task_id": "tau-it-004",
+      "domain": "it_support",
+      "score": 0.5,
+      "latency_seconds": 2.063615560531616,
+      "predicted": "escalate_to_specialist",
+      "expected": "escalate_ticket",
+      "raw_response": "{\n  \"action\": \"escalate_to_specialist\",\n  \"reasoning\": \"The user has already tried basic troubleshooting and has a time-sensitive meeting, requiring more advanced assistance.\"\n}",
+      "error": null
+    },
+    {
+      "task_id": "tau-hr-005",
+      "domain": "hr",
+      "score": 1,
+      "latency_seconds": 4.328973770141602,
+      "predicted": "submit_pto_request",
+      "expected": "submit_pto_request",
+      "raw_response": "{\n  \"action\": \"submit_pto_request\",\n  \"reasoning\": \"The user has confirmed submission and has sufficient PTO balance to cover the request.\"\n}",
+      "error": null
+    },
+    {
+      "task_id": "tau-r-006",
+      "domain": "retail",
+      "score": 1,
+      "latency_seconds": 2.1272737979888916,
+      "predicted": "check_inventory",
+      "expected": "check_inventory",
+      "raw_response": "{\n  \"action\": \"check_inventory\",\n  \"reasoning\": \"The user asked about the availability of a specific product, so I need to verify the inventory before providing an answer.\"\n}",
+      "error": null
+    },
+    {
+      "task_id": "tau-a-007",
+      "domain": "airline",
+      "score": 0,
+      "latency_seconds": 1.5747325420379639,
+      "predicted": "verify_fare_class",
+      "expected": "process_refund",
+      "raw_response": "{\n  \"action\": \"verify_fare_class\",\n  \"reasoning\": \"The refund policy requires verification of fare class to determine the refund amount.\"\n}",
+      "error": null
+    },
+    {
+      "task_id": "tau-f-008",
+      "domain": "finance",
+      "score": 0,
+      "latency_seconds": 1.0678606033325195,
+      "predicted": "flag_suspicious_transaction",
+      "expected": "freeze_card",
+      "raw_response": "{\n  \"action\": \"flag_suspicious_transaction\",\n  \"reasoning\": \"The user reported an unauthorized charge from a foreign country, indicating potential fraudulent activity.\"\n}",
+      "error": null
+    },
+    {
+      "task_id": "tau-it-009",
+      "domain": "it_support",
+      "score": 0,
+      "latency_seconds": 6.8015241622924805,
+      "predicted": "verify_employee_id",
+      "expected": "send_password_reset",
+      "raw_response": "{\n  \"action\": \"verify_employee_id\",\n  \"reasoning\": \"The user has provided their employee ID, which needs to be verified before proceeding with the password reset.\"\n}",
+      "error": null
+    },
+    {
+      "task_id": "tau-hr-010",
+      "domain": "hr",
+      "score": 0,
+      "latency_seconds": 5.329340219497681,
+      "predicted": "retrieve_onboarding_checklist",
+      "expected": "fetch_onboarding_checklist",
+      "raw_response": "{\n  \"action\": \"retrieve_onboarding_checklist\",\n  \"reasoning\": \"The user is starting on Monday and needs to know the first step in the onboarding process, so their checklist must be retrieved to determine the next steps.\"\n}",
+      "error": null
+    }
+  ],
+  "notes": [
+    "This is a real LLM run, not synthetic harness output.",
+    "10 hand-curated tau-bench-style tasks across 5 domains.",
+    "Score includes exact-match (1.0), synonym-match (1.0), and partial-verb-match (0.5).",
+    "For official \u03c4-bench submission, run the sierra-research/tau-bench repo with Murphy's executor."
+  ]
+}

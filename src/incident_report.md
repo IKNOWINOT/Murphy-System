@@ -1,0 +1,1 @@
+The APC outreach log at src/crm/outreach_log.py indicates that the last outreach date was 2023-05-15, the campaign status is active, the engagement rate is 0.02, and the notes recommend updating the messaging and resending due to no inbound replies in 999 days.

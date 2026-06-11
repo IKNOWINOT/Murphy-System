@@ -1,0 +1,1 @@
+Incident #inc_01fcc76f: No inbound replies in 999 days. Outreach log at src/crm/db/outreach.log is empty. APC outreach copy may need refresh. Recent engagement trends at /api/crm/activities show no recent activity.

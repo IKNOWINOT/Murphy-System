@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8"><title>Visitor Analytics — Murphy</title>
+<style>
+  body { background:#0a0a0a; color:#33ff88; font-family:'Courier New',monospace; margin:0; padding:24px; }
+  h1 { color:#33ff88; font-size:24px; margin:0 0 8px 0; }
+  .sub { color:#88aa99; margin-bottom:32px; font-size:13px; }
+  .grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(280px,1fr)); gap:24px; }
+  .card { background:#101010; border:1px solid #224433; padding:20px; border-radius:6px; }
+  .card h2 { color:#88ffaa; font-size:14px; margin:0 0 16px; text-transform:uppercase; letter-spacing:1px; border-bottom:1px solid #224433; padding-bottom:8px; }
+  .big-num { font-size:48px; color:#33ff88; font-weight:bold; }
+  .label { color:#669988; font-size:12px; }
+  .row { display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px dotted #224433; }
+  .row:last-child { border:none; }
+  .bar { display:inline-block; background:#33ff88; height:8px; vertical-align:middle; margin-right:8px; opacity:.7; }
+  .refresh { color:#669988; font-size:11px; margin-top:12px; }
+</style></head><body>
+<h1>◆ Murphy Visitor Analytics</h1>
+<div class="sub">Anonymous traffic on the landing page. Auto-refreshes every 10s.</div>
+
+<div class="grid">
+  <div class="card">
+    <h2>● Live Now</h2>
+    <div class="big-num" id="live-now">—</div>
+    <div class="label">visitors active in last 60 seconds</div>
+  </div>
+  
+  <div class="card">
+    <h2>◑ Unique Last 24h</h2>
+    <div class="big-num" id="unique-24h">—</div>
+    <div class="label">distinct anonymous sessions</div>
+  </div>
+  
+  <div class="card">
+    <h2>◇ Top Countries (24h)</h2>
+    <div id="countries">—</div>
+  </div>
+  
+  <div class="card">
+    <h2>◧ Devices (24h)</h2>
+    <div id="devices">—</div>
+  </div>
+</div>
+
+<div style="margin-top:32px;" class="card">
+  <h2>↗ Hourly Traffic (last 24h)</h2>
+  <div id="hourly">—</div>
+</div>
+
+<div class="refresh">Updated: <span id="updated">—</span></div>
+
+<script>
+async function refresh() {
+  try {
+    const r = await fetch('/api/visitors/stats');
+    const d = await r.json();
+    document.getElementById('live-now').textContent = d.live_now ?? '0';
+    document.getElementById('unique-24h').textContent = d.unique_24h ?? '0';
+    
+    const maxCountry = Math.max(...(d.countries_24h||[]).map(c=>c.count), 1);
+    document.getElementById('countries').innerHTML = (d.countries_24h||[]).map(c => 
+      `<div class="row"><span><span class="bar" style="width:${c.count/maxCountry*100}px;"></span>${c.country}</span><span>${c.count}</span></div>`
+    ).join('') || '<div class="label">(no data yet)</div>';
+    
+    document.getElementById('devices').innerHTML = (d.devices_24h||[]).map(dv =>
+      `<div class="row"><span>${dv.device}</span><span>${dv.count}</span></div>`
+    ).join('') || '<div class="label">(no data yet)</div>';
+    
+    const maxHour = Math.max(...(d.hourly_24h||[]).map(h=>h.visits), 1);
+    document.getElementById('hourly').innerHTML = (d.hourly_24h||[]).map(h =>
+      `<div class="row"><span>${h.hour}</span><span><span class="bar" style="width:${h.visits/maxHour*200}px;"></span>${h.visits}</span></div>`
+    ).join('') || '<div class="label">(no traffic in last 24h)</div>';
+    
+    document.getElementById('updated').textContent = new Date().toLocaleTimeString();
+  } catch (e) {
+    document.getElementById('updated').textContent = 'error: ' + e.message;
+  }
+}
+refresh();
+setInterval(refresh, 10000);
+</script>
+</body></html>

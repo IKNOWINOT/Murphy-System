@@ -1,1 +1,1 @@
-Incident #inc_7a2a5350: No inbound replies in 999 days. APC outreach may need copy refresh. The capacity watchdog has detected this issue and is recommending a manual review of the outreach log at /api/crm/activities. The outreach log is used to track all outreach activities, including emails and other communications. It is recommended to review the log to identify any potential issues or areas for improvement.
+Incident #inc_b2b211e0: No inbound replies in 999 days. APC outreach may need copy refresh. Outreach log at /api/crm/activities is empty.

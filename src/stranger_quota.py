@@ -219,7 +219,7 @@ def upgrade_offer_body(email_addr: str, mode: str, quota_state: Dict) -> str:
     used_ambient = quota_state.get("ambient_replies_30d", 0)
     total_cost = quota_state.get("total_cost_usd", 0.0)
     
-    return f"""Murphy automates the rule-bound periodic work you've been doing manually.
+    return f"""
 
 You've reached your free monthly limit ({used_direct} direct request + {used_ambient} ambient replies). I've enjoyed working for you and want to keep going — but Murphy isn't free past this point.
 

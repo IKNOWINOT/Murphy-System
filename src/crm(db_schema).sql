@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS activities (id INTEGER PRIMARY KEY, date DATE, type TEXT, content TEXT);

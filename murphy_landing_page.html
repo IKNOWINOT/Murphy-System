@@ -472,6 +472,86 @@ footer a:hover { color: var(--teal); }
       Murphy OS — Live &amp; Running — <span id="live-agents">9 agents</span> active
     </div>
 
+    <!-- SHIP-27: live visitor globe (anonymous geo only) -->
+    <div id="visitor-globe-wrap" style="position:relative;width:100%;max-width:380px;height:380px;margin:0 auto 24px auto;">
+      <div id="visitor-globe" style="width:100%;height:100%;"></div>
+      <div id="visitor-counter" style="position:absolute;bottom:8px;left:0;right:0;text-align:center;color:#33ff88;font-family:monospace;font-size:12px;letter-spacing:1px;text-shadow:0 0 8px #33ff88;pointer-events:none;">
+        <span id="vg-count">—</span> exploring Murphy right now
+      </div>
+    </div>
+    <script src="https://unpkg.com/three@0.155.0/build/three.min.js"></script>
+    <script src="https://unpkg.com/globe.gl@2.27.5/dist/globe.gl.min.js"></script>
+    <script>
+    (function(){
+      // ── visitor heartbeat ────────────────────────────────────────
+      let session_id = sessionStorage.getItem('murphy_vsid');
+      async function beat() {
+        try {
+          const r = await fetch('/api/visitors/ping', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ session_id, path: location.pathname })
+          });
+          if (r.ok) {
+            const d = await r.json();
+            if (d.session_id) {
+              session_id = d.session_id;
+              sessionStorage.setItem('murphy_vsid', session_id);
+            }
+          }
+        } catch(e){}
+      }
+      beat();
+      setInterval(beat, 20000);
+
+      // ── globe widget ─────────────────────────────────────────────
+      function initGlobe() {
+        if (typeof Globe === 'undefined') { setTimeout(initGlobe, 200); return; }
+        const el = document.getElementById('visitor-globe');
+        if (!el) return;
+        const world = Globe()(el)
+          .backgroundColor('rgba(0,0,0,0)')
+          .showGlobe(true)
+          .showAtmosphere(true)
+          .atmosphereColor('#33ff88')
+          .atmosphereAltitude(0.18)
+          .globeMaterial(new THREE.MeshPhongMaterial({
+            color: 0x001a0a,
+            emissive: 0x002211,
+            shininess: 0
+          }))
+          .pointAltitude(0.02)
+          .pointColor(() => '#33ff88')
+          .pointRadius(0.5)
+          .pointsMerge(false)
+          .width(380).height(380);
+
+        // Neon-green grid overlay on the globe surface
+        try {
+          world.hexPolygonsData([])
+               .hexPolygonResolution(2)
+               .hexPolygonMargin(0.3)
+               .hexPolygonColor(() => 'rgba(51, 255, 136, 0.15)');
+        } catch(e){}
+
+        world.controls().autoRotate = true;
+        world.controls().autoRotateSpeed = 0.6;
+        world.controls().enableZoom = false;
+
+        async function refresh() {
+          try {
+            const r = await fetch('/api/visitors/live');
+            const d = await r.json();
+            const points = (d.visitors||[]).map(v => ({lat:v.lat, lng:v.lon}));
+            world.pointsData(points);
+            document.getElementById('vg-count').textContent = points.length;
+          } catch(e){}
+        }
+        refresh();
+        setInterval(refresh, 8000);
+      }
+      initGlobe();
+    })();
+    </script>
     <h1 class="hero-headline">
         <!-- _R417_HERO -->
         AI agents that <span class="accent rotator" id="hero-verb">run your business</span>.<br>

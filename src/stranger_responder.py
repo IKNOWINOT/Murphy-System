@@ -65,7 +65,7 @@ _MAX_PER_DOMAIN_24H = 5
 _MAX_DAILY_USD = float(os.environ.get("STRANGER_MAX_DAILY_USD", "5.00"))
 _MAX_QUEUE_DEPTH = int(os.environ.get("STRANGER_MAX_QUEUE_DEPTH", "50"))
 
-_VALUE_LINE = "Murphy automates the rule-bound periodic work you've been doing manually."
+_VALUE_LINE = ""  # Ship 31aa.5: empty by default — DO-THE-WORK directive supplies the opener
 
 _ALLOWLIST_OWNED = {
     "cpost@murphy.systems",
@@ -478,7 +478,7 @@ BODY: {email_body[:2000]}
 
 Write a working reply under two hundred words. Two or three paragraphs of natural prose — no bullets, no headers, no Markdown.
 
-Paragraph one opens with: "{_VALUE_LINE}" and addresses the actual question they asked, in the working language of their field.
+Paragraph one OPENS WITH THE COMPUTED ANSWER — no greeting, no preamble, no value-prop. Just the number, the formula, the answer to the question they asked, in the working language of their field. Treat them as a peer who already knows what Murphy is.
 
 Paragraph two gives the most experienced read you can offer on the substance. Where there is uncertainty, say so plainly. Where you assume something, name it in one phrase. Speak to the matter, not the process.
 
@@ -493,6 +493,80 @@ Do not invent prices, timelines, or features. Be precise about what the work can
         soul = (soul or "") + "\n\n" + style_instruction(role_hint=role_hint)
     except Exception as _vexc:
         logger.warning("voice_aristocrat style inject failed: %s", _vexc)
+
+    # Ship 31aa: load/update thread situation, ground via reference corpora
+    _situation_block = ""
+    _physics_refs = []
+    try:
+        from src import thread_situation_model as _tsm
+        from src.reference_corpora import get as _corpus_get
+        _sit = _tsm.load_or_create(
+            from_addr=from_addr,
+            subject=email_subject,
+            from_domain=from_addr.split("@")[-1] if "@" in from_addr else "",
+            role=role_hint or "",
+            vertical=vertical or "",
+        )
+        _sit = _tsm.absorb_inbound(_sit, email_subject, email_body)
+        # If a corpus matches this role, pull top refs and attach
+        _corpus_name = _sit.get("corpus_hint", "")
+        if _corpus_name:
+            _adapter = _corpus_get(_corpus_name)
+            if _adapter:
+                _query = f"{email_subject} {email_body}"[:300]
+                _refs = _adapter.search(_query, limit=2)
+                if _refs:
+                    _physics_refs = _refs
+                    _sit["physics_refs"] = _refs
+                    _tsm._save(_sit)
+        _situation_block = _tsm.render_for_prompt(_sit)
+        if _situation_block:
+            soul = (soul or "") + "\n\n" + _situation_block
+        # Ship 31aa.4: hard "do the work" instruction when grounding exists
+        if _physics_refs:
+            _cite_lines = ["GROUNDING SOURCES — cite the URL inline when used:"]
+            for _r in _physics_refs:
+                _cite_lines.append(f"  - {_r['title']}: {_r['url']}")
+            soul = soul + "\n\n" + "\n".join(_cite_lines)
+            # The do-the-work directive — this is what makes replies concrete
+            soul = soul + (
+                "\n\n"
+                "DO THE WORK — NOT THE TALK ABOUT THE WORK:\n"
+                "  - Compute a CONCRETE NUMERIC answer using stated facts.\n"
+                "  - If a value is missing, ASSUME a standard engineering "
+                "default and STATE the assumption explicitly.\n"
+                "  - Show the formula. Show the numbers plugged in. "
+                "Show the result with units.\n"
+                "  - Reference the grounding URL inline (Source: <url>).\n"
+                "  - Then propose a recommendation based on the number.\n"
+                "  - ONLY after delivering the computed answer, ask ONE "
+                "follow-up question to refine the assumption.\n"
+                "  - Forbidden: 'we can apply', 'this would give', "
+                "'depends on', 'consider', 'you should review'. "
+                "These phrases mean you did no work.\n"
+                "  - Required: actual numbers, actual units, one "
+                "recommendation, one follow-up."
+            )
+            # Role-specific engineering defaults
+            if role_hint == "mep_engineer" or vertical == "construction":
+                soul = soul + (
+                    "\n\n"
+                    "MEP DEFAULTS when correspondent omits values:\n"
+                    "  - Galvanized round duct: roughness e = 0.00015 ft\n"
+                    "  - Air density rho = 0.075 lb/ft^3 at standard conditions\n"
+                    "  - Air dynamic viscosity mu = 1.21e-5 lb/(ft*s)\n"
+                    "  - Standard duct length L = 100 ft per run unless stated\n"
+                    "  - Velocity V (fpm) = CFM / cross-section area (ft^2)\n"
+                    "  - Cross-section for round duct: A = pi * (D/24)^2 ft^2 "
+                    "where D is in inches\n"
+                    "  - Reynolds Re = (rho * V * D_ft) / mu\n"
+                    "  - For turbulent flow (Re > 4000): use Colebrook or "
+                    "Swamee-Jain for f\n"
+                    "  - Rule of thumb: target pressure drop "
+                    "0.08-0.1 in w.g. per 100 ft for low-velocity HVAC supply"
+                )
+    except Exception as _aaexc:
+        logger.warning("31aa situation/corpus inject failed: %s", _aaexc)
 
     out = _llm_complete(prompt, model_hint="chat", max_tokens=400, soul_system=soul)
 
@@ -721,7 +795,7 @@ ATTACHMENT CONTENT:
 {attachment_summary[:5500]}
 
 Write a SHORT analysis reply (under 250 words) addressed to {principal_addr}. Structure:
-1. Open line: "Murphy automates the rule-bound periodic work you've been doing manually."
+1. Open with the COMPUTED ANSWER. No greeting, no pitch, no "I'd be happy to help". Start with the number and the formula.
 2. ONE sentence acknowledging what you analyzed and from what lens
 3. 3-5 BULLETS — the specific findings ranked by importance to a {role_class}. Each bullet must be CONCRETE and reference an actual fact from the attachment, not generic boilerplate.
 4. ONE sentence on the highest-leverage next step  
@@ -783,7 +857,7 @@ CONTEXT (do NOT quote this back; refer to it meta only):
 {email_body[:2000]}
 
 Write a SHORT reply email (under 180 words) addressed ONLY to {principal_addr}. It must:
-1. Open with one line: "{_VALUE_LINE}"
+1. Open with the COMPUTED ANSWER. No greeting, no pitch.
 2. ONE sentence acknowledging you saw the thread (refer to it as 'your email re: {email_subject[:60]}' - NEVER quote thread content)
 3. ONE concrete thing you noticed Murphy could do for them
 4. ONE specific next step in 2-3 bullets (the PLAN)
@@ -1083,3 +1157,72 @@ def process_stranger_inquiries(limit: int = 5) -> Dict:
 if __name__ == "__main__":
     import pprint
     pprint.pprint(process_stranger_inquiries(limit=5))
+
+
+# ── Ship 31aa.9 — canonical branded send helper (Victorian-techno) ──
+def _send_branded(to_addr, subject, raw_reply_text, role_hint=None,
+                  vertical=None, sponsor=None, follow_up=None):
+    """Send raw LLM reply text through the canonical branded template.
+
+    Splits the raw text into (answer, follow_up, sponsor) cleanly and
+    renders via render_branded_email -> multipart MIME -> postfix SMTP.
+    """
+    import re as _re, smtplib as _smtp
+    from email.mime.text import MIMEText as _MT
+    from email.mime.multipart import MIMEMultipart as _MM
+    try:
+        from src.email_brand import render_branded_email
+    except Exception as exc:
+        logger.error("_send_branded: brand kit import failed: %s", exc)
+        return False
+
+    # Carve up the raw text
+    raw = (raw_reply_text or "").strip()
+    raw = raw.replace("— Murphy (automated reply; reply STOP to opt out)", "")
+    raw = raw.replace("— — —", "").strip()
+    raw = _re.split(r"\n\s*Sponsored:\s*", raw, maxsplit=1)[0].strip()
+
+    # Extract follow-up if not supplied
+    if not follow_up:
+        for line in reversed([l.strip() for l in raw.split("\n") if l.strip()]):
+            if line.endswith("?") and 20 < len(line) < 200                and "Sponsored" not in line:
+                follow_up = line
+                raw = raw.replace(line, "").strip()
+                break
+
+    # Role label
+    role_label_map = {
+        ("mep_engineer", "construction"): "MEP / construction",
+        ("cfo", "finance"): "CFO lens",
+        ("cto", "tech"): "CTO lens",
+        ("risk_lawyer", "risk"): "Legal / risk",
+        ("recruiter", "staffing"): "Talent",
+        ("lawyer", "legal"): "Counsel",
+        ("fde", "automation"): "Forward Deploy",
+    }
+    role_label = role_label_map.get((role_hint, vertical))
+    if not role_label and role_hint:
+        role_label = role_hint.replace("_", " ").title()
+
+    html, plain = render_branded_email(
+        answer=raw, follow_up=follow_up, sponsor=sponsor,
+        subject=subject, role_label=role_label,
+    )
+
+    msg = _MM("alternative")
+    msg["From"] = "Murphy <murphy@murphy.systems>"
+    msg["To"] = to_addr
+    msg["Subject"] = subject
+    msg["Reply-To"] = "murphy@murphy.systems"
+    msg.attach(_MT(plain, "plain", "utf-8"))
+    msg.attach(_MT(html, "html", "utf-8"))
+    try:
+        with _smtp.SMTP("localhost", 25, timeout=15) as s:
+            s.send_message(msg)
+        logger.info("_send_branded ok -> %s subj=%r", to_addr, subject[:60])
+        return True
+    except Exception as exc:
+        logger.error("_send_branded SMTP failed: %s", exc)
+        return False
+# ── end Ship 31aa.9 ──
+

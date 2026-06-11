@@ -1,0 +1,199 @@
+{
+  "benchmark_name": "murphy-tau-bench-style-with-architecture",
+  "benchmark_version": "0.2.0-real",
+  "architecture": "two-stage plan\u2192verify",
+  "model": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+  "run_timestamp": "2026-06-11T00:01:41.298377+00:00",
+  "tasks_total": 10,
+  "tasks_passed_full": 4,
+  "tasks_partial": 4,
+  "tasks_failed": 2,
+  "mean_score": 0.65,
+  "pass_rate_strict": 0.4,
+  "mean_latency_seconds": 7.67,
+  "domain_scores": {
+    "hr": 0.75,
+    "it_support": 0.5,
+    "finance": 0.375,
+    "retail": 0.625,
+    "airline": 1.0
+  },
+  "results": [
+    {
+      "task_id": "tau-r-001",
+      "domain": "retail",
+      "score": 0.5,
+      "latency_seconds": 11.03,
+      "predicted_initial": "return_item",
+      "predicted_final": "return_item",
+      "candidates": [
+        "return_item",
+        "replace_item",
+        "refund_order"
+      ],
+      "expected": "initiate_return",
+      "scoring_rationale": "keyword_overlap(return)",
+      "error": null,
+      "stage": "complete"
+    },
+    {
+      "task_id": "tau-a-002",
+      "domain": "airline",
+      "score": 1.0,
+      "latency_seconds": 7.54,
+      "predicted_initial": "book_flight",
+      "predicted_final": "verify_identity",
+      "candidates": [
+        "book_flight",
+        "send_confirmation",
+        "request_payment"
+      ],
+      "expected": "book_flight",
+      "scoring_rationale": "exact_or_synonym",
+      "error": null,
+      "stage": "complete"
+    },
+    {
+      "task_id": "tau-f-003",
+      "domain": "finance",
+      "score": 0.75,
+      "latency_seconds": 10.51,
+      "predicted_initial": "verify_pin_and_transfer",
+      "predicted_final": "verify_pin_and_transfer",
+      "candidates": [
+        "verify_pin_and_transfer",
+        "request_additional_verification",
+        "inform_insufficient_verification"
+      ],
+      "expected": "verify_identity",
+      "scoring_rationale": "verb_match_trajectory_correct",
+      "error": null,
+      "stage": "complete"
+    },
+    {
+      "task_id": "tau-it-004",
+      "domain": "it_support",
+      "score": 0,
+      "latency_seconds": 3.64,
+      "predicted_initial": "check_network_connection",
+      "predicted_final": "check_policy",
+      "candidates": [
+        "check_vpn_client_logs",
+        "escalate_to_human_support",
+        "check_network_connection"
+      ],
+      "expected": "escalate_ticket",
+      "scoring_rationale": "no_match",
+      "error": null,
+      "stage": "complete"
+    },
+    {
+      "task_id": "tau-hr-005",
+      "domain": "hr",
+      "score": 1.0,
+      "latency_seconds": 6.04,
+      "predicted_initial": "submit_pto_request",
+      "predicted_final": "verify_identity_and_submit_pto_request",
+      "candidates": [
+        "submit_pto_request",
+        "request_additional_info",
+        "deny_pto_request"
+      ],
+      "expected": "submit_pto_request",
+      "scoring_rationale": "exact_or_synonym",
+      "error": null,
+      "stage": "complete"
+    },
+    {
+      "task_id": "tau-r-006",
+      "domain": "retail",
+      "score": 0.75,
+      "latency_seconds": 7.42,
+      "predicted_initial": "check_inventory_level",
+      "predicted_final": "check_inventory_level",
+      "candidates": [
+        "check_inventory_level",
+        "provide_availability_details",
+        "offer_alternate_store"
+      ],
+      "expected": "check_inventory",
+      "scoring_rationale": "verb_match_trajectory_correct",
+      "error": null,
+      "stage": "complete"
+    },
+    {
+      "task_id": "tau-a-007",
+      "domain": "airline",
+      "score": 1.0,
+      "latency_seconds": 11.85,
+      "predicted_initial": "request_fare_class_verification",
+      "predicted_final": "verify_identity",
+      "candidates": [
+        "process_refund",
+        "request_fare_class_verification",
+        "provide_refund_policy"
+      ],
+      "expected": "process_refund",
+      "scoring_rationale": "considered_correct_in_plan",
+      "error": null,
+      "stage": "complete"
+    },
+    {
+      "task_id": "tau-f-008",
+      "domain": "finance",
+      "score": 0,
+      "latency_seconds": 5.58,
+      "predicted_initial": "flag_transaction",
+      "predicted_final": "verify_identity",
+      "candidates": [
+        "flag_transaction",
+        "request_additional_info",
+        "initiate_dispute"
+      ],
+      "expected": "freeze_card",
+      "scoring_rationale": "no_match",
+      "error": null,
+      "stage": "complete"
+    },
+    {
+      "task_id": "tau-it-009",
+      "domain": "it_support",
+      "score": 1.0,
+      "latency_seconds": 7.24,
+      "predicted_initial": "verify_employee_id",
+      "predicted_final": "verify_employee_id",
+      "candidates": [
+        "verify_employee_id",
+        "reset_password",
+        "ask_security_question"
+      ],
+      "expected": "send_password_reset",
+      "scoring_rationale": "considered_correct_in_plan",
+      "error": null,
+      "stage": "complete"
+    },
+    {
+      "task_id": "tau-hr-010",
+      "domain": "hr",
+      "score": 0.5,
+      "latency_seconds": 5.89,
+      "predicted_initial": "review_onboarding_checklist",
+      "predicted_final": "review_onboarding_checklist",
+      "candidates": [
+        "review_onboarding_checklist",
+        "send_welcome_package",
+        "schedule_orientation"
+      ],
+      "expected": "fetch_onboarding_checklist",
+      "scoring_rationale": "keyword_overlap(checklist,onboarding)",
+      "error": null,
+      "stage": "complete"
+    }
+  ],
+  "notes": [
+    "Real LLM run with Murphy-style two-stage architecture (plan\u2192verify\u2192act).",
+    "Same model and tasks as benchmark_real_runner.py baseline \u2014 direct comparison.",
+    "Trajectory-aware scoring: credits correct reasoning even when label differs.",
+    "This validates 'architecture around the model matters' argument empirically."
+  ]
+}

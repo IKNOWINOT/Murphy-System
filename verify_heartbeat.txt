@@ -1,0 +1,1 @@
+The swarm heartbeat interval is 5 seconds as defined in src/adapter_framework/safety_hooks.py and 60 seconds as defined in src/control_plane/execution_packet.py.

@@ -1,0 +1,1 @@
+Incident #inc_06d9f179: No inbound replies in 999 days. APC outreach may need copy refresh. Outreach log analysis indicates stale content. Recommended next step: Refresh APC outreach copy.
