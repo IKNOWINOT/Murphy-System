@@ -5044,6 +5044,35 @@ def create_app() -> FastAPI:
                 status_code=500,
             )
 
+    # ── Ship 31r: /os/adoption + /os/role-audit founder dashboards ──
+    @app.get("/os/adoption", include_in_schema=False)
+    async def os_adoption_dashboard():
+        try:
+            from fastapi.responses import HTMLResponse
+            from src.os_adoption_dashboard import render_adoption_html
+            return HTMLResponse(render_adoption_html())
+        except Exception as exc:
+            import traceback
+            from fastapi.responses import HTMLResponse
+            return HTMLResponse(
+                f"<pre>os_adoption error: {exc}\n\n{traceback.format_exc()}</pre>",
+                status_code=500,
+            )
+
+    @app.get("/os/role-audit", include_in_schema=False)
+    async def os_role_audit_dashboard():
+        try:
+            from fastapi.responses import HTMLResponse
+            from src.os_adoption_dashboard import render_role_audit_html
+            return HTMLResponse(render_role_audit_html())
+        except Exception as exc:
+            import traceback
+            from fastapi.responses import HTMLResponse
+            return HTMLResponse(
+                f"<pre>os_role_audit error: {exc}\n\n{traceback.format_exc()}</pre>",
+                status_code=500,
+            )
+
     @app.get("/murphy-os", include_in_schema=False)
     async def murphy_os_alias(request: Request):
         # _R441_MURPHYOS_CANONICALIZED — alias of /os
