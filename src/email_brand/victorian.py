@@ -182,6 +182,7 @@ def render_victorian_email(
     subject: Optional[str] = None,
     role_label: Optional[str] = None,
     seal_number: Optional[str] = None,
+    free_tier: Optional[dict] = None,
 ) -> Tuple[str, str]:
     """Victorian-techno branded email."""
     if not seal_number:
@@ -261,6 +262,68 @@ def render_victorian_email(
             '</td></tr></table>'
         )
 
+    # ── Ship 31ab: free-tier counter + signup CTA ──
+    free_tier_block = ""
+    if free_tier:
+        ft_used      = int(free_tier.get("used", 0) or 0)
+        ft_limit     = int(free_tier.get("limit", 5) or 5)
+        ft_remaining = int(free_tier.get("remaining", 0) or 0)
+        ft_claimed   = bool(free_tier.get("claimed", False))
+        ft_is_last   = bool(free_tier.get("is_last", False))
+        ft_is_over   = bool(free_tier.get("is_over", False))
+        ft_claim_url = free_tier.get("claim_url", "")
+        ft_email     = free_tier.get("email_addr", "your address")
+        if not ft_claimed:
+            # CTA copy escalates with how many they've used
+            if ft_is_over:
+                _ft_title = "This was your final free reply this month."
+                _ft_body  = ("Claim your account to keep the conversation going "
+                             "and unlock Task mode (calculations, drafts, research).")
+                _ft_cta   = "Claim my account"
+            elif ft_is_last:
+                _ft_title = f"One free reply left ({ft_used} of {ft_limit} used)"
+                _ft_body  = ("Claim your account to keep talking past your free "
+                             "tier and unlock Task mode.")
+                _ft_cta   = "Claim my account"
+            else:
+                _ft_title = f"{ft_remaining} of {ft_limit} free replies remaining"
+                _ft_body  = (f"Claim {_esc(ft_email)} in one click to remember "
+                             "this thread, raise the cap, and unlock Task mode.")
+                _ft_cta   = "Claim my account"
+            free_tier_block = (
+                '<table role="presentation" cellspacing="0" cellpadding="0" '
+                'border="0" width="100%" style="margin:24px 0 0;">'
+                '<tr>'
+                f'<td style="border:1px solid {_BRASS_DIM};'
+                f'background:{_INKWELL};padding:18px 22px;border-radius:3px;">'
+                f'<div style="font-family:{_DISPLAY};font-size:10px;'
+                f'color:{_TEAL};font-weight:700;letter-spacing:.22em;'
+                'text-transform:uppercase;margin-bottom:8px;">'
+                'Bureau Membership'
+                '</div>'
+                f'<div style="font-family:{_SERIF};font-size:15px;'
+                f'color:{_TEXT_INK};font-weight:600;line-height:1.4;'
+                'margin-bottom:6px;">'
+                f'{_esc(_ft_title)}'
+                '</div>'
+                f'<div style="font-family:{_SERIF};font-size:13px;'
+                f'color:{_TEXT_DIM};line-height:1.55;'
+                'margin-bottom:14px;">'
+                f'{_esc(_ft_body)}'
+                '</div>'
+                + (f'<a href="{_esc(ft_claim_url)}" '
+                   f'style="display:inline-block;background:{_TEAL};'
+                   'color:#0a1a14;text-decoration:none;'
+                   f'font-family:{_DISPLAY};font-weight:700;'
+                   'font-size:12px;letter-spacing:.16em;'
+                   'text-transform:uppercase;'
+                   'padding:11px 22px;border-radius:2px;">'
+                   f'{_esc(_ft_cta)} &rsaquo;'
+                   '</a>'
+                   if ft_claim_url else '')
+                + '</td></tr></table>'
+            )
+
     # The portal
     html_doc = (
         '<!doctype html><html><head><meta charset="utf-8">'
@@ -338,6 +401,7 @@ def render_victorian_email(
         f'<div style="background:{_PARCHMENT};padding:0 36px;">'
         + follow_block +
         '</div>'
+        + free_tier_block +
 
         # ── SPONSOR ──
         f'<div style="background:{_PARCHMENT};padding:0 36px 12px;">'

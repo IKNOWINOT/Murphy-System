@@ -5087,6 +5087,41 @@ def create_app() -> FastAPI:
                 status_code=500,
             )
 
+    # ── Ship 31ab: /claim/{token} free-tier account claim ──
+    @app.get("/claim/{token}", include_in_schema=False)
+    async def murphy_claim(token: str):
+        from fastapi.responses import HTMLResponse
+        try:
+            from src import free_tier_counter as _ftc
+            addr = _ftc.claim_account(token)
+        except Exception:
+            addr = None
+        if addr:
+            body = f'''<!doctype html><html><head><meta charset="utf-8">
+<title>Account claimed — Murphy</title>
+<style>body{{font-family:Hoefler Text,Garamond,Georgia,serif;background:#e8eaec;margin:0;padding:48px 16px;color:#1a1f1c;}}
+.card{{max-width:520px;margin:0 auto;background:#0c1411;color:#cfd6d0;padding:36px 32px;border-radius:6px;box-shadow:0 0 0 1px #8a7240,0 0 0 4px #0c1411,0 0 0 5px #8a7240;}}
+h1{{color:#00D4AA;font-family:Cormorant Garamond,Georgia,serif;font-size:28px;margin:0 0 16px;letter-spacing:.04em;}}
+p{{font-size:16px;line-height:1.6;margin:0 0 14px;}}
+a{{color:#00D4AA;}}</style></head>
+<body><div class="card">
+<h1>Welcome aboard.</h1>
+<p>Account claimed for <strong>{addr}</strong>. Your free-tier
+cap is lifted. Murphy will remember this thread, and Task mode is open.</p>
+<p>Reply to your last Murphy email to keep going, or send a fresh
+question to <a href="mailto:murphy@murphy.systems">murphy@murphy.systems</a>.</p>
+</div></body></html>'''
+            return HTMLResponse(body)
+        else:
+            return HTMLResponse(
+                '<!doctype html><html><body style="font-family:Georgia,serif;padding:48px;">'
+                '<h1>Token not valid</h1>'
+                '<p>This claim link has expired or was already used. '
+                '<a href="mailto:murphy@murphy.systems">Email Murphy</a> '
+                'and a new one will be sent on the next reply.</p></body></html>',
+                status_code=400,
+            )
+
     # ── Ship 31v: /verify/{token} domain-claim endpoint ──
     @app.get("/verify/{token}", include_in_schema=False)
     async def verify_claim(token: str, request: Request):

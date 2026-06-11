@@ -1279,7 +1279,8 @@ if __name__ == "__main__":
 
 # ── Ship 31aa.9 — canonical branded send helper (Victorian-techno) ──
 def _send_branded(to_addr, subject, raw_reply_text, role_hint=None,
-                  vertical=None, sponsor=None, follow_up=None):
+                  vertical=None, sponsor=None, follow_up=None,
+                  attach_free_tier=True):
     """Send raw LLM reply text through the canonical branded template.
 
     Splits the raw text into (answer, follow_up, sponsor) cleanly and
@@ -1322,9 +1323,25 @@ def _send_branded(to_addr, subject, raw_reply_text, role_hint=None,
     if not role_label and role_hint:
         role_label = role_hint.replace("_", " ").title()
 
+    # Ship 31ab: pull free-tier state + claim URL for this recipient
+    free_tier_dict = None
+    if attach_free_tier:
+        try:
+            from src import free_tier_counter as _ftc
+            _state = _ftc.get_state(to_addr)
+            if not _state.get("claimed"):
+                _token = _ftc.get_or_create_claim_token(to_addr)
+                _state["claim_url"] = f"https://murphy.systems/claim/{_token}"
+                _state["email_addr"] = to_addr
+                free_tier_dict = _state
+        except Exception as _ft_exc:
+            logger.warning("_send_branded: free_tier lookup failed: %s", _ft_exc)
+            free_tier_dict = None
+
     html, plain = render_branded_email(
         answer=raw, follow_up=follow_up, sponsor=sponsor,
         subject=subject, role_label=role_label,
+        free_tier=free_tier_dict,
     )
 
     msg = _MM("alternative")

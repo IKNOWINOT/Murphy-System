@@ -125,23 +125,70 @@ def _run_audit_gate(subject, body_text, agent_role, queue_id, to_count):
 
 
 def _send_via_postfix(from_addr, to_list, subject, body_text):
-    """PATCH-435: Send via local Postfix on 127.0.0.1:25.
+    """PATCH-435 + Ship 31ab: Send via local Postfix on 127.0.0.1:25.
+    Renders the body through the canonical Murphy brand template
+    (Victorian-techno) with auto-attached free-tier counter + signup CTA.
     Returns (ok: bool, err: str|None, sent_via: str).
     """
     import smtplib
-    from email.message import EmailMessage
+    from email.mime.text import MIMEText
+    from email.mime.multipart import MIMEMultipart
     from email.utils import formatdate, make_msgid
     try:
-        msg = EmailMessage()
-        msg['From'] = from_addr
-        msg['To'] = ', '.join(to_list)
-        msg['Subject'] = subject
-        msg['Date'] = formatdate(localtime=True)
-        msg['Message-ID'] = make_msgid(domain='murphy.systems')
-        msg.set_content(body_text)
+        # Render through brand kit so every outbound looks like Murphy
+        try:
+            import sys as _sys
+            if '/opt/Murphy-System' not in _sys.path:
+                _sys.path.insert(0, '/opt/Murphy-System')
+            from src.email_brand import render_branded_email
+            from src import free_tier_counter as _ftc
+
+            primary_to = to_list[0] if to_list else ''
+            free_tier_dict = None
+            if primary_to:
+                try:
+                    # Ship 31ab: increment FIRST so the card shows the
+                    # post-send state ("3 of 5 used" not "2 of 5 used")
+                    _ftc.increment_and_get(primary_to)
+                    st = _ftc.get_state(primary_to)
+                    if not st.get('claimed'):
+                        tok = _ftc.get_or_create_claim_token(primary_to)
+                        st['claim_url'] = f'https://murphy.systems/claim/{tok}'
+                        st['email_addr'] = primary_to
+                        free_tier_dict = st
+                except Exception:
+                    log.exception('Ship 31ab free_tier lookup failed')
+
+            html, plain = render_branded_email(
+                answer=body_text,
+                subject=subject,
+                role_label=None,
+                free_tier=free_tier_dict,
+            )
+
+            msg = MIMEMultipart('alternative')
+            msg['From'] = from_addr
+            msg['To'] = ', '.join(to_list)
+            msg['Subject'] = subject
+            msg['Reply-To'] = from_addr
+            msg['Date'] = formatdate(localtime=True)
+            msg['Message-ID'] = make_msgid(domain='murphy.systems')
+            msg.attach(MIMEText(plain, 'plain', 'utf-8'))
+            msg.attach(MIMEText(html, 'html', 'utf-8'))
+        except Exception:
+            log.exception('Ship 31ab brand render failed — falling back to plain')
+            from email.message import EmailMessage
+            msg = EmailMessage()
+            msg['From'] = from_addr
+            msg['To'] = ', '.join(to_list)
+            msg['Subject'] = subject
+            msg['Date'] = formatdate(localtime=True)
+            msg['Message-ID'] = make_msgid(domain='murphy.systems')
+            msg.set_content(body_text)
+
         with smtplib.SMTP('127.0.0.1', 25, timeout=10) as smtp:
             smtp.send_message(msg)
-        return True, None, 'smtp_postfix'
+        return True, None, 'smtp_postfix_branded'
     except Exception as e:
         log.exception('PATCH-435 SMTP send failed')
         return False, str(e), None
