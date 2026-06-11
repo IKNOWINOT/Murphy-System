@@ -16,22 +16,22 @@ Kill criterion: code without verified production execution = theater.
 
 | # | Component | a | b | c | d | e | Verdict |
 |---|-----------|---|---|---|---|---|---------|
-| 1 | INBOUND email (postfix + intake) | ✅ | ✅ | ✅ | ✅ | 🟡 | FUNCTIONAL |
+| 1 | INBOUND email (postfix + intake) | ✅ | ✅ | ✅ | ✅ | ✅ | **COMPLETE** (visible in /os/stranger) |
 | 2 | CLASSIFY direct vs ambient | ✅ | ✅ | ✅ | ✅ | ✅ | **COMPLETE** |
-| 3 | PAY GATE / quota check | ✅ | ✅ | ✅ | ✅ | 🟡 | FUNCTIONAL |
+| 3 | PAY GATE / quota check | ✅ | ✅ | ✅ | ✅ | ✅ | **COMPLETE** (quota_reason in /os/stranger) |
 | 4 | DLF injection (build_deep_soul) | ✅ | ✅ | ✅ | ✅ | ✅ | **COMPLETE** (Ship 31i.B) |
 | 5 | MAGNIFY-DRILL synthesis | ✅ | ✅ | ✅ | ✅ | ✅ | **COMPLETE** |
-| 6 | GENERATIVE reply (no templates) | ✅ | ✅ | ✅ | ✅ | 🟡 | FUNCTIONAL |
+| 6 | GENERATIVE reply (no templates) | ✅ | ✅ | ✅ | ✅ | ✅ | **COMPLETE** (reply text in /os/stranger) |
 | 7 | FOLLOW-UP question generation | 🟡 | ❌ | ❌ | ❌ | ❌ | exists, not email-wired |
 | 8 | EMAIL GRAPHICS / multipart MIME | ❌ | ❌ | ❌ | ❌ | ❌ | NOT BUILT |
 | 9 | AD INJECTION (contextual) | ✅ | ✅ | ✅ | ✅ | ✅ | **COMPLETE** (Ship 31m, in-house inventory) |
 | 10 | EMAIL VERIFICATION → unlock | ✅ | ✅ | 🟡 | ❌ | ❌ | endpoint only |
-| 11 | OUTBOUND SEND (postfix queue) | ✅ | ✅ | ✅ | ✅ | 🟡 | FUNCTIONAL |
+| 11 | OUTBOUND SEND (postfix queue) | ✅ | ✅ | ✅ | ✅ | ✅ | **COMPLETE** (sent_at + status in /os/stranger) |
 | 12 | COMPLIANCE gate (PCR-090h.1) | ✅ | ❌ | 🟡 | ❌ | ❌ | ⚠ THEATER |
 | 13 | ML one-request learning loop | ✅ | 🟡 | 🟡 | ❌ | ❌ | half-wired |
 | 14 | EXTERNAL BENCHMARK (tau-bench) | ✅ | ✅ | ✅ | ✅ | ✅ | **COMPLETE** (Ship 31h.2) |
 | 16 | ATTACHMENT SYNTHESIS + chunking + resume + honest-limits | ✅ | ✅ | ✅ | ✅ | ✅ | **COMPLETE** (Ship 31i.A) |
-| 15 | FOUNDER DASHBOARD (/os/stranger) | ❌ | ❌ | ❌ | ❌ | ❌ | NOT BUILT |
+| 15 | FOUNDER DASHBOARD (/os/stranger) | ✅ | ✅ | ✅ | ✅ | ✅ | **COMPLETE** (Ship 31i.C) |
 
 **Scorecard:**
 - COMPLETE: 3/15 (20%)

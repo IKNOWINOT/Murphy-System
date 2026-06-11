@@ -3289,6 +3289,63 @@ def create_app() -> FastAPI:
         from fastapi.responses import RedirectResponse
         return RedirectResponse("/ui/landing")
 
+    # ── SHIP-27: visitor tracking + globe data ──────────────────────────
+    @app.post("/api/visitors/ping", include_in_schema=False)
+    async def visitors_ping(request: Request):
+        """Lightweight beacon called by landing-page JS every 20s."""
+        try:
+            from src.visitor_tracking import ping as _vping
+            body = {}
+            try: body = await request.json()
+            except Exception: pass
+            # Resolve client IP (respect X-Forwarded-For from nginx)
+            ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() \
+                 or (request.client.host if request.client else "127.0.0.1")
+            r = _vping(
+                session_id=body.get("session_id"),
+                ip=ip,
+                path=body.get("path", "/"),
+                referrer=request.headers.get("referer"),
+                user_agent=request.headers.get("user-agent"),
+            )
+            from fastapi.responses import JSONResponse as _JR
+            return _JR(r)
+        except Exception as e:
+            from fastapi.responses import JSONResponse as _JR
+            return _JR({"ok": False, "error": str(e)}, status_code=500)
+
+    @app.get("/api/visitors/live", include_in_schema=False)
+    async def visitors_live():
+        """Public globe data — anonymous geo only, no PII."""
+        try:
+            from src.visitor_tracking import get_live_visitors
+            from fastapi.responses import JSONResponse as _JR
+            return _JR({"visitors": get_live_visitors(window_seconds=60)})
+        except Exception as e:
+            from fastapi.responses import JSONResponse as _JR
+            return _JR({"visitors": [], "error": str(e)}, status_code=500)
+
+    @app.get("/api/visitors/stats", include_in_schema=False)
+    async def visitors_stats():
+        """Aggregate stats for the admin dashboard."""
+        try:
+            from src.visitor_tracking import get_visitor_stats
+            from fastapi.responses import JSONResponse as _JR
+            return _JR(get_visitor_stats())
+        except Exception as e:
+            from fastapi.responses import JSONResponse as _JR
+            return _JR({"error": str(e)}, status_code=500)
+
+    @app.get("/admin/visitors", include_in_schema=False)
+    async def admin_visitors_dashboard():
+        """Admin analytics dashboard."""
+        import os as _adv
+        p = "/opt/Murphy-System/static/admin_visitors.html"
+        if _adv.path.isfile(p):
+            return _FileResponse132(p, media_type="text/html")
+        from fastapi.responses import PlainTextResponse
+        return PlainTextResponse("admin_visitors.html missing", status_code=404)
+
     @app.get("/trippingpenguins")
     async def tripping_penguins_top():
         import os as _tos
@@ -4965,6 +5022,27 @@ def create_app() -> FastAPI:
                 return _HR350(_f350.read())
         return _HR350("<h1>Murphy OS loading...</h1>")
 
+
+
+    # ── Ship 31i.C: /os/stranger founder dashboard ──────────────────
+    @app.get("/os/stranger", include_in_schema=False)
+    async def os_stranger_dashboard(request: Request):
+        """Founder-only dashboard for stranger reply log."""
+        try:
+            from fastapi.responses import HTMLResponse
+            from src.os_stranger_dashboard import (
+                list_recent_strangers, stats_24h, render_html
+            )
+            items = list_recent_strangers(limit=50)
+            stats = stats_24h()
+            return HTMLResponse(render_html(items, stats))
+        except Exception as exc:
+            import traceback
+            from fastapi.responses import HTMLResponse
+            return HTMLResponse(
+                f"<pre>os_stranger error: {exc}\n\n{traceback.format_exc()}</pre>",
+                status_code=500,
+            )
 
     @app.get("/murphy-os", include_in_schema=False)
     async def murphy_os_alias(request: Request):
