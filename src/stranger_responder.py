@@ -108,18 +108,46 @@ def _build_role_soul(role_hint, vertical="general"):
 
 
 _ROLE_KEYWORDS = {
-    "cfo":         ("cfo", "finance director", "controller", "treasurer"),
-    "cto":         ("cto", "chief technology", "vp engineering", "engineering lead"),
-    "ceo":         ("ceo", "chief executive", "founder", "president"),
-    "coo":         ("coo", "chief operating", "operations director"),
-    "recruiter":   ("recruiter", "talent", "hiring", "head of people", "chief people"),
-    "lawyer":      ("counsel", "attorney", "legal", "esq", "law firm", "general counsel"),
-    "engineer":    ("engineer", "developer", "sde", "swe", "architect"),
-    "sales":       ("account exec", "sdr", "bdr", "vp sales", "sales director"),
-    "marketing":   ("cmo", "marketing", "growth", "brand"),
-    "pm":          ("product manager", "pm,", "product lead", "head of product"),
-    "designer":    ("designer", "ux", "ui ", "creative director"),
-    "operations":  ("operations manager", "logistics", "supply chain"),
+    "cfo":         ("cfo", "chief financial officer", "vp finance", "vp of finance",
+                    "finance director", "director of finance", "head of finance",
+                    "controller", "treasurer"),
+    "cto":         ("cto", "chief technology officer", "chief technical officer",
+                    "vp engineering", "vp of engineering", "head of engineering",
+                    "engineering lead", "director of engineering"),
+    "ceo":         ("ceo", "chief executive officer", "founder", "co-founder",
+                    "president", "managing director"),
+    "coo":         ("coo", "chief operating officer", "vp operations",
+                    "head of operations", "operations director", "director of operations"),
+    "recruiter":   ("recruiter", "talent acquisition", "talent partner",
+                    "hiring manager", "head of people", "chief people officer",
+                    "vp people", "director of people", "chro",
+                    "chief human resources officer"),
+    "lawyer":      ("counsel", "general counsel", "attorney", "legal officer",
+                    "chief legal officer", "esq", "law firm", "associate counsel"),
+    "engineer":    ("software engineer", "engineer,", "engineer\\n", "developer",
+                    "sde", "swe", "software architect", "principal engineer",
+                    "staff engineer", "senior engineer"),
+    "sales":       ("account executive", "account exec", "sdr", "bdr",
+                    "vp sales", "vp of sales", "sales director", "director of sales",
+                    "head of sales", "chief revenue officer", "cro"),
+    "marketing":   ("cmo", "chief marketing officer", "vp marketing",
+                    "vp of marketing", "head of marketing", "marketing director",
+                    "growth lead", "head of growth", "brand director"),
+    "pm":          ("product manager", "senior product manager", "pm,",
+                    "product lead", "head of product", "vp product",
+                    "chief product officer", "cpo", "director of product"),
+    "designer":    ("designer", "ux designer", "ui designer", "product designer",
+                    "creative director", "head of design", "director of design"),
+    "operations":  ("operations manager", "ops lead", "head of ops",
+                    "logistics manager", "supply chain", "supply chain director"),
+}
+
+# Map role -> default vertical (used when content gives ambiguous signal)
+_ROLE_DEFAULT_VERTICAL = {
+    "cfo": "finance", "ceo": "general", "coo": "operations",
+    "cto": "tech", "engineer": "tech", "pm": "tech", "designer": "tech",
+    "recruiter": "staffing", "lawyer": "legal",
+    "sales": "general", "marketing": "general", "operations": "general",
 }
 
 
@@ -133,16 +161,17 @@ def _detect_role_from_email(subject, body, from_addr):
     for role, kws in _ROLE_KEYWORDS.items():
         for kw in kws:
             if kw in haystack:
-                # crude vertical inference
-                vertical = "general"
-                if any(w in haystack for w in ("saas", "software", "platform", "api ")):
-                    vertical = "tech"
-                elif any(w in haystack for w in ("invoice", "p&l", "revenue", "audit", "gaap")):
+                # Vertical follows ROLE first (CFO is always finance unless STRONG override)
+                vertical = _ROLE_DEFAULT_VERTICAL.get(role, "general")
+                # STRONG content overrides
+                if any(w in haystack for w in ("invoice", "p&l", "gaap", "audit", "ebitda")):
                     vertical = "finance"
-                elif any(w in haystack for w in ("contract", "nda", "litigation", "clause")):
+                elif any(w in haystack for w in ("nda", "litigation", "clause", "indemnif")):
                     vertical = "legal"
-                elif any(w in haystack for w in ("candidate", "resume", "hiring", "interview")):
+                elif any(w in haystack for w in ("candidate", "resume", "interview", "sourcing")):
                     vertical = "staffing"
+                elif any(w in haystack for w in ("saas", "api endpoint", "deploy", "kubernetes")):
+                    vertical = "tech"
                 return role, vertical
     return "", "general"
 
