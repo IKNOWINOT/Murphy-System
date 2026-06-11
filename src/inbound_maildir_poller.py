@@ -69,10 +69,33 @@ def _parse(path: Path) -> dict:
             body_preview = msg.get_payload(decode=True).decode("utf-8", errors="ignore")[:400]
         except Exception:
             body_preview = (msg.get_payload() or "")[:400]
+    # Ship 31d: parse To + Cc separately, determine delivery_mode
+    # All recipient addresses (To + Cc) extracted via getaddresses for full coverage.
+    from email.utils import getaddresses
+    to_pairs = getaddresses([str(msg.get("To", "") or "")])
+    cc_pairs = getaddresses([str(msg.get("Cc", "") or "")])
+    to_addr_primary = (to_pairs[0][1] if to_pairs else "") or ""
+    to_addrs_all = [a for _, a in to_pairs if a]
+    cc_addrs_all = [a for _, a in cc_pairs if a]
+    # delivery_mode logic:
+    #   - if murphy@murphy.systems is in To: → direct (request)
+    #   - elif murphy@murphy.systems is in Cc: → ambient (synthesis target)
+    #   - else: direct (default, backwards-compatible)
+    MURPHY_ADDR = "murphy@murphy.systems"
+    if MURPHY_ADDR in (a.lower() for a in to_addrs_all):
+        delivery_mode = "direct"
+    elif MURPHY_ADDR in (a.lower() for a in cc_addrs_all):
+        delivery_mode = "ambient"
+    else:
+        delivery_mode = "direct"
+    
+    import json as _json
     return {
         "from_addr": from_addr,
         "from_domain": from_domain,
-        "to_addr": (parseaddr(str(msg.get("To", "") or ""))[1] or ""),
+        "to_addr": to_addr_primary,
+        "cc_addrs": _json.dumps(cc_addrs_all) if cc_addrs_all else None,
+        "delivery_mode": delivery_mode,
         "subject": (str(msg.get("Subject", "") or ""))[:300],
         "date_header": (str(msg.get("Date", "") or ""))[:80],
         "body_preview": body_preview,
@@ -112,10 +135,11 @@ def run(limit: int | None = None) -> dict:
                 continue
             con.execute(
                 "INSERT INTO inbound_replies (msg_hash, mailbox, from_addr, from_domain, "
-                "to_addr, subject, date_header, is_internal, is_prospect_domain, "
-                "prospect_deal_id, body_preview) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                "to_addr, cc_addrs, delivery_mode, subject, date_header, is_internal, is_prospect_domain, "
+                "prospect_deal_id, body_preview) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (h, mb, parsed["from_addr"], parsed["from_domain"],
-                 parsed["to_addr"], parsed["subject"], parsed["date_header"],
+                 parsed["to_addr"], parsed.get("cc_addrs"), parsed.get("delivery_mode","direct"),
+                 parsed["subject"], parsed["date_header"],
                  parsed["is_internal"], parsed["is_prospect_domain"],
                  parsed["prospect_deal_id"], parsed["body_preview"]),
             )

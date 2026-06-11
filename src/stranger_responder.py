@@ -229,6 +229,54 @@ Content-Type: text/plain; charset=utf-8
         return False
 
 
+
+
+def _magnify_drill_ambient(email_subject: str, email_body: str, principal_addr: str) -> Optional[Dict]:
+    """AMBIENT mode: principal CC'd Murphy on a conversation with someone else.
+    Murphy must SYNTHESIZE the implicit task without quoting the thread to non-principal.
+    Output: a brief plan offer addressed only to principal."""
+    prompt = f"""You are Murphy's ambient synthesizer. The person at {principal_addr} CC'd you on an email thread they are having with a third party. They are NOT asking you to do anything yet. They want you to OBSERVE and OFFER help.
+
+SUBJECT: {email_subject}
+THREAD CONTENT (do NOT quote any of this back; stay meta):
+{email_body[:1500]}
+
+Generate a TAILORED agent description for what Murphy could do if asked. Use exactly this format. No examples. No hedging.
+
+WHO: [3 sentences - role identity, scope, authority for the IMPLIED task]
+HOW: [3 sentences - workflow pattern for the IMPLIED task]
+WHY: [3 sentences - why this helps the principal {principal_addr} specifically]
+STOP: [3 sentences - confidentiality boundaries; what NOT to share with the other party]
+
+Output ONLY the 4-field block."""
+    return _llm_complete(prompt, model_hint="fast", max_tokens=600)
+
+
+def _generate_ambient_offer(agent_desc: str, email_subject: str, email_body: str, principal_addr: str) -> Optional[Dict]:
+    """Generate the ambient offer reply, sent ONLY to principal, NEVER to thread."""
+    prompt = f"""You are now this agent:
+
+=== AGENT DESCRIPTION ===
+{agent_desc}
+=== END AGENT DESCRIPTION ===
+
+The person at {principal_addr} CC'd you on a thread they have with a third party. They want you to OFFER help, not act yet.
+
+SUBJECT THEY ARE DISCUSSING: {email_subject}
+CONTEXT (do NOT quote this back; refer to it meta only):
+{email_body[:2000]}
+
+Write a SHORT reply email (under 180 words) addressed ONLY to {principal_addr}. It must:
+1. Open with one line: "{_VALUE_LINE}"
+2. ONE sentence acknowledging you saw the thread (refer to it as 'your email re: {email_subject[:60]}' - NEVER quote thread content)
+3. ONE concrete thing you noticed Murphy could do for them
+4. ONE specific next step in 2-3 bullets (the PLAN)
+5. Close with: "Reply YES to execute, or just tell me what to change. - Murphy (ambient; reply STOP to opt out)"
+
+Do NOT cc the third party. Do NOT include anyone other than {principal_addr}. Do NOT quote ANY content from the thread. Do NOT mention specifics that only the third party would know - stay meta about WHAT Murphy can do, not WHAT the thread said."""
+    return _llm_complete(prompt, model_hint="chat", max_tokens=400)
+
+
 def process_stranger_inquiries(limit: int = 5) -> Dict:
     """Main entry point — paced, budgeted, queue-aware."""
     conn = sqlite3.connect(_DB)
@@ -258,7 +306,8 @@ def process_stranger_inquiries(limit: int = 5) -> Dict:
     cutoff = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
     placeholders = ",".join("?" * len(_ALLOWLIST_OWNED))
     rows = conn.execute(f"""
-        SELECT id, from_addr, from_domain, subject, body_preview, intent_class
+        SELECT id, from_addr, from_domain, subject, body_preview, intent_class,
+               COALESCE(delivery_mode, 'direct') AS delivery_mode, cc_addrs
         FROM inbound_replies
         WHERE intent_class IN ('inquiry')
           AND auto_response_status IS NULL
@@ -286,25 +335,34 @@ def process_stranger_inquiries(limit: int = 5) -> Dict:
             conn.commit()
             continue
 
-        # Magnify-drill via fast model
-        md = _magnify_drill(subject, body)
+        delivery_mode = (row["delivery_mode"] or "direct").lower()
+        principal_addr = from_addr  # the human who composed the email is principal in both modes
+
+        # Branch: ambient (CC'd) gets synthesis flow; direct (To'd) gets request flow.
+        if delivery_mode == "ambient":
+            md = _magnify_drill_ambient(subject, body, principal_addr)
+        else:
+            md = _magnify_drill(subject, body)
         if not md or len(md.get("text", "")) < 50:
-            errors.append({"id": rid, "reason": "magnify_drill_failed"})
+            errors.append({"id": rid, "reason": "magnify_drill_failed", "mode": delivery_mode})
             continue
         agent_desc = md["text"]
         cycle_cost += md["cost_usd"]
 
-        # Reply gen via chat model
-        rep = _generate_reply(agent_desc, subject, body, from_addr)
+        if delivery_mode == "ambient":
+            rep = _generate_ambient_offer(agent_desc, subject, body, principal_addr)
+        else:
+            rep = _generate_reply(agent_desc, subject, body, from_addr)
         if not rep or len(rep.get("text", "")) < 30:
-            errors.append({"id": rid, "reason": "reply_gen_failed"})
+            errors.append({"id": rid, "reason": "reply_gen_failed", "mode": delivery_mode})
             continue
         reply_body = rep["text"]
         cycle_cost += rep["cost_usd"]
 
         total_cost = md["cost_usd"] + rep["cost_usd"]
         target_meta = json.dumps({
-            "to": _FOUNDER_EMAIL if _SHADOW_MODE else from_addr,
+            "to": _FOUNDER_EMAIL if _SHADOW_MODE else principal_addr,
+            "delivery_mode": delivery_mode,
             "cost_usd": total_cost,
             "magnify_tok": md["prompt_tokens"] + md["completion_tokens"],
             "reply_tok": rep["prompt_tokens"] + rep["completion_tokens"],
@@ -313,21 +371,23 @@ def process_stranger_inquiries(limit: int = 5) -> Dict:
         if _SHADOW_MODE:
             # Shadow draft via sendmail (founder-direct, fast)
             shadow_body = (
-                f"=== SHADOW DRAFT for {from_addr} ===\n\n"
+                f"=== SHADOW DRAFT [{delivery_mode.upper()}] for {principal_addr} ===\n\n"
+                f"Mode: {delivery_mode}  ({'CC ambient synthesis' if delivery_mode=='ambient' else 'direct request'})\n"
                 f"Original subject: {subject}\nOriginal body: {body[:300]}\n\n"
                 f"Cost: ${total_cost:.4f}  |  Magnify tok: {md['prompt_tokens']+md['completion_tokens']}  |  Reply tok: {rep['prompt_tokens']+rep['completion_tokens']}\n\n"
                 f"=== AGENT DESCRIPTION ===\n{agent_desc}\n\n"
-                f"=== REPLY ===\n{reply_body}\n\n"
+                f"=== REPLY (would go to {principal_addr} only) ===\n{reply_body}\n\n"
                 f"=== END ===\nFlip _SHADOW_MODE=False to go live.\n"
             )
             ok = _send_sendmail(_FOUNDER_EMAIL,
-                                f"[SHADOW {total_cost:.4f}$ for {from_addr}] Re: {subject}",
+                                f"[SHADOW {delivery_mode.upper()} {total_cost:.4f}$ for {principal_addr}] Re: {subject}",
                                 shadow_body)
             status = "stranger_shadow_sent" if ok else "stranger_shadow_failed"
             mode = "shadow"
         else:
             # Live: queue through outbound_email_queue (paced + compliance-gated)
-            qid = _queue_outbound(from_addr, f"Re: {subject}", reply_body, "normal")
+            # Live mode: send ONLY to principal (CC'er in ambient mode, never the third party)
+            qid = _queue_outbound(principal_addr, f"Re: {subject}", reply_body, "normal")
             ok = bool(qid)
             status = "stranger_queued" if ok else "stranger_queue_failed"
             mode = "queued"
