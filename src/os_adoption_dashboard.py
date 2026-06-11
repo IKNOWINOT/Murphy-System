@@ -156,3 +156,78 @@ def render_role_audit_html():
                         f"</div>")
     html.append("</body></html>")
     return "".join(html)
+
+
+def render_leaderboard_html():
+    """Render /os/agent-leaderboard — top agents by fitness with deployments."""
+    from src.agent_rating_loop import get_leaderboard, get_recent_uses
+
+    rows = get_leaderboard(limit=50)
+    recent = get_recent_uses(limit=30)
+    total = len(rows)
+    high_fit = sum(1 for r in rows if (r.get("fitness_score") or 0) >= 0.65)
+    total_deps = sum((r.get("deployments") or 0) for r in rows)
+    avg_q = (sum((r.get("last_quality_score") or 0) for r in rows) / total) if total else 0
+
+    html = ["<!DOCTYPE html><html><head><meta charset='utf-8'>",
+            "<title>Murphy — Agent Leaderboard</title>", _STYLE,
+            "</head><body>", _NAV,
+            "<h1>Agent Leaderboard</h1>",
+            f"<p class='sub'>{total} role agents tracked · "
+            f"{high_fit} above 0.65 reuse threshold · "
+            f"{total_deps} total deployments · "
+            f"avg last-quality {avg_q:.2f}</p>",
+            "<div class='grid'>",
+            f"<div class='stat'><div class='label'>Agents</div><div class='value'>{total}</div></div>",
+            f"<div class='stat'><div class='label'>Reusable (≥0.65)</div><div class='value'>{high_fit}</div></div>",
+            f"<div class='stat'><div class='label'>Deployments</div><div class='value'>{total_deps}</div></div>",
+            f"<div class='stat'><div class='label'>Avg last-quality</div><div class='value'>{avg_q:.2f}</div></div>",
+            "</div>",
+            "<h2 style='color:#58a6ff;margin-top:32px'>Ranking</h2>",
+            "<table><thead><tr>",
+            "<th>rank</th><th>role · vertical</th><th>fitness</th>",
+            "<th>deployments</th><th>last quality</th><th>soul size</th><th>last used</th>",
+            "</tr></thead><tbody>"]
+
+    if not rows:
+        html.append("<tr><td colspan='7' class='muted'>No agents yet. They're created on first use.</td></tr>")
+    else:
+        for i, r in enumerate(rows, 1):
+            fit = r.get("fitness_score") or 0
+            reusable = fit >= 0.65
+            fit_color = "#56d364" if reusable else "#8b949e"
+            ts = (r.get("last_used_ts") or "")[:19].replace("T", " ")
+            sig = r.get("role_signature") or "?"
+            role, _, vert = sig.partition(":")
+            html.append(
+                f"<tr><td><strong>#{i}</strong></td>"
+                f"<td><span class='role'>{role}</span><span class='vert'>{vert}</span></td>"
+                f"<td style='color:{fit_color};font-weight:600'>{fit:.3f}</td>"
+                f"<td>{r.get('deployments') or 0}</td>"
+                f"<td>{(r.get('last_quality_score') or 0):.2f}</td>"
+                f"<td class='muted'>{r.get('soul_len') or 0}b</td>"
+                f"<td class='muted'>{ts}</td></tr>"
+            )
+    html.append("</tbody></table>")
+
+    html.append("<h2 style='color:#58a6ff;margin-top:32px'>Recent uses</h2>")
+    html.append("<table><thead><tr><th>when</th><th>role</th><th>score</th>"
+                "<th>cost</th><th>latency</th><th>routing</th></tr></thead><tbody>")
+    if not recent:
+        html.append("<tr><td colspan='6' class='muted'>No use log yet.</td></tr>")
+    else:
+        for u in recent:
+            ts = (u.get("used_ts") or "")[:19].replace("T", " ")
+            persisted = "🔄" if u.get("used_persisted_soul") else "🆕"
+            score = u.get("judge_score") or 0
+            score_color = "#56d364" if score >= 0.7 else ("#d29922" if score >= 0.4 else "#f85149")
+            html.append(
+                f"<tr><td class='muted'>{ts}</td>"
+                f"<td><span class='role'>{u.get('role_signature') or '?'}</span></td>"
+                f"<td style='color:{score_color};font-weight:600'>{score:.2f}</td>"
+                f"<td>${(u.get('cost_usd') or 0):.5f}</td>"
+                f"<td>{(u.get('latency_s') or 0):.1f}s</td>"
+                f"<td class='muted'>{persisted} {(u.get('routing_decision') or '')[:60]}</td></tr>"
+            )
+    html.append("</tbody></table></body></html>")
+    return "".join(html)

@@ -28,8 +28,9 @@ Kill criterion: code without verified production execution = theater.
 | 10 | EMAIL VERIFICATION → unlock | ✅ | ✅ | 🟡 | ❌ | ❌ | endpoint only |
 | 11 | OUTBOUND SEND (postfix queue) | ✅ | ✅ | ✅ | ✅ | ✅ | **COMPLETE** (sent_at + status in /os/stranger) |
 | 12 | COMPLIANCE footer (CAN-SPAM) | ✅ | ✅ | ✅ | ✅ | 🟡 | FUNCTIONAL (footer wired, full gate still pending) |
-| 13 | ML one-request learning loop | ✅ | 🟡 | 🟡 | ❌ | ❌ | half-wired |
+| 13 | ML one-request learning loop | ✅ | ✅ | ✅ | ✅ | ✅ | **COMPLETE** (Ship 31s: agent_rating_loop + EMA fitness + LLM judge) |
 | 14 | EXTERNAL BENCHMARK (tau-bench) | ✅ | ✅ | ✅ | ✅ | ✅ | **COMPLETE** (Ship 31h.2) |
+| 18 | AGENT MEMORY + RATING + ROUTING | ✅ | ✅ | ✅ | ✅ | ✅ | **COMPLETE** (Ship 31s: persisted souls, fitness EMA, /os/agent-leaderboard) |
 | 17 | LAUNCH GATE (allowlist + STOP + adoption) | ✅ | ✅ | ✅ | ✅ | ✅ | **COMPLETE** (Ship 31p) |
 | 16 | ATTACHMENT SYNTHESIS + chunking + resume + honest-limits | ✅ | ✅ | ✅ | ✅ | ✅ | **COMPLETE** (Ship 31i.A) |
 | 15 | FOUNDER DASHBOARD (/os/stranger) | ✅ | ✅ | ✅ | ✅ | ✅ | **COMPLETE** (Ship 31i.C) |

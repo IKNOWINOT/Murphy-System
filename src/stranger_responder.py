@@ -55,6 +55,11 @@ _FOUNDER_EMAIL = "cpost@murphy.systems"
 
 # Safety toggles
 _SHADOW_MODE = True
+
+# Ship 31s: per-call routing trace (set by _build_role_soul, read after reply)
+_LAST_ROUTING_DECISION = ""
+_LAST_USED_PERSISTED = False
+
 _MAX_PER_DOMAIN_24H = 5
 _MAX_DAILY_USD = float(os.environ.get("STRANGER_MAX_DAILY_USD", "5.00"))
 _MAX_QUEUE_DEPTH = int(os.environ.get("STRANGER_MAX_QUEUE_DEPTH", "50"))
@@ -79,12 +84,38 @@ _ALLOWLIST_OWNED = {
 def _build_role_soul(role_hint, vertical="general"):
     """Build a role-tailored soul prompt for DLF injection.
 
-    Tries deep_soul_engine.build_deep_soul (full L0-L4).
-    Falls back to a synthetic role+loyalty prompt on any error.
+    Ship 31s routing:
+      1. Check agent_rating_loop for a persisted, high-fitness soul
+      2. If found (fitness >= 0.65) -> reuse instantly, free
+      3. Otherwise synthesize fresh via build_deep_soul and persist it
+      4. Each call records its routing decision for the dashboard
+
     Returns "" if role_hint is empty.
     """
     if not role_hint:
         return ""
+
+    # Ship 31s: try persisted soul from rating loop first
+    routing_decision = "fresh_synth_default"
+    try:
+        from src.agent_rating_loop import (
+            get_best_agent_for, should_reuse_persisted, persist_soul
+        )
+        best = get_best_agent_for(role_hint, vertical)
+        if best and should_reuse_persisted(best):
+            routing_decision = (
+                "reused_persisted fit=" + str(round(best.get("fitness_score") or 0, 3)) +
+                " deps=" + str(best.get("deployments") or 0)
+            )
+            logger.info("_build_role_soul: %s", routing_decision)
+            # Stash on a module attr for the caller to retrieve
+            globals()["_LAST_ROUTING_DECISION"] = routing_decision
+            globals()["_LAST_USED_PERSISTED"] = True
+            return (best.get("persisted_soul") or "")[:4000]
+    except Exception as exc:
+        logger.warning("_build_role_soul routing failed: %s", exc)
+
+    # Fresh synthesis path
     try:
         from src.deep_soul_engine import build_deep_soul
         soul = build_deep_soul(
@@ -94,7 +125,18 @@ def _build_role_soul(role_hint, vertical="general"):
         )
         full = soul.get("full_soul", "") if isinstance(soul, dict) else ""
         if full and len(full) > 200:
-            return full[:4000]  # cap to avoid token blowout
+            capped = full[:4000]
+            # Persist for future reuse
+            try:
+                from src.agent_rating_loop import persist_soul
+                persist_soul(role_hint, vertical, capped)
+                routing_decision = "fresh_synth_persisted"
+            except Exception as exc:
+                logger.warning("persist_soul failed: %s", exc)
+                routing_decision = "fresh_synth_no_persist"
+            globals()["_LAST_ROUTING_DECISION"] = routing_decision
+            globals()["_LAST_USED_PERSISTED"] = False
+            return capped
     except Exception as exc:
         logger.warning("_build_role_soul: build_deep_soul failed for %s: %s", role_hint, exc)
     # Synthetic fallback — the version that won tau-bench

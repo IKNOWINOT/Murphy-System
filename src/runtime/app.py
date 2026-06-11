@@ -5073,6 +5073,20 @@ def create_app() -> FastAPI:
                 status_code=500,
             )
 
+    @app.get("/os/agent-leaderboard", include_in_schema=False)
+    async def os_agent_leaderboard():
+        try:
+            from fastapi.responses import HTMLResponse
+            from src.os_adoption_dashboard import render_leaderboard_html
+            return HTMLResponse(render_leaderboard_html())
+        except Exception as exc:
+            import traceback
+            from fastapi.responses import HTMLResponse
+            return HTMLResponse(
+                f"<pre>os_leaderboard error: {exc}\n\n{traceback.format_exc()}</pre>",
+                status_code=500,
+            )
+
     @app.get("/murphy-os", include_in_schema=False)
     async def murphy_os_alias(request: Request):
         # _R441_MURPHYOS_CANONICALIZED — alias of /os
