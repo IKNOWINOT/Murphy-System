@@ -1324,15 +1324,15 @@ def _send_branded(to_addr, subject, raw_reply_text, role_hint=None,
 
 
 def _build_role_soul(role, vertical=None):
-    """Wrapper: never return empty soul (Ship 31aa.12)."""
+    """Concat DEFAULT_MURPHY_SOUL + role-specific soul (Ship 31aa.14)."""
     try:
-        soul = _build_role_soul_raw(role, vertical)
+        role_soul = _build_role_soul_raw(role, vertical) or ""
     except Exception:
-        soul = ""
-    if not soul or len(soul.strip()) < 100:
-        return DEFAULT_MURPHY_SOUL
-    return soul
-
+        role_soul = ""
+    # Always prepend the default; role text refines tone for the niche.
+    if role_soul.strip():
+        return DEFAULT_MURPHY_SOUL + "\n\nROLE LENS — additional context for this correspondent:\n" + role_soul
+    return DEFAULT_MURPHY_SOUL
 
 def _maybe_sponsor(subject: str, body: str, role: str = "",
                    vertical: str = "") -> dict | None:
