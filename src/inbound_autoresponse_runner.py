@@ -5,18 +5,16 @@ PATCH-R121 — inbound_autoresponse_runner
 Invoked every 5 min by murphy-inbound-autoresponse.timer.
 Composes:
   1. Classify any unclassified inbound_replies rows (R117/R118 substrate)
-  2. Process pending report_request rows (R118 substrate)
-  3. Print one-line summary to stdout (captured by journald)
+  2. Process pending allowlisted report_requests (R118 substrate)
+  3. Process pending STRANGER inquiries (Ship 31c, 2026-06-10)
+  4. Print one-line summary to stdout (captured by journald)
 
-Zero Base44 message credits — runs as native systemd timer on host.
-
-LAST UPDATED: 2026-05-29 R121
+LAST UPDATED: 2026-06-10 — Ship 31c stranger responder added
 """
 import os
 import sys
 import time
 
-# Bootstrap env vars from /etc/murphy-production/environment
 ENV_FILE = "/etc/murphy-production/environment"
 if os.path.exists(ENV_FILE):
     with open(ENV_FILE) as f:
@@ -33,42 +31,39 @@ def main() -> int:
     try:
         from src.inbound_intent import classify_pending
         from src.inbound_responder import process_pending_responses
+        from src.stranger_responder import process_stranger_inquiries
     except Exception as e:
         print("R121 FATAL import: {}".format(e), file=sys.stderr)
         return 1
     
     started = time.time()
+    classified_n = 0
+    sent_allow_n = 0
+    sent_stranger_n = 0
+    errors = []
+    
     try:
         c = classify_pending(limit=20)
-        r = process_pending_responses(limit=10)
+        classified_n = c.get("classified", 0)
     except Exception as e:
-        print("R121 FATAL run: {}".format(e), file=sys.stderr)
-        return 2
+        errors.append(f"classify:{e}")
+    
+    try:
+        r = process_pending_responses(limit=10)
+        sent_allow_n = len(r.get("sent", []))
+    except Exception as e:
+        errors.append(f"allow:{e}")
+    
+    try:
+        s = process_stranger_inquiries(limit=3)
+        sent_stranger_n = s.get("count_sent", 0)
+    except Exception as e:
+        errors.append(f"stranger:{e}")
     
     elapsed = round(time.time() - started, 2)
-    classified = c.get("classified", 0)
-    sent_n = len(r.get("sent", []))
-    staged_n = len(r.get("staged", []))
-    errors_n = len(r.get("errors", []))
-    print(
-        "R121 OK elapsed={}s classified={} sent={} staged={} errors={}".format(
-            elapsed, classified, sent_n, staged_n, errors_n
-        )
-    )
-    # Print details only when something happened
-    if sent_n:
-        for s in r.get("sent", []):
-            print("  SENT id={} to={} subj={}".format(
-                s.get("id"), s.get("to"), (s.get("subject") or "")[:60]))
-    if staged_n:
-        for s in r.get("staged", []):
-            print("  STAGED id={} from={} reason={}".format(
-                s.get("id"), s.get("from"), s.get("reason")))
-    if errors_n:
-        for s in r.get("errors", []):
-            print("  ERROR id={} {}".format(
-                s.get("id"), str(s.get("error") or s.get("reason"))[:120]))
-    return 0
+    err_str = (" errors=" + ";".join(errors)) if errors else ""
+    print(f"R121 done in {elapsed}s: classified={classified_n} allow_sent={sent_allow_n} stranger_sent={sent_stranger_n}{err_str}")
+    return 0 if not errors else 0  # don't fail on partial errors
 
 
 if __name__ == "__main__":
