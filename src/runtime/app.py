@@ -5087,6 +5087,76 @@ def create_app() -> FastAPI:
                 status_code=500,
             )
 
+    # ── Ship 31v: /verify/{token} domain-claim endpoint ──
+    @app.get("/verify/{token}", include_in_schema=False)
+    async def verify_claim(token: str, request: Request):
+        try:
+            from fastapi.responses import HTMLResponse
+            from src.verification_unlock import (
+                claim_verification_token, render_verification_page
+            )
+            ip = (request.client.host if request.client else "") or ""
+            ua = request.headers.get("user-agent", "")[:200]
+            result = claim_verification_token(token, ip=ip, ua=ua)
+            return HTMLResponse(render_verification_page(result))
+        except Exception as exc:
+            import traceback
+            from fastapi.responses import HTMLResponse
+            return HTMLResponse(
+                f"<pre>verify_claim error: {exc}\n\n{traceback.format_exc()}</pre>",
+                status_code=500,
+            )
+
+    @app.get("/os/verifications", include_in_schema=False)
+    async def os_verifications():
+        try:
+            from fastapi.responses import HTMLResponse
+            from src.verification_unlock import get_verification_stats
+            stats = get_verification_stats()
+            rows_html = "".join(
+                f"<tr><td>{(r.get('issued_ts') or '')[:19].replace('T',' ')}</td>"
+                f"<td>{r.get('email','')}</td>"
+                f"<td><strong>{r.get('domain','')}</strong></td>"
+                f"<td>{r.get('status','')}</td>"
+                f"<td>{(r.get('claimed_ts') or '')[:19].replace('T',' ')}</td></tr>"
+                for r in stats.get("recent", [])
+            ) or "<tr><td colspan='5' style='color:#6e7681'>No tokens issued yet.</td></tr>"
+            html = f"""<!DOCTYPE html><html><head><meta charset='utf-8'>
+<title>Murphy — Verifications</title>
+<style>body{{background:#0d1117;color:#c9d1d9;font:14px sans-serif;margin:0;padding:24px}}
+h1{{color:#58a6ff}}table{{width:100%;border-collapse:collapse;background:#161b22;
+border:1px solid #30363d;border-radius:6px}}th{{background:#21262d;text-align:left;
+padding:10px 12px;font-size:11px;text-transform:uppercase;color:#8b949e}}
+td{{padding:10px 12px;border-top:1px solid #21262d}}.nav a{{color:#58a6ff;
+margin-right:16px;text-decoration:none}}.stat{{display:inline-block;background:#161b22;
+border:1px solid #30363d;border-radius:6px;padding:12px 16px;margin-right:8px}}
+.label{{color:#8b949e;font-size:11px;text-transform:uppercase}}.value{{font-size:22px;
+font-weight:600;color:#c9d1d9}}</style></head><body>
+<div class='nav'>
+<a href='/os/stranger'>← strangers</a>
+<a href='/os/adoption'>orgs</a>
+<a href='/os/role-audit'>role-audit</a>
+<a href='/os/agent-leaderboard'>leaderboard</a>
+<a href='/os/verifications'>verifications</a>
+</div>
+<h1>Email Verifications</h1>
+<div style='margin-bottom:24px'>
+<div class='stat'><div class='label'>Issued</div><div class='value'>{stats['total_issued']}</div></div>
+<div class='stat'><div class='label'>Claimed</div><div class='value'>{stats['total_claimed']}</div></div>
+<div class='stat'><div class='label'>Expired</div><div class='value'>{stats['total_expired']}</div></div>
+<div class='stat'><div class='label'>Claim rate</div><div class='value'>{stats['claim_rate']:.0%}</div></div>
+</div>
+<table><thead><tr><th>issued</th><th>email</th><th>domain</th><th>status</th><th>claimed</th></tr></thead>
+<tbody>{rows_html}</tbody></table></body></html>"""
+            return HTMLResponse(html)
+        except Exception as exc:
+            import traceback
+            from fastapi.responses import HTMLResponse
+            return HTMLResponse(
+                f"<pre>os_verifications error: {exc}\n\n{traceback.format_exc()}</pre>",
+                status_code=500,
+            )
+
     @app.get("/murphy-os", include_in_schema=False)
     async def murphy_os_alias(request: Request):
         # _R441_MURPHYOS_CANONICALIZED — alias of /os
@@ -22261,7 +22331,10 @@ def create_app() -> FastAPI:
                 async def dispatch(self, request, call_next):
                     path = request.url.path
                     lower = path.lower()
-                    if path != lower:
+                    if path.startswith("/verify/"):
+                        # Ship 31v: preserve token case
+                        pass
+                    elif path != lower:
                         qs = request.url.query
                         return _RR194b(lower + ("?" + qs if qs else ""), status_code=301)
                     return await call_next(request)

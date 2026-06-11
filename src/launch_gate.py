@@ -91,11 +91,25 @@ def register_unsubscribe(email_addr: str, method: str = "stop_keyword",
 def compliance_footer(reply_to_addr: str = None) -> str:
     """CAN-SPAM compliant footer to append to every live outbound.
 
-    Includes physical address (required) and clear opt-out instructions.
+    Includes physical address (required), clear opt-out instructions,
+    and (Ship 31v) a domain-verification claim link.
     """
+    verify_line = ""
+    if reply_to_addr:
+        try:
+            from src.verification_unlock import verify_link_for_email
+            link = verify_link_for_email(reply_to_addr)
+            if link:
+                verify_line = (
+                    "\n\nClaim your domain to make future Murphy replies go live "
+                    "instead of being held for review:\n" + link
+                )
+        except Exception:
+            pass
     return ("\n\n---\n"
             f"{PHYSICAL_ADDRESS}\n\n"
-            f"{UNSUBSCRIBE_INSTRUCTIONS}")
+            f"{UNSUBSCRIBE_INSTRUCTIONS}"
+            f"{verify_line}")
 
 
 def add_to_allowlist(domain: str, org_name: str = None,

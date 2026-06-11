@@ -25,7 +25,7 @@ Kill criterion: code without verified production execution = theater.
 | 7 | FOLLOW-UP question generation | ✅ | ✅ | ✅ | ✅ | ✅ | **COMPLETE** (Ship 31u: appended between reply & ad, role-aware, tracked) |
 | 8 | EMAIL GRAPHICS / multipart MIME | ✅ | ✅ | ✅ | ✅ | ✅ | **COMPLETE** (Ship 31t: branded HTML + plain fallback, live-tested to founder inbox) |
 | 9 | AD INJECTION (contextual) | ✅ | ✅ | ✅ | ✅ | ✅ | **COMPLETE** (Ship 31m, in-house inventory) |
-| 10 | EMAIL VERIFICATION → unlock | ✅ | ✅ | 🟡 | ❌ | ❌ | endpoint only |
+| 10 | EMAIL VERIFICATION → unlock | ✅ | ✅ | ✅ | ✅ | ✅ | **COMPLETE** (Ship 31v: token-based domain claim, /verify/<token>, allowlist auto-add, /os/verifications) |
 | 11 | OUTBOUND SEND (postfix queue) | ✅ | ✅ | ✅ | ✅ | ✅ | **COMPLETE** (sent_at + status in /os/stranger) |
 | 12 | COMPLIANCE footer (CAN-SPAM) | ✅ | ✅ | ✅ | ✅ | 🟡 | FUNCTIONAL (footer wired, full gate still pending) |
 | 13 | ML one-request learning loop | ✅ | ✅ | ✅ | ✅ | ✅ | **COMPLETE** (Ship 31s: agent_rating_loop + EMA fitness + LLM judge) |
