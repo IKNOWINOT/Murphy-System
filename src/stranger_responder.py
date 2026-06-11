@@ -474,15 +474,26 @@ def _queue_outbound(to_addr: str, subject: str, body: str, urgency: str = "norma
 
 
 def _send_sendmail(to_addr: str, subject: str, body: str) -> bool:
-    """Direct sendmail (used only for SHADOW drafts to founder)."""
-    try:
-        msg = f"""To: {to_addr}
-From: murphy@murphy.systems
-Subject: {subject}
-Content-Type: text/plain; charset=utf-8
+    """Direct sendmail. Ship 31t: emits multipart/alternative (plain + HTML).
 
-{body}
-"""
+    Used for shadow drafts to founder AND for live outbound (when wired).
+    """
+    try:
+        try:
+            from src.email_mime_builder import build_multipart_message
+            msg = build_multipart_message(
+                to_addr=to_addr, subject=subject, plain_body=body,
+                from_addr="murphy@murphy.systems",
+            )
+        except Exception as mime_exc:
+            logger.warning("MIME build failed, falling back to plain: %s", mime_exc)
+            msg = (
+                f"To: {to_addr}\n"
+                f"From: murphy@murphy.systems\n"
+                f"Subject: {subject}\n"
+                f"Content-Type: text/plain; charset=utf-8\n\n"
+                f"{body}\n"
+            )
         result = subprocess.run(
             ["/usr/sbin/sendmail", "-t", "-f", "murphy@murphy.systems"],
             input=msg.encode(), capture_output=True, timeout=10,
