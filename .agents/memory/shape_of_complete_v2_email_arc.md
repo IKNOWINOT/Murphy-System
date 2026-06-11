@@ -24,7 +24,7 @@ Kill criterion: code without verified production execution = theater.
 | 6 | GENERATIVE reply (no templates) | ✅ | ✅ | ✅ | ✅ | 🟡 | FUNCTIONAL |
 | 7 | FOLLOW-UP question generation | 🟡 | ❌ | ❌ | ❌ | ❌ | exists, not email-wired |
 | 8 | EMAIL GRAPHICS / multipart MIME | ❌ | ❌ | ❌ | ❌ | ❌ | NOT BUILT |
-| 9 | AD INJECTION (AdSense / affiliate) | ❌ | ❌ | ❌ | ❌ | ❌ | NOT BUILT |
+| 9 | AD INJECTION (contextual) | ✅ | ✅ | ✅ | ✅ | ✅ | **COMPLETE** (Ship 31m, in-house inventory) |
 | 10 | EMAIL VERIFICATION → unlock | ✅ | ✅ | 🟡 | ❌ | ❌ | endpoint only |
 | 11 | OUTBOUND SEND (postfix queue) | ✅ | ✅ | ✅ | ✅ | 🟡 | FUNCTIONAL |
 | 12 | COMPLIANCE gate (PCR-090h.1) | ✅ | ❌ | 🟡 | ❌ | ❌ | ⚠ THEATER |

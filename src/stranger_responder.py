@@ -205,6 +205,23 @@ Output ONLY the 4-field block."""
     return _llm_complete(prompt, model_hint="fast", max_tokens=600)
 
 
+
+
+# ──────────────────────────────────────────────────────────────────────
+# Ship 31m: contextual ad injection (free tier only)
+# ──────────────────────────────────────────────────────────────────────
+def _inject_contextual_ad(reply_text, role_hint, vertical, subject, body, to_addr, tier="free"):
+    """Wrap contextual_ad_engine. Safe-by-default: any failure returns
+    the reply unchanged. Returns (new_text, meta_dict_or_None)."""
+    try:
+        from src.contextual_ad_engine import inject_ad_into_reply
+        return inject_ad_into_reply(reply_text, role_hint or "", vertical or "general",
+                                    subject or "", body or "", to_addr, tier=tier)
+    except Exception as exc:
+        logger.warning("_inject_contextual_ad failed: %s", exc)
+        return reply_text, None
+
+
 def _generate_reply(agent_desc: str, email_subject: str, email_body: str, from_addr: str) -> Optional[Dict]:
     """Generate the actual reply email body (full chat model for quality).
 
@@ -232,7 +249,15 @@ Write a SHORT email reply (under 200 words) that:
 4. Closes with: "— Murphy (automated reply; reply STOP to opt out)"
 
 Do NOT make up specific commitments about pricing, timelines, or features. Be concrete about what Murphy CAN do, honest about what it CAN'T."""
-    return _llm_complete(prompt, model_hint="chat", max_tokens=400, soul_system=soul)
+    out = _llm_complete(prompt, model_hint="chat", max_tokens=400, soul_system=soul)
+    if out and out.get("text"):
+        new_text, ad_meta = _inject_contextual_ad(out["text"], role_hint, vertical,
+                                                   email_subject, email_body, from_addr, tier="free")
+        out["text"] = new_text
+        out["ad_meta"] = ad_meta
+        if ad_meta and ad_meta.get("injected"):
+            logger.info("_generate_reply: ad injected ad_id=%s score=%.2f", ad_meta.get("ad_id"), ad_meta.get("score", 0))
+    return out
 
 
 def _today_spend_usd(conn: sqlite3.Connection) -> float:
@@ -385,7 +410,7 @@ def _generate_perspective_reply(agent_desc: str, subject: str, body: str,
     soul = _build_role_soul(role_hint, vertical)
     if soul:
         logger.info("_generate_perspective_reply: DLF injection active role=%s vertical=%s", role_hint, vertical)
-        prompt = f"""You are now this agent:
+    prompt = f"""You are now this agent:
 
 === AGENT DESCRIPTION ===
 {agent_desc}
@@ -412,7 +437,15 @@ CRITICAL:
 - Do NOT cc the original sender ({forward.get('inner_from', 'unknown')})
 - Do NOT speculate beyond what's in the document"""
     
-    return _llm_complete(prompt, model_hint="chat", max_tokens=600, soul_system=soul)
+    out = _llm_complete(prompt, model_hint="chat", max_tokens=600, soul_system=soul)
+    if out and out.get("text"):
+        new_text, ad_meta = _inject_contextual_ad(out["text"], role_hint, vertical,
+                                                   subject, body, principal_addr, tier="free")
+        out["text"] = new_text
+        out["ad_meta"] = ad_meta
+        if ad_meta and ad_meta.get("injected"):
+            logger.info("_generate_perspective_reply: ad injected ad_id=%s score=%.2f", ad_meta.get("ad_id"), ad_meta.get("score", 0))
+    return out
 
 def _magnify_drill_ambient(email_subject: str, email_body: str, principal_addr: str) -> Optional[Dict]:
     """AMBIENT mode: principal CC'd Murphy on a conversation with someone else.
@@ -441,7 +474,7 @@ def _generate_ambient_offer(agent_desc: str, email_subject: str, email_body: str
     soul = _build_role_soul(role_hint, vertical)
     if soul:
         logger.info("_generate_ambient_offer: DLF injection active role=%s vertical=%s", role_hint, vertical)
-        prompt = f"""You are now this agent:
+    prompt = f"""You are now this agent:
 
 === AGENT DESCRIPTION ===
 {agent_desc}
@@ -461,7 +494,15 @@ Write a SHORT reply email (under 180 words) addressed ONLY to {principal_addr}. 
 5. Close with: "Reply YES to execute, or just tell me what to change. - Murphy (ambient; reply STOP to opt out)"
 
 Do NOT cc the third party. Do NOT include anyone other than {principal_addr}. Do NOT quote ANY content from the thread. Do NOT mention specifics that only the third party would know - stay meta about WHAT Murphy can do, not WHAT the thread said."""
-    return _llm_complete(prompt, model_hint="chat", max_tokens=400, soul_system=soul)
+    out = _llm_complete(prompt, model_hint="chat", max_tokens=400, soul_system=soul)
+    if out and out.get("text"):
+        new_text, ad_meta = _inject_contextual_ad(out["text"], role_hint, vertical,
+                                                   email_subject, email_body, principal_addr, tier="free")
+        out["text"] = new_text
+        out["ad_meta"] = ad_meta
+        if ad_meta and ad_meta.get("injected"):
+            logger.info("_generate_ambient_offer: ad injected ad_id=%s score=%.2f", ad_meta.get("ad_id"), ad_meta.get("score", 0))
+    return out
 
 
 def process_stranger_inquiries(limit: int = 5) -> Dict:
