@@ -579,7 +579,7 @@ BODY: {email_body[:2000]}
 
 Write a working reply under two hundred words. Two or three paragraphs of natural prose — no bullets, no headers, no Markdown.
 
-Paragraph one OPENS WITH THE COMPUTED ANSWER — no greeting, no preamble, no value-prop. Just the number, the formula, the answer to the question they asked, in the working language of their field. Treat them as a peer who already knows what Murphy is.
+Paragraph one OPENS WITH A COMPLETE GRAMMATICAL SENTENCE that delivers the computed answer — no greeting, no preamble, no value-prop. The sentence must start with a capital letter and a noun or article, never with a numeral, formula fragment, or partial reference. Examples of correct opens: 'Pressure drop is 0.103 in w.g. per 100 ft.' or 'File the grievance with your state's Office of Disciplinary Counsel.' Treat the correspondent as a peer who already knows what Murphy is.
 
 Paragraph two gives the most experienced read you can offer on the substance. Where there is uncertainty, say so plainly. Where you assume something, name it in one phrase. Speak to the matter, not the process.
 
@@ -691,9 +691,24 @@ Do not invent prices, timelines, or features. Be precise about what the work can
         refusal_action = out.get("voice_action") in ("refuse_trade_secret", "refuse_unlawful")
 
         if not refusal_action:
+            # Ship 31aa.16: skip if LLM already wrote a follow-up question
+            _last_q = False
+            try:
+                _tail = (out.get("text","") or "").strip().splitlines()
+                for _ln in reversed(_tail[-5:]):
+                    _s = _ln.strip()
+                    if not _s:
+                        continue
+                    if _s.endswith("?") and 15 < len(_s) < 200:
+                        _last_q = True
+                    break
+            except Exception:
+                _last_q = False
             # Ship 31u: append follow-up question BEFORE ad injection
             try:
                 from src.follow_up_generator import maybe_append_followup
+                if _last_q:
+                    raise StopIteration("LLM already wrote a follow-up question")
                 new_text, fu_meta = maybe_append_followup(
                     out["text"], role_hint=role_hint, vertical=vertical,
                     inbound_subject=email_subject, inbound_body=email_body,
@@ -704,6 +719,8 @@ Do not invent prices, timelines, or features. Be precise about what the work can
                 if fu_meta.get("appended"):
                     logger.info("_generate_reply: followup appended role=%s q=%r",
                                 role_hint, (fu_meta.get("question") or "")[:80])
+            except StopIteration as _si:
+                out["followup_meta"] = {"appended": False, "reason": "llm_already_asked"}
             except Exception as fu_exc:
                 logger.warning("_generate_reply: followup failed: %s", fu_exc)
                 out["followup_meta"] = {"appended": False, "reason": "exception"}
