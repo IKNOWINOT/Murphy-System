@@ -143,6 +143,18 @@ def _send_via_postfix(from_addr, to_list, subject, body_text):
             from src.email_brand import render_branded_email
             from src import free_tier_counter as _ftc
 
+            # Ship 31ac: spellcheck gate — fix LLM-side typos before send
+            try:
+                from src.spellcheck_gate import scan_and_fix
+                body_text, _bc = scan_and_fix(body_text)
+                subject, _sc = scan_and_fix(subject)
+                if _bc or _sc:
+                    log.info('Ship 31ac spellcheck: %d body + %d subject fixes',
+                             len(_bc), len(_sc))
+            except Exception:
+                log.exception('Ship 31ac spellcheck failed (sending anyway)')
+
+
             primary_to = to_list[0] if to_list else ''
             free_tier_dict = None
             if primary_to:
