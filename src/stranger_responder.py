@@ -498,6 +498,12 @@ Output ONLY the 4-field block."""
 def _inject_contextual_ad(reply_text, role_hint, vertical, subject, body, to_addr, tier="free"):
     """Wrap contextual_ad_engine. Safe-by-default: any failure returns
     the reply unchanged. Returns (new_text, meta_dict_or_None)."""
+    # Ship 31aa.15 distress gate — suppress sponsor on personal/grief
+    try:
+        if _is_distress_or_personal(subject or '', body or ''):
+            return reply_text, None
+    except Exception:
+        pass
     try:
         from src.contextual_ad_engine import inject_ad_into_reply
         return inject_ad_into_reply(reply_text, role_hint or "", vertical or "general",
