@@ -48,17 +48,19 @@ def main() -> int:
     except Exception as e:
         errors.append(f"classify:{e}")
     
+    # Stranger pass FIRST — claims non-allowlisted inquiry/report_request rows
+    # before allowlist responder's broad HITL-stage rule catches them.
+    try:
+        s = process_stranger_inquiries(limit=5)
+        sent_stranger_n = s.get("count_sent", 0)
+    except Exception as e:
+        errors.append(f"stranger:{e}")
+    
     try:
         r = process_pending_responses(limit=10)
         sent_allow_n = len(r.get("sent", []))
     except Exception as e:
         errors.append(f"allow:{e}")
-    
-    try:
-        s = process_stranger_inquiries(limit=3)
-        sent_stranger_n = s.get("count_sent", 0)
-    except Exception as e:
-        errors.append(f"stranger:{e}")
     
     elapsed = round(time.time() - started, 2)
     err_str = (" errors=" + ";".join(errors)) if errors else ""
