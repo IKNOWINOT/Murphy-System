@@ -318,6 +318,10 @@ def process_stranger_inquiries(limit: int = 5) -> Dict:
         LIMIT ?
     """, [cutoff, *_ALLOWLIST_OWNED, limit]).fetchall()
 
+    from src.stranger_quota import (
+        check_quota, record_reply, upgrade_offer_body,
+    )
+
     for row in rows:
         rid = row["id"]
         from_addr = (row["from_addr"] or "").strip().lower()
@@ -328,6 +332,59 @@ def process_stranger_inquiries(limit: int = 5) -> Dict:
             skipped.append({"id": rid, "reason": "no_sender"})
             continue
 
+        # Determine mode early so we can gate by quota
+        delivery_mode = (row["delivery_mode"] or "direct").lower()
+        
+        # PAY GATE: check quota before spending any LLM cost
+        quota = check_quota(from_addr, delivery_mode)
+        if quota["action"] == "silent_drop":
+            skipped.append({"id": rid, "reason": "quota_exhausted_silent_drop",
+                            "mode": delivery_mode})
+            conn.execute(
+                "UPDATE inbound_replies SET auto_response_status=? WHERE id=?",
+                ("stranger_silent_drop", rid),
+            )
+            conn.commit()
+            continue
+        
+        if quota["action"] == "upgrade_offer":
+            # Send the upgrade offer instead of generating a tailored reply
+            offer = upgrade_offer_body(from_addr, delivery_mode, quota["quota_state"])
+            offer_subject = f"Re: {subject} (upgrade required)"
+            if _SHADOW_MODE:
+                shadow_offer = (
+                    f"=== SHADOW UPGRADE OFFER for {from_addr} ===\n\n"
+                    f"Mode: {delivery_mode}  |  Reason: {quota['reason']}\n"
+                    f"Original subject: {subject}\n\n"
+                    f"=== OFFER BODY ===\n{offer}\n=== END ===\n"
+                )
+                ok = _send_sendmail(_FOUNDER_EMAIL,
+                                    f"[SHADOW UPGRADE-OFFER for {from_addr}]",
+                                    shadow_offer)
+                status = "stranger_upgrade_offer_shadow" if ok else "stranger_upgrade_offer_failed"
+            else:
+                qid = _queue_outbound(from_addr, offer_subject, offer, "normal")
+                ok = bool(qid)
+                status = "stranger_upgrade_offered" if ok else "stranger_upgrade_offer_failed"
+            
+            record_reply(from_addr, delivery_mode, 0.0, was_upgrade_offer=True)
+            if ok:
+                sent.append({"id": rid, "mode": "upgrade_offer", "cost_usd": 0.0})
+                conn.execute(
+                    "UPDATE inbound_replies SET auto_response_status=?, auto_response_sent_at=?, auto_response_target=? WHERE id=?",
+                    (status, datetime.now(timezone.utc).isoformat(),
+                     json.dumps({"to": _FOUNDER_EMAIL if _SHADOW_MODE else from_addr,
+                                 "delivery_mode": delivery_mode,
+                                 "kind": "upgrade_offer",
+                                 "cost_usd": 0.0}), rid),
+                )
+                conn.commit()
+            else:
+                errors.append({"id": rid, "reason": "upgrade_offer_send_failed"})
+            continue
+
+        # quota['action'] == 'allow' — proceed with normal flow
+
         if not _rate_limit_ok(from_addr, conn):
             skipped.append({"id": rid, "reason": "rate_limited"})
             conn.execute("UPDATE inbound_replies SET auto_response_status=? WHERE id=?",
@@ -335,7 +392,6 @@ def process_stranger_inquiries(limit: int = 5) -> Dict:
             conn.commit()
             continue
 
-        delivery_mode = (row["delivery_mode"] or "direct").lower()
         principal_addr = from_addr  # the human who composed the email is principal in both modes
 
         # Branch: ambient (CC'd) gets synthesis flow; direct (To'd) gets request flow.
@@ -366,7 +422,10 @@ def process_stranger_inquiries(limit: int = 5) -> Dict:
             "cost_usd": total_cost,
             "magnify_tok": md["prompt_tokens"] + md["completion_tokens"],
             "reply_tok": rep["prompt_tokens"] + rep["completion_tokens"],
+            "quota_reason": quota["reason"],
         })
+        # PAY GATE: record the reply toward the stranger's quota
+        record_reply(from_addr, delivery_mode, total_cost, was_upgrade_offer=False)
 
         if _SHADOW_MODE:
             # Shadow draft via sendmail (founder-direct, fast)
