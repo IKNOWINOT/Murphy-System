@@ -20,6 +20,9 @@ import re
 import email
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from email.mime.base import MIMEBase
+from email.mime.application import MIMEApplication
+from email import encoders
 from email.utils import formatdate, make_msgid
 
 
@@ -207,6 +210,7 @@ def build_multipart_message(
     to_addr: str, subject: str, plain_body: str,
     from_addr: str = "murphy@murphy.systems",
     reply_to: str = "murphy@murphy.systems",
+    attachments: list = None,
 ) -> str:
     """Build a multipart/alternative message with plain + html parts.
 
@@ -234,5 +238,35 @@ def build_multipart_message(
 
     msg.attach(MIMEText(plain_with_disc, "plain", "utf-8"))
     msg.attach(MIMEText(html_body, "html", "utf-8"))
+
+    # Ship 31ag: attachments support. Wrap alt-part in mixed when files present.
+    if attachments:
+        outer = MIMEMultipart("mixed")
+        for hk in ("Subject","From","To","Reply-To","Date","Message-ID","X-Murphy-Version"):
+            v = msg[hk]
+            if v is not None:
+                outer[hk] = v
+                del msg[hk]
+        outer.attach(msg)  # alternative part with plain+html
+        for att in attachments:
+            fname = att.get("filename") or "attachment.bin"
+            blob = att.get("blob") or b""
+            mime = att.get("mime") or "application/octet-stream"
+            if isinstance(blob, str):
+                blob = blob.encode("utf-8")
+            if "/" in mime:
+                maintype, subtype = mime.split("/", 1)
+            else:
+                maintype, subtype = "application", "octet-stream"
+            if maintype == "application":
+                part = MIMEApplication(blob, _subtype=subtype, name=fname)
+            else:
+                part = MIMEBase(maintype, subtype)
+                part.set_payload(blob)
+                encoders.encode_base64(part)
+                part.add_header("Content-Type", mime, name=fname)
+            part.add_header("Content-Disposition", "attachment", filename=fname)
+            outer.attach(part)
+        return outer.as_string()
 
     return msg.as_string()
