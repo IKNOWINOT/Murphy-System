@@ -23269,6 +23269,8 @@ font-weight:600;color:#c9d1d9}}</style></head><body>
                 # _31aoCHECKOUT_EXEMPT — public NOWPayments checkout (guest signups)
                 "/api/payments/nowpayments/checkout",
                 "/api/payments/nowpayments/webhook",
+                    # _31aoLAUNCH_EXEMPT — public launch-readiness signal
+                    "/api/health/launch",
             })
             _pfx = ("/api/growth", "/api/oo/", "/api/health/capacity",
                     "/api/marketplace/",
@@ -39941,6 +39943,15 @@ font-weight:600;color:#c9d1d9}}</style></head><body>
         }
 
 
+
+    # Ship 31ao.LAUNCH C — single endpoint for launch readiness
+    @app.get("/api/health/launch")
+    async def _health_launch_31ao():
+        try:
+            from src.health_launch_31ao import compute_launch_health
+            return compute_launch_health()
+        except Exception as exc:
+            return {"ship": "31ao.LAUNCH", "error": str(exc), "overall_status": "ERROR"}
     @app.get("/api/self/state_of_complete", include_in_schema=False)
     async def state_of_complete_endpoint(request: Request):
         """Ship 31ao.SEE — Murphy's snapshot of itself.
