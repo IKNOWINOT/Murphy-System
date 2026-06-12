@@ -5228,7 +5228,12 @@ def create_app() -> FastAPI:
             )
         tenant_id = _s.get_or_create_tenant_for_user(u["account_id"], email)
         sid = _s.create_session(u["account_id"], email, tenant_id)
-        resp = RedirectResponse("/dashboard", status_code=303)
+        # Ship 31an.IS — role-based redirect
+        # Platform admins go to /is (Inoni System); tenants go to /dashboard
+        _role = (u.get("data", {}) or {}).get("role", "").lower()
+        _is_platform = _role in ("owner", "founder", "platform_admin", "platform_staff")
+        _landing = "/is" if _is_platform else "/dashboard"
+        resp = RedirectResponse(_landing, status_code=303)
         resp.set_cookie(
             _s.COOKIE_NAME, sid,
             max_age=60*60*24*_s.SESSION_DAYS,
@@ -5265,8 +5270,45 @@ def create_app() -> FastAPI:
         sess = _s.lookup_session(sid)
         if not sess:
             return RedirectResponse("/login?msg=login_required", status_code=302)
+        # Ship 31an.IS — platform admins land on /is, not the tenant dashboard
+        try:
+            _u = _s.get_user_by_email(sess["email"])
+            _role = ((_u or {}).get("data", {}) or {}).get("role", "").lower()
+            if _role in ("owner", "founder", "platform_admin", "platform_staff"):
+                return RedirectResponse("/is", status_code=302)
+        except Exception:
+            pass
         snap = _s.get_tenant_snapshot(sess["tenant_id"], sess["account_id"], sess["email"])
         return HTMLResponse(_dashboard_html(snap, welcome=bool(welcome)))
+
+    @app.get("/is", include_in_schema=False)
+    async def inoni_system_admin(request: Request):
+        """Ship 31an.IS — Inoni System (platform admin landing).
+
+        cpost@murphy.systems and other platform admins log in here.
+        Tenant users get bounced to /dashboard.
+        Anonymous users get sent to /login.
+        """
+        from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
+        from src import ship31ah_signup as _s
+        sid = request.cookies.get(_s.COOKIE_NAME, "")
+        sess = _s.lookup_session(sid)
+        if not sess:
+            return RedirectResponse("/login?msg=login_required", status_code=302)
+        _u = _s.get_user_by_email(sess["email"])
+        _role = ((_u or {}).get("data", {}) or {}).get("role", "").lower()
+        if _role not in ("owner", "founder", "platform_admin", "platform_staff"):
+            # Tenant user hit /is — route them to their dashboard instead
+            return RedirectResponse("/dashboard", status_code=302)
+        # Platform admin — serve the Murphy OS dashboard (canonical platform view)
+        import os as _osp_is
+        modern = "/opt/Murphy-System/static/murphy-os.html"
+        if _osp_is.path.isfile(modern):
+            return FileResponse(modern, media_type="text/html")
+        return HTMLResponse(
+            "<h1>Inoni System</h1><p>Platform admin surface — "
+            "OS dashboard not found.</p>"
+        )
 
     # ── Ship 31ah HTML render helpers ──
     def _claim_form_html(token: str, addr: str, error: str = "") -> str:
