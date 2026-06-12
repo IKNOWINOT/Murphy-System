@@ -48,6 +48,14 @@ import re
 
 logger = logging.getLogger("stranger_responder")
 
+# Ship 31am — drill + rosetta + pipeline + capability cube wiring
+try:
+    from src.drill_rosetta_bridge import run_drill_rosetta_pipeline as _bridge_run
+    _BRIDGE_AVAILABLE = True
+except Exception as _bridge_exc:
+    logger.warning('Ship 31am bridge unavailable: %s', _bridge_exc)
+    _BRIDGE_AVAILABLE = False
+
 sys.path.insert(0, "/opt/Murphy-System")
 
 _DB = "/var/lib/murphy-production/inbound_replies.db"
@@ -842,9 +850,29 @@ def _rate_limit_ok(from_addr: str, conn: sqlite3.Connection) -> bool:
 
 
 def _queue_outbound(to_addr: str, subject: str, body: str, urgency: str = "normal") -> Optional[str]:
-    """Submit to outbound_email_queue. Returns queue_id on success."""
+    """Submit to outbound_email_queue. Returns queue_id on success.
+
+    Ship 31al: renders the branded HTML body at queue time so the dispatcher
+    can ship multipart/alternative (plain + branded HTML) when it picks the
+    row up. Falls back to plain on any rendering exception.
+    """
     try:
         import secrets
+        # Ship 31al: render branded HTML upfront. Keep the plain body in
+        # the queue too so we can resurrect it if rendering ever degrades.
+        try:
+            from src.email_mime_builder import render_html_body
+            html_body = render_html_body(body)
+            stored_body = html_body
+            stored_format = "html"
+            # Keep plain text in metadata so dispatcher can build multipart
+            metadata_blob = json.dumps({"plain_body": body, "renderer": "render_html_body", "ship": "31al"})
+        except Exception as render_exc:
+            logger.warning("Ship 31al: HTML render failed, queuing plain: %s", render_exc)
+            stored_body = body
+            stored_format = "plain"
+            metadata_blob = json.dumps({"render_error": str(render_exc)})
+
         conn = sqlite3.connect(_MAIL_DB)
         queue_id = "oeq_" + secrets.token_hex(8)
         now = datetime.now(timezone.utc).isoformat()
@@ -852,12 +880,12 @@ def _queue_outbound(to_addr: str, subject: str, body: str, urgency: str = "norma
             """INSERT INTO outbound_email_queue (
                  queue_id, from_address, to_addresses, subject, body, body_format,
                  agent_profile_id, agent_role, agent_class, urgency, status,
-                 created_at, updated_at, action_type
-               ) VALUES (?, ?, ?, ?, ?, 'plain', 
+                 created_at, updated_at, action_type, metadata
+               ) VALUES (?, ?, ?, ?, ?, ?, 
                          'stranger_responder', 'auto_responder', 'system', ?, 'pending_review',
-                         ?, ?, 'email_outbound')""",
+                         ?, ?, 'email_outbound', ?)""",
             (queue_id, "murphy@murphy.systems", json.dumps([to_addr]),
-             subject, body, urgency, now, now),
+             subject, stored_body, stored_format, urgency, now, now, metadata_blob),
         )
         conn.commit()
         conn.close()
@@ -1217,7 +1245,30 @@ def process_stranger_inquiries(limit: int = 5) -> Dict:
             elif delivery_mode == "ambient":
                 md = _magnify_drill_ambient(subject, body, principal_addr)
             else:
-                md = _magnify_drill(subject, body)
+                # Ship 31am: try the drill+rosetta+pipeline bridge first.
+                _bridge_used = False
+                if _BRIDGE_AVAILABLE:
+                    try:
+                        _br = _bridge_run(subject, body, from_addr,
+                                         want_drive_share=False)
+                        if _br.success:
+                            logger.info("31am bridge succeeded: team=%s drill_iter=%d cost=$%.4f",
+                                        _br.rosetta_team, _br.drill_iterations, _br.total_cost_usd)
+                            md = {"text": _br.body_text,
+                                  "cost_usd": _br.total_cost_usd,
+                                  "prompt_tokens": 0,
+                                  "completion_tokens": 0,
+                                  "bridge_used": True,
+                                  "bridge_team": _br.rosetta_team,
+                                  "bridge_attachments": _br.attachments,
+                                  "bridge_drive_shares": _br.drive_shares}
+                            _bridge_used = True
+                        else:
+                            logger.info("31am bridge fallback: %s", _br.fallback_reason)
+                    except Exception as _bex:
+                        logger.warning("31am bridge raised, falling back: %s", _bex)
+                if not _bridge_used:
+                    md = _magnify_drill(subject, body)
         if not md or len(md.get("text", "")) < 50:
             errors.append({"id": rid, "reason": "magnify_drill_failed", "mode": delivery_mode})
             continue

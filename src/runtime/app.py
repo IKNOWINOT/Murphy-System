@@ -39745,6 +39745,40 @@ font-weight:600;color:#c9d1d9}}</style></head><body>
         return _R445FR("/opt/Murphy-System/tenant_home.html", media_type="text/html",
                        status_code=404)
 
+    # ─────────────────────────────────────────────────────────────
+    # Ship 31am — health endpoint for drill+rosetta+pipeline wiring
+    # ─────────────────────────────────────────────────────────────
+    @app.get("/api/health/31am")
+    async def _health_31am():
+        """Report which 31am infrastructure pieces are live and what's still needed."""
+        try:
+            from src.drill_rosetta_bridge import health as _bridge_health
+            status = _bridge_health()
+        except Exception as exc:
+            status = {"bridge_module": f"import_failed: {exc}"}
+        pieces = ["pcr060_drill_driver", "dynamic_rosetta_planner", "rosetta_core",
+                  "patch412_capability_cube", "r424_endpoint_capability_bridge",
+                  "r425_rosetta_task_config", "agent_email_chain"]
+        importable = sum(1 for p in pieces if status.get(p) == "importable")
+        code_pct = (importable / len(pieces)) * 100
+        creds_pct = (int(bool(status.get("founder_key_present"))) +
+                     int(bool(status.get("drive_creds_present")))) / 2 * 100
+        return {
+            "ship": "31am",
+            "code_readiness_pct": round(code_pct, 1),
+            "credentials_readiness_pct": round(creds_pct, 1),
+            "overall_pct": round((code_pct + creds_pct) / 2, 1),
+            "pieces": status,
+            "founder_actions_needed": [
+                a for a in [
+                    ("MURPHY_FOUNDER_KEY missing — add via vault for HTTP magnify auth"
+                     if not status.get("founder_key_present") else None),
+                    ("GOOGLE_SERVICE_ACCOUNT_JSON missing — add via vault to enable Drive share path"
+                     if not status.get("drive_creds_present") else None),
+                ] if a
+            ],
+        }
+
     return app
 
 
@@ -40350,3 +40384,5 @@ if __name__ == "__main__":
 
 
 # PATCH-449-contact: added /contact slug to UI page map and allowlist
+
+
