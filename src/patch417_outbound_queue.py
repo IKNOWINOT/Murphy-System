@@ -745,7 +745,7 @@ def init_outbound_routes(app) -> None:
                     to_addr=to_list[0] if to_list else "",
                     subject=subject,
                     plain_body=plain_body,
-                    from_addr=from_addr or "sales@murphy.systems",
+                    from_addr=from_addr or "murphy@murphy.systems",
                 )
                 # Parse string back into EmailMessage for header injection + smtplib
                 import email as _email
@@ -769,7 +769,7 @@ def init_outbound_routes(app) -> None:
         if msg is None:
             # Plain text path (legacy default)
             msg = EmailMessage()
-            msg["From"] = from_addr or "sales@murphy.systems"
+            msg["From"] = from_addr or "murphy@murphy.systems"
             msg["To"] = ", ".join(to_list)
             msg["Subject"] = subject
             msg["Date"] = formatdate(localtime=False)
@@ -781,7 +781,7 @@ def init_outbound_routes(app) -> None:
         try:
             from src.deliverability_headers import add_deliverability_headers
             add_deliverability_headers(
-                msg, from_addr=from_addr or "sales@murphy.systems",
+                msg, from_addr=from_addr or "murphy@murphy.systems",
                 recipient_email=to_list[0] if to_list else None,
                 campaign_id='outbound', is_transactional=True,
             )
