@@ -488,6 +488,11 @@ class OIDCAuthMiddleware(BaseHTTPMiddleware):
         "/api/automation/prefight/status",
         "/api/hitl/confirm-subscription",  # _R471 magic-link
         "/api/hitl/email-action",            # _R471 1-click HITL action   # PATCH-177: engine availability — public
+        # Ship 31an.HITL — admin gate control endpoints (auth enforced in-handler)
+        "/api/hitl/status",
+        "/api/hitl/email/auto",
+        "/api/hitl/all/on",
+        "/api/hitl/all/off",
         "/api/billing/prices",               # PATCH-179b: public pricing endpoint for landing page
         "/api/health",
 

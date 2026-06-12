@@ -60,6 +60,15 @@ sys.path.insert(0, "/opt/Murphy-System")
 
 _DB = "/var/lib/murphy-production/inbound_replies.db"
 _MAIL_DB = "/var/lib/murphy-production/murphy_mail.db"
+
+# Ship 31an.HITL — gate import shim
+def _hitl_should_auto_send(action_type: str) -> bool:
+    try:
+        from src.hitl_gate import should_auto_send
+        return should_auto_send(action_type)
+    except Exception:
+        return False  # fail-safe: queue if gate broken
+
 _FOUNDER_EMAIL = "cpost@murphy.systems"
 
 # Safety toggles
@@ -882,10 +891,13 @@ def _queue_outbound(to_addr: str, subject: str, body: str, urgency: str = "norma
                  agent_profile_id, agent_role, agent_class, urgency, status,
                  created_at, updated_at, action_type, metadata
                ) VALUES (?, ?, ?, ?, ?, ?, 
-                         'stranger_responder', 'auto_responder', 'system', ?, 'pending_review',
+                         'stranger_responder', 'auto_responder', 'system', ?, ?,
                          ?, ?, 'email_outbound', ?)""",
             (queue_id, "murphy@murphy.systems", json.dumps([to_addr]),
-             subject, stored_body, stored_format, urgency, now, now, metadata_blob),
+             subject, stored_body, stored_format, urgency,
+             # Ship 31an.HITL — auto-send if gate allows for this action type
+             ("sent" if _hitl_should_auto_send("stranger_responder") else "pending_review"),
+             now, now, metadata_blob),
         )
         conn.commit()
         conn.close()

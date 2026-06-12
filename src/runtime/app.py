@@ -5310,6 +5310,67 @@ def create_app() -> FastAPI:
             "OS dashboard not found.</p>"
         )
 
+    # ── Ship 31an.HITL — gate control endpoints ─────────────────────
+    def _hitl_require_platform_admin(request: Request):
+        """Cookie-gated helper. Returns (ok, error_dict, role)."""
+        from src import ship31ah_signup as _s
+        sid = request.cookies.get(_s.COOKIE_NAME, "")
+        sess = _s.lookup_session(sid)
+        if not sess:
+            return False, {"ok": False, "error": "auth required"}, None
+        u = _s.get_user_by_email(sess["email"])
+        role = ((u or {}).get("data", {}) or {}).get("role", "").lower()
+        if role not in ("owner", "founder", "platform_admin", "platform_staff"):
+            return False, {"ok": False, "error": "platform admin only"}, role
+        return True, None, role
+
+    @app.get("/api/hitl/status", include_in_schema=False)
+    async def hitl_status(request: Request):
+        from fastapi.responses import JSONResponse
+        from src import hitl_gate
+        # Status is readable by any authenticated user; mutations are admin-only
+        from src import ship31ah_signup as _s
+        sid = request.cookies.get(_s.COOKIE_NAME, "")
+        sess = _s.lookup_session(sid)
+        if not sess:
+            return JSONResponse({"ok": False, "error": "auth required"}, status_code=401)
+        return JSONResponse({"ok": True, **hitl_gate.describe()})
+
+    @app.post("/api/hitl/email/auto", include_in_schema=False)
+    async def hitl_set_email_auto(request: Request):
+        """Switch to off_for_email: inbound stranger emails auto-send,
+        everything else stays HITL-gated. (Default mode.)"""
+        from fastapi.responses import JSONResponse
+        ok, err, role = _hitl_require_platform_admin(request)
+        if not ok:
+            return JSONResponse(err, status_code=401 if "auth" in err.get("error","") else 403)
+        from src import hitl_gate
+        state = hitl_gate.set_mode("off_for_email", set_by=f"role:{role}")
+        return JSONResponse({"ok": True, "state": state, "describe": hitl_gate.describe()})
+
+    @app.post("/api/hitl/all/on", include_in_schema=False)
+    async def hitl_set_all_on(request: Request):
+        """Switch to on: everything HITL-gated (safe mode)."""
+        from fastapi.responses import JSONResponse
+        ok, err, role = _hitl_require_platform_admin(request)
+        if not ok:
+            return JSONResponse(err, status_code=401 if "auth" in err.get("error","") else 403)
+        from src import hitl_gate
+        state = hitl_gate.set_mode("on", set_by=f"role:{role}")
+        return JSONResponse({"ok": True, "state": state, "describe": hitl_gate.describe()})
+
+    @app.post("/api/hitl/all/off", include_in_schema=False)
+    async def hitl_set_all_off(request: Request):
+        """Switch to off: everything auto-sends (emergency override).
+        USE WITH CAUTION."""
+        from fastapi.responses import JSONResponse
+        ok, err, role = _hitl_require_platform_admin(request)
+        if not ok:
+            return JSONResponse(err, status_code=401 if "auth" in err.get("error","") else 403)
+        from src import hitl_gate
+        state = hitl_gate.set_mode("off", set_by=f"role:{role}")
+        return JSONResponse({"ok": True, "state": state, "describe": hitl_gate.describe()})
+
     # ── Ship 31ah HTML render helpers ──
     def _claim_form_html(token: str, addr: str, error: str = "") -> str:
         from html import escape as _h
