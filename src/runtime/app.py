@@ -5230,7 +5230,8 @@ def create_app() -> FastAPI:
         sid = _s.create_session(u["account_id"], email, tenant_id)
         # Ship 31an.IS — role-based redirect
         # Platform admins go to /is (Inoni System); tenants go to /dashboard
-        _role = (u.get("data", {}) or {}).get("role", "").lower()
+        _role_raw_l = (u.get("data", {}) or {}).get("role") or ""
+        _role = _role_raw_l.lower() if isinstance(_role_raw_l, str) else ""
         _is_platform = _role in ("owner", "founder", "platform_admin", "platform_staff")
         _landing = "/is" if _is_platform else "/dashboard"
         resp = RedirectResponse(_landing, status_code=303)
@@ -5273,7 +5274,8 @@ def create_app() -> FastAPI:
         # Ship 31an.IS — platform admins land on /is, not the tenant dashboard
         try:
             _u = _s.get_user_by_email(sess["email"])
-            _role = ((_u or {}).get("data", {}) or {}).get("role", "").lower()
+            _role_raw_d = ((_u or {}).get("data", {}) or {}).get("role") or ""
+            _role = _role_raw_d.lower() if isinstance(_role_raw_d, str) else ""
             if _role in ("owner", "founder", "platform_admin", "platform_staff"):
                 return RedirectResponse("/is", status_code=302)
         except Exception:
@@ -5296,7 +5298,8 @@ def create_app() -> FastAPI:
         if not sess:
             return RedirectResponse("/login?msg=login_required", status_code=302)
         _u = _s.get_user_by_email(sess["email"])
-        _role = ((_u or {}).get("data", {}) or {}).get("role", "").lower()
+        _role_raw = ((_u or {}).get("data", {}) or {}).get("role") or ""
+        _role = _role_raw.lower() if isinstance(_role_raw, str) else ""
         if _role not in ("owner", "founder", "platform_admin", "platform_staff"):
             # Tenant user hit /is — route them to their dashboard instead
             return RedirectResponse("/dashboard", status_code=302)
@@ -15976,7 +15979,9 @@ font-weight:600;color:#c9d1d9}}</style></head><body>
 
     @app.post("/api/auth/login")
     async def auth_login(request: Request):
-        """Handle email/password login — validates credentials and creates session."""
+        """Ship 31an.UNIFY — uses ship31ah_signup (user_accounts SQLite)
+        as the single source of truth. Same auth path as /login.
+        Returns redirect_url (/is for platform admins, /dashboard else)."""
         try:
             data = await request.json()
             email = (data.get("email") or "").strip().lower()
@@ -15988,22 +15993,49 @@ font-weight:600;color:#c9d1d9}}</style></head><body>
                     status_code=400,
                 )
 
-            account_id = _email_to_account.get(email)
-            if not account_id:
+            # Ship 31an.UNIFY — use ship31ah_signup (the same path /login uses)
+            from src import ship31ah_signup as _s
+            u = _s.get_user_by_email(email)
+            _pw_hash = ""
+            if u:
+                _pw_hash = u["data"].get("pw_hash") or u["data"].get("password_hash") or ""
+            if not u or not _s._check_pw(password, _pw_hash):
                 return JSONResponse(
                     {"success": False, "error": "Invalid email or password"},
                     status_code=401,
                 )
 
-            account = _user_store.get(account_id)
-            if not account or not _verify_password(password, account.get("password_hash", "")):
-                return JSONResponse(
-                    {"success": False, "error": "Invalid email or password"},
-                    status_code=401,
-                )
+            # Translate to /api/auth/login's expected shape
+            account_id = u["account_id"]
+            account = {
+                "email": u["email"],
+                "full_name": u["data"].get("full_name", ""),
+                "tier": u["data"].get("tier", "free"),
+                "first_login": u["data"].get("first_login", False),
+            }
+            # Role for redirect routing
+            _role_raw_a = u["data"].get("role") or ""
+            _role = _role_raw_a.lower() if isinstance(_role_raw_a, str) else ""
+            _is_platform = _role in ("owner", "founder", "platform_admin", "platform_staff")
+            _redirect_url = "/is" if _is_platform else "/dashboard"
 
-            # Mint session token
-            session_token = _create_session(account_id)
+            # Mint session token — use ship31ah_signup.create_session so
+            # /login, /api/auth/login, /dashboard, /is all share one session
+            tenant_id = _s.get_or_create_tenant_for_user(account_id, email)
+            session_token = _s.create_session(account_id, email, tenant_id)
+            # Also seed legacy in-memory store so any code still reading
+            # _user_store doesn't break
+            try:
+                _user_store[account_id] = {
+                    "email": email,
+                    "full_name": account["full_name"],
+                    "tier": account["tier"],
+                    "first_login": account["first_login"],
+                    "password_hash": _pw_hash,
+                }
+                _email_to_account[email] = account_id
+            except Exception:
+                pass
 
             # PATCH-177: First-login detection — set flag in response, clear it in store
             _first_login = account.get("first_login", False)
@@ -16021,6 +16053,7 @@ font-weight:600;color:#c9d1d9}}</style></head><body>
                 "tier": account.get("tier", "free"),
                 "first_login": _first_login,
                 "onboarding_url": "/ui/onboarding" if _first_login else None,
+                "redirect_url": _redirect_url,  # Ship 31an.UNIFY — role-based landing
             })
             resp.set_cookie(
                 key="murphy_session",
@@ -23233,6 +23266,9 @@ font-weight:600;color:#c9d1d9}}</style></head><body>
                 "/api/tenant/check-slug",
                 # _R489C_EXEMPT — public contact form
                 "/api/contact/submit",
+                # _31aoCHECKOUT_EXEMPT — public NOWPayments checkout (guest signups)
+                "/api/payments/nowpayments/checkout",
+                "/api/payments/nowpayments/webhook",
             })
             _pfx = ("/api/growth", "/api/oo/", "/api/health/capacity",
                     "/api/marketplace/",
@@ -39903,6 +39939,17 @@ font-weight:600;color:#c9d1d9}}</style></head><body>
                 ] if a
             ],
         }
+
+
+    @app.get("/api/self/state_of_complete", include_in_schema=False)
+    async def state_of_complete_endpoint(request: Request):
+        """Ship 31ao.SEE — Murphy's snapshot of itself.
+        Public read-only summary. /is polls this every 10s."""
+        try:
+            from src.state_of_complete import build_state_of_complete
+            return JSONResponse(build_state_of_complete())
+        except Exception as exc:
+            return JSONResponse({"error": str(exc), "ship": "31ao.SEE"}, status_code=500)
 
     return app
 
