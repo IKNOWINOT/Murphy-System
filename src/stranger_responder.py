@@ -51,6 +51,9 @@ logger = logging.getLogger("stranger_responder")
 # Ship 31am — drill + rosetta + pipeline + capability cube wiring
 try:
     from src.drill_rosetta_bridge import run_drill_rosetta_pipeline as _bridge_run
+    # Ship 31ao.LAUNCH B2 — turnover bound on bridge calls
+    from src.turnover_criteria import TurnoverCriteria as _TC31ao, TurnoverTracker as _TT31ao
+    import uuid as _uuid31ao
     _BRIDGE_AVAILABLE = True
 except Exception as _bridge_exc:
     logger.warning('Ship 31am bridge unavailable: %s', _bridge_exc)
@@ -1261,8 +1264,20 @@ def process_stranger_inquiries(limit: int = 5) -> Dict:
                 _bridge_used = False
                 if _BRIDGE_AVAILABLE:
                     try:
+                        # Ship 31ao.LAUNCH B2 — turnover tracker around bridge call
+                        _tc_31ao = _TC31ao.for_role("stranger_responder")
+                        _tt_31ao = _TT31ao(_tc_31ao,
+                                           spawn_id=f"stranger_{_uuid31ao.uuid4().hex[:10]}")
                         _br = _bridge_run(subject, body, from_addr,
                                          want_drive_share=False)
+                        _tt_31ao.record_iteration(
+                            tokens_used=0,
+                            cost_usd=float(getattr(_br, "total_cost_usd", 0.0) or 0.0),
+                            converged=bool(_br.success),
+                        )
+                        if not _tt_31ao.stop_reason:
+                            _tt_31ao.stop_reason = "bridge_returned"
+                        _tt_31ao.write_ledger()
                         if _br.success:
                             logger.info("31am bridge succeeded: team=%s drill_iter=%d cost=$%.4f",
                                         _br.rosetta_team, _br.drill_iterations, _br.total_cost_usd)
