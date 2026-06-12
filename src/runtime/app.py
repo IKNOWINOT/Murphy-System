@@ -5219,7 +5219,9 @@ def create_app() -> FastAPI:
             return HTMLResponse(_login_form_html(error="Invalid request"), status_code=400)
 
         u = _s.get_user_by_email(email)
-        if not u or not _s._check_pw(pw, u["data"].get("pw_hash", "")):
+        # Ship 31an.LOGIN — accept both legacy "password_hash" and new "pw_hash"
+        _pw_hash = u["data"].get("pw_hash") or u["data"].get("password_hash") or "" if u else ""
+        if not u or not _s._check_pw(pw, _pw_hash):
             return HTMLResponse(
                 _login_form_html(error="Wrong email or password", email=email),
                 status_code=401
