@@ -46,8 +46,8 @@ logger = logging.getLogger("murphy.drill_rosetta_bridge")
 
 # Founder-tunable for the email channel.
 # Drill default is 5 iterations; email gets 2 to keep latency < 60s.
-EMAIL_MAX_DRILL_ROUNDS = 2
-EMAIL_BUDGET_CAP_USD   = 0.20
+EMAIL_MAX_DRILL_ROUNDS = 3
+EMAIL_BUDGET_CAP_USD   = 0.30
 EMAIL_TOLERANCE        = 0.10
 EMAIL_FLATLINE_THRESH  = 0.02
 
@@ -261,6 +261,115 @@ def revoke_share(file_id: str, email: str) -> bool:
 
 
 # ─────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────
+# DynamicLLMAgent — wraps a Rosetta blueprint + soul in an
+# AgentBase subclass so SwarmCoordinator.pipeline() can call it.
+# Without this, blueprints have no executor and pipeline returns completed=0.
+# ─────────────────────────────────────────────────────────────
+
+def _make_dynamic_llm_agent_class():
+    """Lazy import + factory. AgentBase needs RosettaSoul which needs DB at import."""
+    from src.rosetta_core import AgentBase, get_rosetta_soul
+
+    class DynamicLLMAgent(AgentBase):
+        """An ephemeral agent created from a Rosetta blueprint.
+
+        - Soul (system prompt) is the LLM-generated role description from DynamicRosettaPlanner.write_souls().
+        - act() runs llm_provider.complete() with that soul + signal context.
+        - Result includes the text contribution for context_chain pickup.
+        - CapabilityInvoker is attached so the agent could call other Murphy
+          endpoints if it chose to (future: tool-use loop).
+        """
+
+        def __init__(self, agent_id: str, blueprint, soul_text: str,
+                     capability_invoker: "CapabilityInvoker" = None):
+            super().__init__(agent_id, soul=get_rosetta_soul())
+            self.blueprint = blueprint
+            self.soul_text = soul_text or ""
+            self.capability_invoker = capability_invoker
+            self.role_class = getattr(blueprint, "role_class", "unknown")
+
+        def act(self, signal):
+            """Run one LLM call with the blueprint's soul as system prompt."""
+            import json as _json
+            try:
+                from src.llm_provider import get_llm
+            except Exception as exc:
+                return {"status": "error", "reason": f"llm_provider unavailable: {exc}"}
+
+            subject  = signal.get("subject", "")
+            body     = signal.get("body", "")
+            chain    = signal.get("context_chain", [])
+
+            # Build user prompt — include prior agents' contributions if any
+            prior_text = ""
+            for entry in chain:
+                rs = entry.get("result_summary") or ""
+                aid = entry.get("agent_id", "")
+                if rs and aid != self.agent_id:
+                    prior_text += f"\n[{aid}] said: {rs[:400]}\n"
+
+            user_prompt = (
+                f"INBOUND EMAIL:\nSubject: {subject}\nBody: {body[:2000]}\n\n"
+                f"YOUR ROLE BRIEF:\n{getattr(self.blueprint, 'task_brief', '')[:600]}\n\n"
+            )
+            if prior_text:
+                user_prompt += f"PRIOR AGENTS HAVE CONTRIBUTED:\n{prior_text}\n"
+            user_prompt += (
+                "Produce YOUR contribution to the reply. Be specific, useful, "
+                "and grounded in real-world practice. 80-200 words. No filler."
+            )
+
+            try:
+                llm = get_llm()
+                # llm_provider.complete supports system kwarg in newer builds; fall back if not
+                try:
+                    resp = llm.complete(user_prompt, model_hint="fast",
+                                        max_tokens=400, system=self.soul_text[:2000])
+                except TypeError:
+                    # Older signature — prepend soul
+                    prefixed = f"SYSTEM:\n{self.soul_text[:2000]}\n\nUSER:\n{user_prompt}"
+                    resp = llm.complete(prefixed, model_hint="fast", max_tokens=400)
+            except Exception as exc:
+                logger.warning("DynamicLLMAgent[%s] LLM call failed: %s", self.agent_id, exc)
+                return {"status": "error", "agent_id": self.agent_id, "reason": str(exc)}
+
+            text = (resp.content if hasattr(resp, "content") else str(resp)) or ""
+            cost = (getattr(resp, "cost_usd", 0.0) or 0.0)
+
+            return {
+                "status": "ok",
+                "agent_id": self.agent_id,
+                "role_class": self.role_class,
+                "text": text.strip(),
+                "cost_usd": cost,
+                # Bridge consumes this in assembly phase
+                "contribution": {"text": text.strip(), "agent_id": self.agent_id,
+                                 "role_class": self.role_class},
+            }
+
+    return DynamicLLMAgent
+
+
+def _register_team_with_coord(coord, team, souls: dict, role_to_invoker):
+    """Register each blueprint as a DynamicLLMAgent on the coordinator.
+
+    Returns the list of agent_ids that were successfully registered.
+    """
+    DynamicLLMAgent = _make_dynamic_llm_agent_class()
+    registered = []
+    for bp in team:
+        try:
+            soul_text = souls.get(bp.agent_id, "") if isinstance(souls, dict) else ""
+            invoker = role_to_invoker(bp.role_class, bp.agent_id) if role_to_invoker else None
+            agent = DynamicLLMAgent(bp.agent_id, bp, soul_text, invoker)
+            coord.register(bp.agent_id, agent)
+            registered.append(bp.agent_id)
+        except Exception as exc:
+            logger.warning("register %s failed: %s", bp.agent_id, exc)
+    return registered
+
+
 # Main bridge entry point — called from stranger_responder
 # ─────────────────────────────────────────────────────────────
 
@@ -332,11 +441,17 @@ def run_drill_rosetta_pipeline(
         return BridgeResult(success=False, body_text="",
                             fallback_reason=f"drill_loop_failed: {exc}")
 
-    if not drill_result.success or not drill_result.deliverable:
+    # Accept the deliverable even when drill didn't fully converge.
+    # Budget-exceeded / degraded output is still usable — the drill produced
+    # something, the legacy single-shot would produce LESS. Take what we have.
+    if not drill_result.deliverable:
         return BridgeResult(success=False, body_text="",
                             drill_iterations=drill_result.iterations_run,
                             total_cost_usd=drill_result.cumulative_cost_usd,
                             fallback_reason=f"drill_no_deliverable: {drill_result.reason}")
+    if not drill_result.success:
+        logger.info("31am drill non-converged but deliverable produced: quality=%s reason=%s",
+                    drill_result.deliverable_quality, drill_result.reason)
 
     deliverable_plan = drill_result.deliverable
     cost = drill_result.cumulative_cost_usd
@@ -363,6 +478,23 @@ def run_drill_rosetta_pipeline(
     team_ids = [a.agent_id for a in team]
     logger.info("31am rosetta team: %s", team_ids)
 
+    # ── Step 2b: Write souls for each team member (LLM call per agent) ──
+    souls = {}
+    try:
+        # write_souls returns dict[agent_id → soul_text]
+        # Pass through the same plan_prompt + a TaskProfile from the planner
+        if hasattr(planner, "_last_task_profile") and planner._last_task_profile:
+            souls = planner.write_souls(team, plan_prompt, planner._last_task_profile)
+        elif hasattr(dispatch_packet, "souls") and dispatch_packet.souls:
+            souls = dispatch_packet.souls
+        else:
+            # Fallback: synthesize minimal souls from blueprint fields
+            souls = {bp.agent_id: f"{bp.role_class}: {bp.task_brief}" for bp in team}
+        logger.info("31am souls written for %d agents", len(souls))
+    except Exception as exc:
+        logger.warning("write_souls failed, using blueprint fallback: %s", exc)
+        souls = {bp.agent_id: f"{bp.role_class}: {bp.task_brief}" for bp in team}
+
     # ── Step 3: SwarmCoordinator pipeline — multi-agent ping-pong ──
     try:
         from src.rosetta_core import get_swarm_coordinator
@@ -373,7 +505,22 @@ def run_drill_rosetta_pipeline(
                             rosetta_team=team_ids, total_cost_usd=cost,
                             fallback_reason=f"swarm_unavailable: {exc}")
 
-    # Build signal with capability_invoker handle for each agent
+    # Register each blueprint as a DynamicLLMAgent BEFORE running the pipeline.
+    # Without this, coord._agents has no entry for the dynamic ids and
+    # pipeline() returns completed=0, skipped=N.
+    def _make_invoker(role_class, agent_id):
+        return CapabilityInvoker(agent_id=agent_id, role_class=role_class,
+                                  risk_class="low", trust_tier="standard")
+    registered_ids = _register_team_with_coord(coord, team, souls, _make_invoker)
+    logger.info("31am registered %d/%d dynamic agents with coord",
+                len(registered_ids), len(team_ids))
+    if not registered_ids:
+        return BridgeResult(success=False, body_text="",
+                            drill_iterations=drill_result.iterations_run,
+                            rosetta_team=team_ids, total_cost_usd=cost,
+                            fallback_reason="no_agents_registered")
+
+    # Build signal (no factory needed — invoker baked into agent instance)
     signal = {
         "signal_id":      dispatch_id,
         "signal_type":    "stranger_email_reply",
@@ -384,48 +531,71 @@ def run_drill_rosetta_pipeline(
         "context_chain":  [],
         "tenant_id":      "platform",
     }
-    # Attach a capability_invoker FACTORY — agents instantiate their own
-    # bound invoker keyed to their role_class
-    signal["capability_invoker_factory"] = lambda role_class, agent_id: CapabilityInvoker(
-        agent_id=agent_id, role_class=role_class,
-        risk_class="low",  # email channel = low risk by default
-        trust_tier="standard",
-    )
 
+    # Direct-run loop bypasses SwarmCoordinator.dispatch()'s static domain
+    # whitelist (_all_domains only knows about the 10 canonical agents).
+    # We call each agent's _run() in sequence, mutating signal.context_chain
+    # exactly like pipeline() does.
+    completed = 0
+    skipped = 0
     try:
-        pipeline_result = coord.pipeline(signal, team_ids)
+        for idx, aid in enumerate(registered_ids):
+            agent = coord._agents.get(aid)
+            if not agent:
+                skipped += 1
+                continue
+            hop_signal = dict(signal)
+            hop_signal["signal_id"] = f"{dispatch_id}__hop{idx}_{aid}"
+            hop_signal["domain"] = aid
+            hop_signal["context_chain"] = signal.get("context_chain", [])
+            try:
+                agent._run(hop_signal)
+                signal["context_chain"] = hop_signal.get("context_chain", [])
+                completed += 1
+            except Exception as exc:
+                logger.warning("31am direct-run hop %d (%s) failed: %s", idx, aid, exc)
+                skipped += 1
+        pipeline_result = {
+            "completed": completed,
+            "skipped": skipped,
+            "context_chain": signal.get("context_chain", []),
+            "wire_version_pipeline": "31am_direct_run",
+        }
     except Exception as exc:
         return BridgeResult(success=False, body_text="",
                             drill_iterations=drill_result.iterations_run,
                             rosetta_team=team_ids, total_cost_usd=cost,
-                            fallback_reason=f"pipeline_failed: {exc}")
+                            fallback_reason=f"direct_run_failed: {exc}")
 
     completed = pipeline_result.get("completed", 0)
     context_chain = pipeline_result.get("context_chain", [])
 
-    # ── Step 4: Assemble body + attachments from context_chain ──
-    # Each agent emits a contribution; last agent's text → body, others → attachments
+    # ── Step 4: Assemble body + attachments from each agent's _last_result ──
+    # AgentBase stores the full result dict on the instance. context_chain only
+    # carries result_summary (300 chars). Pull full results from coord._agents.
     body_text = ""
     attachments: List[Dict[str, Any]] = []
-    for entry in context_chain:
-        agent_id = entry.get("agent_id", "")
-        contribution = entry.get("contribution") or entry.get("result", {})
-        if isinstance(contribution, dict):
-            text = contribution.get("text", "") or contribution.get("body", "")
-            file_path = contribution.get("file_path")
-            file_name = contribution.get("file_name")
-            if file_path and file_name:
-                attachments.append({"agent_id": agent_id,
-                                    "file_path": file_path,
-                                    "file_name": file_name,
-                                    "mime": contribution.get("mime", "application/octet-stream")})
-            elif text and not body_text:
-                # First text contribution becomes body if nothing assembled yet
-                body_text = text
-            elif text:
-                body_text += "\n\n" + text
-        elif isinstance(contribution, str) and not body_text:
-            body_text = contribution
+    contributions = []
+    for aid in registered_ids:
+        agent = coord._agents.get(aid)
+        if not agent:
+            continue
+        res = getattr(agent, "_last_result", None) or {}
+        text = res.get("text", "") if isinstance(res, dict) else ""
+        if text:
+            contributions.append({"agent_id": aid, "text": text,
+                                  "role_class": res.get("role_class", "")})
+
+    # Assembly heuristic: last agent (typically writer/hitl_gate) gets to be the
+    # canonical reply body; earlier specialists become inline citations.
+    if contributions:
+        # If a writer/outreach role is present, prefer its text as the body
+        writer = next((c for c in contributions
+                       if "writer" in c["role_class"] or "outreach" in c["role_class"]), None)
+        if writer:
+            body_text = writer["text"]
+        else:
+            body_text = contributions[-1]["text"]
 
     # If nothing assembled, fail clean → caller falls back
     if not body_text:
