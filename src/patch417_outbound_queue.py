@@ -620,7 +620,7 @@ def init_outbound_routes(app) -> None:
         conn = sqlite3.connect(DB_PATH)
         row = conn.execute("""
             SELECT from_address, to_addresses, subject, body, status,
-                   agent_profile_id, agent_role
+                   agent_profile_id, agent_role, body_format, metadata
             FROM outbound_email_queue WHERE queue_id=?
         """, (queue_id,)).fetchone()
         if not row:
@@ -641,6 +641,16 @@ def init_outbound_routes(app) -> None:
         body_text = edits.get("body") or row[3]
         agent_pid = row[5]
         agent_role = row[6] or "unknown"
+        # Ship 31al: read body_format + metadata to choose plain vs branded multipart
+        body_format = (row[7] if len(row) > 7 else None) or "plain"
+        try:
+            queue_metadata = json.loads(row[8]) if (len(row) > 8 and row[8]) else {}
+        except Exception:
+            queue_metadata = {}
+        # If body_text was edited via founder review and looks like the legacy
+        # plain text, prefer it (founder intent wins).
+        if edits.get("body"):
+            body_format = "plain"
         
         now = _now()
         approver_pid = getattr(request.state, "actor_account_id", "founder")
@@ -723,14 +733,51 @@ def init_outbound_routes(app) -> None:
                 pass
             audit_verdict = "skipped"
         
-        # ── PATCH-425: Real SMTP delivery ────────────────────────────────
-        msg = EmailMessage()
-        msg["From"] = from_addr or "sales@murphy.systems"
-        msg["To"] = ", ".join(to_list)
-        msg["Subject"] = subject
-        msg["Date"] = formatdate(localtime=False)
-        msg["Message-ID"] = make_msgid(domain="murphy.systems")
-        # Ship 31ae — bulk-sender header compliance
+        # ── PATCH-425 + Ship 31al: Real SMTP delivery (branded when html) ──
+        msg = None
+        smtp_message_id = None
+        if body_format == "html":
+            # Branded multipart/alternative path
+            try:
+                from src.email_mime_builder import build_multipart_message
+                plain_body = queue_metadata.get("plain_body") or body_text
+                msg_str = build_multipart_message(
+                    to_addr=to_list[0] if to_list else "",
+                    subject=subject,
+                    plain_body=plain_body,
+                    from_addr=from_addr or "sales@murphy.systems",
+                )
+                # Parse string back into EmailMessage for header injection + smtplib
+                import email as _email
+                msg = _email.message_from_string(msg_str)
+                # Override To with the full list when multiple recipients
+                if len(to_list) > 1:
+                    del msg["To"]
+                    msg["To"] = ", ".join(to_list)
+                # Reuse the Message-ID build_multipart_message set
+                smtp_message_id = msg.get("Message-ID")
+            except Exception as mp_exc:
+                # Render failed — fall through to plain-text path
+                try:
+                    import logging
+                    logging.getLogger(__name__).warning(
+                        "Ship 31al: multipart build failed (%s), falling back to plain", mp_exc)
+                except Exception:
+                    pass
+                msg = None
+
+        if msg is None:
+            # Plain text path (legacy default)
+            msg = EmailMessage()
+            msg["From"] = from_addr or "sales@murphy.systems"
+            msg["To"] = ", ".join(to_list)
+            msg["Subject"] = subject
+            msg["Date"] = formatdate(localtime=False)
+            msg["Message-ID"] = make_msgid(domain="murphy.systems")
+            msg.set_content(body_text)
+            smtp_message_id = msg["Message-ID"]
+
+        # Ship 31ae — bulk-sender header compliance (applies to both paths)
         try:
             from src.deliverability_headers import add_deliverability_headers
             add_deliverability_headers(
@@ -740,11 +787,11 @@ def init_outbound_routes(app) -> None:
             )
         except Exception:
             pass
-        msg.set_content(body_text)
         
         send_ok = False
         send_err = None
-        smtp_message_id = msg["Message-ID"]
+        if not smtp_message_id:
+            smtp_message_id = msg["Message-ID"]
         sent_via = "postfix_localhost"
         try:
             with smtplib.SMTP("127.0.0.1", 25, timeout=10) as smtp:
