@@ -736,8 +736,8 @@ footer a:hover { color: var(--teal); }
 
       <button class="signup-stage" data-stage="3" onclick="openStageMovie(3)">
         <div class="stage-num">Stage 3</div>
-        <div class="stage-title">Pick Your Role</div>
-        <div class="stage-desc">Choose what your AI hire will do: SDR, CSM, dispatcher, bookkeeper, recruiter, support agent. Each role has a real Rosetta soul. Pricing: $1,499 Starter · $2,999 Pro · $5,999 Senior.</div>
+        <div class="stage-title">Pick Your Plan + Role</div>
+        <div class="stage-desc">Choose what your AI hire will do: SDR, CSM, dispatcher, bookkeeper, recruiter, support agent. Each role has a real Rosetta soul. Included with your plan — Solo $99/mo, Team $399/mo, or Business $799/mo.</div>
         <div class="stage-meta"><span class="stage-time">~1 min</span><span class="stage-cta">▶ Watch · Assist</span></div>
       </button>
 
@@ -941,15 +941,15 @@ const STAGE_DATA = {
       {t:"$ GET /api/billing/plans",c:"prompt",d:0},
       {t:"Available roles for tenant acme_manufacturing_a8f3:",c:"system",d:400},
       {t:"",c:"system",d:600},
-      {t:"  [ STARTER ROLE — $1,499/mo ]",c:"ok",d:800},
+      {t:"  [ SOLO PLAN — $99/mo ]",c:"ok",d:800},
       {t:"    • 1 agent, scoped weekly review",c:"system",d:1000},
       {t:"    • ~1,500 LLM calls/day soft cap",c:"system",d:1200},
       {t:"",c:"system",d:1300},
-      {t:"  [ PRO ROLE — $2,999/mo ]    ← selected",c:"ok",d:1500},
+      {t:"  [ TEAM PLAN — $399/mo ]    ← selected",c:"ok",d:1500},
       {t:"    • 1 agent, full HITL pipeline",c:"system",d:1700},
       {t:"    • voice + email + SMS channels",c:"system",d:1900},
       {t:"",c:"system",d:2000},
-      {t:"  [ SENIOR ROLE — $5,999/mo ]",c:"system",d:2200},
+      {t:"  [ BUSINESS PLAN — $799/mo ]",c:"system",d:2200},
       {t:"    • autonomous + outcome bonuses",c:"system",d:2400},
       {t:"",c:"system",d:2500},
       {t:"$ POST /api/billing/select { tier: 'pro_role' }",c:"prompt",d:2900},
@@ -967,8 +967,8 @@ const STAGE_DATA = {
       {t:"  ← checkout_url: https://nowpayments.io/payment/?iid=5131381447",c:"ok",d:1700},
       {t:"",c:"system",d:1900},
       {t:"  Customer choices on the invoice page:",c:"system",d:2100},
-      {t:"    [USDT TRC20]  pay 2,999.00 USDT  — instant",c:"ok",d:2400},
-      {t:"    [USDC ERC20]  pay 2,999.00 USDC  — instant",c:"ok",d:2600},
+      {t:"    [USDT TRC20]  pay 399.00 USDT  — instant",c:"ok",d:2400},
+      {t:"    [USDC ERC20]  pay 399.00 USDC  — instant",c:"ok",d:2600},
       {t:"    [BTC]         pay 0.0431 BTC     — ~10 min",c:"ok",d:2800},
       {t:"    [USD / card]  Visa/MC/Apple Pay via Mercuryo",c:"ok",d:3000},
       {t:"",c:"system",d:3100},
@@ -1178,7 +1178,7 @@ async function submitAssist(ev) {
       <div class="cap-card">
         <div class="cap-icon">🪙</div>
         <div class="cap-title">Crypto Payments</div>
-        <div class="cap-desc">NOWPayments live: customers can pay <strong>$1,499 / $2,999 / $5,999</strong> plans in USDT, USDC, BTC, ETH, or — via Mercuryo — pay in USD with Visa/Mastercard/Apple Pay. IPN webhook wired. Fiat off-ramp (crypto → USD bank) is KYB-in-progress with NOWPayments (R399). ATOM staking auto-split is a future state for post-revenue treasury, not currently active.</div>
+        <div class="cap-desc">NOWPayments live: customers can pay <strong>$99 / $399 / $799</strong> plans in USDT, USDC, BTC, ETH, or — via Mercuryo — pay in USD with Visa/Mastercard/Apple Pay. IPN webhook wired. Fiat off-ramp (crypto → USD bank) is KYB-in-progress with NOWPayments (R399). ATOM staking auto-split is a future state for post-revenue treasury, not currently active.</div>
         <div class="cap-tag">NOWPayments Live · Off-Ramp KYB Pending</div>
       </div>
 
@@ -1575,7 +1575,7 @@ async function submitAssist(ev) {
 <!-- FOOTER -->
 <footer>
   <div>
-    <strong style="color:var(--teal)">Murphy System</strong> &mdash; © 2025 Inoni LLC &mdash; Corey Post
+    <strong style="color:var(--teal)">Murphy System</strong> &mdash; © 2026 Inoni LLC &mdash; Corey Post
   </div>
   <div class="footer-links">
     <a href="/demo">Demo</a>
