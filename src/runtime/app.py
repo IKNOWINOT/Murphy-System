@@ -1837,6 +1837,26 @@ def create_app() -> FastAPI:
         from fastapi.responses import FileResponse as _FR
         return _FR("/opt/Murphy-System/static/roi-calendar.html", media_type="text/html")
     # === PCR-020b END phase 4b routes ===
+    @app.get("/cascadia_mep.html", include_in_schema=False)
+    async def _ship31an_cascadia_mep_page():
+        """Ship 31an.0b — Cascadia MEP CEO Briefing demo page.
+        Restored from .pre-r358 backup so the sectors tile on the
+        landing page stops 404'ing. This is the strongest MEP demo
+        artifact Murphy has."""
+        from fastapi.responses import FileResponse as _FR
+        return _FR("/opt/Murphy-System/cascadia_mep.html", media_type="text/html")
+
+    @app.get("/compliance", include_in_schema=False)
+    async def _ship31an_compliance_page():
+        """Ship 31an.0b — Compliance demo page.
+        Backs the landing page sectors tile for compliance-bound
+        verticals (HIPAA / SOC2 / GDPR / ISO27001 / PCI-DSS).
+        Uses the Cascadia compliance demo artifact as the visible proof."""
+        from fastapi.responses import FileResponse as _FR
+        return _FR("/opt/Murphy-System/cascadia_compliance_demo.html",
+                   media_type="text/html")
+
+
 
         # === PCR-021 BEGIN canvas route ===
     @app.get("/canvas", include_in_schema=False)
