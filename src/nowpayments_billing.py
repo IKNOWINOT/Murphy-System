@@ -351,18 +351,31 @@ class NowPaymentsBilling:
             if tier == "free" or price_usd == 0:
                 continue
 
-            for interval in ["monthly"]:
+            for interval in ["monthly", "annual"]:
                 key = f"{tier}_{interval}"
                 if key in existing:
-                    results[key] = existing[key]
-                    logger.info("BILLING: plan %s already registered: %s", key, existing[key])
-                    continue
+                    # Ship 31ap.ANNUAL — skip registration ONLY if the existing
+                    # plan_id looks like a real NOWPayments ID (numeric), not
+                    # one of the placeholder rows seeded into the DB by hand.
+                    _existing_id = existing[key]
+                    if _existing_id and str(_existing_id).isdigit():
+                        results[key] = _existing_id
+                        logger.info("BILLING: plan %s already registered: %s", key, _existing_id)
+                        continue
+                    logger.info("BILLING: replacing placeholder plan_id %s for %s",
+                                _existing_id, key)
 
-                amount = price_usd
+                # Ship 31ap.ANNUAL — pick interval_day + amount by interval
+                if interval == "annual":
+                    amount = TIER_PRICES_ANNUAL_USD.get(tier, price_usd * 12 * 0.80)
+                    interval_day = 365
+                else:
+                    amount = price_usd
+                    interval_day = 30
                 try:
                     resp = self._post("/subscriptions/plans", {
                         "title":            f"Murphy {tier.title()} — {interval}",
-                        "interval_day":     30,
+                        "interval_day":     interval_day,
                         "amount":           amount,
                         "currency":         "usd",
                         "description":      TIER_DESCRIPTIONS.get(tier, f"Murphy {tier}"),
