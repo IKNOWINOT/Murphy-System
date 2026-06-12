@@ -4,12 +4,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Murphy — the business assistant that lives in your email</title>
-<meta name="description" content="Email murphy@murphy.systems, CC it into any thread, or forward a message. Murphy researches, drafts, and ships work — zero install. Free tier, paid tiers from $99/mo.">
+<title>Murphy — AI agents that run your business</title>
+<meta name="description" content="Murphy is an autonomous AI operating system that runs your business operations — dispatch, compliance, CRM, accounting, voice control, and more. From $99/month.">
 <meta name="robots" content="index,follow">
 <link rel="canonical" href="https://murphy.systems/">
-<meta property="og:title" content="Murphy — the business assistant that lives in your email">
-<meta property="og:description" content="Murphy lives in your inbox. Email it, CC it into any thread, or forward a message. It researches, drafts, cites, and ships work — like the smartest colleague you ever had. Zero install.">
+<meta property="og:title" content="Murphy — AI agents that run your business">
+<meta property="og:description" content="Launch AI agents that prospect leads, draft emails, audit pricing, ship code, manage compliance, and run your CRM — 24/7, learning your operation as they go.">
 <meta property="og:url" content="https://murphy.systems/">
 <meta property="og:type" content="website">
 <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
@@ -553,29 +553,26 @@ footer a:hover { color: var(--teal); }
     })();
     </script>
     <h1 class="hero-headline">
-        <!-- _R417_HERO Ship 31ah positioning -->
-        A business assistant that <span class="accent rotator" id="hero-verb">lives in your email</span>.<br>
-        <span class="accent2">Email it. CC it. Forward to it. Zero install.</span>
+        <!-- _R417_HERO -->
+        AI agents that <span class="accent rotator" id="hero-verb">run your business</span>.<br>
+        <span class="accent2">Not your call center — your business.</span>
       </h1>
 
       <p class="hero-sub">
-        Email <strong>murphy@murphy.systems</strong> directly, CC it into any thread,
-        or forward a message — Murphy researches, drafts, cites sources, and ships
-        work back. <strong>Like the smartest colleague you ever had, sitting in your inbox.</strong>
+        Launch Murphy agents that prospect leads, draft emails, audit pricing, ship code, manage compliance, and run your CRM — <strong>24/7, at scale, learning your operation as they go</strong>.
       </p>
 
       <div class="hero-feature-pills">
-        <span class="feat-pill">📧 Email-native</span>
-        <span class="feat-pill">🔍 Cited research</span>
-        <span class="feat-pill">⚡ Zero install</span>
-        <span class="feat-pill">🆓 Free tier</span>
+        <span class="feat-pill">Generative + Agentic AI</span>
+        <span class="feat-pill">Voice · Chat · Email</span>
+        <span class="feat-pill">No setup costs</span>
       </div>
 
       <div class="hero-ctas">
-        <a href="mailto:murphy@murphy.systems?subject=Hi%20Murphy&body=Tell%20me%20what%20you%20can%20do%20for%20my%20business." class="btn-hero-primary">📧 Email Murphy now</a>
-        <a href="/login" class="btn-hero-ghost">Sign in →</a>
+        <a href="/demo" class="btn-hero-primary">▶ See Murphy work</a>
+        <a href="/ui/signup" class="btn-hero-ghost">Begin →</a>
       </div>
-    <p class="hero-note">Free tier: 5 replies/month · Paid from $99/mo · Pay in crypto · Cancel anytime</p>
+    <p class="hero-note">From $99/mo · Pay in crypto · Cancel anytime · Bring your own LLM</p>
 
     <div class="hero-stats" id="hero-stats">
       <div class="stat-cell">
@@ -612,52 +609,6 @@ footer a:hover { color: var(--teal); }
       </div>
     </div>
   </section>
-
-<!-- Ship 31ah — HOW IT WORKS (zero-install pitch) -->
-<section style="background:linear-gradient(180deg,#080c0a 0%,#0d1210 100%);padding:5rem 0 4rem;border-top:1px solid rgba(0,212,170,.08);">
-  <div style="max-width:1100px;margin:0 auto;padding:0 24px;">
-    <div style="text-align:center;margin-bottom:3.5rem;">
-      <div style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:.72rem;color:#5a6e66;text-transform:uppercase;letter-spacing:.14em;margin-bottom:1rem;">How Murphy works</div>
-      <h2 style="font-size:2.4rem;color:#e4ebe6;margin:0;letter-spacing:-.02em;font-weight:600;">Three ways to put Murphy to work today.</h2>
-      <p style="color:#7a9a8a;font-size:1.05rem;margin-top:.6rem;">No download. No browser extension. No onboarding meeting.</p>
-    </div>
-
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;">
-      <div style="background:rgba(15,20,27,.6);border:1px solid rgba(0,212,170,.18);border-radius:14px;padding:2rem 1.75rem;">
-        <div style="font-family:'JetBrains Mono',monospace;color:#00D4AA;font-size:.78rem;letter-spacing:.16em;margin-bottom:1rem;">01 · DIRECT</div>
-        <h3 style="margin:0 0 .8rem;color:#e4ebe6;font-size:1.25rem;">Email Murphy directly</h3>
-        <p style="color:#7a9a8a;line-height:1.6;font-size:.95rem;margin:0 0 1.2rem;">Write to <code style="color:#00D4AA;background:rgba(0,212,170,.08);padding:2px 6px;border-radius:3px;font-family:'JetBrains Mono',monospace;font-size:.85em;">murphy@murphy.systems</code> with a question or task. Get a researched, cited answer in minutes.</p>
-        <div style="font-size:.85rem;color:#5a6e66;font-style:italic;">"Murphy — give me a 1-page brief on Texas MEP code changes for 2026."</div>
-      </div>
-
-      <div style="background:rgba(15,20,27,.6);border:1px solid rgba(0,212,170,.18);border-radius:14px;padding:2rem 1.75rem;">
-        <div style="font-family:'JetBrains Mono',monospace;color:#00D4AA;font-size:.78rem;letter-spacing:.16em;margin-bottom:1rem;">02 · CC</div>
-        <h3 style="margin:0 0 .8rem;color:#e4ebe6;font-size:1.25rem;">CC Murphy into any thread</h3>
-        <p style="color:#7a9a8a;line-height:1.6;font-size:.95rem;margin:0 0 1.2rem;">Add <code style="color:#00D4AA;background:rgba(0,212,170,.08);padding:2px 6px;border-radius:3px;font-family:'JetBrains Mono',monospace;font-size:.85em;">murphy@murphy.systems</code> to the CC line of any client or vendor email. Murphy reads the thread, takes notes, and offers help.</p>
-        <div style="font-size:.85rem;color:#5a6e66;font-style:italic;">Use Murphy as a second set of eyes on client correspondence.</div>
-      </div>
-
-      <div style="background:rgba(15,20,27,.6);border:1px solid rgba(0,212,170,.18);border-radius:14px;padding:2rem 1.75rem;">
-        <div style="font-family:'JetBrains Mono',monospace;color:#00D4AA;font-size:.78rem;letter-spacing:.16em;margin-bottom:1rem;">03 · FORWARD</div>
-        <h3 style="margin:0 0 .8rem;color:#e4ebe6;font-size:1.25rem;">Forward a message</h3>
-        <p style="color:#7a9a8a;line-height:1.6;font-size:.95rem;margin:0 0 1.2rem;">Forward an RFI, RFP, contract, spec sheet, or invoice to Murphy. It reads attachments, extracts what matters, and replies with structured analysis.</p>
-        <div style="font-size:.85rem;color:#5a6e66;font-style:italic;">Drop an attachment in. Get a brief out.</div>
-      </div>
-    </div>
-
-    <div style="text-align:center;margin-top:3rem;padding:1.8rem;background:rgba(0,212,170,.06);border:1px solid rgba(0,212,170,.18);border-radius:12px;">
-      <div style="color:#e4ebe6;font-size:1.05rem;margin-bottom:.6rem;">
-        <strong style="color:#00D4AA;">No signup required to start.</strong>
-        Your first 5 replies are free. After that, claim your account from any Murphy email footer.
-      </div>
-      <div style="margin-top:1rem;">
-        <a href="mailto:murphy@murphy.systems?subject=Hi%20Murphy&body=Show%20me%20what%20you%20can%20do." style="display:inline-block;background:#00D4AA;color:#070c0a;padding:14px 32px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;text-decoration:none;border-radius:6px;font-size:.95rem;">📧 Email Murphy → Get your first reply</a>
-      </div>
-    </div>
-  </div>
-</section>
-
-
 
 
   <!-- _R417_SECTORS — built for any sector -->
