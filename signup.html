@@ -111,6 +111,14 @@
     <div class="card">
       <h2>Tell us about your organization</h2>
       <form id="signup-form">
+        <!-- Ship 31an.0c — Tier-intent preservation -->
+        <div id="tier-banner" class="field" style="display:none;background:linear-gradient(135deg,rgba(0,212,170,.08),rgba(0,212,170,.02));border:1px solid rgba(0,212,170,.25);border-radius:8px;padding:14px 18px;margin-bottom:18px">
+          <div style="font-size:.75rem;color:#7a9a8a;text-transform:uppercase;letter-spacing:.05em;font-weight:600">Plan selected</div>
+          <div id="tier-label" style="color:#00D4AA;font-weight:700;font-size:1.05rem;margin-top:4px"></div>
+          <div id="tier-price" style="color:#7a9a8a;font-size:.85rem;margin-top:2px"></div>
+        </div>
+        <input type="hidden" id="tier" name="tier" value="">
+
         <div class="field">
           <label for="legal_name">Legal name</label>
           <input id="legal_name" name="legal_name" required placeholder="ACME Corp LLC">
@@ -196,6 +204,10 @@ document.getElementById('signup-form').addEventListener('submit', async (e) => {
 
   const tosBox = document.getElementById('tos_accepted');
   if(!tosBox.checked){ alert('Please accept the terms to continue.'); return; }
+  // Ship 31an.0c — include tier in form submission if set
+  const tierInput = document.getElementById('tier');
+  const tierValue = tierInput ? tierInput.value : '';
+
   const params = new URLSearchParams({
     desired_slug: document.getElementById('desired_slug').value.trim().toLowerCase(),
     legal_name: document.getElementById('legal_name').value.trim(),
@@ -203,6 +215,7 @@ document.getElementById('signup-form').addEventListener('submit', async (e) => {
     country_code: document.getElementById('country_code').value,
     industry: document.getElementById('industry').value.trim(),
     notes: document.getElementById('notes').value.trim(),
+    tier: tierValue,
     tos_accepted: tosBox.checked,
   });
 
@@ -246,5 +259,25 @@ document.getElementById('legal_name').addEventListener('blur', () => {
 });
 </script>
 
+
+<script>
+// Ship 31an.0c — Read ?tier=X from URL, populate banner + hidden field
+(function() {
+  const TIERS = {
+    solo:     { name: 'Solo Plan',     price: '$99/mo · 1 seat · Full system access' },
+    team:     { name: 'Team Plan',     price: '$399/mo · 5 seats · CRM + outreach' },
+    business: { name: 'Business Plan', price: '$799/mo · 15 seats · Everything + robotics' },
+    free:     { name: 'Free Tier',     price: '$0 · 1 seat · 5 dispatches/day' }
+  };
+  const params = new URLSearchParams(window.location.search);
+  const tier = (params.get('tier') || '').toLowerCase();
+  if (TIERS[tier]) {
+    document.getElementById('tier').value = tier;
+    document.getElementById('tier-label').textContent = TIERS[tier].name;
+    document.getElementById('tier-price').textContent = TIERS[tier].price;
+    document.getElementById('tier-banner').style.display = 'block';
+  }
+})();
+</script>
 </body>
 </html>
