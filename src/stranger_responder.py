@@ -90,6 +90,8 @@ _VALUE_LINE = ""  # Ship 31aa.5: empty by default — DO-THE-WORK directive supp
 _ALLOWLIST_OWNED = {
     "cpost@murphy.systems",
     "corey.gfc@gmail.com",
+    "corey.eecs@gmail.com",          # added 2026-06-12 — Corey's primary
+    "corey.post@akana.us",           # added 2026-06-12 — Corey's work
     "callmehandy@gmail.com",
 }
 
