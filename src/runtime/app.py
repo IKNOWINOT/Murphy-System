@@ -6341,6 +6341,98 @@ font-weight:600;color:#c9d1d9}}</style></head><body>
             "checkout_url": "/api/nowpayments/checkout"
         })
 
+    # ══════════════════════════════════════════════════════════════════════
+    # Ship 31ar.FOOTER — public license verifier + legal pages
+    # Sentinel: _R31AR_VERIFY_WIRED
+    # ══════════════════════════════════════════════════════════════════════
+    _R31AR_VERIFY_WIRED = True
+
+    @app.get("/verify/{license_id}", include_in_schema=False)
+    async def verify_license_page(license_id: str):
+        """Public page rendering license status (HTML, no auth)."""
+        try:
+            from src.license_registry_31ar import lookup as _lic_lookup
+            row = _lic_lookup(license_id)
+        except Exception:
+            row = None
+        if not row:
+            html = (
+                "<!DOCTYPE html><html><head><meta charset='utf-8'>"
+                "<title>License not found — Murphy</title>"
+                "<style>body{font-family:system-ui;background:#0d1117;color:#c9d1d9;"
+                "padding:48px;max-width:640px;margin:0 auto}h1{color:#f85149}</style>"
+                "</head><body><h1>License not found</h1>"
+                "<p>No record for license <code>" + license_id + "</code>.</p>"
+                "<p>If you received an email claiming to be from Murphy with this ID, "
+                "it may be a forgery.</p>"
+                "<p><a href='https://murphy.systems' style='color:#00D4AA'>murphy.systems</a></p>"
+                "</body></html>"
+            )
+            return HTMLResponse(html, status_code=404)
+        status = row.get("status", "unknown")
+        color_map = {"active":"#56d364", "suspended":"#d29922",
+                     "terminated":"#f85149", "revoked":"#f85149"}
+        c = color_map.get(status, "#8b949e")
+        body = (
+            "<!DOCTYPE html><html><head><meta charset='utf-8'>"
+            f"<title>License {license_id} — Murphy</title>"
+            "<style>body{font-family:system-ui;background:#0d1117;color:#c9d1d9;"
+            "padding:48px;max-width:640px;margin:0 auto}"
+            "h1{color:#00D4AA}.badge{display:inline-block;padding:4px 12px;"
+            "border-radius:4px;font-weight:600;font-size:13px}"
+            "table{margin-top:24px}td{padding:6px 12px;vertical-align:top}"
+            ".k{color:#8b949e;text-align:right}.v{font-family:monospace}"
+            "</style></head><body>"
+            "<h1>Murphy License</h1>"
+            f"<p><span class='badge' style='background:{c}22;color:{c};border:1px solid {c}'>"
+            f"{status.upper()}</span></p>"
+            "<table>"
+            f"<tr><td class='k'>License ID</td><td class='v'>{license_id}</td></tr>"
+            f"<tr><td class='k'>Artifact</td><td>{row.get('artifact_kind','-')}</td></tr>"
+            f"<tr><td class='k'>Minted</td><td>{row.get('minted_at','-')}</td></tr>"
+            f"<tr><td class='k'>Status updated</td><td>{row.get('status_at','-')}</td></tr>"
+            "</table>"
+            "<hr style='margin:32px 0;border:0;border-top:1px solid #30363d'>"
+            "<p style='color:#8b949e;font-size:12px'>"
+            "Content licensed by Inoni LLC. License is valid while subscriber holds an active subscription. "
+            "<a href='/legal/eula' style='color:#00D4AA'>EULA</a> · "
+            "<a href='/legal/terms' style='color:#00D4AA'>Terms</a> · "
+            "<a href='/legal/privacy' style='color:#00D4AA'>Privacy</a>"
+            "</p></body></html>"
+        )
+        return HTMLResponse(body)
+
+    @app.get("/api/verify/{license_id}", include_in_schema=False)
+    async def verify_license_api(license_id: str):
+        try:
+            from src.license_registry_31ar import lookup as _lic_lookup
+            row = _lic_lookup(license_id)
+        except Exception as e:
+            return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+        if not row:
+            return JSONResponse({"ok": False, "license_id": license_id,
+                                  "error": "not_found"}, status_code=404)
+        return {"ok": True, "license_id": license_id,
+                "status": row.get("status"),
+                "artifact_kind": row.get("artifact_kind"),
+                "minted_at": row.get("minted_at"),
+                "status_at": row.get("status_at")}
+
+    @app.get("/legal/terms", include_in_schema=False)
+    async def legal_terms_page():
+        from fastapi.responses import FileResponse as _lFR
+        return _lFR("/opt/Murphy-System/static/legal/terms.html", media_type="text/html")
+
+    @app.get("/legal/privacy", include_in_schema=False)
+    async def legal_privacy_page():
+        from fastapi.responses import FileResponse as _lFR
+        return _lFR("/opt/Murphy-System/static/legal/privacy.html", media_type="text/html")
+
+    @app.get("/legal/eula", include_in_schema=False)
+    async def legal_eula_page():
+        from fastapi.responses import FileResponse as _lFR
+        return _lFR("/opt/Murphy-System/static/legal/eula.html", media_type="text/html")
+
     # _R482_DOWNLOAD — honest "no binaries yet" response for /api/download/{platform}
     # Murphy is web-first today. This route exists so the marketing surfaces
     # don't return a confusing 401/404. Returns 200 with structured status.
@@ -23271,8 +23363,14 @@ font-weight:600;color:#c9d1d9}}</style></head><body>
                 "/api/payments/nowpayments/webhook",
                     # _31aoLAUNCH_EXEMPT — public launch-readiness signal
                     "/api/health/launch",
+                    # _31arVERIFY_EXEMPT — public license verifier (Ship 31ar)
+                    "/api/verify",
+                    # _31arLEGAL_EXEMPT — public Terms / Privacy / EULA pages
+                    "/legal/terms",
+                    "/legal/privacy",
+                    "/legal/eula",
             })
-            _pfx = ("/api/growth", "/api/oo/", "/api/health/capacity",
+            _pfx = ("/api/growth", "/api/oo/", "/api/health/capacity", "/verify/", "/api/verify/",
                     "/api/marketplace/",
                     "/api/tenant/by-slug/",
                     "/api/download/")  # R482

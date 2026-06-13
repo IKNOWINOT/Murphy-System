@@ -32,6 +32,64 @@ TEXT_COLOR = "#c9d1d9"
 MUTED_COLOR = "#8b949e"
 ACCENT_COLOR = "#56d364"  # green
 
+# ── Ship 31ar.FOOTER — Murphy brand mark + license footer ────────────
+# Inoni LLC owns the FOOTER space on every Murphy-generated artifact
+# (founder direction 2026-06-12). Header stays open for customer
+# branding. Footer is immutable per ToS.
+MURPHY_TEAL = "#00D4AA"   # matches static/logo-live.svg
+
+# Eye-gear logo — compact inline SVG (no external assets, email-safe).
+# Renders the gear annulus + eye almond at 28x28 for email header use.
+def _eye_gear_svg(size_px: int = 28) -> str:
+    return (
+        f'''<svg xmlns="http://www.w3.org/2000/svg" width="{size_px}" '''
+        f'''height="{size_px}" viewBox="0 0 240 240" aria-label="Murphy">'''
+        f'''<defs><mask id="mg{size_px}"><rect width="240" height="240" fill="#000"/>'''
+        f'''<circle cx="120" cy="120" r="98" fill="#fff"/>'''
+        f'''<circle cx="120" cy="120" r="78" fill="#000"/></mask></defs>'''
+        f'''<g fill="{MURPHY_TEAL}" transform="translate(120 120)">'''
+        + "".join(
+            f'''<rect x="-11" y="-118" width="22" height="24" rx="3" '''
+            f'''transform="rotate({deg})"/>'''
+            for deg in (0, 36, 72, 108, 144, 180, 216, 252, 288, 324)
+        )
+        + f'''</g><rect width="240" height="240" fill="{MURPHY_TEAL}" '''
+          f'''mask="url(#mg{size_px})"/>'''
+          f'''<path d="M 55 120 Q 120 75 185 120 Q 120 165 55 120 Z" '''
+          f'''fill="{MURPHY_TEAL}"/>'''
+          f'''<circle cx="120" cy="120" r="22" fill="#0d1117"/>'''
+          f'''<circle cx="120" cy="120" r="12" fill="{MURPHY_TEAL}"/></svg>'''
+    )
+
+
+def _murphy_license_footer(license_id: str = "") -> str:
+    """Immutable Murphy footer with eye-gear + license-ID + verify link.
+
+    This footer goes on EVERY outbound email. The eye-gear logo, the
+    license ID, and the verify URL together prove provenance.
+    Per ToS, removing/altering this footer is a license breach.
+    """
+    if not license_id:
+        license_id = "mLIC-unmarked"
+    verify_url = f"https://murphy.systems/verify/{license_id}"
+    return f'''
+<hr style="border:0;border-top:1px solid #30363d;margin:24px 0 16px 0">
+<table cellpadding="0" cellspacing="0" border="0" width="100%">
+<tr>
+<td style="vertical-align:middle;padding-right:12px;width:36px">
+{_eye_gear_svg(28)}
+</td>
+<td style="vertical-align:middle;color:{MUTED_COLOR};font-size:11px;line-height:1.5">
+<strong style="color:{MURPHY_TEAL}">Murphy</strong> by Inoni LLC ·
+Generated content licensed while subscribed ·
+<a href="{verify_url}" style="color:{MURPHY_TEAL};text-decoration:none">
+verify {license_id}
+</a>
+</td>
+</tr>
+</table>'''.strip()
+
+
 HALLUCINATION_DISCLAIMER = (
     "Murphy is an AI assistant. Verify all specifics before acting — "
     "LLMs can hallucinate. Reply STOP to opt out."
@@ -149,7 +207,7 @@ def _format_compliance_html(compliance: str) -> str:
     )
 
 
-def render_html_body(plain_body: str) -> str:
+def render_html_body(plain_body: str, license_id: str = "") -> str:
     """Render the full HTML version of a Murphy reply.
 
     Takes the existing plain body, parses sections, returns full HTML doc.
@@ -201,6 +259,9 @@ def render_html_body(plain_body: str) -> str:
 <!-- Compliance footer -->
 <tr><td>{_format_compliance_html(sections["compliance"])}</td></tr>
 
+<!-- 31ar Murphy license footer (immutable per ToS) -->
+<tr><td>{_murphy_license_footer(license_id)}</td></tr>
+
 </table></td></tr></table>
 </body></html>"""
     return html
@@ -225,7 +286,17 @@ def build_multipart_message(
     else:
         plain_with_disc = plain_body
 
-    html_body = render_html_body(plain_body)
+    # Ship 31ar.FOOTER — mint a license_id for this outbound and embed it
+    try:
+        from src.license_registry_31ar import mint as _mint_lic
+        _lic_id = _mint_lic(
+            artifact_kind="email_outbound",
+            recipient=to_addr,
+            content=plain_body,
+        )
+    except Exception:
+        _lic_id = ""
+    html_body = render_html_body(plain_body, license_id=_lic_id)
 
     msg = MIMEMultipart("alternative")
     msg["Subject"] = subject
