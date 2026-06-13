@@ -46,10 +46,23 @@ from typing import Dict, Optional
 
 _BILLING_DB = "/var/lib/murphy-production/billing.db"
 
-# Locked policy
-FREE_DIRECT_PER_30D = 1
-FREE_AMBIENT_PER_30D = 3
-MAX_UPGRADE_OFFERS = 4   # then silent drop
+# Founder policy (locked 2026-06-12):
+#   "Everyone is able to email Murphy but with the stipulations of
+#    free account 5 free a day. Only 5 until it requests you to sign
+#    up or no use."
+#
+# Window is rolling 24h (per-day, resets at first reply outside window).
+# 5/day applies uniformly to all delivery modes (direct, cc, forward, ambient).
+# Replies 1-5 are real LLM replies; reply #6 of the day → upgrade offer.
+# After MAX_UPGRADE_OFFERS upgrade offers (across separate days),
+# silent-drop kicks in to avoid spamming.
+FREE_PER_DAY = 5
+MAX_UPGRADE_OFFERS = 3   # then silent drop
+
+# Legacy constants kept for any callers still referencing them.
+# Both map to the unified per-day allowance.
+FREE_DIRECT_PER_30D = FREE_PER_DAY
+FREE_AMBIENT_PER_30D = FREE_PER_DAY
 
 
 def _now_iso() -> str:
@@ -97,14 +110,21 @@ def _get_or_create(conn: sqlite3.Connection, email_addr: str) -> Dict:
 
 
 def _decay_30d(conn: sqlite3.Connection, row: Dict) -> Dict:
-    """Reset counters if last_reply_at is > 30 days ago."""
+    """Reset per-day counters if last_reply_at is > 24h ago.
+
+    Renamed in spirit — still called _decay_30d for callsite compat,
+    but now enforces a 24-hour rolling window per founder policy
+    (Ship 31au, 2026-06-12).
+    """
     if not row.get("last_reply_at"):
         return row
     try:
-        last = datetime.fromisoformat(row["last_reply_at"].replace("Z", "+00:00"))
+        last = datetime.fromisoformat(
+            row["last_reply_at"].replace("Z", "+00:00")
+        )
     except Exception:
         return row
-    if datetime.now(timezone.utc) - last > timedelta(days=30):
+    if datetime.now(timezone.utc) - last > timedelta(hours=24):
         conn.execute(
             """UPDATE stranger_quotas SET direct_replies_30d = 0,
                ambient_replies_30d = 0, updated_at = ? WHERE email_addr = ?""",
@@ -117,54 +137,84 @@ def _decay_30d(conn: sqlite3.Connection, row: Dict) -> Dict:
 
 
 def check_quota(email_addr: str, mode: str) -> Dict:
-    """Decide what to do with this stranger.
-    
+    """Decide what to do with this stranger (Ship 31au policy).
+
+    Policy:
+      • 5 replies per rolling 24h window across ALL delivery modes
+        (direct, cc, forward, ambient — unified).
+      • Replies 1-5: real LLM reply.
+      • Reply 6 onward today: upgrade_offer (up to MAX_UPGRADE_OFFERS
+        across separate days), then silent_drop.
+      • upgrade_offered_at + upgrade_offer_count throttle the prompt.
+
     Returns:
       action: 'allow' | 'upgrade_offer' | 'silent_drop'
       reason: human-readable explanation
       quota_state: current counters
+      remaining_today: how many free replies left in the 24h window
     """
     conn = _conn()
     try:
         row = _get_or_create(conn, email_addr)
-        row = _decay_30d(conn, row)
-        
+        row = _decay_30d(conn, row)  # 24h rolling now
+
         # Upgraded tenants get unlimited
         if row.get("upgraded_tenant_id"):
             return {
                 "action": "allow",
                 "reason": f"upgraded ({row['upgraded_tenant_id']})",
                 "quota_state": row,
+                "remaining_today": -1,
             }
-        
-        # Check free-tier limit per mode
-        if mode == "direct":
-            used = row.get("direct_replies_30d", 0)
-            limit = FREE_DIRECT_PER_30D
-        else:  # ambient
-            used = row.get("ambient_replies_30d", 0)
-            limit = FREE_AMBIENT_PER_30D
-        
+
+        # Unified per-day counter: sum direct + ambient = "today's replies"
+        used = (row.get("direct_replies_30d", 0) +
+                row.get("ambient_replies_30d", 0))
+        limit = FREE_PER_DAY
+        remaining = max(0, limit - used)
+
         if used < limit:
             return {
                 "action": "allow",
-                "reason": f"under free tier ({used}/{limit} {mode} used)",
+                "reason": f"free tier {used+1}/{limit} today ({mode})",
                 "quota_state": row,
+                "remaining_today": remaining - 1,
             }
-        
-        # Over free limit → upgrade offer (unless we've offered too many times)
+
+        # Over today's limit: have we offered them upgrade today already?
         offer_count = row.get("upgrade_offer_count", 0)
         if offer_count >= MAX_UPGRADE_OFFERS:
             return {
                 "action": "silent_drop",
-                "reason": f"over limit + offered {offer_count}x already",
+                "reason": (f"over 5/day + offered upgrade "
+                           f"{offer_count}x already across separate days"),
                 "quota_state": row,
+                "remaining_today": 0,
             }
-        
+
+        # Same-day repeat: did we offer already today? Then silent — wait
+        # until tomorrow's window opens.
+        offered_at = row.get("upgrade_offered_at")
+        if offered_at:
+            try:
+                offered_dt = datetime.fromisoformat(
+                    offered_at.replace("Z", "+00:00"))
+                if datetime.now(timezone.utc) - offered_dt < timedelta(hours=24):
+                    return {
+                        "action": "silent_drop",
+                        "reason": "already offered upgrade in last 24h",
+                        "quota_state": row,
+                        "remaining_today": 0,
+                    }
+            except Exception:
+                pass
+
         return {
             "action": "upgrade_offer",
-            "reason": f"over free tier ({used}/{limit} {mode}), offer #{offer_count + 1}",
+            "reason": (f"used {used}/{limit} today ({mode}), "
+                       f"offer #{offer_count + 1}"),
             "quota_state": row,
+            "remaining_today": 0,
         }
     finally:
         conn.close()

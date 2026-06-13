@@ -88,11 +88,13 @@ _MAX_QUEUE_DEPTH = int(os.environ.get("STRANGER_MAX_QUEUE_DEPTH", "50"))
 _VALUE_LINE = ""  # Ship 31aa.5: empty by default — DO-THE-WORK directive supplies the opener
 
 _ALLOWLIST_OWNED = {
-    "cpost@murphy.systems",
-    "corey.gfc@gmail.com",
-    "corey.eecs@gmail.com",          # added 2026-06-12 — Corey's primary
-    "corey.post@akana.us",           # added 2026-06-12 — Corey's work
-    "callmehandy@gmail.com",
+    # Per founder direction 2026-06-12: this set should be MINIMAL.
+    # Everyone (including the founder's personal addresses) goes through
+    # the stranger responder so the quota gates fire uniformly.
+    # Only loopback / system addresses live here, to prevent self-reply
+    # loops when Murphy emails itself.
+    "murphy@murphy.systems",
+    "noreply@murphy.systems",
 }
 
 
