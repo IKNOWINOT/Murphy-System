@@ -264,22 +264,27 @@ def record_reply(email_addr: str, mode: str, cost_usd: float = 0.0,
 
 
 def upgrade_offer_body(email_addr: str, mode: str, quota_state: Dict) -> str:
-    """Compose the upgrade-offer email body."""
-    used_direct = quota_state.get("direct_replies_30d", 0)
-    used_ambient = quota_state.get("ambient_replies_30d", 0)
-    total_cost = quota_state.get("total_cost_usd", 0.0)
-    
+    """Compose the upgrade-offer email body.
+
+    Ship 31av (2026-06-12): vague-benefit framing per founder direction.
+    Does NOT reveal internals (no ship numbers, no module names, no
+    commit hashes, no policy code paths). Just what the user gets.
+    """
+    last_reply = (quota_state.get("last_reply_at") or "")[:10]
     return f"""
 
-You've reached your free monthly limit ({used_direct} direct request + {used_ambient} ambient replies). I've enjoyed working for you and want to keep going — but Murphy isn't free past this point.
+Hey — that's 5 free replies from me today, which is the daily ceiling on the free plan. Your inbox resets in 24 hours, so you're welcome back tomorrow with no action needed.
 
-Plans start at $99/month (solo tier) for unlimited Murphy replies, agent generation across any vertical, and automation execution.
+If you'd like more than 5 a day, paid plans start at $99/month and lift the cap entirely. You also unlock:
+  • Tailored, deeper replies on your specific work
+  • Document generation and automations that take real action
+  • Priority response times
 
-See: https://murphy.systems/pricing
+Sign up here:  https://murphy.systems/pricing
 
-Your free quota resets 30 days after your last reply (currently: {quota_state.get('last_reply_at','')[:10]}).
+No worries if you want to stay on free — just hit me again tomorrow.
 
-— Murphy (automated reply; reply STOP to opt out)
+— Murphy
 """
 
 

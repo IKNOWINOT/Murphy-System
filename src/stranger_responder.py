@@ -668,7 +668,15 @@ Paragraph three names one concrete next step the work can take, offered rather t
 
 Match the correspondent's register and vocabulary. If they wrote like an MEP engineer, you write like one. If a CFO, then like one. Plain professional English in the dialect of their field.
 
-Do not invent prices, timelines, or features. Be precise about what the work can do, honest about what it cannot."""
+Do not invent prices, timelines, or features. Be precise about what the work can do, honest about what it cannot.
+
+NEVER reveal internals. Do NOT mention:
+  - Code commits, HEAD hashes, ship numbers (e.g. "31ar", "31au"), patch IDs, module names, file paths, branch states, service ports.
+  - Implementation details (e.g. "stranger_responder", "allowlist", "Postfix", "queue", "HITL gate", "FastAPI", "database", "shadow mode").
+  - Recent fixes or refactors ("just patched", "we pushed", "shipped today").
+  - Anything that would only matter to an engineer who works on Murphy.
+
+Speak ONLY in user-facing benefit terms. When asked "what can you do" or similar, answer VAGUELY in 2-3 sentences about outcomes (e.g. "I can read your inbox, draft replies, pull together documents, and run repeated tasks for you"). Never list features by code name. Never describe how Murphy works inside."""
     # Ship 31x: append niche-aware moral code + register to soul
     try:
         from src.voice_aristocrat import style_instruction
@@ -889,6 +897,12 @@ def _queue_outbound(to_addr: str, subject: str, body: str, urgency: str = "norma
             stored_format = "plain"
             metadata_blob = json.dumps({"render_error": str(render_exc)})
 
+        # Ship 31av: decide auto-send BEFORE insert so we can actually
+        # ship via sendmail and only THEN mark sent in the queue. Previously
+        # the row was marked 'sent' optimistically and no SMTP ever happened.
+        auto_send = _hitl_should_auto_send("stranger_responder")
+        initial_status = "approved" if auto_send else "pending_review"
+
         conn = sqlite3.connect(_MAIL_DB)
         queue_id = "oeq_" + secrets.token_hex(8)
         now = datetime.now(timezone.utc).isoformat()
@@ -897,16 +911,48 @@ def _queue_outbound(to_addr: str, subject: str, body: str, urgency: str = "norma
                  queue_id, from_address, to_addresses, subject, body, body_format,
                  agent_profile_id, agent_role, agent_class, urgency, status,
                  created_at, updated_at, action_type, metadata
-               ) VALUES (?, ?, ?, ?, ?, ?, 
+               ) VALUES (?, ?, ?, ?, ?, ?,
                          'stranger_responder', 'auto_responder', 'system', ?, ?,
                          ?, ?, 'email_outbound', ?)""",
             (queue_id, "murphy@murphy.systems", json.dumps([to_addr]),
              subject, stored_body, stored_format, urgency,
-             # Ship 31an.HITL — auto-send if gate allows for this action type
-             ("sent" if _hitl_should_auto_send("stranger_responder") else "pending_review"),
+             initial_status,
              now, now, metadata_blob),
         )
         conn.commit()
+
+        # Ship 31av: actually dispatch when auto-send is on
+        if auto_send:
+            try:
+                # Use the plain body for now — dispatcher will be enriched
+                # later to assemble multipart from metadata.plain_body + body.
+                plain_for_smtp = body
+                ok = _send_sendmail(to_addr, subject, plain_for_smtp)
+                final_status = "sent" if ok else "failed"
+                sent_at = datetime.now(timezone.utc).isoformat()
+                conn.execute(
+                    "UPDATE outbound_email_queue SET status=?, sent_at=?, "
+                    "sent_via=?, updated_at=? WHERE queue_id=?",
+                    (final_status, sent_at if ok else None,
+                     "sendmail" if ok else None, sent_at, queue_id),
+                )
+                conn.commit()
+                logger.info(
+                    "Ship 31av: dispatched queue_id=%s to=%s status=%s",
+                    queue_id, to_addr, final_status,
+                )
+            except Exception as send_exc:
+                logger.error("Ship 31av: dispatch failed for %s: %s",
+                             queue_id, send_exc)
+                conn.execute(
+                    "UPDATE outbound_email_queue SET status='failed', "
+                    "failure_reason=?, updated_at=? WHERE queue_id=?",
+                    (str(send_exc)[:500],
+                     datetime.now(timezone.utc).isoformat(),
+                     queue_id),
+                )
+                conn.commit()
+
         conn.close()
         return queue_id
     except Exception as e:
