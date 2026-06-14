@@ -23382,6 +23382,7 @@ font-weight:600;color:#c9d1d9}}</style></head><body>
                     "/api/me/thread/",
                     "/api/me/export",
                     "/api/me/delete",
+                    "/api/health/credentials",
                     "/api/health/referral",
                     "/r/",
                     "/api/health/api_patcher",
@@ -40013,6 +40014,40 @@ font-weight:600;color:#c9d1d9}}</style></head><body>
         logger.warning("R420: wire failed: %s", _r420_e)
     # ── end R420 ──────────────────────────────────────────────────────
 
+
+    # Ship 31bq — surface credentials gaps so the bridge can fully fire
+    @app.get("/api/health/credentials")
+    async def _health_credentials_31bq():
+        from datetime import datetime, timezone
+        import os
+        # 31bq_creds_gap — what's missing for the email/deliverable pipeline to be 100%
+        gaps = []
+        if not os.path.exists("/var/lib/murphy-production/secrets/GOOGLE_SERVICE_ACCOUNT_JSON"):
+            gaps.append({
+                "key": "GOOGLE_SERVICE_ACCOUNT_JSON",
+                "purpose": "Drive share path for deliverables (drill_rosetta_bridge final step)",
+                "impact": "Bridge runs at 75% — text deliverables work, but Drive-shared artifacts cannot publish",
+                "action": "Add JSON contents via vault: POST /api/platform/vault/set",
+            })
+        try:
+            from src.drill_rosetta_bridge import health as _bridge_health
+            bh = _bridge_health()
+            if not bh.get("founder_key_present"):
+                gaps.append({
+                    "key": "MURPHY_FOUNDER_KEY",
+                    "purpose": "HTTP magnify auth",
+                    "impact": "Some bridge calls degrade to local-only",
+                    "action": "Add via vault",
+                })
+        except Exception:
+            pass
+        return {
+            "ship":      "31bq.CREDENTIALS",
+            "checked_at": datetime.now(timezone.utc).isoformat(),
+            "status":    "healthy" if not gaps else "degraded",
+            "gaps":      gaps,
+            "gap_count": len(gaps),
+        }
 
     # Ship 31bp — public compliance pages MUST be registered BEFORE R445 catchall
     # so the specific routes match first. FastAPI matches in declaration order.

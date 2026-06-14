@@ -927,6 +927,54 @@ def _rate_limit_ok(from_addr: str, conn: sqlite3.Connection) -> bool:
 
 
 def _queue_outbound(to_addr: str, subject: str, body: str, urgency: str = "normal") -> Optional[str]:
+    # Ship 31bq.WIRE_THROUGH — 2-wire pass before queueing
+    #   (1) revenue_ledger.rewrite_link over every URL so links carry Murphy
+    #       tracking, not naked third-party affiliate codes
+    #   (2) critique_loop_31bh.critique over the body so we catch tone /
+    #       fabrication / hostility slips before send (FAIL-OPEN)
+    # Both are best-effort: any exception → original body is queued unchanged.
+    try:
+        import re as _re_31bq
+        from src.revenue_ledger_31bn import rewrite_link as _rewrite_31bq
+
+        def _wrap_url(m):
+            try:
+                u = m.group(0)
+                rw = _rewrite_31bq(u, recipient=to_addr,
+                                    tenant_id="murphy_platform",
+                                    context="stranger_outbound")
+                if rw.get("ok"):
+                    return rw["tracked_url"]
+            except Exception:
+                pass
+            return m.group(0)
+
+        body = _re_31bq.sub(r"https?://[^\s<>\"\)]+", _wrap_url, body)
+    except Exception:
+        pass
+
+    try:
+        from src.critique_loop_31bh import critique as _critique_31bq
+        verdict = _critique_31bq(
+            hitl_id=f"sr_{to_addr[:40]}_{abs(hash(subject))%10**8:08d}",
+            subject_matter=subject[:120],
+            murphy_original=body,
+            action_type="stranger_reply",
+            cost_usd=0.0,
+        )
+        if verdict.get("verdict") == "hold":
+            logger.warning("31bq critique HELD outbound to %s: %s",
+                           to_addr, verdict.get("reasoning",""))
+            # Hold means do NOT send — but we still log the decision
+            return None
+        if verdict.get("verdict") == "suggest_revision" and verdict.get("suggested_revision"):
+            # Use the critique's suggested revision (it judged it better)
+            body = verdict["suggested_revision"]
+            logger.info("31bq critique revised outbound to %s", to_addr)
+    except Exception as _cex:
+        logger.warning("31bq critique failed open: %s", _cex)
+    # ── end Ship 31bq pre-send wires ──
+
     """Submit to outbound_email_queue. Returns queue_id on success.
 
     Ship 31al: renders the branded HTML body at queue time so the dispatcher
