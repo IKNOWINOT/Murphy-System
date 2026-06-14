@@ -23382,6 +23382,7 @@ font-weight:600;color:#c9d1d9}}</style></head><body>
                     "/api/me/thread/",
                     "/api/me/export",
                     "/api/me/delete",
+                    "/api/health/api_patcher",
                     "/api/health/canspam",
                     "/api/health/compliance",
                     "/api/health/citl",
@@ -40406,6 +40407,22 @@ Your revision becomes training signal for Murphy. HITL ID: {hitl_id}
             "executed_at": datetime.now(_tz31bk.utc).isoformat(),
             "note": "Body content zeroed; audit log preserved for compliance.",
         })
+
+    # Ship 31bm.API_PATCHER — slow audit of ingested APIs
+    @app.get("/api/health/api_patcher")
+    async def _health_api_patcher_31bm():
+        from datetime import datetime, timezone
+        try:
+            from src.api_patcher_31bm import stats
+            s = stats()
+            return {
+                "ship":      "31bm.API_PATCHER",
+                "checked_at": datetime.now(timezone.utc).isoformat(),
+                "status":    "healthy" if s.get("total_apis", 0) > 0 else "empty",
+                **s,
+            }
+        except Exception as e:
+            return {"ship": "31bm.API_PATCHER", "error": str(e), "status": "audit_failed"}
 
     # Ship 31bl — CAN-SPAM compliance dashboard
     @app.get("/api/health/canspam")
