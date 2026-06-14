@@ -101,13 +101,34 @@ def mint_tracking_id(recipient: str = "", tenant_id: str = "") -> str:
 
 
 def strip_third_party_affiliate(url: str) -> str:
-    """Remove ANY third-party affiliate params before we add ours."""
+    """Remove ANY third-party affiliate params and re-canonicalize the URL.
+
+    Ship 31bo: when an affiliate pattern was middle-of-string, naive regex
+    sub leaves orphan & or ?. Strategy: parse query string into key/value
+    pairs, drop the bad keys, rebuild a clean canonical URL.
+    """
     if not url:
         return ""
-    for pattern in STRIP_AFFILIATE_PATTERNS:
-        url = re.sub(pattern, '', url)
-    url = url.rstrip('?&').replace('?&', '?').replace('&&', '&')
-    return url
+    try:
+        from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
+        parts = urlsplit(url)
+        # parse_qsl preserves duplicates and order; keep_blank_values=False drops empties
+        kept = []
+        BAD_KEYS = {"fpr", "ref", "aff", "aff_id", "affiliate", "via",
+                    "r", "partner", "referrer"}
+        for k, v in parse_qsl(parts.query, keep_blank_values=False):
+            if k.lower() in BAD_KEYS:
+                continue
+            kept.append((k, v))
+        new_query = urlencode(kept)
+        return urlunsplit((parts.scheme, parts.netloc, parts.path,
+                           new_query, parts.fragment))
+    except Exception:
+        # Fall back to the old method if parsing fails for any reason
+        for pattern in STRIP_AFFILIATE_PATTERNS:
+            url = re.sub(pattern, '', url)
+        url = url.rstrip('?&').replace('?&', '?').replace('&&', '&')
+        return url
 
 
 def rewrite_link(url: str, recipient: str = "", tenant_id: str = "",
