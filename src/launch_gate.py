@@ -23,8 +23,8 @@ DB = "/var/lib/murphy-production/entity_graph.db"
 
 # CAN-SPAM physical address requirement
 PHYSICAL_ADDRESS = ("Inoni LLC · Murphy Systems\n"
-                    "5900 Balcones Dr STE 100\n"
-                    "Austin, TX 78731")
+                    "7805 SE 70th Ave\n"
+                    "Portland, OR 97206")
 
 UNSUBSCRIBE_INSTRUCTIONS = ("To stop receiving emails from Murphy, "
                             "reply with the word STOP in the body. "

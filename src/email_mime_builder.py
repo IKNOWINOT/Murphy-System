@@ -25,6 +25,9 @@ from email.mime.application import MIMEApplication
 from email import encoders
 from email.utils import formatdate, make_msgid
 
+# Ship 31bb — canonical business address (single source of truth)
+from src.inoni_business import transmission_strip, footer_locale, address_html
+
 
 # Ship 31ay — Gatsby Tech palette (2026-06-13)
 # Founder direction: technological Great Gatsby. Art deco geometry on a
@@ -326,7 +329,7 @@ M·U·R·P·H·Y
 <div style="font-family:{MONO_FONT};font-size:10px;color:{MUTED_COLOR};
             letter-spacing:0.1em;padding:6px 0 14px 0;
             border-bottom:1px solid {LIGHT_RULE};margin-bottom:18px">
-TRANSMISSION · MURPHY.SYSTEMS · INONI LLC · AUSTIN TX
+TRANSMISSION · MURPHY.SYSTEMS · {transmission_strip()}
 </div>
 
 <!-- AI candour note -->
@@ -373,7 +376,7 @@ A note of candour — Murphy is an artificial assistant. Verify particulars befo
 </div>
 <div style="color:{MUTED_COLOR};font-family:{MONO_FONT};font-size:9px;
             letter-spacing:0.1em;margin-top:8px">
-INONI LLC · AUSTIN · TEXAS · MMXXVI
+{footer_locale()}
 </div>
 </td></tr></table>
 
