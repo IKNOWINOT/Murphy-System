@@ -658,12 +658,17 @@ The person who emailed you (from {from_addr}) wrote:
 SUBJECT: {email_subject}
 BODY: {email_body[:2000]}
 
-Choose your length to match the inquiry weight:
-  - Brief inquiry (≤30 words like "what can you do?"): reply 120-180 words across 2 paragraphs.
-  - Medium inquiry (30-200 words): reply 220-340 words across 3 paragraphs.
-  - Deep inquiry (>200 words): reply 350-500 words across 3-4 paragraphs.
+LENGTH — HARD FLOOR 5,000 CHARACTERS. DO NOT SUBMIT SHORTER.
 
-Always natural prose — no bullets, no headers, no Markdown. The card around your reply is ornate; your prose should be unhurried but substantial.
+You MUST write a reply of at least 5,000 characters of body text, and ideally 6,000 to 8,000 characters (roughly 950-1,300 words). A short inquiry from a stranger still earns a long, considered reply — brevity from the correspondent is NOT a reason for brevity from you. If your draft comes in under 5,000 characters, KEEP WRITING until you cross the floor; add depth, specifics, examples, the reasoning behind each claim, the assumptions you made, the trade-offs you considered, and the next step you would take.
+
+If the reply contains an actual deliverable — a worked calculation, a draft document, a code snippet, a written analysis, a structured plan, a quote/estimate, an inspection finding, a rendered table of values — extend to 12,000-20,000 characters as needed to do the work properly. The deliverable is the point; do not amputate it.
+
+The reply MUST be 6-10 paragraphs of natural prose. Aim for paragraphs of 4-7 sentences each. No bullets, no headers, no Markdown. Where the work calls for structure, use prose with semicolons and em-dashes rather than bullets — the card around your reply is art-deco; your prose should match its register: unhurried, substantial, peer-to-peer.
+
+BEFORE YOU SUBMIT: count your characters. If you are under 5,000, you are not done. Continue writing — add the example, name the assumption, give the next paragraph the texture it needs.
+
+Begin paragraph one with a complete grammatical sentence that delivers the computed answer or position — no greeting, no preamble. Use the rest to give your reasoning, the assumptions you made, any uncertainty worth naming, and the concrete next step the work can take.
 
 Paragraph one OPENS WITH A COMPLETE GRAMMATICAL SENTENCE that delivers the computed answer — no greeting, no preamble, no value-prop. The sentence must start with a capital letter and a noun or article, never with a numeral, formula fragment, or partial reference. Examples of correct opens: 'Pressure drop is 0.103 in w.g. per 100 ft.' or 'File the grievance with your state's Office of Disciplinary Counsel.' Treat the correspondent as a peer who already knows what Murphy is.
 
@@ -763,7 +768,34 @@ Speak ONLY in user-facing benefit terms. When asked "what can you do" or similar
     except Exception as _aaexc:
         logger.warning("31aa situation/corpus inject failed: %s", _aaexc)
 
-    out = _llm_complete(prompt, model_hint="chat", max_tokens=400, soul_system=soul)
+    # Ship 31az: 4000 tokens (~8k chars baseline, up to ~16-20k for deliverables)
+    out = _llm_complete(prompt, model_hint="chat", max_tokens=4000, soul_system=soul)
+
+    # Ship 31az.RETRY — if the model returned a polite short answer,
+    # force a continuation with an explicit complaint about the floor.
+    try:
+        _draft = (out or {}).get("body") or (out or {}).get("text") or ""
+        if _draft and len(_draft) < 4500:
+            logger.info("_generate_reply: short draft %d chars, retrying with floor enforcement", len(_draft))
+            retry_prompt = (
+                prompt
+                + "\n\n=== YOUR PREVIOUS DRAFT WAS TOO SHORT ===\n"
+                + _draft
+                + "\n=== END PREVIOUS DRAFT ===\n\n"
+                + "That draft is only " + str(len(_draft)) + " characters. "
+                + "The hard floor is 5,000 characters. Rewrite the WHOLE reply "
+                + "now, longer, with more depth in every paragraph. Add specific "
+                + "examples, name your assumptions, give the reasoning behind "
+                + "each claim. Do not summarise — expand. Output ONLY the new "
+                + "reply body, nothing else."
+            )
+            out2 = _llm_complete(retry_prompt, model_hint="chat", max_tokens=4000, soul_system=soul)
+            _draft2 = (out2 or {}).get("body") or (out2 or {}).get("text") or ""
+            if _draft2 and len(_draft2) > len(_draft):
+                logger.info("_generate_reply: retry grew %d -> %d chars", len(_draft), len(_draft2))
+                out = out2
+    except Exception as _retry_exc:
+        logger.warning("_generate_reply retry failed: %s", _retry_exc)
 
     # Ship 31w: master gate — trade-secret / unlawful / scrub
     if out and out.get("text"):
@@ -1067,7 +1099,7 @@ THEIR ASK:
 ATTACHMENT CONTENT:
 {attachment_summary[:5500]}
 
-Write a measured analysis reply (250-400 words) addressed to {principal_addr}. Structure:
+Write a measured analysis reply of 5,000-8,000 CHARACTERS (about 800-1,300 words) addressed to {principal_addr}. Extend to 20,000 characters if the analysis contains a deliverable worth that space. Structure:
 1. Open with the COMPUTED ANSWER. No greeting, no pitch, no "I'd be happy to help". Start with the number and the formula.
 2. ONE sentence acknowledging what you analyzed and from what lens
 3. 3-5 BULLETS — the specific findings ranked by importance to a {role_class}. Each bullet must be CONCRETE and reference an actual fact from the attachment, not generic boilerplate.
@@ -1080,7 +1112,8 @@ CRITICAL:
 - Do NOT cc the original sender ({forward.get('inner_from', 'unknown')})
 - Do NOT speculate beyond what's in the document"""
     
-    out = _llm_complete(prompt, model_hint="chat", max_tokens=600, soul_system=soul)
+    # Ship 31az: 4000 tokens (~8k chars baseline)
+    out = _llm_complete(prompt, model_hint="chat", max_tokens=4000, soul_system=soul)
     if out and out.get("text"):
         new_text, ad_meta = _inject_contextual_ad(out["text"], role_hint, vertical,
                                                    subject, body, principal_addr, tier="free")
@@ -1129,7 +1162,7 @@ SUBJECT THEY ARE DISCUSSING: {email_subject}
 CONTEXT (do NOT quote this back; refer to it meta only):
 {email_body[:2000]}
 
-Write a substantive reply email (180-280 words) addressed ONLY to {principal_addr}. It must:
+Write a substantive reply email of 5,000-8,000 CHARACTERS (about 800-1,300 words) addressed ONLY to {principal_addr}. Extend to 20,000 characters if the work calls for a deliverable. It must:
 1. Open with the COMPUTED ANSWER. No greeting, no pitch.
 2. ONE sentence acknowledging you saw the thread (refer to it as 'your email re: {email_subject[:60]}' - NEVER quote thread content)
 3. ONE concrete thing you noticed Murphy could do for them
@@ -1137,7 +1170,8 @@ Write a substantive reply email (180-280 words) addressed ONLY to {principal_add
 5. Close with: "Reply YES to execute, or just tell me what to change. - Murphy (ambient; reply STOP to opt out)"
 
 Do NOT cc the third party. Do NOT include anyone other than {principal_addr}. Do NOT quote ANY content from the thread. Do NOT mention specifics that only the third party would know - stay meta about WHAT Murphy can do, not WHAT the thread said."""
-    out = _llm_complete(prompt, model_hint="chat", max_tokens=400, soul_system=soul)
+    # Ship 31az: 4000 tokens (~8k chars baseline, up to ~16-20k for deliverables)
+    out = _llm_complete(prompt, model_hint="chat", max_tokens=4000, soul_system=soul)
     if out and out.get("text"):
         new_text, ad_meta = _inject_contextual_ad(out["text"], role_hint, vertical,
                                                    email_subject, email_body, principal_addr, tier="free")
