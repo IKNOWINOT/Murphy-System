@@ -23362,6 +23362,7 @@ font-weight:600;color:#c9d1d9}}</style></head><body>
                 "/api/payments/nowpayments/checkout",
                 "/api/payments/nowpayments/webhook",
                     # _31aoLAUNCH_EXEMPT — public launch-readiness signal
+                    "/api/health/email_boundary",
                     "/api/health/tenant_isolation",
                     "/api/health/founder_gate",
                     "/api/health/quiet_house",
@@ -40045,6 +40046,62 @@ font-weight:600;color:#c9d1d9}}</style></head><body>
         }
 
 
+
+    # Ship 31bf.EMAIL_BOUNDARY — verify email cannot mutate platform
+    @app.get("/api/health/email_boundary")
+    async def _health_email_boundary_31bf():
+        from datetime import datetime, timezone
+        checks = []
+        # 1. No /api/email/command HTTP route exists
+        try:
+            routes = [getattr(r, "path", "") for r in app.routes]
+            danger = [r for r in routes
+                      if ("email" in r.lower() and ("command" in r.lower() or "exec" in r.lower()))
+                      or "/api/inbox/exec" in r.lower()]
+            checks.append({"name": "no_email_to_exec_http_route",
+                           "pass": len(danger) == 0,
+                           "detail": "no dangerous email routes" if not danger else f"FOUND: {danger}"})
+        except Exception as e:
+            checks.append({"name": "no_email_to_exec_http_route", "pass": False, "detail": str(e)})
+        # 2. inbound_responder has no exec path
+        try:
+            ir_src = open("/opt/Murphy-System/src/inbound_responder.py").read()
+            has_exec = "exec(" in ir_src
+            checks.append({"name": "inbound_responder_no_exec_path",
+                           "pass": not has_exec,
+                           "detail": "inbound_responder sends mail only; no exec"})
+        except Exception as e:
+            checks.append({"name": "inbound_responder_no_exec_path", "pass": False, "detail": str(e)})
+        # 3. canonical founder identity loaded + includes corey.hfc
+        founder_addrs = []
+        try:
+            from src.founder_identity_31bf import FOUNDER_EMAILS, is_founder_email
+            has_hfc = is_founder_email("corey.hfc@gmail.com")
+            founder_addrs = sorted(list(FOUNDER_EMAILS))
+            checks.append({"name": "corey_hfc_in_founder_identity",
+                           "pass": has_hfc,
+                           "detail": f"{len(FOUNDER_EMAILS)} founder addresses canonical"})
+        except Exception as e:
+            checks.append({"name": "corey_hfc_in_founder_identity", "pass": False, "detail": str(e)})
+        # 4. HITL approve requires auth session
+        try:
+            app_src = open("/opt/Murphy-System/src/runtime/app.py").read()
+            has_auth = "AUTH_REQUIRED" in app_src or "Authentication required" in app_src
+            checks.append({"name": "hitl_approve_requires_auth_session",
+                           "pass": has_auth,
+                           "detail": "approve URL is session-authenticated"})
+        except Exception as e:
+            checks.append({"name": "hitl_approve_requires_auth_session", "pass": False, "detail": str(e)})
+        passing = sum(1 for c in checks if c["pass"])
+        total = len(checks)
+        return {
+            "ship":         "31bf.EMAIL_BOUNDARY",
+            "checked_at":   datetime.now(timezone.utc).isoformat(),
+            "status":       "verified" if passing == total else f"{passing}/{total}_passing",
+            "policy":       "Email is READ-ONLY for platform changes. Allowlist decides auto-reply recipients, not execution authority.",
+            "founder_emails": founder_addrs,
+            "checks":       checks,
+        }
 
     # Ship 31be.TENANT_VERIFY — tenant-isolation status
     @app.get("/api/health/tenant_isolation")

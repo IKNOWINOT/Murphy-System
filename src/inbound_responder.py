@@ -47,13 +47,21 @@ import logging
 import os
 import sqlite3
 import subprocess
+
+# Ship 31bf — canonical founder identity (includes corey.hfc@gmail.com)
+try:
+    from src.founder_identity_31bf import FOUNDER_EMAILS as _F31bf, TRUSTED_ALLOWLIST as _T31bf
+    _ALLOWLIST_31bf = set(_F31bf) | set(_T31bf)
+except Exception:
+    _ALLOWLIST_31bf = set()
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger("inbound_responder")
 _DB = "/var/lib/murphy-production/inbound_replies.db"
 
-_ALLOWLIST = {
+_ALLOWLIST = _ALLOWLIST_31bf | {  # Ship 31bf — union with canonical set
+
     "cpost@murphy.systems",
     "corey.gfc@gmail.com",
     "callmehandy@gmail.com",
