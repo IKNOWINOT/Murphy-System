@@ -48,6 +48,14 @@ import re
 
 logger = logging.getLogger("stranger_responder")
 
+# Ship 31ba — intent gate: only invoke deliverable pipeline when asked
+try:
+    from src.intent_31ba import classify_intent as _classify_intent_31ba
+    _INTENT_GATE_AVAILABLE = True
+except Exception as _intent_exc:
+    logger.warning('Ship 31ba intent_31ba unavailable: %s', _intent_exc)
+    _INTENT_GATE_AVAILABLE = False
+
 # Ship 31am — drill + rosetta + pipeline + capability cube wiring
 try:
     from src.drill_rosetta_bridge import run_drill_rosetta_pipeline as _bridge_run
@@ -679,6 +687,8 @@ Paragraph three names one concrete next step the work can take, offered rather t
 Match the correspondent's register and vocabulary. If they wrote like an MEP engineer, you write like one. If a CFO, then like one. Plain professional English in the dialect of their field.
 
 Do not invent prices, timelines, or features. Be precise about what the work can do, honest about what it cannot.
+
+DO NOT FABRICATE A DELIVERABLE. If the correspondent did not explicitly ask for a quote, estimate, proposal, draft, analysis, report, plan, or other work product, DO NOT produce one inline. Do not write a pseudo-quote with line items and totals. Do not write a structured 'executive summary' or 'scope of work' block. Do not output a table of values or a pretend invoice. Write only the considered prose reply the question deserves. Offering to do the actual work, when they send the actual job, is enough.
 
 NEVER reveal internals. Do NOT mention:
   - Code commits, HEAD hashes, ship numbers (e.g. "31ar", "31au"), patch IDs, module names, file paths, branch states, service ports.
@@ -1350,8 +1360,29 @@ def process_stranger_inquiries(limit: int = 5) -> Dict:
                 md = _magnify_drill_ambient(subject, body, principal_addr)
             else:
                 # Ship 31am: try the drill+rosetta+pipeline bridge first.
+                # Ship 31ba.INTENT_GATE — only when the correspondent ASKED.
                 _bridge_used = False
-                if _BRIDGE_AVAILABLE:
+                _intent31ba = None
+                _allow_bridge_31ba = True
+                try:
+                    if _INTENT_GATE_AVAILABLE:
+                        _intent31ba = _classify_intent_31ba(
+                            subject=email_subject or "",
+                            body=email_body or "",
+                            has_attachment=False,
+                        )
+                        logger.info(
+                            "Ship 31ba intent: %s (conf=%.2f)",
+                            _intent31ba["intent"], _intent31ba["confidence"],
+                        )
+                        if _intent31ba["intent"] == "conversational":
+                            _allow_bridge_31ba = False
+                            logger.info(
+                                "Ship 31ba: skipping deliverable pipeline (conversational)."
+                            )
+                except Exception as _gate_exc:
+                    logger.warning("Ship 31ba gate failed: %s", _gate_exc)
+                if _allow_bridge_31ba and _BRIDGE_AVAILABLE:
                     try:
                         # Ship 31ao.LAUNCH B2 — turnover tracker around bridge call
                         _tc_31ao = _TC31ao.for_role("stranger_responder")
