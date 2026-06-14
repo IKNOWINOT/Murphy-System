@@ -26,18 +26,23 @@ from email import encoders
 from email.utils import formatdate, make_msgid
 
 
-# Ship 31ax — Modern Victorian calling-card palette (2026-06-12)
-# Founder direction: emails should feel like a Victorian calling card,
-# not a GitHub dashboard. Cream paper, ink, oxblood + brass accents.
-BG_COLOR = "#E8DEC6"        # warm sepia stage outside the card
-CARD_BG = "#F7F0DC"         # cream cardstock — the paper itself
-TEXT_COLOR = "#1A1410"      # ink black-brown (not pure black)
-MUTED_COLOR = "#6B5840"     # faded ink for secondary type
-BRAND_COLOR = "#7A1F23"     # oxblood / burgundy — single saturated accent
-ACCENT_COLOR = "#B89B5E"    # brass rule lines + monogram
-LIGHT_RULE = "#C9B68C"      # faint brass-tint rule
-# Legacy github palette retired here; kept as comments for reference:
-#   was BRAND=#58a6ff BG=#0d1117 TEXT=#c9d1d9 MUTED=#8b949e ACCENT=#56d364
+# Ship 31ay — Gatsby Tech palette (2026-06-13)
+# Founder direction: technological Great Gatsby. Art deco geometry on a
+# midnight stage, champagne gold accents, ivory body type, with a thin
+# tech-grid sensibility (monospace IDs, hairline rules, sharp stepped
+# chevrons rather than soft curves). 1925 stock ticker meets deco lobby.
+BG_COLOR = "#0A0E1A"         # midnight stage — deep navy-black
+CARD_BG = "#10162A"          # the card itself — slightly lifted midnight
+CARD_BG_2 = "#0D1224"        # darker band for header / footer sections
+TEXT_COLOR = "#F2E9D5"       # ivory body type (warm white, like satin)
+MUTED_COLOR = "#A8997A"      # antiqued ivory for secondary type
+BRAND_COLOR = "#D4AF37"      # champagne gold — primary accent
+ACCENT_COLOR = "#8C7A3D"     # antiqued gold for rule lines
+LIGHT_RULE = "#3A3220"       # faint gold-on-midnight rule
+HIGHLIGHT = "#E8C76A"        # bright gold for the monogram glow
+MONO_FONT = "'Courier New', 'Roboto Mono', Consolas, monospace"
+# Legacy Victorian palette retired (31ax) — kept for reference:
+#   was BG=#E8DEC6 CARD=#F7F0DC TEXT=#1A1410 BRAND=#7A1F23 ACCENT=#B89B5E
 
 # ── Ship 31ar.FOOTER — Murphy brand mark + license footer ────────────
 # Inoni LLC owns the FOOTER space on every Murphy-generated artifact
@@ -188,20 +193,15 @@ def _format_ad_html(ad_block: str) -> str:
     return (
         f'<table cellpadding="0" cellspacing="0" border="0" width="100%" '
         f'style="margin:24px 0;border-collapse:collapse">'
-        f'<tr><td style="background:#EDE2C8;border:1px solid {LIGHT_RULE};'
-        f'border-radius:2px;padding:16px;font-family:Georgia,serif">'
-        f'<div style="color:{MUTED_COLOR};font-size:10px;text-transform:uppercase;'
-        f'letter-spacing:0.14em;margin-bottom:6px;font-style:italic">Patronage</div>'
-        f'<div style="color:{TEXT_COLOR};font-size:14px;font-weight:400;margin-bottom:8px;'
-        f'font-family:Georgia,serif">'
+        f'<tr><td style="background:{CARD_BG_2};border-top:1px solid {BRAND_COLOR};border-bottom:1px solid {BRAND_COLOR};padding:18px 20px;font-family:Georgia,serif">'
+        f'<div style="color:{HIGHLIGHT};font-family:Georgia,serif;font-size:9px;text-transform:uppercase;letter-spacing:0.32em;margin-bottom:8px;text-align:center">— Patronage —</div>'
+        f'<div style="color:{TEXT_COLOR};font-size:15px;font-weight:400;margin-bottom:8px;text-align:center;font-family:Georgia,serif">'
         f'{_html_escape(headline.replace("Sponsored:", "").strip())}</div>'
-        f'<div style="color:{TEXT_COLOR};font-size:12px;line-height:1.5;margin-bottom:12px">'
+        f'<div style="color:{MUTED_COLOR};font-size:12px;line-height:1.6;margin-bottom:14px;text-align:center;font-style:italic">'
         f'{_html_escape(description)}</div>'
-        f'<a href="{_html_escape(cta_url)}" style="display:inline-block;'
-        f'border:1px solid {BRAND_COLOR};color:{BRAND_COLOR};'
-        f'padding:6px 14px;border-radius:2px;text-decoration:none;'
-        f'font-size:11px;letter-spacing:0.1em;text-transform:uppercase">Read more</a>'
-        f'</td></tr></table>'
+        f'<div style="text-align:center">'
+        f'<a href="{_html_escape(cta_url)}" style="display:inline-block;border:1px solid {HIGHLIGHT};color:{HIGHLIGHT};padding:8px 22px;text-decoration:none;font-size:10px;letter-spacing:0.32em;text-transform:uppercase;font-family:Georgia,serif">Read more</a>'
+        f'</div></td></tr></table>'
     )
 
 
@@ -217,16 +217,14 @@ def _format_compliance_html(compliance: str) -> str:
 
 
 def render_html_body(plain_body: str, license_id: str = "") -> str:
-    """Render the plain reply body inside a Modern Victorian calling card.
+    """Render the plain reply body in a Gatsby Tech envelope.
 
-    Ship 31ax — 2026-06-12 — founder asked for the calling-card aesthetic.
+    Ship 31ay — 2026-06-13 — founder asked for technological Great Gatsby.
 
-    Cream cardstock background, ink body type, oxblood accent on the
-    monogram + opener rule, brass hairlines for division. Body type in
-    Georgia serif with generous spacing. Tasteful, not ornate.
-
-    The text in plain_body is the same content the plain/text part will
-    carry — we never diverge the message between parts.
+    Midnight stage with a slightly lifted card, champagne gold accents,
+    ivory serif body, art-deco sunburst monogram, stepped chevron
+    dividers, and monospace runs for IDs and timestamps. The reply
+    itself remains the same plain text — only the envelope changes.
     """
     sections = _split_body_into_sections(plain_body)
     reply_html = _format_reply_html(sections["reply"])
@@ -234,13 +232,60 @@ def render_html_body(plain_body: str, license_id: str = "") -> str:
     compliance_html = _format_compliance_html(sections["compliance"])
     footer_html = _murphy_license_footer(license_id)
 
+    # Stepped chevron divider — three nested triangles in gold
+    chevron = (
+        f'''<div style="text-align:center;padding:8px 0;line-height:1">'''
+        f'''<span style="display:inline-block;width:0;height:0;'''
+        f'''border-left:6px solid transparent;border-right:6px solid transparent;'''
+        f'''border-top:6px solid {BRAND_COLOR};margin:0 2px"></span>'''
+        f'''<span style="display:inline-block;width:0;height:0;'''
+        f'''border-left:9px solid transparent;border-right:9px solid transparent;'''
+        f'''border-top:9px solid {ACCENT_COLOR};margin:0 2px"></span>'''
+        f'''<span style="display:inline-block;width:0;height:0;'''
+        f'''border-left:6px solid transparent;border-right:6px solid transparent;'''
+        f'''border-top:6px solid {BRAND_COLOR};margin:0 2px"></span>'''
+        f'''</div>'''
+    )
+
+    # Art-deco sunburst monogram — radiating rays + M in center
+    sunburst_svg = (
+        f'''<svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" '''
+        f'''viewBox="0 0 100 100" aria-label="Murphy">'''
+        f'''<defs><radialGradient id="ggold" cx="50%" cy="50%" r="50%">'''
+        f'''<stop offset="0%" stop-color="{HIGHLIGHT}"/>'''
+        f'''<stop offset="100%" stop-color="{BRAND_COLOR}"/>'''
+        f'''</radialGradient></defs>'''
+        # 12 rays radiating from center
+        + "".join(
+            f'''<polygon points="50,50 {50+2*((-1)**(d//30))},10 {50-2*((-1)**(d//30))},10" '''
+            f'''fill="{BRAND_COLOR}" transform="rotate({d} 50 50)" opacity="0.9"/>'''
+            for d in (0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330)
+        )
+        # inner deco ring
+        + f'''<circle cx="50" cy="50" r="22" fill="{CARD_BG}" '''
+          f'''stroke="{HIGHLIGHT}" stroke-width="1.2"/>'''
+        + f'''<circle cx="50" cy="50" r="18" fill="none" '''
+          f'''stroke="{ACCENT_COLOR}" stroke-width="0.6"/>'''
+        # M centered, gold
+        + f'''<text x="50" y="58" text-anchor="middle" '''
+          f'''font-family="Georgia, serif" font-size="20" font-weight="700" '''
+          f'''fill="{HIGHLIGHT}">M</text>'''
+        + '''</svg>'''
+    )
+
+    # Thin grid texture for the header band — pure CSS, no image
+    grid_band = (
+        f'''background-image:linear-gradient(90deg,{LIGHT_RULE} 1px,transparent 1px),'''
+        f'''linear-gradient(0deg,{LIGHT_RULE} 1px,transparent 1px);'''
+        f'''background-size:20px 20px;background-position:center;'''
+    )
+
     return f"""<!DOCTYPE html>
 <html><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Murphy</title>
 <style>
-  @media (prefers-color-scheme: dark) {{
-    /* Force the calling-card palette even in dark-mode clients */
+  @media (prefers-color-scheme: light) {{
     body, table, td {{ background:{BG_COLOR} !important; color:{TEXT_COLOR} !important; }}
   }}
 </style>
@@ -249,83 +294,88 @@ def render_html_body(plain_body: str, license_id: str = "") -> str:
              font-family:Georgia, 'Cormorant Garamond', 'Times New Roman', serif;
              color:{TEXT_COLOR};-webkit-font-smoothing:antialiased">
 <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background:{BG_COLOR}">
-<tr><td align="center" style="padding:36px 16px">
+<tr><td align="center" style="padding:40px 16px">
+
+<!-- Top art-deco header strip with grid texture -->
+<table cellpadding="0" cellspacing="0" border="0" width="100%"
+       style="max-width:580px;background:{CARD_BG_2};{grid_band}
+              border-top:2px solid {BRAND_COLOR};
+              border-left:1px solid {ACCENT_COLOR};
+              border-right:1px solid {ACCENT_COLOR}">
+<tr><td style="padding:28px 36px;text-align:center">
+<div style="margin-bottom:8px">{sunburst_svg}</div>
+<div style="color:{HIGHLIGHT};font-family:Georgia,serif;font-size:24px;
+            font-weight:400;letter-spacing:0.32em;margin-bottom:4px">
+M·U·R·P·H·Y
+</div>
+<div style="color:{MUTED_COLOR};font-family:Georgia,serif;font-style:italic;
+            font-size:11px;letter-spacing:0.08em">
+— established in the age of the machine —
+</div>
+{chevron}
+</td></tr></table>
+
+<!-- Main card body -->
 <table cellpadding="0" cellspacing="0" border="0" width="100%"
        style="max-width:580px;background:{CARD_BG};
-              border:1px solid {ACCENT_COLOR};
-              box-shadow:0 1px 0 {ACCENT_COLOR};
-              border-radius:2px">
+              border-left:1px solid {ACCENT_COLOR};
+              border-right:1px solid {ACCENT_COLOR}">
+<tr><td style="padding:24px 36px 8px 36px">
 
-<!-- Card edge inset — the inner double-rule on a calling card -->
-<tr><td style="padding:28px 36px 8px 36px">
-
-<!-- Header — engraved monogram + roman wordmark -->
-<table cellpadding="0" cellspacing="0" border="0" width="100%"
-       style="border-bottom:1px solid {ACCENT_COLOR};padding-bottom:14px">
-<tr>
-<td style="vertical-align:middle;width:46px">
-<!-- Monogram M, oxblood on cream, with hairline circle frame -->
-<div style="width:42px;height:42px;border:1px solid {BRAND_COLOR};
-            border-radius:50%;text-align:center;
-            line-height:42px;font-family:Georgia,serif;
-            font-size:22px;font-weight:400;color:{BRAND_COLOR};
-            letter-spacing:0">M</div>
-</td>
-<td style="vertical-align:middle;padding-left:16px">
-<div style="color:{TEXT_COLOR};font-family:Georgia,serif;font-size:20px;
-            font-weight:400;letter-spacing:0.14em">M U R P H Y</div>
-<div style="color:{MUTED_COLOR};font-family:Georgia,serif;font-style:italic;
-            font-size:11px;letter-spacing:0.04em;margin-top:2px">
-work, attended to
+<!-- Telegram-style transmission line: monospace meta -->
+<div style="font-family:{MONO_FONT};font-size:10px;color:{MUTED_COLOR};
+            letter-spacing:0.1em;padding:6px 0 14px 0;
+            border-bottom:1px solid {LIGHT_RULE};margin-bottom:18px">
+TRANSMISSION · MURPHY.SYSTEMS · INONI LLC · AUSTIN TX
 </div>
-</td>
-<td style="vertical-align:middle;text-align:right;
-           color:{MUTED_COLOR};font-family:Georgia,serif;font-size:10px;
-           letter-spacing:0.14em;text-transform:uppercase">
-Calling Card
-</td>
-</tr></table>
 
-<!-- AI notice — hairline italic, not a yellow box -->
-<tr><td style="padding:14px 0 0 0">
+<!-- AI candour note -->
 <div style="color:{MUTED_COLOR};font-family:Georgia,serif;font-size:11px;
-            font-style:italic;line-height:1.5;letter-spacing:0.01em">
-A note of candour — Murphy is an artificial assistant. Verify particulars before acting upon them. Reply <span style="color:{BRAND_COLOR}">STOP</span> to opt out.
-</div></td></tr>
+            font-style:italic;line-height:1.6;letter-spacing:0.01em;
+            margin-bottom:18px">
+A note of candour — Murphy is an artificial assistant. Verify particulars before acting upon them. Reply <span style="color:{HIGHLIGHT};font-style:normal;letter-spacing:0.1em">STOP</span> to opt out.
+</div>
 
 <!-- Reply body -->
-<tr><td style="padding:20px 0 8px 0;color:{TEXT_COLOR};
-               font-family:Georgia,serif;font-size:15px;line-height:1.65">
+<div style="color:{TEXT_COLOR};font-family:Georgia,serif;
+            font-size:15px;line-height:1.7">
 {reply_html}
-</td></tr>
+</div>
 
 {ad_html}
 
-<!-- Inner closing rule — brass hairline -->
-<tr><td style="padding:20px 0 0 0">
-<div style="height:1px;background:{LIGHT_RULE};margin-bottom:14px"></div>
-</td></tr>
+<!-- Chevron divider before footer -->
+<div style="padding:16px 0 4px 0">{chevron}</div>
 
-<!-- Compliance block — small caps -->
-<tr><td style="color:{MUTED_COLOR};font-family:Georgia,serif;font-size:10px;
-               line-height:1.7;letter-spacing:0.03em">
+<!-- Compliance block -->
+<div style="color:{MUTED_COLOR};font-family:Georgia,serif;font-size:10px;
+            line-height:1.7;letter-spacing:0.04em;padding:8px 0 0 0">
 {compliance_html}
-</td></tr>
-
-<!-- Murphy license footer (immutable per ToS) -->
-<tr><td style="padding-top:18px">
-{footer_html}
-</td></tr>
-
-</td></tr>
-</table>
-
-<!-- Outer signature — the stamp at the bottom of the page -->
-<div style="margin-top:12px;color:{MUTED_COLOR};
-            font-family:Georgia,serif;font-style:italic;
-            font-size:10px;letter-spacing:0.02em">
-Inoni LLC · Austin, Texas
 </div>
+
+<!-- Murphy license footer -->
+<div style="padding-top:18px">
+{footer_html}
+</div>
+
+</td></tr></table>
+
+<!-- Bottom art-deco footer band -->
+<table cellpadding="0" cellspacing="0" border="0" width="100%"
+       style="max-width:580px;background:{CARD_BG_2};{grid_band}
+              border-bottom:2px solid {BRAND_COLOR};
+              border-left:1px solid {ACCENT_COLOR};
+              border-right:1px solid {ACCENT_COLOR}">
+<tr><td style="padding:18px 36px;text-align:center">
+<div style="color:{HIGHLIGHT};font-family:Georgia,serif;font-size:11px;
+            letter-spacing:0.32em">
+· · · END OF TRANSMISSION · · ·
+</div>
+<div style="color:{MUTED_COLOR};font-family:{MONO_FONT};font-size:9px;
+            letter-spacing:0.1em;margin-top:8px">
+INONI LLC · AUSTIN · TEXAS · MMXXVI
+</div>
+</td></tr></table>
 
 </td></tr></table>
 </body></html>"""
