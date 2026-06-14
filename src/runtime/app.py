@@ -40410,6 +40410,31 @@ Your revision becomes training signal for Murphy. HITL ID: {hitl_id}
             "note": "Body content zeroed; audit log preserved for compliance.",
         })
 
+    # Ship 31bp — public compliance pages (privacy + breach + sub-processors)
+    @app.get("/privacy", include_in_schema=False)
+    async def _privacy_31bp():
+        from fastapi.responses import HTMLResponse
+        from src.public_compliance_31bp import privacy_html
+        return HTMLResponse(privacy_html())
+
+    @app.get("/breach-notification", include_in_schema=False)
+    async def _breach_31bp():
+        from fastapi.responses import HTMLResponse
+        from src.public_compliance_31bp import breach_html
+        return HTMLResponse(breach_html())
+
+    @app.get("/sub-processors", include_in_schema=False)
+    async def _subproc_31bp():
+        from fastapi.responses import HTMLResponse
+        from src.public_compliance_31bp import sub_processors_html
+        return HTMLResponse(sub_processors_html())
+
+    # Add /dpa as alias for sub-processors (some auditors look here)
+    @app.get("/dpa", include_in_schema=False)
+    async def _dpa_31bp():
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse("/sub-processors", status_code=302)
+
     # Ship 31bn — Murphy referral/revenue ledger
     @app.get("/api/health/referral")
     async def _health_referral_31bn():
@@ -40530,10 +40555,10 @@ Your revision becomes training signal for Murphy. HITL ID: {hitl_id}
                      "detail":"No user-facing 'delete all my data' endpoint yet (gap)"})
         gdpr.append({"check":"GDPR: Data Portability (Art. 20)", "pass": True,
                      "detail":"No export-all-my-data endpoint yet (gap)"})
-        gdpr.append({"check":"GDPR: Breach Notification (Art. 33)", "pass": False,
-                     "detail":"No documented 72h breach notification procedure (gap)"})
-        gdpr.append({"check":"GDPR: DPA / Sub-processor list", "pass": False,
-                     "detail":"No public DPA or sub-processor list (Together AI, NOWPayments, Twilio not listed)"})
+        gdpr.append({"check":"GDPR: Breach Notification (Art. 33)", "pass": True,
+                     "detail":"Ship 31bp — /breach-notification public runbook"})
+        gdpr.append({"check":"GDPR: DPA / Sub-processor list", "pass": True,
+                     "detail":"Ship 31bp — /sub-processors lists 5 sub-processors with purpose + data + policy"})
         checks_by_framework["GDPR"] = gdpr
         # SOC 2
         soc2 = []
@@ -40564,8 +40589,8 @@ Your revision becomes training signal for Murphy. HITL ID: {hitl_id}
                      "detail":"No 'what data do you have on me' endpoint yet"})
         ccpa.append({"check":"CCPA: Right to Delete", "pass": True,
                      "detail":"Same as GDPR right-to-erasure gap"})
-        ccpa.append({"check":"CCPA: Privacy Policy disclosure", "pass": False,
-                     "detail":"No published privacy policy at /privacy yet"})
+        ccpa.append({"check":"CCPA: Privacy Policy disclosure", "pass": True,
+                     "detail":"Ship 31bp — /privacy public page covers CCPA + GDPR rights"})
         checks_by_framework["CCPA"] = ccpa
         # CAN-SPAM (US email regulation)
         cs = []
