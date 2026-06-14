@@ -23362,6 +23362,7 @@ font-weight:600;color:#c9d1d9}}</style></head><body>
                 "/api/payments/nowpayments/checkout",
                 "/api/payments/nowpayments/webhook",
                     # _31aoLAUNCH_EXEMPT — public launch-readiness signal
+                    "/api/health/backlog_31bc",
                     "/api/health/launch",
                     # _31arVERIFY_EXEMPT — public license verifier (Ship 31ar)
                     "/api/verify",
@@ -40041,6 +40042,60 @@ font-weight:600;color:#c9d1d9}}</style></head><body>
         }
 
 
+
+    # Ship 31bc.BACKLOG_DRAIN — classifier backlog audit endpoint
+    @app.get("/api/health/backlog_31bc")
+    async def _health_backlog_31bc():
+        import sqlite3
+        from datetime import datetime, timezone
+        db = "/var/lib/murphy-production/inbound_replies.db"
+        try:
+            conn = sqlite3.connect(db, timeout=10.0)
+            empty_30d = conn.execute(
+                "SELECT COUNT(*) FROM inbound_replies "
+                "WHERE (intent_class IS NULL OR intent_class='') "
+                "  AND received_at > datetime('now','-30 days')"
+            ).fetchone()[0]
+            empty_24h = conn.execute(
+                "SELECT COUNT(*) FROM inbound_replies "
+                "WHERE (intent_class IS NULL OR intent_class='') "
+                "  AND received_at > datetime('now','-24 hours')"
+            ).fetchone()[0]
+            try:
+                last_drain = conn.execute(
+                    "SELECT run_at, marked_system, surfaced_real, still_empty_after "
+                    "FROM backlog_drain_log ORDER BY id DESC LIMIT 1"
+                ).fetchone()
+            except Exception:
+                last_drain = None
+            review_queue = conn.execute(
+                "SELECT COUNT(*) FROM inbound_replies "
+                "WHERE intent_class='needs_review' "
+                "  AND received_at > datetime('now','-30 days')"
+            ).fetchone()[0]
+            conn.close()
+            if empty_24h < 50:
+                status = "healthy"
+            elif empty_24h < 500:
+                status = "elevated"
+            else:
+                status = "backlog"
+            return {
+                "ship":             "31bc.BACKLOG_DRAIN",
+                "checked_at":       datetime.now(timezone.utc).isoformat(),
+                "status":           status,
+                "empty_intent_24h": empty_24h,
+                "empty_intent_30d": empty_30d,
+                "review_queue_30d": review_queue,
+                "last_drain":       {
+                    "ran_at":        last_drain[0] if last_drain else None,
+                    "marked_system": last_drain[1] if last_drain else 0,
+                    "surfaced_real": last_drain[2] if last_drain else 0,
+                    "still_empty":   last_drain[3] if last_drain else None,
+                } if last_drain else None,
+            }
+        except Exception as exc:
+            return {"ship": "31bc.BACKLOG_DRAIN", "error": str(exc), "status": "audit_failed"}
 
     # Ship 31ao.LAUNCH C — single endpoint for launch readiness
     @app.get("/api/health/launch")
