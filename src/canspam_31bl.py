@@ -101,17 +101,25 @@ def postal_footer_html(recipient: Optional[str] = None) -> str:
 
 
 def is_suppressed(email: str) -> bool:
-    """True if recipient has unsubscribed. Zero-day grace — block immediately."""
+    """True if recipient has unsubscribed. Zero-day grace — block immediately.
+
+    Per Murphy decision (2026-06-13): checks both columns —
+    `registered_ts` (legacy stop_keyword unsubs) AND `unsubscribed_at`
+    (Ship 31ae RFC 8058 one-click) — via COALESCE. Both schemas now
+    coexist in unsubscribe_registry; honoring either flags the user
+    as suppressed and blocks the send.
+    """
     if not email:
         return False
     e = email.lower().strip()
     try:
         with sqlite3.connect(UNSUBSCRIBE_DB, timeout=10.0) as c:
             row = c.execute(
-                "SELECT unsubscribed_at FROM unsubscribe_registry WHERE email_addr=?",
+                "SELECT COALESCE(unsubscribed_at, registered_ts) "
+                "FROM unsubscribe_registry WHERE email_addr=?",
                 (e,)
             ).fetchone()
-        return bool(row)
+        return bool(row and row[0])
     except Exception:
         return False
 
