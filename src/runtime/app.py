@@ -23362,6 +23362,7 @@ font-weight:600;color:#c9d1d9}}</style></head><body>
                 "/api/payments/nowpayments/checkout",
                 "/api/payments/nowpayments/webhook",
                     # _31aoLAUNCH_EXEMPT — public launch-readiness signal
+                    "/api/health/quiet_house",
                     "/api/health/backlog_31bc",
                     "/api/health/launch",
                     # _31arVERIFY_EXEMPT — public license verifier (Ship 31ar)
@@ -40042,6 +40043,60 @@ font-weight:600;color:#c9d1d9}}</style></head><body>
         }
 
 
+
+    # Ship 31bd.QUIET_HOUSE — internal-comms hygiene endpoint
+    @app.get("/api/health/quiet_house")
+    async def _health_quiet_house_31bd():
+        import sqlite3, os as _os_qh
+        from datetime import datetime, timezone
+        db = "/var/lib/murphy-production/inbound_replies.db"
+        try:
+            conn = sqlite3.connect(db, timeout=10.0)
+            self_24h = conn.execute(
+                "SELECT COUNT(*) FROM inbound_replies "
+                "WHERE from_addr LIKE '%@murphy.systems' "
+                "  AND received_at > datetime('now','-24 hours')"
+            ).fetchone()[0]
+            direct_owner_24h = conn.execute(
+                "SELECT COUNT(*) FROM inbound_replies "
+                "WHERE from_addr LIKE '%@murphy.systems' "
+                "  AND (to_addr LIKE '%cpost%' OR to_addr LIKE '%hpost%') "
+                "  AND received_at > datetime('now','-24 hours')"
+            ).fetchone()[0]
+            cc_owner_24h = conn.execute(
+                "SELECT COUNT(*) FROM inbound_replies "
+                "WHERE from_addr LIKE '%@murphy.systems' "
+                "  AND (cc_addrs LIKE '%cpost%' OR cc_addrs LIKE '%hpost%') "
+                "  AND received_at > datetime('now','-24 hours')"
+            ).fetchone()[0]
+            conn.close()
+            cc_env = _os_qh.environ.get("MURPHY_CC_FOUNDER_ON_SWARM", "0")
+            owner_hits = direct_owner_24h + cc_owner_24h
+            if owner_hits == 0:
+                status = "quiet"
+            elif owner_hits < 20:
+                status = "polite"
+            elif owner_hits < 100:
+                status = "noisy"
+            else:
+                status = "spam"
+            return {
+                "ship":              "31bd.QUIET_HOUSE",
+                "checked_at":        datetime.now(timezone.utc).isoformat(),
+                "status":            status,
+                "self_loops_24h":    self_24h,
+                "owner_direct_24h":  direct_owner_24h,
+                "owner_cc_24h":      cc_owner_24h,
+                "cc_founder_flag":   cc_env,
+                "explanation": {
+                    "quiet":  "Internal comms are not leaking to founder.",
+                    "polite": "Some founder mail; within reason.",
+                    "noisy":  "Reduce — swarm chatter reaching founder too often.",
+                    "spam":   "Critical — internal loop is hitting founder inbox.",
+                }.get(status, "unknown"),
+            }
+        except Exception as exc:
+            return {"ship": "31bd.QUIET_HOUSE", "error": str(exc), "status": "audit_failed"}
 
     # Ship 31bc.BACKLOG_DRAIN — classifier backlog audit endpoint
     @app.get("/api/health/backlog_31bc")
