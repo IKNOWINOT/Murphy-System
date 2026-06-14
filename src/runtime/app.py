@@ -23362,6 +23362,8 @@ font-weight:600;color:#c9d1d9}}</style></head><body>
                 "/api/payments/nowpayments/checkout",
                 "/api/payments/nowpayments/webhook",
                     # _31aoLAUNCH_EXEMPT — public launch-readiness signal
+                    "/hitl/",
+                    "/api/hitl/",
                     "/api/health/hitl_loop",
                     "/api/health/approval_ladder",
                     "/api/health/email_boundary",
@@ -40299,10 +40301,10 @@ Your revision becomes training signal for Murphy. HITL ID: {hitl_id}
         founder_addrs = []
         try:
             from src.founder_identity_31bf import FOUNDER_EMAILS, is_founder_email
-            has_hfc = is_founder_email("corey.hfc@gmail.com")
+            has_corey = is_founder_email("corey.gfc@gmail.com")
             founder_addrs = sorted(list(FOUNDER_EMAILS))
-            checks.append({"name": "corey_hfc_in_founder_identity",
-                           "pass": has_hfc,
+            checks.append({"name": "corey_gfc_in_founder_identity",
+                           "pass": has_corey,
                            "detail": f"{len(FOUNDER_EMAILS)} founder addresses canonical"})
         except Exception as e:
             checks.append({"name": "corey_hfc_in_founder_identity", "pass": False, "detail": str(e)})
