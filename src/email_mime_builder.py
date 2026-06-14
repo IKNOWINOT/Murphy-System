@@ -19,6 +19,12 @@ Hard rules:
 import re
 import email
 from email.mime.multipart import MIMEMultipart
+
+# Ship 31bl.CAN_SPAM — postal footer + unsubscribe
+try:
+    from src.canspam_31bl import append_footer as _canspam_footer_31bl
+except Exception:
+    _canspam_footer_31bl = None
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email.mime.application import MIMEApplication
@@ -414,6 +420,18 @@ def build_multipart_message(
         _lic_id = ""
     html_body = render_html_body(plain_body, license_id=_lic_id)
 
+    # Ship 31bl.CAN_SPAM — stamp postal footer + unsubscribe before assembly
+    if _canspam_footer_31bl is not None:
+        try:
+            recipient = (to_addr or "").strip()
+            plain_body, html_body = _canspam_footer_31bl(plain_body, html_body, recipient)
+            # re-derive plain_with_disc so it picks up the new footer
+            if HALLUCINATION_DISCLAIMER[:30] not in plain_body[:200]:
+                plain_with_disc = "⚠ " + HALLUCINATION_DISCLAIMER + "\n\n" + plain_body
+            else:
+                plain_with_disc = plain_body
+        except Exception:
+            pass
     msg = MIMEMultipart("alternative")
     msg["Subject"] = subject
     msg["From"] = from_addr

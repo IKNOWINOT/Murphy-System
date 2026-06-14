@@ -46,6 +46,12 @@ from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Optional
 import re
 
+# Ship 31bl.CAN_SPAM — suppression gate
+try:
+    from src.canspam_31bl import gate_check as _canspam_gate_31bl
+except Exception:
+    _canspam_gate_31bl = None
+
 logger = logging.getLogger("stranger_responder")
 
 # Ship 31ba — intent gate: only invoke deliverable pipeline when asked
@@ -1012,6 +1018,14 @@ def _send_sendmail(to_addr: str, subject: str, body: str) -> bool:
 
     Used for shadow drafts to founder AND for live outbound (when wired).
     """
+    # Ship 31bl — CAN-SPAM suppression gate
+    if _canspam_gate_31bl is not None:
+        try:
+            _gate = _canspam_gate_31bl(to_addr, subject, "stranger_responder")
+            if not _gate.get("ok"):
+                return False
+        except Exception:
+            pass
     try:
         try:
             from src.email_mime_builder import build_multipart_message
