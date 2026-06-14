@@ -23362,6 +23362,7 @@ font-weight:600;color:#c9d1d9}}</style></head><body>
                 "/api/payments/nowpayments/checkout",
                 "/api/payments/nowpayments/webhook",
                     # _31aoLAUNCH_EXEMPT — public launch-readiness signal
+                    "/api/health/approval_ladder",
                     "/api/health/email_boundary",
                     "/api/health/tenant_isolation",
                     "/api/health/founder_gate",
@@ -40046,6 +40047,35 @@ font-weight:600;color:#c9d1d9}}</style></head><body>
         }
 
 
+
+    # Ship 31bg.APPROVAL_LADDER — hierarchy approval stats
+    @app.get("/api/health/approval_ladder")
+    async def _health_approval_ladder_31bg():
+        from datetime import datetime, timezone
+        try:
+            from src.approval_ladder_31bg import stats as al_stats, REPORT_TO_CHAIN, APPROVAL_AUTHORITY
+            s = al_stats()
+            by = s.get("by_decision_24h", {})
+            auto = by.get("auto_approve", 0)
+            fr   = by.get("founder_required", 0)
+            rej  = by.get("reject", 0)
+            total = auto + fr + rej + by.get("escalate", 0)
+            autonomy_pct = round(100 * auto / total, 1) if total else 0
+            return {
+                "ship":              "31bg.APPROVAL_LADDER",
+                "checked_at":        datetime.now(timezone.utc).isoformat(),
+                "status":            "healthy",
+                "decisions_24h":     by,
+                "by_agent_24h":      s.get("by_agent_24h", {}),
+                "autonomy_pct_24h":  autonomy_pct,
+                "money_pending_usd": s.get("money_pending_usd_24h", 0),
+                "recent_founder":    s.get("recent_founder_required", []),
+                "hierarchy":         REPORT_TO_CHAIN,
+                "authority":         APPROVAL_AUTHORITY,
+                "policy":            "Money always → founder. Strategy-aligned + non-erroneous + real-work → auto-approve up the chain.",
+            }
+        except Exception as exc:
+            return {"ship": "31bg.APPROVAL_LADDER", "error": str(exc), "status": "audit_failed"}
 
     # Ship 31bf.EMAIL_BOUNDARY — verify email cannot mutate platform
     @app.get("/api/health/email_boundary")
