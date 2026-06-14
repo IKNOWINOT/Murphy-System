@@ -40058,6 +40058,7 @@ font-weight:600;color:#c9d1d9}}</style></head><body>
     async def _hitl_accept_31bh(hitl_id: str):
         """One-click accept from the HITL email."""
         from datetime import datetime, timezone
+        from fastapi.responses import HTMLResponse
         import sqlite3
         try:
             conn = sqlite3.connect("/var/lib/murphy-production/hitl_jobs.db", timeout=10.0)
@@ -40096,6 +40097,7 @@ font-weight:600;color:#c9d1d9}}</style></head><body>
     @app.get("/api/hitl/{hitl_id}/reject")
     async def _hitl_reject_31bh(hitl_id: str):
         from datetime import datetime, timezone
+        from fastapi.responses import HTMLResponse
         import sqlite3
         try:
             conn = sqlite3.connect("/var/lib/murphy-production/hitl_jobs.db", timeout=10.0)
@@ -40126,6 +40128,7 @@ font-weight:600;color:#c9d1d9}}</style></head><body>
     @app.get("/hitl/{hitl_id}/revise")
     async def _hitl_revise_form_31bh(hitl_id: str):
         """Show the revise form — founder edits the message and submits."""
+        from fastapi.responses import HTMLResponse
         import sqlite3
         original = ""
         subject_matter = "unknown"
@@ -40166,8 +40169,9 @@ Your revision becomes training signal for Murphy. HITL ID: {hitl_id}
 </div></body></html>""")
 
     @app.post("/api/hitl/{hitl_id}/revise")
-    async def _hitl_revise_submit_31bh(hitl_id: str, request: Request):
+    async def _hitl_revise_submit_31bh(hitl_id: str, request):
         from datetime import datetime, timezone
+        from fastapi.responses import HTMLResponse
         import sqlite3
         try:
             form = await request.form()
