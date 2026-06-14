@@ -39,6 +39,13 @@ from __future__ import annotations
 
 import logging
 
+# Ship 31be — founder mail gate (HITL acceptance only)
+try:
+    from src.founder_mail_gate_31be import should_send_to_founder as _founder_gate_31be
+except Exception:
+    _founder_gate_31be = lambda *a, **k: True  # fail-open
+
+
 # Ship 31bd — capacity dedupe
 try:
     from src.capacity_dedupe_31bd import should_emit as _capacity_should_emit_31bd

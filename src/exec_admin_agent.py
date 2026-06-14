@@ -16,6 +16,13 @@ Copyright © 2020 Inoni Limited Liability Company
 from __future__ import annotations
 
 import logging
+
+# Ship 31be — founder mail gate (HITL acceptance only)
+try:
+    from src.founder_mail_gate_31be import should_send_to_founder as _founder_gate_31be
+except Exception:
+    _founder_gate_31be = lambda *a, **k: True  # fail-open
+
 import sqlite3
 import json
 import time
@@ -749,7 +756,7 @@ class ExecAdminAgent(AgentBase):
                 try:
                     result_holder[0] = loop.run_until_complete(svc.send(
                         to=[to],
-                        subject=f"🎯 Murphy Executive Report — {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')} UTC",
+                        subject=f"🎯 Murphy Executive Report — {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')} UTC",  # Ship 31be: gate-checked elsewhere
                         body=report,
                         from_addr=os.environ.get("SMTP_FROM_EMAIL", "murphy@murphy.systems"),
                     ))

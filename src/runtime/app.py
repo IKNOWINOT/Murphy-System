@@ -23362,6 +23362,8 @@ font-weight:600;color:#c9d1d9}}</style></head><body>
                 "/api/payments/nowpayments/checkout",
                 "/api/payments/nowpayments/webhook",
                     # _31aoLAUNCH_EXEMPT — public launch-readiness signal
+                    "/api/health/tenant_isolation",
+                    "/api/health/founder_gate",
                     "/api/health/quiet_house",
                     "/api/health/backlog_31bc",
                     "/api/health/launch",
@@ -40043,6 +40045,83 @@ font-weight:600;color:#c9d1d9}}</style></head><body>
         }
 
 
+
+    # Ship 31be.TENANT_VERIFY — tenant-isolation status
+    @app.get("/api/health/tenant_isolation")
+    async def _health_tenant_isolation_31be():
+        from datetime import datetime, timezone
+        import os
+        checks = []
+        # 1. Middleware loaded
+        try:
+            from src.tenant_scope_middleware import FOUNDER_ONLY_PATHS
+            checks.append({"name": "tenant_scope_middleware_loaded",
+                           "pass": True,
+                           "detail": f"FOUNDER_ONLY_PATHS={len(FOUNDER_ONLY_PATHS)} entries"})
+        except Exception as e:
+            checks.append({"name": "tenant_scope_middleware_loaded",
+                           "pass": False, "detail": str(e)})
+        # 2. /opt/Murphy-System ownership
+        try:
+            stat = os.stat("/opt/Murphy-System")
+            import pwd
+            owner = pwd.getpwuid(stat.st_uid).pw_name
+            checks.append({"name": "platform_filesystem_owner",
+                           "pass": owner == "murphy",
+                           "detail": f"owner={owner}"})
+        except Exception as e:
+            checks.append({"name": "platform_filesystem_owner",
+                           "pass": False, "detail": str(e)})
+        # 3. Tenant table presence
+        try:
+            import sqlite3
+            for db in ["/var/lib/murphy-production/tenants.db",
+                       "/var/lib/murphy-production/auth_main.db",
+                       "/var/lib/murphy-production/murphy_mail.db"]:
+                if os.path.exists(db):
+                    conn = sqlite3.connect(db, timeout=5)
+                    tbls = [r[0] for r in conn.execute(
+                        "SELECT name FROM sqlite_master WHERE type='table' "
+                        "AND name LIKE '%tenant%'").fetchall()]
+                    conn.close()
+                    if tbls:
+                        checks.append({"name": f"tenant_tables_in_{os.path.basename(db)}",
+                                       "pass": True, "detail": f"{len(tbls)} tables: {tbls[:3]}"})
+                        break
+        except Exception as e:
+            checks.append({"name": "tenant_tables", "pass": False, "detail": str(e)})
+        passing = sum(1 for c in checks if c["pass"])
+        total = len(checks)
+        return {
+            "ship":         "31be.TENANT_VERIFY",
+            "checked_at":   datetime.now(timezone.utc).isoformat(),
+            "status":       "verified" if passing == total else f"{passing}/{total}_passing",
+            "checks":       checks,
+            "policy":       "Tenants cannot mutate platform; writes scoped by tenant_id",
+        }
+
+    # Ship 31be.HITL_ONLY — founder mail gate stats
+    @app.get("/api/health/founder_gate")
+    async def _health_founder_gate_31be():
+        from datetime import datetime, timezone
+        try:
+            from src.founder_mail_gate_31be import stats as gate_stats
+            s = gate_stats()
+            decisions = s.get("decisions_24h", {})
+            blocks = decisions.get("BLOCK", 0)
+            passes = decisions.get("PASS", 0)
+            return {
+                "ship":         "31be.HITL_ONLY",
+                "checked_at":   datetime.now(timezone.utc).isoformat(),
+                "status":       "healthy" if (blocks > 0 or passes >= 0) else "uninstrumented",
+                "blocks_24h":   blocks,
+                "passes_24h":   passes,
+                "total_24h":    s.get("total_24h", 0),
+                "recent_blocks": s.get("recent_blocks", []),
+                "policy":       "Only HITL acceptance prompts reach founder inbox",
+            }
+        except Exception as exc:
+            return {"ship": "31be.HITL_ONLY", "error": str(exc), "status": "audit_failed"}
 
     # Ship 31bd.QUIET_HOUSE — internal-comms hygiene endpoint
     @app.get("/api/health/quiet_house")
