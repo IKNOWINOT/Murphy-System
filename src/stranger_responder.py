@@ -658,7 +658,12 @@ The person who emailed you (from {from_addr}) wrote:
 SUBJECT: {email_subject}
 BODY: {email_body[:2000]}
 
-Write a working reply under two hundred words. Two or three paragraphs of natural prose — no bullets, no headers, no Markdown.
+Choose your length to match the inquiry weight:
+  - Brief inquiry (≤30 words like "what can you do?"): reply 120-180 words across 2 paragraphs.
+  - Medium inquiry (30-200 words): reply 220-340 words across 3 paragraphs.
+  - Deep inquiry (>200 words): reply 350-500 words across 3-4 paragraphs.
+
+Always natural prose — no bullets, no headers, no Markdown. The card around your reply is ornate; your prose should be unhurried but substantial.
 
 Paragraph one OPENS WITH A COMPLETE GRAMMATICAL SENTENCE that delivers the computed answer — no greeting, no preamble, no value-prop. The sentence must start with a capital letter and a noun or article, never with a numeral, formula fragment, or partial reference. Examples of correct opens: 'Pressure drop is 0.103 in w.g. per 100 ft.' or 'File the grievance with your state's Office of Disciplinary Counsel.' Treat the correspondent as a peer who already knows what Murphy is.
 
@@ -1062,7 +1067,7 @@ THEIR ASK:
 ATTACHMENT CONTENT:
 {attachment_summary[:5500]}
 
-Write a SHORT analysis reply (under 250 words) addressed to {principal_addr}. Structure:
+Write a measured analysis reply (250-400 words) addressed to {principal_addr}. Structure:
 1. Open with the COMPUTED ANSWER. No greeting, no pitch, no "I'd be happy to help". Start with the number and the formula.
 2. ONE sentence acknowledging what you analyzed and from what lens
 3. 3-5 BULLETS — the specific findings ranked by importance to a {role_class}. Each bullet must be CONCRETE and reference an actual fact from the attachment, not generic boilerplate.
@@ -1124,7 +1129,7 @@ SUBJECT THEY ARE DISCUSSING: {email_subject}
 CONTEXT (do NOT quote this back; refer to it meta only):
 {email_body[:2000]}
 
-Write a SHORT reply email (under 180 words) addressed ONLY to {principal_addr}. It must:
+Write a substantive reply email (180-280 words) addressed ONLY to {principal_addr}. It must:
 1. Open with the COMPUTED ANSWER. No greeting, no pitch.
 2. ONE sentence acknowledging you saw the thread (refer to it as 'your email re: {email_subject[:60]}' - NEVER quote thread content)
 3. ONE concrete thing you noticed Murphy could do for them

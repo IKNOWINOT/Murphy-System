@@ -26,11 +26,18 @@ from email import encoders
 from email.utils import formatdate, make_msgid
 
 
-BRAND_COLOR = "#58a6ff"   # Murphy blue (matches /os/ dashboards)
-BG_COLOR = "#0d1117"      # github-dark
-TEXT_COLOR = "#c9d1d9"
-MUTED_COLOR = "#8b949e"
-ACCENT_COLOR = "#56d364"  # green
+# Ship 31ax — Modern Victorian calling-card palette (2026-06-12)
+# Founder direction: emails should feel like a Victorian calling card,
+# not a GitHub dashboard. Cream paper, ink, oxblood + brass accents.
+BG_COLOR = "#E8DEC6"        # warm sepia stage outside the card
+CARD_BG = "#F7F0DC"         # cream cardstock — the paper itself
+TEXT_COLOR = "#1A1410"      # ink black-brown (not pure black)
+MUTED_COLOR = "#6B5840"     # faded ink for secondary type
+BRAND_COLOR = "#7A1F23"     # oxblood / burgundy — single saturated accent
+ACCENT_COLOR = "#B89B5E"    # brass rule lines + monogram
+LIGHT_RULE = "#C9B68C"      # faint brass-tint rule
+# Legacy github palette retired here; kept as comments for reference:
+#   was BRAND=#58a6ff BG=#0d1117 TEXT=#c9d1d9 MUTED=#8b949e ACCENT=#56d364
 
 # ── Ship 31ar.FOOTER — Murphy brand mark + license footer ────────────
 # Inoni LLC owns the FOOTER space on every Murphy-generated artifact
@@ -181,17 +188,19 @@ def _format_ad_html(ad_block: str) -> str:
     return (
         f'<table cellpadding="0" cellspacing="0" border="0" width="100%" '
         f'style="margin:24px 0;border-collapse:collapse">'
-        f'<tr><td style="background:#161b22;border:1px solid #30363d;'
-        f'border-radius:6px;padding:16px">'
-        f'<div style="color:{MUTED_COLOR};font-size:11px;text-transform:uppercase;'
-        f'letter-spacing:0.05em;margin-bottom:6px">Sponsored</div>'
-        f'<div style="color:{TEXT_COLOR};font-size:15px;font-weight:600;margin-bottom:8px">'
+        f'<tr><td style="background:#EDE2C8;border:1px solid {LIGHT_RULE};'
+        f'border-radius:2px;padding:16px;font-family:Georgia,serif">'
+        f'<div style="color:{MUTED_COLOR};font-size:10px;text-transform:uppercase;'
+        f'letter-spacing:0.14em;margin-bottom:6px;font-style:italic">Patronage</div>'
+        f'<div style="color:{TEXT_COLOR};font-size:14px;font-weight:400;margin-bottom:8px;'
+        f'font-family:Georgia,serif">'
         f'{_html_escape(headline.replace("Sponsored:", "").strip())}</div>'
-        f'<div style="color:{TEXT_COLOR};font-size:13px;line-height:1.4;margin-bottom:12px">'
+        f'<div style="color:{TEXT_COLOR};font-size:12px;line-height:1.5;margin-bottom:12px">'
         f'{_html_escape(description)}</div>'
-        f'<a href="{_html_escape(cta_url)}" style="display:inline-block;background:{BRAND_COLOR};'
-        f'color:#0d1117;padding:8px 16px;border-radius:4px;text-decoration:none;'
-        f'font-size:13px;font-weight:600">Learn more →</a>'
+        f'<a href="{_html_escape(cta_url)}" style="display:inline-block;'
+        f'border:1px solid {BRAND_COLOR};color:{BRAND_COLOR};'
+        f'padding:6px 14px;border-radius:2px;text-decoration:none;'
+        f'font-size:11px;letter-spacing:0.1em;text-transform:uppercase">Read more</a>'
         f'</td></tr></table>'
     )
 
@@ -208,64 +217,118 @@ def _format_compliance_html(compliance: str) -> str:
 
 
 def render_html_body(plain_body: str, license_id: str = "") -> str:
-    """Render the full HTML version of a Murphy reply.
+    """Render the plain reply body inside a Modern Victorian calling card.
 
-    Takes the existing plain body, parses sections, returns full HTML doc.
+    Ship 31ax — 2026-06-12 — founder asked for the calling-card aesthetic.
+
+    Cream cardstock background, ink body type, oxblood accent on the
+    monogram + opener rule, brass hairlines for division. Body type in
+    Georgia serif with generous spacing. Tasteful, not ornate.
+
+    The text in plain_body is the same content the plain/text part will
+    carry — we never diverge the message between parts.
     """
     sections = _split_body_into_sections(plain_body)
+    reply_html = _format_reply_html(sections["reply"])
+    ad_html = _format_ad_html(sections["ad_block"])
+    compliance_html = _format_compliance_html(sections["compliance"])
+    footer_html = _murphy_license_footer(license_id)
 
-    html = f"""<!DOCTYPE html>
+    return f"""<!DOCTYPE html>
 <html><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Murphy</title>
+<style>
+  @media (prefers-color-scheme: dark) {{
+    /* Force the calling-card palette even in dark-mode clients */
+    body, table, td {{ background:{BG_COLOR} !important; color:{TEXT_COLOR} !important; }}
+  }}
+</style>
 </head>
 <body style="margin:0;padding:0;background:{BG_COLOR};
-             font:14px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-             color:{TEXT_COLOR}">
+             font-family:Georgia, 'Cormorant Garamond', 'Times New Roman', serif;
+             color:{TEXT_COLOR};-webkit-font-smoothing:antialiased">
 <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background:{BG_COLOR}">
-<tr><td align="center" style="padding:24px 16px">
-<table cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:640px">
+<tr><td align="center" style="padding:36px 16px">
+<table cellpadding="0" cellspacing="0" border="0" width="100%"
+       style="max-width:580px;background:{CARD_BG};
+              border:1px solid {ACCENT_COLOR};
+              box-shadow:0 1px 0 {ACCENT_COLOR};
+              border-radius:2px">
 
-<!-- Header / Brand -->
-<tr><td style="padding-bottom:16px;border-bottom:1px solid #30363d">
-<table cellpadding="0" cellspacing="0" border="0"><tr>
-<td style="vertical-align:middle">
-<div style="width:32px;height:32px;background:{BRAND_COLOR};
-            border-radius:6px;display:inline-block;
-            text-align:center;line-height:32px;
-            font-weight:700;color:#0d1117;font-size:18px">M</div>
-</td>
-<td style="vertical-align:middle;padding-left:12px">
-<div style="color:{TEXT_COLOR};font-size:16px;font-weight:600">Murphy</div>
-<div style="color:{MUTED_COLOR};font-size:11px">automation that actually does things</div>
-</td>
-</tr></table></td></tr>
+<!-- Card edge inset — the inner double-rule on a calling card -->
+<tr><td style="padding:28px 36px 8px 36px">
 
-<!-- Hallucination disclaimer (always top, always visible) -->
-<tr><td style="padding:16px 0">
-<div style="background:#3d2914;border:1px solid #d29922;border-radius:4px;
-            padding:10px 12px;color:#d29922;font-size:12px;line-height:1.4">
-⚠ {_html_escape(HALLUCINATION_DISCLAIMER)}
+<!-- Header — engraved monogram + roman wordmark -->
+<table cellpadding="0" cellspacing="0" border="0" width="100%"
+       style="border-bottom:1px solid {ACCENT_COLOR};padding-bottom:14px">
+<tr>
+<td style="vertical-align:middle;width:46px">
+<!-- Monogram M, oxblood on cream, with hairline circle frame -->
+<div style="width:42px;height:42px;border:1px solid {BRAND_COLOR};
+            border-radius:50%;text-align:center;
+            line-height:42px;font-family:Georgia,serif;
+            font-size:22px;font-weight:400;color:{BRAND_COLOR};
+            letter-spacing:0">M</div>
+</td>
+<td style="vertical-align:middle;padding-left:16px">
+<div style="color:{TEXT_COLOR};font-family:Georgia,serif;font-size:20px;
+            font-weight:400;letter-spacing:0.14em">M U R P H Y</div>
+<div style="color:{MUTED_COLOR};font-family:Georgia,serif;font-style:italic;
+            font-size:11px;letter-spacing:0.04em;margin-top:2px">
+work, attended to
+</div>
+</td>
+<td style="vertical-align:middle;text-align:right;
+           color:{MUTED_COLOR};font-family:Georgia,serif;font-size:10px;
+           letter-spacing:0.14em;text-transform:uppercase">
+Calling Card
+</td>
+</tr></table>
+
+<!-- AI notice — hairline italic, not a yellow box -->
+<tr><td style="padding:14px 0 0 0">
+<div style="color:{MUTED_COLOR};font-family:Georgia,serif;font-size:11px;
+            font-style:italic;line-height:1.5;letter-spacing:0.01em">
+A note of candour — Murphy is an artificial assistant. Verify particulars before acting upon them. Reply <span style="color:{BRAND_COLOR}">STOP</span> to opt out.
 </div></td></tr>
 
 <!-- Reply body -->
-<tr><td style="padding:8px 0 16px 0;color:{TEXT_COLOR};font-size:14px">
-{_format_reply_html(sections["reply"])}
+<tr><td style="padding:20px 0 8px 0;color:{TEXT_COLOR};
+               font-family:Georgia,serif;font-size:15px;line-height:1.65">
+{reply_html}
 </td></tr>
 
-<!-- Ad slot -->
-<tr><td>{_format_ad_html(sections["ad_block"])}</td></tr>
+{ad_html}
 
-<!-- Compliance footer -->
-<tr><td>{_format_compliance_html(sections["compliance"])}</td></tr>
+<!-- Inner closing rule — brass hairline -->
+<tr><td style="padding:20px 0 0 0">
+<div style="height:1px;background:{LIGHT_RULE};margin-bottom:14px"></div>
+</td></tr>
 
-<!-- 31ar Murphy license footer (immutable per ToS) -->
-<tr><td>{_murphy_license_footer(license_id)}</td></tr>
+<!-- Compliance block — small caps -->
+<tr><td style="color:{MUTED_COLOR};font-family:Georgia,serif;font-size:10px;
+               line-height:1.7;letter-spacing:0.03em">
+{compliance_html}
+</td></tr>
 
-</table></td></tr></table>
+<!-- Murphy license footer (immutable per ToS) -->
+<tr><td style="padding-top:18px">
+{footer_html}
+</td></tr>
+
+</td></tr>
+</table>
+
+<!-- Outer signature — the stamp at the bottom of the page -->
+<div style="margin-top:12px;color:{MUTED_COLOR};
+            font-family:Georgia,serif;font-style:italic;
+            font-size:10px;letter-spacing:0.02em">
+Inoni LLC · Austin, Texas
+</div>
+
+</td></tr></table>
 </body></html>"""
-    return html
-
 
 def build_multipart_message(
     to_addr: str, subject: str, plain_body: str,
