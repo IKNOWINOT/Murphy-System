@@ -23364,6 +23364,9 @@ font-weight:600;color:#c9d1d9}}</style></head><body>
                     # _31aoLAUNCH_EXEMPT — public launch-readiness signal
                     "/hitl/",
                     "/api/hitl/",
+                    "/api/citl/",
+                    "/citl",
+                    "/api/health/citl",
                     "/api/health/hitl_loop",
                     "/api/health/approval_ladder",
                     "/api/health/email_boundary",
@@ -40221,6 +40224,134 @@ Your revision becomes training signal for Murphy. HITL ID: {hitl_id}
             return HTMLResponse(f"<p>Error: {e}</p>", status_code=500)
 
     # ─────────────────────────────────────────────────────────────
+    # ─────────────────────────────────────────────────────────────
+    # Ship 31bi.CITL — Computer In The Loop toggle endpoints
+    # ─────────────────────────────────────────────────────────────
+    @app.get("/api/citl/state")
+    async def _citl_get_state_31bi():
+        try:
+            from src.citl_31bi import citl_state
+            return citl_state()
+        except Exception as exc:
+            return {"error": str(exc)}
+
+    @app.post("/api/citl/toggle")
+    async def _citl_toggle_31bi(request: Request):
+        from fastapi.responses import JSONResponse
+        try:
+            body = await request.json()
+            enabled = bool(body.get("enabled", False))
+            set_by = body.get("set_by", "api")
+            reason = body.get("reason", "")
+            from src.citl_31bi import set_citl
+            result = set_citl(enabled, set_by, reason)
+            return result
+        except Exception as exc:
+            return JSONResponse({"ok": False, "error": str(exc)}, status_code=500)
+
+    @app.get("/citl/toggle")
+    async def _citl_ui_31bi():
+        """CITL toggle UI — Gatsby aesthetic, public (no money risk)."""
+        from fastapi.responses import HTMLResponse
+        from src.citl_31bi import is_citl_enabled, citl_state
+        enabled = is_citl_enabled()
+        st = citl_state()
+        on_decisions = st.get("decisions_24h", {})
+        toggle_state = "ON" if enabled else "OFF"
+        toggle_color = "#1e7e4a" if enabled else "#7a8aa8"
+        opposite = "false" if enabled else "true"
+        opposite_label = "Turn OFF" if enabled else "Turn ON"
+        opposite_color = "#7e1e2a" if enabled else "#1e7e4a"
+        return HTMLResponse(f"""<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Murphy CITL Toggle</title></head>
+<body style="margin:0;padding:40px 20px;background:#0a0f1e;font-family:Georgia,serif;color:#e8e6df;min-height:100vh">
+<div style="max-width:560px;margin:0 auto;background:#141a2c;border:1px solid #2a3142;border-radius:8px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.5)">
+<div style="background:linear-gradient(135deg,#141a2c,#1a2240);padding:32px;text-align:center;border-bottom:1px solid #d4af37">
+<div style="display:inline-block;width:48px;height:48px;border:1px solid #d4af37;border-radius:50%;line-height:46px;text-align:center;color:#d4af37;font-size:24px">M</div>
+<div style="color:#d4af37;font-size:11px;letter-spacing:4px;text-transform:uppercase;margin-top:14px">Murphy · Computer In The Loop</div>
+</div>
+<div style="padding:40px">
+<div style="text-align:center;margin-bottom:32px">
+<div style="display:inline-block;padding:8px 24px;background:{toggle_color};color:#fff;border-radius:24px;font-size:13px;letter-spacing:3px;text-transform:uppercase;font-weight:bold">CITL is {toggle_state}</div>
+</div>
+<div style="padding:18px;background:#0f1525;border-left:3px solid #d4af37;border-radius:4px;margin-bottom:24px">
+<div style="color:#d4af37;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px">What CITL does</div>
+<div style="color:#9ca7bc;font-size:13px;line-height:1.7">
+When <b style="color:#e8e6df">ON</b>, Base44 acts as the HITL approver in your place. Non-money HITLs go through automatically based on Base44's critique pass: <span style="color:#1e7e4a">pass→accept</span>, <span style="color:#d4af37">suggest→accept revision</span>, <span style="color:#7e1e2a">hold→reject</span>.
+<br><br>
+When <b style="color:#e8e6df">OFF</b>, every HITL waits for a human click.
+<br><br>
+<b style="color:#d4af37">Money decisions always require you</b> — CITL can never spend.
+</div>
+</div>
+<div style="padding:18px;background:#0f1525;border-radius:4px;margin-bottom:24px">
+<div style="color:#7a8aa8;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px">Last 24h activity</div>
+<div style="color:#e8e6df;font-size:13px;line-height:1.8">
+<div>auto_accept: <b>{on_decisions.get('auto_accept',0)}</b></div>
+<div>auto_accept_revision: <b>{on_decisions.get('auto_accept_revision',0)}</b></div>
+<div>auto_reject: <b>{on_decisions.get('auto_reject',0)}</b></div>
+<div>founder_required: <b>{on_decisions.get('founder_required',0)}</b></div>
+<div style="margin-top:10px;color:#d4af37">money_blocked: <b>{st.get('money_blocked_24h',0)}</b> (never auto)</div>
+</div>
+</div>
+<form id="toggle-form" method="POST" action="/api/citl/toggle" onsubmit="return handleToggle(event)">
+<button type="submit" style="width:100%;padding:16px;background:{opposite_color};color:#fff;border:none;border-radius:6px;font-family:Georgia,serif;font-size:14px;letter-spacing:2px;text-transform:uppercase;font-weight:bold;cursor:pointer">{opposite_label}</button>
+</form>
+<div style="text-align:center;margin-top:14px;color:#5a6478;font-size:11px">
+Click toggles state immediately. Reload to confirm.
+</div>
+</div>
+<div style="background:#0a0f1e;padding:18px;text-align:center;border-top:1px solid #2a3142;color:#5a6478;font-size:11px">
+Inoni LLC · Portland, OR · Murphy CITL controller
+</div>
+</div>
+<script>
+async function handleToggle(e) {{
+  e.preventDefault();
+  const btn = e.target.querySelector('button');
+  btn.textContent = 'Switching...';
+  try {{
+    const r = await fetch('/api/citl/toggle', {{
+      method: 'POST',
+      headers: {{'Content-Type': 'application/json'}},
+      body: JSON.stringify({{enabled: {opposite}, set_by: 'web_ui', reason: 'manual toggle'}})
+    }});
+    const data = await r.json();
+    if (data.ok) {{ setTimeout(() => location.reload(), 400); }}
+    else {{ btn.textContent = 'Error: ' + (data.error || 'unknown'); }}
+  }} catch (err) {{
+    btn.textContent = 'Error: ' + err.message;
+  }}
+  return false;
+}}
+</script>
+</body></html>""")
+
+    # ─────────────────────────────────────────────────────────────
+    # Ship 31bi — CITL health endpoint
+    # ─────────────────────────────────────────────────────────────
+    @app.get("/api/health/citl")
+    async def _health_citl_31bi():
+        from datetime import datetime, timezone
+        try:
+            from src.citl_31bi import citl_state, is_citl_enabled
+            s = citl_state()
+            return {
+                "ship":              "31bi.CITL",
+                "checked_at":        datetime.now(timezone.utc).isoformat(),
+                "status":            "healthy",
+                "citl_enabled":      is_citl_enabled(),
+                "last_toggle":       s.get("last_toggle"),
+                "decisions_24h":     s.get("decisions_24h", {}),
+                "by_source_24h":     s.get("by_source_24h", {}),
+                "money_blocked_24h": s.get("money_blocked_24h", 0),
+                "recent_decisions":  s.get("recent", []),
+                "policy":            "CITL ON → Base44 acts as HITL on non-money. Money ALWAYS founder.",
+                "toggle_ui":         "/citl",
+            }
+        except Exception as exc:
+            return {"ship": "31bi.CITL", "error": str(exc), "status": "audit_failed"}
+
     # Ship 31bh — health endpoint for the HITL loop
     # ─────────────────────────────────────────────────────────────
     @app.get("/api/health/hitl_loop")
