@@ -23362,6 +23362,7 @@ font-weight:600;color:#c9d1d9}}</style></head><body>
                 "/api/payments/nowpayments/checkout",
                 "/api/payments/nowpayments/webhook",
                     # _31aoLAUNCH_EXEMPT — public launch-readiness signal
+                    "/api/health/hitl_loop",
                     "/api/health/approval_ladder",
                     "/api/health/email_boundary",
                     "/api/health/tenant_isolation",
@@ -40047,6 +40048,198 @@ font-weight:600;color:#c9d1d9}}</style></head><body>
         }
 
 
+
+    # ─────────────────────────────────────────────────────────────
+    # Ship 31bh.HITL_LOOP — accept / reject / revise endpoints
+    # ─────────────────────────────────────────────────────────────
+    @app.get("/api/hitl/{hitl_id}/accept")
+    async def _hitl_accept_31bh(hitl_id: str):
+        """One-click accept from the HITL email."""
+        from datetime import datetime, timezone
+        import sqlite3
+        try:
+            conn = sqlite3.connect("/var/lib/murphy-production/hitl_jobs.db", timeout=10.0)
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS hitl_actions_31bh (
+                    hitl_id TEXT PRIMARY KEY,
+                    action TEXT,
+                    actioned_at TEXT,
+                    actioned_by TEXT
+                )
+            """)
+            row = conn.execute("SELECT action FROM hitl_actions_31bh WHERE hitl_id=?", (hitl_id,)).fetchone()
+            if row:
+                conn.close()
+                return HTMLResponse(f"""<!DOCTYPE html><html><body style="margin:0;padding:60px;background:#0a0f1e;font-family:Georgia,serif;color:#e8e6df;text-align:center">
+                <div style="max-width:480px;margin:0 auto;padding:32px;background:#141a2c;border:1px solid #d4af37;border-radius:8px">
+                <div style="color:#d4af37;font-size:32px">M</div>
+                <h2 style="color:#d4af37;margin:16px 0">Already actioned</h2>
+                <p>This HITL was {row[0]} previously.</p>
+                </div></body></html>""")
+            conn.execute(
+                "INSERT INTO hitl_actions_31bh (hitl_id, action, actioned_at, actioned_by) VALUES (?,?,?,?)",
+                (hitl_id, "accepted", datetime.now(timezone.utc).isoformat(), "email_click")
+            )
+            conn.commit()
+            conn.close()
+            return HTMLResponse(f"""<!DOCTYPE html><html><body style="margin:0;padding:60px;background:#0a0f1e;font-family:Georgia,serif;color:#e8e6df;text-align:center">
+            <div style="max-width:480px;margin:0 auto;padding:32px;background:#141a2c;border:1px solid #1e7e4a;border-radius:8px">
+            <div style="color:#d4af37;font-size:32px">M</div>
+            <h2 style="color:#1e7e4a;margin:16px 0">✓ Accepted</h2>
+            <p style="color:#7a8aa8">HITL {hitl_id} approved. Murphy will execute now.</p>
+            </div></body></html>""")
+        except Exception as e:
+            return HTMLResponse(f"<p>Error: {e}</p>", status_code=500)
+
+    @app.get("/api/hitl/{hitl_id}/reject")
+    async def _hitl_reject_31bh(hitl_id: str):
+        from datetime import datetime, timezone
+        import sqlite3
+        try:
+            conn = sqlite3.connect("/var/lib/murphy-production/hitl_jobs.db", timeout=10.0)
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS hitl_actions_31bh (
+                    hitl_id TEXT PRIMARY KEY, action TEXT, actioned_at TEXT, actioned_by TEXT
+                )
+            """)
+            row = conn.execute("SELECT action FROM hitl_actions_31bh WHERE hitl_id=?", (hitl_id,)).fetchone()
+            if row:
+                conn.close()
+                return HTMLResponse(f"<p>Already {row[0]}.</p>")
+            conn.execute(
+                "INSERT INTO hitl_actions_31bh (hitl_id, action, actioned_at, actioned_by) VALUES (?,?,?,?)",
+                (hitl_id, "rejected", datetime.now(timezone.utc).isoformat(), "email_click")
+            )
+            conn.commit()
+            conn.close()
+            return HTMLResponse(f"""<!DOCTYPE html><html><body style="margin:0;padding:60px;background:#0a0f1e;font-family:Georgia,serif;color:#e8e6df;text-align:center">
+            <div style="max-width:480px;margin:0 auto;padding:32px;background:#141a2c;border:1px solid #7e1e2a;border-radius:8px">
+            <div style="color:#d4af37;font-size:32px">M</div>
+            <h2 style="color:#7e1e2a;margin:16px 0">✗ Rejected</h2>
+            <p style="color:#7a8aa8">HITL {hitl_id} cancelled. Murphy will not execute this action.</p>
+            </div></body></html>""")
+        except Exception as e:
+            return HTMLResponse(f"<p>Error: {e}</p>", status_code=500)
+
+    @app.get("/hitl/{hitl_id}/revise")
+    async def _hitl_revise_form_31bh(hitl_id: str):
+        """Show the revise form — founder edits the message and submits."""
+        import sqlite3
+        original = ""
+        subject_matter = "unknown"
+        try:
+            conn = sqlite3.connect("/var/lib/murphy-production/critique_log.db", timeout=10.0)
+            row = conn.execute(
+                "SELECT subject_matter, murphy_original FROM critique_log "
+                "WHERE hitl_id=? ORDER BY id DESC LIMIT 1", (hitl_id,)
+            ).fetchone()
+            if row:
+                subject_matter = row[0]
+                original = row[1]
+            conn.close()
+        except Exception:
+            pass
+        import html as _html
+        return HTMLResponse(f"""<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Revise HITL {hitl_id}</title></head>
+<body style="margin:0;padding:40px 20px;background:#0a0f1e;font-family:Georgia,serif;color:#e8e6df">
+<div style="max-width:720px;margin:0 auto;background:#141a2c;border:1px solid #d4af37;border-radius:8px;overflow:hidden">
+<div style="background:linear-gradient(135deg,#141a2c,#1a2240);padding:24px;text-align:center;border-bottom:1px solid #d4af37">
+<div style="color:#d4af37;font-size:24px;font-family:Georgia,serif">M</div>
+<div style="color:#d4af37;font-size:11px;letter-spacing:4px;text-transform:uppercase;margin-top:10px">Revise · {_html.escape(subject_matter)}</div>
+</div>
+<form method="POST" action="/api/hitl/{hitl_id}/revise" style="padding:32px">
+<label style="display:block;color:#d4af37;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px">Murphy original</label>
+<div style="padding:14px;background:#0f1525;border-left:3px solid #7a8aa8;border-radius:4px;color:#9ca7bc;font-size:13px;white-space:pre-wrap;margin-bottom:24px">{_html.escape(original) or "(original not found)"}</div>
+<label style="display:block;color:#d4af37;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px">Your revision</label>
+<textarea name="revised_text" rows="14" style="width:100%;padding:14px;background:#0f1525;border:1px solid #2a3142;border-radius:4px;color:#e8e6df;font-family:Georgia,serif;font-size:14px;line-height:1.6;box-sizing:border-box" placeholder="Write the improved version here...">{_html.escape(original)}</textarea>
+<label style="display:block;color:#d4af37;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin:20px 0 10px">Note (optional — why this revision?)</label>
+<input type="text" name="reason_note" style="width:100%;padding:12px;background:#0f1525;border:1px solid #2a3142;border-radius:4px;color:#e8e6df;font-family:Georgia,serif;font-size:13px;box-sizing:border-box" placeholder="What did Murphy miss?">
+<input type="hidden" name="subject_matter" value="{_html.escape(subject_matter)}">
+<button type="submit" style="margin-top:24px;width:100%;padding:14px;background:#d4af37;color:#0a0f1e;border:none;border-radius:6px;font-family:Georgia,serif;font-size:14px;letter-spacing:2px;text-transform:uppercase;font-weight:bold;cursor:pointer">Send Revised Version</button>
+</form>
+<div style="background:#0a0f1e;padding:14px;text-align:center;border-top:1px solid #2a3142;color:#5a6478;font-size:11px">
+Your revision becomes training signal for Murphy. HITL ID: {hitl_id}
+</div>
+</div></body></html>""")
+
+    @app.post("/api/hitl/{hitl_id}/revise")
+    async def _hitl_revise_submit_31bh(hitl_id: str, request: Request):
+        from datetime import datetime, timezone
+        import sqlite3
+        try:
+            form = await request.form()
+            revised_text = form.get("revised_text", "")
+            reason_note = form.get("reason_note", "")
+            subject_matter = form.get("subject_matter", "unknown")
+            # Look up original
+            original = ""
+            try:
+                conn = sqlite3.connect("/var/lib/murphy-production/critique_log.db", timeout=10.0)
+                row = conn.execute(
+                    "SELECT murphy_original FROM critique_log "
+                    "WHERE hitl_id=? ORDER BY id DESC LIMIT 1", (hitl_id,)
+                ).fetchone()
+                if row: original = row[0]
+                conn.close()
+            except Exception:
+                pass
+            # Record revision
+            try:
+                from src.critique_loop_31bh import record_revision
+                result = record_revision(hitl_id, subject_matter, original,
+                                          revised_text, "email_revise", reason_note)
+            except Exception as e:
+                result = {"ok": False, "error": str(e)}
+            # Mark action
+            conn = sqlite3.connect("/var/lib/murphy-production/hitl_jobs.db", timeout=10.0)
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS hitl_actions_31bh (
+                    hitl_id TEXT PRIMARY KEY, action TEXT, actioned_at TEXT, actioned_by TEXT
+                )
+            """)
+            conn.execute(
+                "INSERT OR REPLACE INTO hitl_actions_31bh (hitl_id, action, actioned_at, actioned_by) VALUES (?,?,?,?)",
+                (hitl_id, "revised", datetime.now(timezone.utc).isoformat(), "email_revise")
+            )
+            conn.commit()
+            conn.close()
+            return HTMLResponse(f"""<!DOCTYPE html><html><body style="margin:0;padding:60px;background:#0a0f1e;font-family:Georgia,serif;color:#e8e6df;text-align:center">
+            <div style="max-width:480px;margin:0 auto;padding:32px;background:#141a2c;border:1px solid #d4af37;border-radius:8px">
+            <div style="color:#d4af37;font-size:32px">M</div>
+            <h2 style="color:#d4af37;margin:16px 0">✓ Revision Sent</h2>
+            <p style="color:#7a8aa8">Murphy will send your version. Your edits are now training signal.</p>
+            <p style="color:#5a6478;font-size:12px;margin-top:20px">char delta: {result.get('char_delta',0)} · word delta: {result.get('word_delta',0)}</p>
+            </div></body></html>""")
+        except Exception as e:
+            return HTMLResponse(f"<p>Error: {e}</p>", status_code=500)
+
+    # ─────────────────────────────────────────────────────────────
+    # Ship 31bh — health endpoint for the HITL loop
+    # ─────────────────────────────────────────────────────────────
+    @app.get("/api/health/hitl_loop")
+    async def _health_hitl_loop_31bh():
+        from datetime import datetime, timezone
+        try:
+            from src.critique_loop_31bh import stats as critique_stats
+            from src.hitl_recipients_31bh import HITL_RECIPIENTS
+            s = critique_stats()
+            crits = s.get("critiques_24h", {})
+            total_crits = sum(crits.values())
+            return {
+                "ship":              "31bh.HITL_LOOP",
+                "checked_at":        datetime.now(timezone.utc).isoformat(),
+                "status":            "healthy",
+                "recipients":        list(HITL_RECIPIENTS),
+                "critiques_24h":     crits,
+                "total_critiques":   total_crits,
+                "money_skipped_24h": s.get("money_skipped_24h", 0),
+                "revisions_24h":     s.get("revisions_24h", 0),
+                "recent_revisions":  s.get("recent_revisions", []),
+                "policy":            "All HITLs → 4 recipients. Base44 auto-critique on non-money only. Revisions become ML signal.",
+            }
+        except Exception as exc:
+            return {"ship": "31bh.HITL_LOOP", "error": str(exc), "status": "audit_failed"}
 
     # Ship 31bg.APPROVAL_LADDER — hierarchy approval stats
     @app.get("/api/health/approval_ladder")

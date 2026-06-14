@@ -27,11 +27,10 @@ PRINCIPLE
 PRIMARY_FOUNDER_EMAIL = "cpost@murphy.systems"
 
 # ─── all known Corey addresses (for identity verification) ───
-# Added 2026-06-13: corey.hfc@gmail.com per founder direction
+# Canonical founder set (corey.hfc was a typo, removed 2026-06-13)
 FOUNDER_EMAILS = frozenset({
     "cpost@murphy.systems",
     "corey.gfc@gmail.com",
-    "corey.hfc@gmail.com",
     "corey.eecs@gmail.com",
 })
 
