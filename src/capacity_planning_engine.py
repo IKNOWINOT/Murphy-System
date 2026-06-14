@@ -25,6 +25,13 @@ PII stored.
 from __future__ import annotations
 
 import logging
+
+# Ship 31bd — capacity dedupe
+try:
+    from src.capacity_dedupe_31bd import should_emit as _capacity_should_emit_31bd
+except Exception:
+    _capacity_should_emit_31bd = lambda *a, **k: True
+
 import math
 import threading
 import time

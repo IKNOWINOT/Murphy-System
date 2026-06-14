@@ -9,6 +9,13 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+
+# Ship 31bd — capacity dedupe
+try:
+    from src.capacity_dedupe_31bd import should_emit as _capacity_should_emit_31bd
+except Exception:
+    _capacity_should_emit_31bd = lambda *a, **k: True
+
 import sqlite3
 import uuid
 import datetime as _dt

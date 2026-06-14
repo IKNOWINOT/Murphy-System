@@ -24,8 +24,16 @@ from typing import Dict, List, Optional
 
 logger = logging.getLogger("murphy.agent_email")
 
-# Human CCs — always copied on every agent email
-HUMAN_CC = ["cpost@murphy.systems", "hpost@murphy.systems"]
+# Ship 31bd — HUMAN_CC was previously hardcoded to send EVERY swarm
+# message to the founder's real inbox. 657 self-loops in 24h was the
+# result. Now the founder is CC'd ONLY when MURPHY_CC_FOUNDER_ON_SWARM=1.
+# Default behaviour: swarm chatter stays inside @murphy.systems.
+import os
+def _swarm_cc_targets():
+    if os.environ.get("MURPHY_CC_FOUNDER_ON_SWARM", "0") == "1":
+        return ["cpost@murphy.systems", "hpost@murphy.systems"]
+    return []
+HUMAN_CC = _swarm_cc_targets()
 
 # Agent email addresses
 AGENT_EMAILS: Dict[str, Dict] = {
