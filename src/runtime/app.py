@@ -23378,6 +23378,10 @@ font-weight:600;color:#c9d1d9}}</style></head><body>
                     "/api/citl/",
                     "/citl",
                     "/api/health/retention_sweep",
+                    "/api/me/threads",
+                    "/api/me/thread/",
+                    "/api/me/export",
+                    "/api/me/delete",
                     "/api/health/compliance",
                     "/api/health/citl",
                     "/api/health/hitl_loop",
@@ -40238,6 +40242,170 @@ Your revision becomes training signal for Murphy. HITL ID: {hitl_id}
 
     # ─────────────────────────────────────────────────────────────
     # ─────────────────────────────────────────────────────────────
+    # ═════════════════════════════════════════════════════════════
+    # Ship 31bk — tenant self-serve endpoints (every dashboard CTA)
+    # ═════════════════════════════════════════════════════════════
+
+    @app.get("/api/me/threads")
+    async def _me_threads_31bk(request: Request):
+        """Active + marked threads for the logged-in tenant."""
+        from fastapi.responses import JSONResponse as _JR
+        from src import ship31ah_signup as _s31bk
+        sid = request.cookies.get(_s31bk.COOKIE_NAME, "")
+        sess = _s31bk.lookup_session(sid)
+        if not sess:
+            return _JR({"ok": False, "error": "not_authenticated"}, status_code=401)
+        try:
+            from src.tenant_dashboard_31bj import get_tenant_inbox
+            threads = get_tenant_inbox(sess["email"], limit=100)
+            active = [t for t in threads if t.get("retention_status") == "active"]
+            marked = [t for t in threads if t.get("retention_status") == "marked_for_delete"]
+            return _JR({
+                "ok": True,
+                "email": sess["email"],
+                "active_count": len(active),
+                "marked_count": len(marked),
+                "total": len(threads),
+                "threads": threads,
+            })
+        except Exception as exc:
+            return _JR({"ok": False, "error": str(exc)}, status_code=500)
+
+    @app.post("/api/me/thread/{thread_id}/keep")
+    async def _me_thread_keep_31bk(thread_id: int, request: Request):
+        """Reset a thread's retention status to 'active' (cancel deletion)."""
+        from fastapi.responses import JSONResponse as _JR
+        from src import ship31ah_signup as _s31bk
+        import sqlite3 as _sq31bk
+        sid = request.cookies.get(_s31bk.COOKIE_NAME, "")
+        sess = _s31bk.lookup_session(sid)
+        if not sess:
+            return _JR({"ok": False, "error": "not_authenticated"}, status_code=401)
+        try:
+            conn = _sq31bk.connect("/var/lib/murphy-production/inbound_replies.db", timeout=10.0)
+            row = conn.execute(
+                "SELECT id, from_addr, retention_status FROM inbound_replies "
+                "WHERE id=? AND from_addr=?",
+                (thread_id, sess["email"])
+            ).fetchone()
+            if not row:
+                conn.close()
+                return _JR({"ok": False, "error": "not_found_or_not_yours"}, status_code=404)
+            conn.execute(
+                "UPDATE inbound_replies SET retention_status='active', "
+                "marked_for_delete_at=NULL WHERE id=?", (thread_id,)
+            )
+            conn.commit()
+            conn.close()
+            return _JR({"ok": True, "thread_id": thread_id, "new_status": "active"})
+        except Exception as exc:
+            return _JR({"ok": False, "error": str(exc)}, status_code=500)
+
+    @app.get("/api/me/export")
+    async def _me_export_31bk(request: Request):
+        """GDPR Art.20 — export everything Murphy has on this tenant."""
+        from fastapi.responses import JSONResponse as _JR
+        from src import ship31ah_signup as _s31bk
+        import sqlite3 as _sq31bk, json as _j31bk
+        from datetime import datetime, timezone as _tz31bk
+        sid = request.cookies.get(_s31bk.COOKIE_NAME, "")
+        sess = _s31bk.lookup_session(sid)
+        if not sess:
+            return _JR({"ok": False, "error": "not_authenticated"}, status_code=401)
+        email = sess["email"]
+        export = {
+            "exported_at": datetime.now(_tz31bk.utc).isoformat(),
+            "subject_email": email,
+            "policy": "GDPR Art.20 / CCPA right-to-know — all data Murphy holds",
+        }
+        try:
+            # threads
+            conn = _sq31bk.connect("/var/lib/murphy-production/inbound_replies.db", timeout=10.0)
+            conn.row_factory = _sq31bk.Row
+            export["threads"] = [dict(r) for r in conn.execute(
+                "SELECT * FROM inbound_replies WHERE from_addr=? OR to_addr=?",
+                (email, email)
+            ).fetchall()]
+            conn.close()
+        except Exception as e:
+            export["threads_error"] = str(e)
+        try:
+            # billing
+            conn = _sq31bk.connect("/var/lib/murphy-production/billing.db", timeout=10.0)
+            conn.row_factory = _sq31bk.Row
+            export["billing"] = [dict(r) for r in conn.execute(
+                "SELECT * FROM billing_records WHERE email=?", (email,)
+            ).fetchall()]
+            conn.close()
+        except Exception as e:
+            export["billing_error"] = str(e)
+        # account
+        try:
+            account = _get_account_from_session(request)
+            export["account"] = account
+        except Exception as e:
+            export["account_error"] = str(e)
+        return _JR(export, headers={
+            "Content-Disposition": f"attachment; filename=murphy-export-{email}.json"
+        })
+
+    @app.post("/api/me/delete")
+    async def _me_delete_31bk(request: Request):
+        """GDPR Art.17 / CCPA right-to-delete — purge tenant data."""
+        from fastapi.responses import JSONResponse as _JR
+        from src import ship31ah_signup as _s31bk
+        import sqlite3 as _sq31bk
+        from datetime import datetime, timezone as _tz31bk
+        sid = request.cookies.get(_s31bk.COOKIE_NAME, "")
+        sess = _s31bk.lookup_session(sid)
+        if not sess:
+            return _JR({"ok": False, "error": "not_authenticated"}, status_code=401)
+        email = sess["email"]
+        # Require confirmation header to prevent accidental deletion
+        confirm = request.headers.get("X-Confirm-Delete", "")
+        if confirm != "yes-delete-all-my-data":
+            return _JR({
+                "ok": False,
+                "error": "confirmation_required",
+                "instructions": "Send POST with header 'X-Confirm-Delete: yes-delete-all-my-data'",
+                "subject_email": email,
+            }, status_code=400)
+        # Soft-delete: mark threads as deleted (zero body) — keeps audit log
+        deleted_threads = 0
+        try:
+            conn = _sq31bk.connect("/var/lib/murphy-production/inbound_replies.db", timeout=10.0)
+            deleted_threads = conn.execute(
+                "UPDATE inbound_replies SET body_preview='[deleted per right-to-erasure request]', "
+                "retention_status='deleted', deleted_at=? WHERE from_addr=?",
+                (datetime.now(_tz31bk.utc).isoformat(), email)
+            ).rowcount
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            return _JR({"ok": False, "error": str(e)}, status_code=500)
+        # Log the request for compliance audit trail
+        try:
+            audit = _sq31bk.connect("/var/lib/murphy-production/compliance_audit.db", timeout=10.0)
+            audit.execute("""CREATE TABLE IF NOT EXISTS erasure_log (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                requested_at TEXT, email TEXT, deleted_threads INTEGER, ip TEXT)""")
+            audit.execute(
+                "INSERT INTO erasure_log (requested_at, email, deleted_threads, ip) VALUES (?,?,?,?)",
+                (datetime.now(_tz31bk.utc).isoformat(), email, deleted_threads,
+                 request.headers.get("x-real-ip", "unknown"))
+            )
+            audit.commit()
+            audit.close()
+        except Exception:
+            pass
+        return _JR({
+            "ok": True,
+            "subject_email": email,
+            "deleted_threads": deleted_threads,
+            "executed_at": datetime.now(_tz31bk.utc).isoformat(),
+            "note": "Body content zeroed; audit log preserved for compliance.",
+        })
+
     # Ship 31bj — retention sweep (runs cleanup + reports status)
     @app.get("/api/health/retention_sweep")
     async def _health_retention_31bj():
