@@ -5026,23 +5026,7 @@ def create_app() -> FastAPI:
 
         return JSONResponse(out)
 
-    @app.get("/os", include_in_schema=False)
-    async def _murphy_os_page(request: Request):
-        """Murphy OS — serves the modern 96KB Autonomous Operations dashboard.
-        2026-05-27: rewired from old 41KB Command Center to the static modern
-        dashboard at /static/murphy-os.html (47 live API hooks vs 12 in old)."""
-        import os as _osp350
-        from fastapi.responses import FileResponse as _FR350, HTMLResponse as _HR350
-        modern = "/opt/Murphy-System/static/murphy-os.html"
-        if _osp350.path.isfile(modern):
-            return _FR350(modern, media_type="text/html")
-        legacy = "/opt/Murphy-System/murphy_os.html"
-        if _osp350.path.isfile(legacy):
-            with open(legacy, "r", encoding="utf-8") as _f350:
-                return _HR350(_f350.read())
-        return _HR350("<h1>Murphy OS loading...</h1>")
-
-
+    # Ship 31br — duplicate /os handler removed; canonical handler at line 5296 below
 
     # ── Ship 31i.C: /os/stranger founder dashboard ──────────────────
     @app.get("/os/stranger", include_in_schema=False)
@@ -5281,15 +5265,28 @@ def create_app() -> FastAPI:
         except Exception:
             pass
         snap = _s.get_tenant_snapshot(sess["tenant_id"], sess["account_id"], sess["email"])
+        # Ship 31br — founder view-as override
+        _view_as_tier_31br = None
+        try:
+            from src.founder_os_31br import get_view_as_tier as _gvt
+            _view_as_tier_31br = _gvt(sid)
+        except Exception:
+            pass
+        _actual_tier = (snap.get("subscription", {}) or {}).get("tier", "free")
+        _render_tier = _view_as_tier_31br or _actual_tier
         # Ship 31bj — real tenant dashboard
         try:
             from src.tenant_dashboard_31bj import tenant_dashboard_html as _tdh_31bj
-            return HTMLResponse(_tdh_31bj(
+            _html_31br = _tdh_31bj(
                 email=sess["email"],
-                tier=(snap.get("subscription", {}) or {}).get("tier", "free"),
+                tier=_render_tier,
                 tenant_id=sess.get("tenant_id", ""),
                 usage=snap.get("usage", {}),
-            ))
+            )
+            if _view_as_tier_31br:
+                from src.founder_os_31br import inject_founder_nav as _ifn
+                _html_31br = _ifn(_html_31br)
+            return HTMLResponse(_html_31br)
         except Exception:
             return HTMLResponse(_dashboard_html(snap, welcome=bool(welcome)))
 
@@ -5318,11 +5315,59 @@ def create_app() -> FastAPI:
         import os as _osp_is
         modern = "/opt/Murphy-System/static/murphy-os.html"
         if _osp_is.path.isfile(modern):
-            return FileResponse(modern, media_type="text/html")
+            # Ship 31br — inject founder nav bar
+            from src.founder_os_31br import inject_founder_nav
+            with open(modern, "r", encoding="utf-8") as _fos:
+                return HTMLResponse(inject_founder_nav(_fos.read()))
         return HTMLResponse(
             "<h1>Inoni System</h1><p>Platform admin surface — "
             "OS dashboard not found.</p>"
         )
+
+    # ── Ship 31br.FOUNDER_OS — nav + view-as-tier ──────────────────
+    @app.get("/os/view-as", include_in_schema=False)
+    async def _view_as_chooser_31br(request: Request):
+        from fastapi.responses import HTMLResponse, RedirectResponse
+        from src import ship31ah_signup as _s
+        sid = request.cookies.get(_s.COOKIE_NAME, "")
+        sess = _s.lookup_session(sid)
+        if not sess: return RedirectResponse("/login?msg=login_required", status_code=302)
+        u = _s.get_user_by_email(sess["email"])
+        role = ((u or {}).get("data", {}) or {}).get("role", "").lower()
+        if role not in ("owner","founder","platform_admin","platform_staff"):
+            return RedirectResponse("/dashboard", status_code=302)
+        from src.founder_os_31br import view_as_chooser_html, inject_founder_nav
+        return HTMLResponse(inject_founder_nav(view_as_chooser_html()))
+
+    @app.get("/os/view-as/{tier}", include_in_schema=False)
+    async def _view_as_set_31br(tier: str, request: Request):
+        from fastapi.responses import RedirectResponse
+        from src import ship31ah_signup as _s
+        sid = request.cookies.get(_s.COOKIE_NAME, "")
+        sess = _s.lookup_session(sid)
+        if not sess: return RedirectResponse("/login?msg=login_required", status_code=302)
+        u = _s.get_user_by_email(sess["email"])
+        role = ((u or {}).get("data", {}) or {}).get("role", "").lower()
+        if role not in ("owner","founder","platform_admin","platform_staff"):
+            return RedirectResponse("/dashboard", status_code=302)
+        from src.founder_os_31br import set_view_as_tier, VALID_TIERS
+        if tier == "clear":
+            set_view_as_tier(sid, None)
+            return RedirectResponse("/os", status_code=302)
+        if tier in VALID_TIERS:
+            set_view_as_tier(sid, tier)
+            return RedirectResponse("/dashboard", status_code=302)
+        return RedirectResponse("/os/view-as", status_code=302)
+
+    @app.get("/api/founder/view-as", include_in_schema=False)
+    async def _view_as_api_31br(request: Request):
+        from fastapi.responses import JSONResponse
+        from src import ship31ah_signup as _s
+        sid = request.cookies.get(_s.COOKIE_NAME, "")
+        if not sid: return JSONResponse({"tier": None})
+        from src.founder_os_31br import get_view_as_tier
+        return JSONResponse({"tier": get_view_as_tier(sid)})
+
 
     # ── Ship 31an.HITL — gate control endpoints ─────────────────────
     def _hitl_require_platform_admin(request: Request):
