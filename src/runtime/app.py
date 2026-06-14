@@ -23382,6 +23382,8 @@ font-weight:600;color:#c9d1d9}}</style></head><body>
                     "/api/me/thread/",
                     "/api/me/export",
                     "/api/me/delete",
+                    "/api/health/referral",
+                    "/r/",
                     "/api/health/api_patcher",
                     "/api/health/canspam",
                     "/api/health/compliance",
@@ -40407,6 +40409,43 @@ Your revision becomes training signal for Murphy. HITL ID: {hitl_id}
             "executed_at": datetime.now(_tz31bk.utc).isoformat(),
             "note": "Body content zeroed; audit log preserved for compliance.",
         })
+
+    # Ship 31bn — Murphy referral/revenue ledger
+    @app.get("/api/health/referral")
+    async def _health_referral_31bn():
+        from datetime import datetime, timezone
+        try:
+            from src.revenue_ledger_31bn import stats
+            s = stats(30)
+            return {
+                "ship":      "31bn.REFERRAL",
+                "checked_at": datetime.now(timezone.utc).isoformat(),
+                "status":    "healthy",
+                **s,
+            }
+        except Exception as e:
+            return {"ship": "31bn.REFERRAL", "error": str(e), "status": "audit_failed"}
+
+    # Ship 31bn — click handler (when someone clicks a Murphy-tracked link)
+    @app.get("/r/{tracking_id}")
+    async def _referral_click_31bn(tracking_id: str):
+        """Record click + redirect to clean URL."""
+        from fastapi.responses import RedirectResponse, JSONResponse
+        try:
+            from src.revenue_ledger_31bn import record_click
+            import sqlite3
+            record_click(tracking_id)
+            conn = sqlite3.connect("/var/lib/murphy-production/murphy_referral_ledger.db", timeout=10.0)
+            row = conn.execute(
+                "SELECT tracked_url FROM murphy_referral_ledger WHERE tracking_id=?",
+                (tracking_id,)
+            ).fetchone()
+            conn.close()
+            if row and row[0]:
+                return RedirectResponse(row[0], status_code=302)
+        except Exception:
+            pass
+        return JSONResponse({"ok": False, "error": "unknown_tracking_id"}, status_code=404)
 
     # Ship 31bm.API_PATCHER — slow audit of ingested APIs
     @app.get("/api/health/api_patcher")

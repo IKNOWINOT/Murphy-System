@@ -199,6 +199,19 @@ def patch_one() -> Dict:
     http_code, elapsed_ms, err = _probe(test_url)
     new_status, fit_score, reason = _classify(api, http_code, elapsed_ms, err)
 
+    # Ship 31bn — wrap successful URLs with Murphy tracking so future
+    # outbound link embeds carry our ref code, not third-party affiliate codes
+    tracked_url_31bn = ""
+    if new_status in ("active", "needs_auth"):
+        try:
+            from src.revenue_ledger_31bn import rewrite_link
+            rw = rewrite_link(test_url, recipient="system", tenant_id="murphy_platform",
+                              context=f"api_registry/{api['id']}")
+            if rw.get("ok"):
+                tracked_url_31bn = rw["tracked_url"]
+        except Exception:
+            pass
+
     # Update
     conn = sqlite3.connect(DB, timeout=15.0)
     conn.execute("""UPDATE api_registry SET
