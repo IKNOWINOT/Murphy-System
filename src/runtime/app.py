@@ -40014,6 +40014,31 @@ font-weight:600;color:#c9d1d9}}</style></head><body>
     # ── end R420 ──────────────────────────────────────────────────────
 
 
+    # Ship 31bp — public compliance pages MUST be registered BEFORE R445 catchall
+    # so the specific routes match first. FastAPI matches in declaration order.
+    @app.get("/privacy", include_in_schema=False)
+    async def _privacy_31bp():
+        from fastapi.responses import HTMLResponse
+        from src.public_compliance_31bp import privacy_html
+        return HTMLResponse(privacy_html())
+
+    @app.get("/breach-notification", include_in_schema=False)
+    async def _breach_31bp():
+        from fastapi.responses import HTMLResponse
+        from src.public_compliance_31bp import breach_html
+        return HTMLResponse(breach_html())
+
+    @app.get("/sub-processors", include_in_schema=False)
+    async def _subproc_31bp():
+        from fastapi.responses import HTMLResponse
+        from src.public_compliance_31bp import sub_processors_html
+        return HTMLResponse(sub_processors_html())
+
+    @app.get("/dpa", include_in_schema=False)
+    async def _dpa_31bp():
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse("/sub-processors", status_code=302)
+
     # ══════════════════════════════════════════════════════════════════════
     # R445 — Root-level tenant catchall: murphy.systems/<slug> → tenant page
     # MUST be the last route registered so it doesn't shadow specific routes.
@@ -40409,31 +40434,6 @@ Your revision becomes training signal for Murphy. HITL ID: {hitl_id}
             "executed_at": datetime.now(_tz31bk.utc).isoformat(),
             "note": "Body content zeroed; audit log preserved for compliance.",
         })
-
-    # Ship 31bp — public compliance pages (privacy + breach + sub-processors)
-    @app.get("/privacy", include_in_schema=False)
-    async def _privacy_31bp():
-        from fastapi.responses import HTMLResponse
-        from src.public_compliance_31bp import privacy_html
-        return HTMLResponse(privacy_html())
-
-    @app.get("/breach-notification", include_in_schema=False)
-    async def _breach_31bp():
-        from fastapi.responses import HTMLResponse
-        from src.public_compliance_31bp import breach_html
-        return HTMLResponse(breach_html())
-
-    @app.get("/sub-processors", include_in_schema=False)
-    async def _subproc_31bp():
-        from fastapi.responses import HTMLResponse
-        from src.public_compliance_31bp import sub_processors_html
-        return HTMLResponse(sub_processors_html())
-
-    # Add /dpa as alias for sub-processors (some auditors look here)
-    @app.get("/dpa", include_in_schema=False)
-    async def _dpa_31bp():
-        from fastapi.responses import RedirectResponse
-        return RedirectResponse("/sub-processors", status_code=302)
 
     # Ship 31bn — Murphy referral/revenue ledger
     @app.get("/api/health/referral")
