@@ -40210,6 +40210,117 @@ font-weight:600;color:#c9d1d9}}</style></head><body>
             "gap_count": len(gaps),
         }
 
+    # Ship 31cb — autonomy posture toggle (founder-only, sets temporal-disability mode)
+    @app.get("/api/autonomy/posture", include_in_schema=False)
+    async def _autonomy_get_posture_31cb(request: Request):
+        actor = getattr(request.state, "actor", {}) or {}
+        if not actor.get("is_founder"):
+            from fastapi.responses import JSONResponse
+            return JSONResponse({"error":"founder only"}, status_code=403)
+        from src.autonomy_policy_31cb import get_posture, get_stats
+        return {"posture": get_posture(), "stats": get_stats(24)}
+
+    @app.post("/api/autonomy/posture", include_in_schema=False)
+    async def _autonomy_set_posture_31cb(request: Request):
+        actor = getattr(request.state, "actor", {}) or {}
+        if not actor.get("is_founder"):
+            from fastapi.responses import JSONResponse
+            return JSONResponse({"error":"founder only"}, status_code=403)
+        body = await request.json()
+        posture = body.get("posture", "OFF")
+        reason = body.get("reason", "")
+        from src.autonomy_policy_31cb import set_posture
+        return set_posture(posture, set_by=actor.get("email","founder"), reason=reason)
+
+    @app.get("/os/autonomy", include_in_schema=False)
+    async def _autonomy_ui_31cb(request: Request):
+        from fastapi.responses import HTMLResponse, RedirectResponse
+        actor = getattr(request.state, "actor", {}) or {}
+        if not actor.get("is_founder"):
+            return RedirectResponse("/os", status_code=302)
+        from src.autonomy_policy_31cb import get_posture, get_stats
+        p = get_posture(); st = get_stats(24)
+        decisions = st.get("decisions_last_24h", {})
+        rows = "".join(f"<tr><td>{k}</td><td>{v}</td></tr>" for k,v in decisions.items()) or "<tr><td colspan=2>no decisions yet</td></tr>"
+        on_class = "on" if p == "AUTONOMOUS" else ("assist" if p == "ASSIST" else "off")
+        html = f"""<!doctype html><html><head><meta charset="utf-8">
+<title>Murphy — Autonomy Posture</title>
+<style>
+body {{ background:#0a1228; color:#f4ead5; font-family:'Cormorant Garamond',Georgia,serif; margin:0; padding:60px 40px; min-height:100vh; }}
+h1 {{ font-size:48px; color:#d4af37; font-weight:400; margin:0 0 16px; letter-spacing:1px; }}
+h2 {{ font-size:22px; color:#d4af37; font-weight:400; margin:32px 0 12px; }}
+.card {{ background:#0d1736; border:1px solid #1f2d52; padding:32px 36px; border-radius:6px; max-width:780px; margin:0 auto 24px; }}
+.posture {{ font-size:64px; text-align:center; letter-spacing:3px; margin:24px 0; padding:24px; border-radius:4px; }}
+.posture.off {{ background:#1a1010; color:#8a4a4a; border:2px solid #4a2424; }}
+.posture.assist {{ background:#101a1a; color:#8a7a4a; border:2px solid #4a4424; }}
+.posture.on {{ background:#10211a; color:#4ad4af; border:2px solid #1f6d4a; }}
+button {{ background:#1f2d52; color:#f4ead5; border:1px solid #d4af37; padding:14px 28px; font-family:inherit; font-size:18px; cursor:pointer; margin:6px; border-radius:4px; transition:all 0.2s; }}
+button:hover {{ background:#d4af37; color:#0a1228; }}
+button.danger {{ border-color:#8a4a4a; }}
+button.danger:hover {{ background:#8a4a4a; color:#f4ead5; }}
+table {{ width:100%; border-collapse:collapse; }}
+td {{ padding:8px 12px; border-bottom:1px solid #1f2d52; }}
+td:first-child {{ color:#d4af37; }}
+.rule {{ color:#a08866; font-style:italic; margin:6px 0; }}
+a {{ color:#d4af37; }}
+</style></head><body>
+<div class="card">
+<h1>Autonomy Posture</h1>
+<p>This is your temporal-disability assistance toggle. Flip it when you can't be here to make calls yourself.</p>
+<div class="posture {on_class}">{p}</div>
+<form id="f" onsubmit="return false">
+<button onclick="setp('AUTONOMOUS')">⚡ AUTONOMOUS — work alone within risk bands</button>
+<button onclick="setp('ASSIST')">📋 ASSIST — draft everything, never auto-apply</button>
+<button class="danger" onclick="setp('OFF')">⏸ OFF — pause all autonomous work</button>
+</form>
+</div>
+
+<div class="card">
+<h2>Hard rails (always enforced)</h2>
+<div class="rule">• Money operations → founder, always</div>
+<div class="rule">• New third-party outbound email → founder, always</div>
+<div class="rule">• Legal / binding actions → founder, always</div>
+<div class="rule">• Kernel hot path (src/runtime/app.py edits) → founder, always</div>
+<div class="rule">• Compliance rule changes → founder, always</div>
+</div>
+
+<div class="card">
+<h2>Risk-band behavior in AUTONOMOUS mode</h2>
+<table>
+<tr><td>LOW risk</td><td>auto-apply (snapshot first, rollback on degrade)</td></tr>
+<tr><td>MEDIUM risk</td><td>draft to /api/self/proposals for your review</td></tr>
+<tr><td>HIGH risk</td><td>HITL email — wait for founder</td></tr>
+<tr><td>CRITICAL risk</td><td>HITL + alarm — wait for founder</td></tr>
+</table>
+</div>
+
+<div class="card">
+<h2>Decisions logged in last 24h</h2>
+<table>{rows}</table>
+</div>
+
+<div class="card">
+<h2>Links</h2>
+<p><a href="/api/self/proposals">/api/self/proposals</a> — drafted patches awaiting review</p>
+<p><a href="/citl/toggle">/citl/toggle</a> — the original CITL toggle (separate, also yours)</p>
+<p><a href="/os">/os</a> — founder console</p>
+</div>
+
+<script>
+async function setp(posture) {{
+  const reason = posture === 'OFF' ? 'founder pause' : 'founder activated ' + posture;
+  const r = await fetch('/api/autonomy/posture', {{
+    method:'POST', headers:{{'Content-Type':'application/json'}},
+    body: JSON.stringify({{posture, reason}})
+  }});
+  const j = await r.json();
+  if (j.ok) location.reload();
+  else alert('Failed: ' + (j.error || 'unknown'));
+}}
+</script>
+</body></html>"""
+        return HTMLResponse(html)
+
     # Ship 31bp — public compliance pages MUST be registered BEFORE R445 catchall
     # so the specific routes match first. FastAPI matches in declaration order.
     @app.get("/privacy", include_in_schema=False)
