@@ -40321,6 +40321,116 @@ async function setp(posture) {{
 </body></html>"""
         return HTMLResponse(html)
 
+    # Ship 31ci — personalized demo page (THE homepage demo)
+    @app.get("/demo", include_in_schema=False)
+    @app.get("/business", include_in_schema=False)
+    async def _personalized_demo_31ci(request: Request):
+        from fastapi.responses import HTMLResponse
+        from src.personalized_demo_31ci import get_page
+        html, visitor_id, _ = get_page(request)
+        resp = HTMLResponse(html)
+        # set first-party visitor cookie if missing
+        if not request.cookies.get("murphy_visitor_id"):
+            resp.set_cookie("murphy_visitor_id", visitor_id, max_age=60*60*24*365,
+                            samesite="lax", path="/")
+        return resp
+
+    @app.get("/demo/preview", include_in_schema=False)
+    async def _personalized_demo_preview_31ci(request: Request):
+        """Founder-only: forces personalization, bypasses cache, no cookie set."""
+        from fastapi.responses import HTMLResponse, RedirectResponse
+        actor = getattr(request.state, "actor", {}) or {}
+        if not actor.get("is_founder"):
+            return RedirectResponse("/demo", status_code=302)
+        from src.personalized_demo_31ci import get_page
+        html, _, _ = get_page(request, force_personalize=True, no_cache=True)
+        return HTMLResponse(html)
+
+    @app.get("/api/founder/demo/stats", include_in_schema=False)
+    async def _personalized_demo_stats_31ci(request: Request):
+        from fastapi.responses import JSONResponse
+        actor = getattr(request.state, "actor", {}) or {}
+        if not actor.get("is_founder"):
+            return JSONResponse({"error": "founder only"}, status_code=403)
+        from src.personalized_demo_31ci import get_visit_stats
+        return get_visit_stats(24)
+
+    # Ship 31ck — tenant member management (admin-only)
+    @app.get("/api/founder/tenant/{tenant_id}/members", include_in_schema=False)
+    async def _members_list_31ck(tenant_id: str, request: Request):
+        actor = getattr(request.state, "actor", {}) or {}
+        if not actor.get("is_founder"):
+            from src.tenant_members_31ck import is_admin
+            if not is_admin(tenant_id, actor.get("account_id","")):
+                from fastapi.responses import JSONResponse
+                return JSONResponse({"error":"admin_only"}, status_code=403)
+        from src.tenant_members_31ck import list_members, list_invites, get_seat_usage
+        return {"members": list_members(tenant_id),
+                "pending_invites": list_invites(tenant_id, "pending"),
+                "seats": get_seat_usage(tenant_id)}
+
+    @app.post("/api/founder/tenant/{tenant_id}/members/invite", include_in_schema=False)
+    async def _members_invite_31ck(tenant_id: str, request: Request):
+        actor = getattr(request.state, "actor", {}) or {}
+        body = await request.json()
+        from src.tenant_members_31ck import create_invite
+        from fastapi.responses import JSONResponse
+        result = create_invite(tenant_id, actor.get("account_id",""),
+                               body.get("email",""), body.get("role","member"))
+        return JSONResponse(result, status_code=200 if result.get("ok") else 400)
+
+    @app.post("/api/founder/tenant/{tenant_id}/members/{account_id}/remove", include_in_schema=False)
+    async def _members_remove_31ck(tenant_id: str, account_id: str, request: Request):
+        actor = getattr(request.state, "actor", {}) or {}
+        from src.tenant_members_31ck import remove_member
+        from fastapi.responses import JSONResponse
+        result = remove_member(tenant_id, account_id, actor.get("account_id",""))
+        return JSONResponse(result, status_code=200 if result.get("ok") else 400)
+
+    @app.post("/api/founder/tenant/{tenant_id}/invites/{invite_id}/revoke", include_in_schema=False)
+    async def _invite_revoke_31ck(tenant_id: str, invite_id: int, request: Request):
+        actor = getattr(request.state, "actor", {}) or {}
+        from src.tenant_members_31ck import revoke_invite
+        from fastapi.responses import JSONResponse
+        result = revoke_invite(tenant_id, invite_id, actor.get("account_id",""))
+        return JSONResponse(result, status_code=200 if result.get("ok") else 400)
+
+    @app.get("/invite/accept", include_in_schema=False)
+    async def _invite_accept_page_31ck(request: Request, token: str = ""):
+        """Public page: shows invite, asks signup or login, then accepts."""
+        from fastapi.responses import HTMLResponse, RedirectResponse
+        import sqlite3
+        if not token: return RedirectResponse("/", status_code=302)
+        c = sqlite3.connect("/var/lib/murphy-production/tenants.db", timeout=8)
+        r = c.execute(
+            "SELECT tenant_id, invited_email, role, expires_at, status "
+            "FROM tenant_invitations WHERE invite_token=?", (token,)
+        ).fetchone()
+        c.close()
+        if not r:
+            return HTMLResponse("<h1>Invite not found</h1>", status_code=404)
+        tenant_id, email, role, expires, status = r
+        if status != "pending":
+            return HTMLResponse(f"<h1>Invite {status}</h1>")
+        # check if account exists
+        try:
+            from src import ship31ah_signup as auth
+            existing = auth.get_user_by_email(email)
+        except Exception:
+            existing = None
+        next_url = f"/login?invite={token}" if existing else f"/signup?invite={token}&email={email}"
+        return HTMLResponse(f"""<!doctype html><html><head><title>Join — Murphy</title>
+<style>body{{background:#0a1228;color:#f4ead5;font-family:Georgia,serif;padding:80px 24px;text-align:center}}
+h1{{color:#d4af37;font-weight:400}}
+a.btn{{display:inline-block;margin-top:24px;padding:18px 40px;background:#d4af37;color:#0a1228;
+text-decoration:none;border-radius:4px;font-size:18px}}</style></head><body>
+<h1>You're invited to join a Murphy tenant</h1>
+<p>Tenant: <strong>{tenant_id}</strong></p>
+<p>Role: {role}</p>
+<p>Email: {email}</p>
+<a class="btn" href="{next_url}">{'Log in to accept' if existing else 'Create account &amp; accept'}</a>
+<p style="color:#a08866;margin-top:32px">Invite expires {expires[:10]}</p></body></html>""")
+
     # Ship 31bp — public compliance pages MUST be registered BEFORE R445 catchall
     # so the specific routes match first. FastAPI matches in declaration order.
     @app.get("/privacy", include_in_schema=False)
