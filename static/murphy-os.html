@@ -1260,6 +1260,13 @@ body {
       <span class="sidebar-icon">💼</span> Pipeline
       <span class="sidebar-badge" id="sidebar-deals">—</span>
     </div>
+    <div class="sidebar-item" onclick="switchPage('mailbox')">
+      <span class="sidebar-icon">📬</span> My Mail
+      <span class="sidebar-badge" id="sidebar-mailbox">0</span>
+    </div>
+    <div class="sidebar-item" onclick="switchPage('inboxes')">
+      <span class="sidebar-icon">📨</span> Team Inboxes
+    </div>
     <div class="sidebar-item" onclick="switchPage('hitl')">
       <span class="sidebar-icon">🙋</span> HITL
       <span class="sidebar-badge" id="sidebar-hitl">0</span>
@@ -2170,6 +2177,33 @@ body {
       </div>
     </div>
 
+    <!-- ═══ MAILBOX (founder cpost@) ═══ -->
+    <div class="page" id="page-mailbox">
+      <div class="page-header" id="hdr-mailbox">
+        <div class="page-header-title">My Mail · cpost@murphy.systems</div>
+        <div class="page-actions">
+          <button class="page-action-btn" onclick="loadMyMail()">↻ Refresh</button>
+          <button class="page-action-btn primary" onclick="switchPage('inboxes')">📨 Team Inboxes</button>
+        </div>
+      </div>
+      <div style="padding:16px">
+        <div id="mailbox-list" style="font-size:13px;color:var(--text2)">Loading…</div>
+      </div>
+    </div>
+
+    <!-- ═══ TEAM INBOXES ═══ -->
+    <div class="page" id="page-inboxes">
+      <div class="page-header" id="hdr-inboxes">
+        <div class="page-header-title">Team Inboxes</div>
+        <div class="page-actions">
+          <button class="page-action-btn" onclick="loadInboxes()">↻ Refresh</button>
+        </div>
+      </div>
+      <div style="padding:16px">
+        <div id="inboxes-list" style="font-size:13px;color:var(--text2)">Loading…</div>
+      </div>
+    </div>
+
     <!-- ═══ HITL ═══ -->
     <div class="page" id="page-hitl">
       <!-- R78 — page header (sub-tabs + actions) -->
@@ -2480,6 +2514,8 @@ function switchPage(name) {
   if (name === 'agents')   loadAgents();
   if (name === 'pipeline') loadPipeline();
   if (name === 'soul')     loadSoul();
+  if (name === 'mailbox')  loadMyMail();
+  if (name === 'inboxes')  loadInboxes();
   if (name === 'hitl')     loadHITL();
   if (name === 'shield')   loadShield();
   if (name === 'dispatch') loadRosettaStatus();
@@ -3098,6 +3134,123 @@ async function loadSoul() {
     Topic count: <strong style="color:var(--text)">${d.world_topics_count||0}</strong><br>
     Audit entries: <strong style="color:var(--text)">${(d.audit_entries||[]).length}</strong>
   `;
+}
+
+// ─── MY MAIL ──────────────────────────────────────
+async function loadMyMail() {
+  const root = document.getElementById('mailbox-list');
+  if (!root) return;
+  root.innerHTML = 'Loading messages…';
+  try {
+    const r = await api('GET', '/api/mail/inbox/cpost?limit=50');
+    if (!r.ok) { root.innerHTML = '<div style="color:#ff6b6b">' + (r.error || 'error') + '</div>'; return; }
+    if (!r.messages || !r.messages.length) { root.innerHTML = '<em>No messages.</em>'; return; }
+    root.innerHTML = r.messages.map(m =>
+      `<div style="border-bottom:1px solid #21262d;padding:10px 4px;cursor:pointer;display:flex;gap:10px"
+            onclick="openMail('cpost','${m.uid}')">
+        <div style="color:${m.unread?'#00d4aa':'#6e7681'};font-size:18px;width:18px">${m.unread?'●':'○'}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:${m.unread?'600':'400'};color:#e6edf3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(m.from || '')}</div>
+          <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:${m.unread?'#c9d1d9':'#8b949e'}">${escapeHtml(m.subject || '(no subject)')}</div>
+        </div>
+        <div style="color:#6e7681;font-size:11px;flex-shrink:0">${escapeHtml((m.date || '').substring(0,20))}</div>
+      </div>`
+    ).join('');
+  } catch (e) { root.innerHTML = '<div style="color:#ff6b6b">' + e.message + '</div>'; }
+}
+
+async function openMail(mailbox, uid) {
+  try {
+    const r = await api('GET', `/api/mail/inbox/${mailbox}/message/${uid}`);
+    if (!r.ok) { alert(r.error || 'fetch failed'); return; }
+    const m = r.message;
+    const body = m.body_text || m.body_html || '(empty)';
+    const w = window.open('', '_blank', 'width=800,height=700');
+    w.document.write(`<!DOCTYPE html><html><head><title>${escapeHtml(m.subject)}</title>
+      <style>body{font-family:Inter,system-ui;background:#0d1117;color:#e6edf3;padding:24px;line-height:1.6}
+      .h{border-bottom:1px solid #21262d;padding-bottom:14px;margin-bottom:14px}
+      .h div{margin:3px 0;color:#8b949e;font-size:13px} .h b{color:#e6edf3}
+      pre{white-space:pre-wrap;word-wrap:break-word;background:#161b22;padding:14px;border-radius:6px;font-size:13px}</style></head>
+      <body><div class="h">
+      <div><b>From:</b> ${escapeHtml(m.from)}</div>
+      <div><b>To:</b> ${escapeHtml(m.to)}</div>
+      ${m.cc ? '<div><b>Cc:</b> '+escapeHtml(m.cc)+'</div>' : ''}
+      <div><b>Date:</b> ${escapeHtml(m.date)}</div>
+      <div><b>Subject:</b> ${escapeHtml(m.subject)}</div>
+      </div><pre>${escapeHtml(body)}</pre></body></html>`);
+    w.document.close();
+  } catch (e) { alert(e.message); }
+}
+
+// ─── INBOXES (team) ────────────────────────────
+async function loadInboxes() {
+  const root = document.getElementById('inboxes-list');
+  if (!root) return;
+  root.innerHTML = 'Loading…';
+  try {
+    const r = await api('GET', '/api/mail/inboxes');
+    if (!r.ok) { root.innerHTML = '<div style="color:#ff6b6b">' + (r.error || 'error') + '</div>'; return; }
+    const cats = {};
+    for (const ib of r.inboxes) { (cats[ib.category] = cats[ib.category] || []).push(ib); }
+    const order = ['founder','system','role','staff','family'];
+    let html = '';
+    for (const cat of order) {
+      if (!cats[cat]) continue;
+      html += `<div style="font-size:11px;color:#00d4aa;text-transform:uppercase;letter-spacing:1px;margin:18px 0 8px 0">${cat}</div>`;
+      html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px">';
+      for (const ib of cats[cat]) {
+        const u = ib.unread || 0, t = ib.total || 0;
+        html += `<div style="border:1px solid #21262d;border-radius:6px;padding:12px;cursor:pointer;background:#0e1410"
+                     onclick="openInbox('${ib.name}','${escapeHtml(ib.label)}')">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div style="font-weight:600;color:#e6edf3">${escapeHtml(ib.label)}</div>
+              <div style="font-size:11px;color:#6e7681">${ib.name}@murphy.systems</div>
+            </div>
+            <div style="text-align:right">
+              ${u > 0 ? '<div style="color:#00d4aa;font-weight:600">'+u+' new</div>' : '<div style="color:#6e7681;font-size:11px">read</div>'}
+              <div style="font-size:11px;color:#6e7681">${t} total</div>
+            </div>
+          </div>
+        </div>`;
+      }
+      html += '</div>';
+    }
+    root.innerHTML = html;
+    // update sidebar badge with cpost unread count
+    const cpost = r.inboxes.find(x => x.name === 'cpost');
+    const badge = document.getElementById('sidebar-mailbox');
+    if (badge && cpost) badge.textContent = cpost.unread;
+  } catch (e) { root.innerHTML = '<div style="color:#ff6b6b">' + e.message + '</div>'; }
+}
+
+async function openInbox(name, label) {
+  const root = document.getElementById('inboxes-list');
+  root.innerHTML = `<div style="margin-bottom:14px"><a href="#" onclick="loadInboxes();return false" style="color:#58a6ff">← all inboxes</a></div>
+    <div style="font-size:16px;font-weight:600;margin-bottom:14px">${escapeHtml(label)} <span style="color:#6e7681;font-size:12px">${name}@murphy.systems</span></div>
+    <div id="inbox-msgs">Loading…</div>`;
+  try {
+    const r = await api('GET', `/api/mail/inbox/${name}?limit=50`);
+    const msgs = document.getElementById('inbox-msgs');
+    if (!r.ok) { msgs.innerHTML = '<div style="color:#ff6b6b">'+(r.error||'error')+'</div>'; return; }
+    if (!r.messages?.length) { msgs.innerHTML = '<em>No messages.</em>'; return; }
+    msgs.innerHTML = r.messages.map(m =>
+      `<div style="border-bottom:1px solid #21262d;padding:10px 4px;cursor:pointer;display:flex;gap:10px"
+            onclick="openMail('${name}','${m.uid}')">
+        <div style="color:${m.unread?'#00d4aa':'#6e7681'};font-size:18px;width:18px">${m.unread?'●':'○'}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:${m.unread?'600':'400'};color:#e6edf3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(m.from||'')}</div>
+          <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:${m.unread?'#c9d1d9':'#8b949e'}">${escapeHtml(m.subject||'(no subject)')}</div>
+        </div>
+        <div style="color:#6e7681;font-size:11px;flex-shrink:0">${escapeHtml((m.date||'').substring(0,20))}</div>
+      </div>`
+    ).join('');
+  } catch(e) { document.getElementById('inbox-msgs').innerHTML = '<div style="color:#ff6b6b">'+e.message+'</div>'; }
+}
+
+function escapeHtml(s) {
+  if (!s) return '';
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
 // ─── HITL ─────────────────────────────────────────

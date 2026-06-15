@@ -5383,6 +5383,13 @@ def create_app() -> FastAPI:
             return RedirectResponse("/dashboard", status_code=302)
         return RedirectResponse("/os/view-as", status_code=302)
 
+    # ── Ship 31bw.MAIL_OS — IMAP-backed mailbox tabs ───────
+    try:
+        from src import mail_os_31bw as _mb31bw
+        _mb31bw.register_routes(app)
+    except Exception as _e31bw:
+        logger.warning(f"[31bw] mail_os not mounted: {_e31bw}")
+
     # ── Ship 31bv.COMPLIANCE_DOCS — 9 policy/runbook pages ───────
     try:
         from src import compliance_docs_31bv as _cd31bv
@@ -23480,7 +23487,7 @@ font-weight:600;color:#c9d1d9}}</style></head><body>
                     "/legal/privacy",
                     "/legal/eula",
             })
-            _pfx = ("/legal/", "/api/growth", "/api/oo/", "/api/health/capacity", "/verify/", "/api/verify/",
+            _pfx = ("/legal/", "/api/mail/inbox", "/api/mail/inboxes", "/api/growth", "/api/oo/", "/api/health/capacity", "/verify/", "/api/verify/",
                     "/api/marketplace/",
                     "/api/tenant/by-slug/",
                     "/api/download/")  # R482
