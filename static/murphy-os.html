@@ -1260,6 +1260,10 @@ body {
       <span class="sidebar-icon">💼</span> Pipeline
       <span class="sidebar-badge" id="sidebar-deals">—</span>
     </div>
+    <div class="sidebar-item" onclick="switchPage('viewas')">
+      <span class="sidebar-icon">👁️</span> View as Tier
+      <span class="sidebar-badge" id="sidebar-viewas-active" style="background:#e3b341;display:none">ON</span>
+    </div>
     <div class="sidebar-item" onclick="switchPage('mailbox')">
       <span class="sidebar-icon">📬</span> My Mail
       <span class="sidebar-badge" id="sidebar-mailbox">0</span>
@@ -2177,6 +2181,23 @@ body {
       </div>
     </div>
 
+    <!-- ═══ VIEW AS TIER (founder dashboard preview) ═══ -->
+    <div class="page" id="page-viewas">
+      <div class="page-header">
+        <div class="page-header-title">View as Tier — preview the tenant dashboard</div>
+        <div class="page-actions">
+          <button class="page-action-btn" onclick="loadViewAs()">↻ Refresh</button>
+          <button class="page-action-btn primary" onclick="clearViewAs()">Stop previewing</button>
+        </div>
+      </div>
+      <div style="padding:18px">
+        <div id="viewas-status" style="margin-bottom:14px;font-size:13px;color:var(--text2)"></div>
+        <div id="viewas-tier-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-bottom:18px"></div>
+        <div style="font-size:11px;color:#6e7681;text-transform:uppercase;letter-spacing:1px;margin:18px 0 8px 0">Live preview</div>
+        <iframe id="viewas-iframe" src="about:blank" style="width:100%;height:1200px;border:1px solid #21262d;border-radius:8px;background:#0d1117"></iframe>
+      </div>
+    </div>
+
     <!-- ═══ MAILBOX (founder cpost@) ═══ -->
     <div class="page" id="page-mailbox">
       <div class="page-header" id="hdr-mailbox">
@@ -2514,6 +2535,7 @@ function switchPage(name) {
   if (name === 'agents')   loadAgents();
   if (name === 'pipeline') loadPipeline();
   if (name === 'soul')     loadSoul();
+  if (name === 'viewas')   loadViewAs();
   if (name === 'mailbox')  loadMyMail();
   if (name === 'inboxes')  loadInboxes();
   if (name === 'hitl')     loadHITL();
@@ -3134,6 +3156,78 @@ async function loadSoul() {
     Topic count: <strong style="color:var(--text)">${d.world_topics_count||0}</strong><br>
     Audit entries: <strong style="color:var(--text)">${(d.audit_entries||[]).length}</strong>
   `;
+}
+
+// ─── VIEW AS TIER ──────────────────────────────────
+const VIEW_AS_TIERS = [
+  {key:"free",       label:"Free",       price:"$0",      desc:"5 replies / 24h · ads in footer"},
+  {key:"solo",       label:"Solo",       price:"$99/mo",  desc:"unlimited replies · 1 seat"},
+  {key:"team",       label:"Team",       price:"$399/mo", desc:"5 seats · shared inbox"},
+  {key:"business",   label:"Business",   price:"$799/mo", desc:"15 seats · audit · compliance"},
+  {key:"enterprise", label:"Enterprise", price:"Custom",  desc:"unlimited · founder access"},
+];
+
+async function loadViewAs() {
+  const grid = document.getElementById("viewas-tier-grid");
+  const status = document.getElementById("viewas-status");
+  const iframe = document.getElementById("viewas-iframe");
+  const badge = document.getElementById("sidebar-viewas-active");
+
+  // current view-as state
+  let current = null;
+  try {
+    const r = await fetch("/api/founder/view_as", {credentials:"include"});
+    if (r.ok) { const d = await r.json(); current = d.tier || null; }
+  } catch(e){}
+
+  if (current) {
+    status.innerHTML = `Currently viewing as: <b style="color:#e3b341">${current.toUpperCase()}</b>. The tenant dashboard rendered below is exactly what a ${current} tier user sees.`;
+    iframe.src = "/dashboard?_t=" + Date.now();
+    if (badge) badge.style.display = "inline-block";
+  } else {
+    status.innerHTML = "Pick a tier to preview. Your account stays unchanged — this is a render-time override only.";
+    iframe.src = "about:blank";
+    if (badge) badge.style.display = "none";
+  }
+
+  grid.innerHTML = VIEW_AS_TIERS.map(t => {
+    const active = current === t.key;
+    return `<div onclick="setViewAs('${t.key}')"
+      style="padding:14px 16px;border:1px solid ${active?'#e3b341':'#21262d'};border-radius:6px;cursor:pointer;background:${active?'#1a1610':'#161b22'};transition:border .15s"
+      onmouseover="this.style.borderColor='#00d4aa'"
+      onmouseout="this.style.borderColor='${active?'#e3b341':'#21262d'}'">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
+        <b style="color:${active?'#e3b341':'#e6edf3'}">${t.label}</b>
+        <span style="color:#00d4aa;font-size:12px;font-weight:600">${t.price}</span>
+      </div>
+      <div style="color:#8b949e;font-size:12px">${t.desc}</div>
+      ${active?'<div style="margin-top:8px;color:#e3b341;font-size:11px;font-weight:600">▸ ACTIVE</div>':''}
+    </div>`;
+  }).join("");
+}
+
+async function setViewAs(tier) {
+  try {
+    const r = await fetch("/api/founder/view_as", {
+      method:"POST", credentials:"include",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({tier})
+    });
+    if (!r.ok) { alert("Failed to set view-as tier (" + r.status + ")"); return; }
+    await loadViewAs();
+  } catch(e) { alert(e.message); }
+}
+
+async function clearViewAs() {
+  try {
+    const r = await fetch("/api/founder/view_as", {
+      method:"POST", credentials:"include",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({tier:null})
+    });
+    if (!r.ok) { alert("Failed to clear"); return; }
+    await loadViewAs();
+  } catch(e) { alert(e.message); }
 }
 
 // ─── MY MAIL ──────────────────────────────────────

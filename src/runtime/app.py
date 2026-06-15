@@ -5276,7 +5276,15 @@ def create_app() -> FastAPI:
                 or (sess.get("email","").lower() in _FOUNDER_EMAIL_ALLOWLIST_31bs)
             )
             if _is_admin_31bs:
-                return RedirectResponse("/os", status_code=302)
+                # Ship 31bz — if founder has view_as_tier set, render dashboard instead of bouncing
+                _view_as_pre_bounce_31bz = None
+                try:
+                    from src.founder_os_31br import get_view_as_tier as _gvt_pre
+                    _view_as_pre_bounce_31bz = _gvt_pre(sid)
+                except Exception:
+                    pass
+                if not _view_as_pre_bounce_31bz:
+                    return RedirectResponse("/os", status_code=302)
         except Exception:
             pass
         snap = _s.get_tenant_snapshot(sess["tenant_id"], sess["account_id"], sess["email"])
@@ -5393,6 +5401,58 @@ def create_app() -> FastAPI:
             set_view_as_tier(sid, tier)
             return RedirectResponse("/dashboard", status_code=302)
         return RedirectResponse("/os/view-as", status_code=302)
+
+    # ── Ship 31by.SHAPE_AUDIT — automated 5-gate audit endpoint ───────
+    try:
+        from src import shape_of_complete_31by as _soc31by
+        _soc31by.register_routes(app)
+    except Exception as _e31by:
+        logger.warning(f"[31by] shape_of_complete not mounted: {_e31by}")
+
+    # ── Ship 31bz.VIEW_AS_JSON — JSON endpoints for /os View as Tier tab ────
+    try:
+        from fastapi import Request as _Req31bz
+        from fastapi.responses import JSONResponse as _JR31bz
+        from src.founder_os_31br import (set_view_as_tier as _svt31bz,
+                                          get_view_as_tier as _gvt31bz,
+                                          VALID_TIERS as _VT31bz)
+
+        def _founder_sid_31bz(request):  # noqa
+            try:
+                from src import ship31ah_signup as _s
+                sid = request.cookies.get(_s.COOKIE_NAME, "")
+                sess = _s.lookup_session(sid)
+                if not sess: return None, None
+                _u = _s.get_user_by_email(sess["email"])
+                _role = ((_u or {}).get("data", {}) or {}).get("role", "").lower()
+                _flag = bool(((_u or {}).get("data", {}) or {}).get("is_founder"))
+                if (_role in ("owner","founder","platform_admin","platform_staff")
+                    or _flag or sess["email"].lower() == "cpost@murphy.systems"):
+                    return sid, sess
+            except Exception:
+                pass
+            return None, None
+
+        @app.get("/api/founder/view_as", include_in_schema=False)
+        async def _va_get_31bz_view_as_json(request: _Req31bz):
+            sid, sess = _founder_sid_31bz(request)
+            if not sid: return _JR31bz(status_code=401, content={"ok": False, "error": "Founder only"})
+            return {"ok": True, "tier": _gvt31bz(sid), "valid_tiers": list(_VT31bz)}
+
+        @app.post("/api/founder/view_as", include_in_schema=False)
+        async def _va_set_31bz_view_as_json(request: _Req31bz):
+            sid, sess = _founder_sid_31bz(request)
+            if not sid: return _JR31bz(status_code=401, content={"ok": False, "error": "Founder only"})
+            try:
+                body = await request.json()
+                tier = body.get("tier")
+            except Exception:
+                return _JR31bz(status_code=400, content={"ok": False, "error": "Invalid JSON"})
+            ok = _svt31bz(sid, tier)
+            return {"ok": bool(ok), "tier": _gvt31bz(sid)}
+
+    except Exception as _e_31bz:
+        logger.warning(f"[31bz] view_as JSON not mounted: {_e_31bz}")
 
     # ── Ship 31bx.CONDUCTOR_NAME — tenant names their conductor ───────
     try:
@@ -23505,7 +23565,7 @@ font-weight:600;color:#c9d1d9}}</style></head><body>
                     "/legal/privacy",
                     "/legal/eula",
             })
-            _pfx = ("/legal/", "/api/mail/inbox", "/api/mail/inboxes", "/api/conductor/", "/api/growth", "/api/oo/", "/api/health/capacity", "/verify/", "/api/verify/",
+            _pfx = ("/legal/", "/api/mail/inbox", "/api/mail/inboxes", "/api/conductor/", "/api/founder/view_as", "/api/growth", "/api/oo/", "/api/health/capacity", "/verify/", "/api/verify/",
                     "/api/marketplace/",
                     "/api/tenant/by-slug/",
                     "/api/download/")  # R482
