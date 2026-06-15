@@ -5303,17 +5303,17 @@ def create_app() -> FastAPI:
                 _html_31br = _ifn(_html_31br)
             try:
                 from src.conductor_identity_31bx import inject_banner as _ib31bx
-                _html_31br = _ib31bx(_html_31br)
-            except Exception:
-                pass
+                _html_31br = _ib31bx(_html_31br, sess.get("tenant_id", ""))
+            except Exception as _e_31bx_inj:
+                logger.warning(f"[31bx] inject banner failed: {_e_31bx_inj}")
             return HTMLResponse(_html_31br)
         except Exception:
             _h = _dashboard_html(snap, welcome=bool(welcome))
             try:
                 from src.conductor_identity_31bx import inject_banner as _ib31bx
-                _h = _ib31bx(_h)
-            except Exception:
-                pass
+                _h = _ib31bx(_h, sess.get("tenant_id", ""))
+            except Exception as _e_31bx_inj2:
+                logger.warning(f"[31bx] inject banner (fallback) failed: {_e_31bx_inj2}")
             return HTMLResponse(_h)
 
     @app.get("/os", include_in_schema=False)
