@@ -1288,7 +1288,7 @@ def process_stranger_inquiries(limit: int = 5) -> Dict:
                attachment_context
         FROM inbound_replies
         WHERE intent_class IN ('inquiry')
-          AND auto_response_status IS NULL
+          AND (auto_response_status IS NULL OR auto_response_status = 'stranger_queued')
           AND received_at > ?
           AND from_addr NOT IN ({placeholders})
           AND from_addr IS NOT NULL AND from_addr != ''
@@ -1308,6 +1308,7 @@ def process_stranger_inquiries(limit: int = 5) -> Dict:
 
         if not from_addr or "@" not in from_addr:
             skipped.append({"id": rid, "reason": "no_sender"})
+            logger.info("DIAG-31cn drop at L1311: if not from_addr or '@' not in from_addr:")
             continue
 
         # Determine mode early so we can gate by quota
@@ -1323,6 +1324,7 @@ def process_stranger_inquiries(limit: int = 5) -> Dict:
                 ("stranger_silent_drop", rid),
             )
             conn.commit()
+            logger.info("DIAG-31cn drop at L1326: ")
             continue
         
         if quota["action"] == "upgrade_offer":
@@ -1360,6 +1362,7 @@ def process_stranger_inquiries(limit: int = 5) -> Dict:
                 conn.commit()
             else:
                 errors.append({"id": rid, "reason": "upgrade_offer_send_failed"})
+            logger.info("DIAG-31cn drop at L1363: ")
             continue
 
         # quota['action'] == 'allow' — proceed with normal flow
@@ -1369,6 +1372,7 @@ def process_stranger_inquiries(limit: int = 5) -> Dict:
             conn.execute("UPDATE inbound_replies SET auto_response_status=? WHERE id=?",
                          ("stranger_rate_limited", rid))
             conn.commit()
+            logger.info("DIAG-31cn drop at L1372: if not _rate_limit_ok(from_addr, conn):")
             continue
 
         principal_addr = from_addr  # the human who composed the email is principal in both modes
@@ -1480,6 +1484,7 @@ def process_stranger_inquiries(limit: int = 5) -> Dict:
                     md = _magnify_drill(subject, body)
         if not md or len(md.get("text", "")) < 50:
             errors.append({"id": rid, "reason": "magnify_drill_failed", "mode": delivery_mode})
+            logger.info("DIAG-31cn drop at L1483: if not md or len(md.get('text', '')) < 50:")
             continue
         agent_desc = md["text"]
         cycle_cost += md["cost_usd"]
@@ -1497,6 +1502,7 @@ def process_stranger_inquiries(limit: int = 5) -> Dict:
             rep = _generate_reply(agent_desc, subject, body, from_addr)
         if not rep or len(rep.get("text", "")) < 30:
             errors.append({"id": rid, "reason": "reply_gen_failed", "mode": delivery_mode})
+            logger.info("DIAG-31cn drop at L1500: if not rep or len(rep.get('text', '')) < 30:")
             continue
         reply_body = rep["text"]
         cycle_cost += rep["cost_usd"]
