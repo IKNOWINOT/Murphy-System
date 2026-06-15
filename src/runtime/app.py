@@ -40467,7 +40467,7 @@ text-decoration:none;border-radius:4px;font-size:18px}}</style></head><body>
     async def _h_hitl_31cn():
         try:
             import urllib.request
-            with urllib.request.urlopen("http://127.0.0.1:8083/health", timeout=3) as r:
+            with urllib.request.urlopen("http://127.0.0.1:8083/health", timeout=1) as r:
                 return {"ok": r.status == 200, "ship": "31bi",
                         "detail": f"HITL microservice on :8083 returning {r.status}"}
         except Exception as e:
