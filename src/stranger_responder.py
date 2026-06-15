@@ -1429,8 +1429,8 @@ def process_stranger_inquiries(limit: int = 5) -> Dict:
                 try:
                     if _INTENT_GATE_AVAILABLE:
                         _intent31ba = _classify_intent_31ba(
-                            subject=email_subject or "",
-                            body=email_body or "",
+                            subject=subject or "",
+                            body=body or "",
                             has_attachment=False,
                         )
                         logger.info(
