@@ -40211,7 +40211,7 @@ font-weight:600;color:#c9d1d9}}</style></head><body>
         }
 
     # Ship 31cb — autonomy posture toggle (founder-only, sets temporal-disability mode)
-    @app.get("/api/autonomy/posture", include_in_schema=False)
+    @app.get("/api/founder/autonomy/posture", include_in_schema=False)
     async def _autonomy_get_posture_31cb(request: Request):
         actor = getattr(request.state, "actor", {}) or {}
         if not actor.get("is_founder"):
@@ -40220,7 +40220,7 @@ font-weight:600;color:#c9d1d9}}</style></head><body>
         from src.autonomy_policy_31cb import get_posture, get_stats
         return {"posture": get_posture(), "stats": get_stats(24)}
 
-    @app.post("/api/autonomy/posture", include_in_schema=False)
+    @app.post("/api/founder/autonomy/posture", include_in_schema=False)
     async def _autonomy_set_posture_31cb(request: Request):
         actor = getattr(request.state, "actor", {}) or {}
         if not actor.get("is_founder"):
@@ -40309,7 +40309,7 @@ a {{ color:#d4af37; }}
 <script>
 async function setp(posture) {{
   const reason = posture === 'OFF' ? 'founder pause' : 'founder activated ' + posture;
-  const r = await fetch('/api/autonomy/posture', {{
+  const r = await fetch('/api/founder/autonomy/posture', {{
     method:'POST', headers:{{'Content-Type':'application/json'}},
     body: JSON.stringify({{posture, reason}})
   }});
