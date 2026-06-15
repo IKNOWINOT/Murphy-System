@@ -17,7 +17,7 @@ import json
 import sqlite3
 from typing import Optional
 
-_DB = "/opt/Murphy-System/murphy.db"
+_DB = "/var/lib/murphy-production/murphy_users.db"
 _VALID_TIERS = ("free", "solo", "team", "business", "enterprise")
 
 NAV_HTML = '''
