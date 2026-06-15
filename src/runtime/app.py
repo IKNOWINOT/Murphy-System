@@ -5216,7 +5216,14 @@ def create_app() -> FastAPI:
         # Platform admins go to /is (Inoni System); tenants go to /dashboard
         _role_raw_l = (u.get("data", {}) or {}).get("role") or ""
         _role = _role_raw_l.lower() if isinstance(_role_raw_l, str) else ""
-        _is_platform = _role in ("owner", "founder", "platform_admin", "platform_staff")
+        _is_founder_flag = bool((u.get("data", {}) or {}).get("is_founder"))
+        # Ship 31bs — FOUNDER_EMAIL_ALLOWLIST_31bs safety net
+        _FOUNDER_EMAIL_ALLOWLIST_31bs = {"cpost@murphy.systems"}
+        _is_platform = (
+            _role in ("owner","founder","platform_admin","platform_staff")
+            or _is_founder_flag
+            or (email.lower() in _FOUNDER_EMAIL_ALLOWLIST_31bs)
+        )
         _landing = "/os" if _is_platform else "/dashboard"
         resp = RedirectResponse(_landing, status_code=303)
         resp.set_cookie(
@@ -5255,12 +5262,20 @@ def create_app() -> FastAPI:
         sess = _s.lookup_session(sid)
         if not sess:
             return RedirectResponse("/login?msg=login_required", status_code=302)
-        # Ship 31an.IS — platform admins land on /is, not the tenant dashboard
+        # Ship 31an.IS — platform admins land on /os, not the tenant dashboard
+        # Ship 31bs — also bounce on is_founder flag OR FOUNDER_EMAIL_ALLOWLIST_31bs
         try:
             _u = _s.get_user_by_email(sess["email"])
             _role_raw_d = ((_u or {}).get("data", {}) or {}).get("role") or ""
             _role = _role_raw_d.lower() if isinstance(_role_raw_d, str) else ""
-            if _role in ("owner", "founder", "platform_admin", "platform_staff"):
+            _is_founder_flag = bool(((_u or {}).get("data", {}) or {}).get("is_founder"))
+            _FOUNDER_EMAIL_ALLOWLIST_31bs = {"cpost@murphy.systems"}
+            _is_admin_31bs = (
+                _role in ("owner","founder","platform_admin","platform_staff")
+                or _is_founder_flag
+                or (sess.get("email","").lower() in _FOUNDER_EMAIL_ALLOWLIST_31bs)
+            )
+            if _is_admin_31bs:
                 return RedirectResponse("/os", status_code=302)
         except Exception:
             pass
@@ -5308,7 +5323,16 @@ def create_app() -> FastAPI:
         _u = _s.get_user_by_email(sess["email"])
         _role_raw = ((_u or {}).get("data", {}) or {}).get("role") or ""
         _role = _role_raw.lower() if isinstance(_role_raw, str) else ""
-        if _role not in ("owner", "founder", "platform_admin", "platform_staff"):
+        _is_founder_flag = bool(((_u or {}).get("data", {}) or {}).get("is_founder"))
+        # Ship 31bs — FOUNDER_EMAIL_ALLOWLIST_31bs safety net so a missing
+        # role field can never lock the founder out of /os again
+        _FOUNDER_EMAIL_ALLOWLIST_31bs = {"cpost@murphy.systems"}
+        _is_founder_31bs = (
+            _role in ("owner", "founder", "platform_admin", "platform_staff")
+            or _is_founder_flag
+            or (sess.get("email","").lower() in _FOUNDER_EMAIL_ALLOWLIST_31bs)
+        )
+        if not _is_founder_31bs:
             # Tenant user hit /is — route them to their dashboard instead
             return RedirectResponse("/dashboard", status_code=302)
         # Platform admin — serve the Murphy OS dashboard (canonical platform view)
