@@ -40431,6 +40431,57 @@ text-decoration:none;border-radius:4px;font-size:18px}}</style></head><body>
 <a class="btn" href="{next_url}">{'Log in to accept' if existing else 'Create account &amp; accept'}</a>
 <p style="color:#a08866;margin-top:32px">Invite expires {expires[:10]}</p></body></html>""")
 
+    # Ship 31co — R121 silent-failure guard exposed to founder
+    @app.get("/api/founder/r121_health", include_in_schema=False)
+    async def _r121_health_31co(request: Request):
+        actor = getattr(request.state, "actor", {}) or {}
+        if not actor.get("is_founder"):
+            from fastapi.responses import JSONResponse
+            return JSONResponse({"error":"founder_only"}, status_code=403)
+        from src.stranger_responder_guard_31co import get_open_alerts, get_recent_cycles
+        return {"open_alerts": get_open_alerts(),
+                "recent_cycles": get_recent_cycles(20)}
+
+    # Ship 31cn — health endpoints for shape-of-complete verifier
+    @app.get("/api/health/conductor_identity", include_in_schema=False)
+    async def _h_conductor_identity_31cn():
+        try:
+            import sqlite3
+            c = sqlite3.connect("/var/lib/murphy-production/tenants.db", timeout=4)
+            n = c.execute("SELECT COUNT(*) FROM tenants").fetchone()[0]
+            c.close()
+            return {"ok": True, "ship": "31bx", "tenants_named": n,
+                    "detail": "Tenants name their own conductor; chronological canonical lookup live"}
+        except Exception as e:
+            return {"ok": False, "error": str(e)[:120]}
+
+    @app.get("/api/health/mail_os", include_in_schema=False)
+    async def _h_mail_os_31cn():
+        import os
+        ok = os.path.exists("/var/lib/murphy-production/inbound_replies.db") and \
+             os.path.exists("/var/spool/postfix/public/showq")
+        return {"ok": ok, "ship": "31bw",
+                "detail": "IMAP mailbox tabs on /os; postfix queue accessible"}
+
+    @app.get("/api/health/hitl", include_in_schema=False)
+    async def _h_hitl_31cn():
+        try:
+            import urllib.request
+            with urllib.request.urlopen("http://127.0.0.1:8083/health", timeout=3) as r:
+                return {"ok": r.status == 200, "ship": "31bi",
+                        "detail": f"HITL microservice on :8083 returning {r.status}"}
+        except Exception as e:
+            return {"ok": False, "error": str(e)[:120]}
+
+    @app.get("/api/health/autonomy", include_in_schema=False)
+    async def _h_autonomy_31cn():
+        try:
+            from src.autonomy_policy_31cb import get_posture
+            return {"ok": True, "ship": "31cb", "posture": get_posture(),
+                    "detail": "Autonomy posture policy live; OFF/ASSIST/AUTONOMOUS gating"}
+        except Exception as e:
+            return {"ok": False, "error": str(e)[:120]}
+
     # Ship 31bp — public compliance pages MUST be registered BEFORE R445 catchall
     # so the specific routes match first. FastAPI matches in declaration order.
     @app.get("/privacy", include_in_schema=False)

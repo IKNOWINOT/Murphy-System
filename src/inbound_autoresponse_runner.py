@@ -65,6 +65,14 @@ def main() -> int:
     elapsed = round(time.time() - started, 2)
     err_str = (" errors=" + ";".join(errors)) if errors else ""
     print(f"R121 done in {elapsed}s: classified={classified_n} allow_sent={sent_allow_n} stranger_sent={sent_stranger_n}{err_str}")
+    try:
+        from src.stranger_responder_guard_31co import record_cycle
+        record_cycle(classified=int(result.get("count_classified", 0) or 0),
+                     allow_sent=int(result.get("count_allow_sent", 0) or 0),
+                     stranger_sent=int(result.get("count_stranger_sent", 0) or 0),
+                     duration_s=float(result.get("duration_s", 0) or 0))
+    except Exception as _ge:
+        pass
     return 0 if not errors else 0  # don't fail on partial errors
 
 
