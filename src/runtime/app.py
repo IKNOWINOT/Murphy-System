@@ -5301,9 +5301,20 @@ def create_app() -> FastAPI:
             if _view_as_tier_31br:
                 from src.founder_os_31br import inject_founder_nav as _ifn
                 _html_31br = _ifn(_html_31br)
+            try:
+                from src.conductor_identity_31bx import inject_banner as _ib31bx
+                _html_31br = _ib31bx(_html_31br)
+            except Exception:
+                pass
             return HTMLResponse(_html_31br)
         except Exception:
-            return HTMLResponse(_dashboard_html(snap, welcome=bool(welcome)))
+            _h = _dashboard_html(snap, welcome=bool(welcome))
+            try:
+                from src.conductor_identity_31bx import inject_banner as _ib31bx
+                _h = _ib31bx(_h)
+            except Exception:
+                pass
+            return HTMLResponse(_h)
 
     @app.get("/os", include_in_schema=False)
     @app.get("/is", include_in_schema=False)  # legacy alias
@@ -5382,6 +5393,13 @@ def create_app() -> FastAPI:
             set_view_as_tier(sid, tier)
             return RedirectResponse("/dashboard", status_code=302)
         return RedirectResponse("/os/view-as", status_code=302)
+
+    # ── Ship 31bx.CONDUCTOR_NAME — tenant names their conductor ───────
+    try:
+        from src import conductor_identity_31bx as _ci31bx
+        _ci31bx.register_routes(app)
+    except Exception as _e31bx:
+        logger.warning(f"[31bx] conductor_identity not mounted: {_e31bx}")
 
     # ── Ship 31bw.MAIL_OS — IMAP-backed mailbox tabs ───────
     try:
@@ -23487,7 +23505,7 @@ font-weight:600;color:#c9d1d9}}</style></head><body>
                     "/legal/privacy",
                     "/legal/eula",
             })
-            _pfx = ("/legal/", "/api/mail/inbox", "/api/mail/inboxes", "/api/growth", "/api/oo/", "/api/health/capacity", "/verify/", "/api/verify/",
+            _pfx = ("/legal/", "/api/mail/inbox", "/api/mail/inboxes", "/api/conductor/", "/api/growth", "/api/oo/", "/api/health/capacity", "/verify/", "/api/verify/",
                     "/api/marketplace/",
                     "/api/tenant/by-slug/",
                     "/api/download/")  # R482
