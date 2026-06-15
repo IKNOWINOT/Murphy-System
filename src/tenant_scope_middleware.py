@@ -120,15 +120,17 @@ def _resolve_actor_from_request(request: Request) -> Dict[str, Any]:
     # Resolve token → account
     try:
         with sqlite3.connect(USERS_DB, timeout=2) as c:
+            # Ship 31bz — also read direct columns written by ship31ah_signup.create_session
             row = c.execute(
-                "SELECT tenant_id, data FROM session_store WHERE session_id=?",
+                "SELECT tenant_id, data, account_id, email FROM session_store WHERE session_id=?",
                 (token,)
             ).fetchone()
             if not row:
                 return actor
             tenant_id_session = row[0]
             session_data = json.loads(row[1]) if row[1] else {}
-            account_id = session_data.get("account_id")
+            account_id = session_data.get("account_id") or row[2]
+            session_email = row[3]
             if not account_id:
                 return actor
             acct_row = c.execute(
