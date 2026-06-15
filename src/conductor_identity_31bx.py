@@ -191,7 +191,7 @@ def identity_for(tenant_id: str) -> Dict:
 # ─── Banner HTML (rendered with display name and current alias state) ──
 
 _BANNER_TEMPLATE = """<!-- Ship 31bx CONDUCTOR_NAME -->
-<div id="conductor-name-banner" style="background:linear-gradient(135deg,#0e1410,#1a2733);border:1px solid #00d4aa;border-radius:8px;padding:18px 22px;margin:18px;font-family:Inter,system-ui">
+<div id="conductor-name-banner" data-anchor="conductor" style="background:linear-gradient(135deg,#0e1410,#1a2733);border:1px solid #00d4aa;border-radius:8px;padding:18px 22px;margin:18px;font-family:Inter,system-ui">
   <div style="font-size:13px;color:#00d4aa;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Your conductor</div>
   <div id="conductor-greeting-row" style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
     <div>
@@ -347,3 +347,21 @@ def register_routes(app):
             return JSONResponse(status_code=400, content={"ok": False, "error": "Invalid JSON"})
         result = set_alias(sess["tenant_id"], name)
         return JSONResponse(status_code=200 if result["ok"] else 400, content=result)
+
+
+# Ship 31by — public helper used by outbound surfaces
+
+def name_for_tenant(tenant_id: str, prefer: str = "display") -> str:
+    """Public entry point for any module that needs to address a tenant's conductor.
+
+    prefer = "display"   → alias if set, else canonical (default)
+    prefer = "canonical" → always 'Murphy Prime' or 'Murphy N' (use in audit logs)
+    """
+    if prefer == "canonical":
+        return get_canonical_name(tenant_id) or "your conductor"
+    return get_display_name(tenant_id)
+
+
+def signed(tenant_id: str) -> str:
+    """How the conductor signs a written reply (email/chat). Includes the dash."""
+    return "— " + name_for_tenant(tenant_id, "display")

@@ -61,6 +61,12 @@ MURPHY_TEAL = "#00D4AA"   # matches static/logo-live.svg
 
 # Eye-gear logo — compact inline SVG (no external assets, email-safe).
 # Renders the gear annulus + eye almond at 28x28 for email header use.
+# Ship 31by — pull tenant-scoped display name into outbound From: line
+try:
+    from src.conductor_identity_31bx import name_for_tenant as _name_for_tenant_31by
+except Exception:
+    def _name_for_tenant_31by(tid, prefer="display"): return None
+
 def _eye_gear_svg(size_px: int = 28) -> str:
     return (
         f'''<svg xmlns="http://www.w3.org/2000/svg" width="{size_px}" '''
