@@ -67,6 +67,15 @@ def _gather() -> dict:
         scores = [r[1] for r in rows]
         out["health_min"] = min(scores); out["health_max"] = max(scores)
         out["health_current"] = scores[-1]
+
+    # Ship 31ch — team_synthesis fit candidates
+    try:
+        from src.team_synthesis_fit_detector_31ch import get_pending_proposals
+        out["team_synthesis_candidates"] = get_pending_proposals(10)
+    except Exception as e:
+        out["team_synthesis_candidates"] = []
+        out["err_team_synthesis"] = str(e)
+
     return out
 
 
@@ -130,7 +139,34 @@ def _render_email(data: dict) -> str:
              f"Posture toggle: https://murphy.systems/citl/toggle\n"
              f"Pending proposals: https://murphy.systems/api/self/proposals\n")
 
-    full = intro + body_posture + body_proposals + body_r609 + body_health + body_rails + body_next + outro
+
+    body_team_synthesis = ""
+    candidates = data.get("team_synthesis_candidates", [])
+    if candidates:
+        body_team_synthesis = (f"Murphy spotted {len(candidates)} Team-tier accounts whose "
+                               f"usage pattern shows they would benefit from advanced synthesis. "
+                               f"Per the b2b_positioning rule, these are quiet upgrade candidates "
+                               f"to the team_synthesis SKU — never advertised, offered case-by-case "
+                               f"with your approval. Default proposed range is $499 to $599 per "
+                               f"month, which sits between Team ($399) and Business ($799).\n\n")
+        for c in candidates[:6]:
+            sigs = c.get("signals", {})
+            body_team_synthesis += (
+                f"  - {c.get('tenant_name','(unnamed)')} (id={c.get('tenant_id','')[:14]}): "
+                f"fit score {c.get('fit_score',0):.2f}. "
+                f"Signals: {sigs.get('summarize_requests',0)} summarize requests, "
+                f"{sigs.get('thread_count',0)} threads, "
+                f"{sigs.get('cross_domain_count',0)} distinct domains, "
+                f"{sigs.get('unique_verticals',0)} verticals. "
+                f"Proposed range ${c.get('price_floor',499)}-${c.get('price_ceiling',599)}/mo.\n"
+            )
+        body_team_synthesis += ("\nApprove or skip each at /os/founder/team-synthesis. "
+                                "Murphy will draft the customer-facing email once you approve, "
+                                "but you send it because pricing-change conversations stay with "
+                                "the founder.\n\n")
+
+    full = (intro + body_posture + body_proposals + body_r609 + body_health
+            + body_team_synthesis + body_rails + body_next + outro)
     return full
 
 
