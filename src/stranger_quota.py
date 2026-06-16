@@ -64,6 +64,22 @@ MAX_UPGRADE_OFFERS = 3   # then silent drop
 FREE_DIRECT_PER_30D = FREE_PER_DAY
 FREE_AMBIENT_PER_30D = FREE_PER_DAY
 
+# Ship 31cr — founder-invited prospects get unlimited free replies
+# These addresses bypass the quota gate entirely.
+# Maintained in /etc/murphy-production/founder_invited.txt (one email per line).
+import os as _os_31cr
+def _load_founder_invited_31cr() -> set:
+    path = "/etc/murphy-production/founder_invited.txt"
+    if not _os_31cr.path.exists(path):
+        return set()
+    try:
+        with open(path) as f:
+            return {ln.strip().lower() for ln in f if ln.strip() and not ln.startswith("#")}
+    except Exception:
+        return set()
+_FOUNDER_INVITED_ALLOWLIST = _load_founder_invited_31cr()
+
+
 
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -153,6 +169,10 @@ def check_quota(email_addr: str, mode: str) -> Dict:
       quota_state: current counters
       remaining_today: how many free replies left in the 24h window
     """
+    # Ship 31cr — founder-invited bypass
+    if email_addr.lower() in _FOUNDER_INVITED_ALLOWLIST:
+        return {"action": "allow", "reason": "founder_invited_bypass",
+                "quota_state": {"founder_invited": True}, "remaining_today": 999}
     conn = _conn()
     try:
         row = _get_or_create(conn, email_addr)
