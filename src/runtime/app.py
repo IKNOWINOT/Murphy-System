@@ -23635,6 +23635,14 @@ font-weight:600;color:#c9d1d9}}</style></head><body>
 
     @app.exception_handler(Exception)
     async def _general_exception_handler(_req: _FARequest, exc: Exception):
+        # Ship 31cs.P2 — silence cosmetic Starlette nested-middleware TaskGroup
+        # spam (RuntimeError "Unexpected message received: http.request").
+        try:
+            _msg_31cs = str(exc)
+            if "Unexpected message received: http.request" in _msg_31cs:
+                return JSONResponse({"success": False}, status_code=500)
+        except Exception:
+            pass
         logger.error("Unhandled exception: %s", exc, exc_info=True)
         return JSONResponse(
             {"success": False, "error": {"code": "INTERNAL_ERROR", "message": "Internal server error"}},
