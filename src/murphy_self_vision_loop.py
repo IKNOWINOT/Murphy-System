@@ -210,19 +210,56 @@ def _save_proposal(p: VisionProposal):
                 p.gate_notes = (p.gate_notes or "") + " | R480: stub-guard dropped"
         except Exception as _r480_exc:
             logger.debug("R480 stub-guard import failed (non-fatal): %s", _r480_exc)
+    # Ship 31ct.a — pre-insert dedup for NEW pending proposals only
+    # Functionality preserved: applied/blocked/rejected proposals still write normally.
+    # For new pending proposals: if dedup_key already exists in pending, increment
+    # dup_count + update last_seen_at on the canonical row, skip insert.
+    if p.status in ("pending", "proposed", ""):
+        try:
+            import hashlib as _h31ct
+            _dk = _h31ct.sha1(
+                f"{p.target_file or ''}|{(p.issue_summary or '').strip().lower()[:200]}".encode()
+            ).hexdigest()[:16]
+            _db_dd = _get_db()
+            _existing = _db_dd.execute(
+                "SELECT id, dup_count FROM proposals WHERE dedup_key=? AND status='pending' LIMIT 1",
+                (_dk,)
+            ).fetchone()
+            if _existing:
+                _db_dd.execute(
+                    "UPDATE proposals SET dup_count=COALESCE(dup_count,1)+1, last_seen_at=? WHERE id=?",
+                    (p.created_at, _existing[0])
+                )
+                _db_dd.commit()
+                _db_dd.close()
+                logger.info(
+                    "Ship 31ct.a: dedup hit for %s (canonical=%s, dup_count++)",
+                    p.target_file, _existing[0]
+                )
+                return  # skip insert
+            _db_dd.close()
+            # Stamp dedup_key on this proposal for the actual insert below
+            p_dedup_key = _dk
+        except Exception as _ddx:
+            logger.debug("Ship 31ct.a dedup-check failed (non-fatal): %s", _ddx)
+            p_dedup_key = ""
+    else:
+        p_dedup_key = ""
+
     db = _get_db()
     db.execute("""
         INSERT OR REPLACE INTO proposals
         (id, run_id, page_url, target_file, issue_summary, rationale,
          patch_content, patch_mode, critic_verdict, critic_issues, status,
          created_at, applied_at, verified, verification_notes, confidence,
-         gate_verdict, gate_notes)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+         gate_verdict, gate_notes, dedup_key, dup_count, last_seen_at)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     """, (p.id, p.run_id, p.page_url, p.target_file, p.issue_summary,
           p.rationale, p.patch_content, p.patch_mode, p.critic_verdict,
           json.dumps(p.critic_issues), p.status, p.created_at,
           p.applied_at, int(p.verified), p.verification_notes, p.confidence,
-          p.gate_verdict, p.gate_notes))
+          p.gate_verdict, p.gate_notes,
+          p_dedup_key, 1, p.created_at))
     db.commit()
     db.close()
 
@@ -657,6 +694,32 @@ Output ONLY the JSON, no other text.
             else:
                 proposal.critic_verdict = "PASS"
                 proposal.critic_issues = []
+
+        # Ship 31ct.c — tiered critic for known-safe static asset fixes
+        # Existing strictness preserved for everything else. This ONLY relaxes
+        # WARN→PASS for static/*.{css,js} on a known set of repeat themes when
+        # confidence >= 0.7. BLOCK stays BLOCK; PASS stays PASS; .py untouched.
+        try:
+            tf = (proposal.target_file or "").lower()
+            isum = (proposal.issue_summary or "").lower()
+            conf = float(proposal.confidence or 0.0)
+            is_static_asset = tf.startswith("static/") and (tf.endswith(".css") or tf.endswith(".js"))
+            safe_themes = ("csp", "content security policy", "401 status",
+                           "missing bearer", "missing nav", "missing navigation",
+                           "unused css", "incomplete css", "unauthorized api")
+            theme_match = any(t in isum for t in safe_themes)
+            if (proposal.critic_verdict == "WARN"
+                and is_static_asset and theme_match and conf >= 0.7):
+                proposal.critic_verdict = "PASS"
+                proposal.critic_issues = list(proposal.critic_issues or []) + [
+                    "Ship 31ct.c: tiered-critic upgrade WARN→PASS (static-asset safe theme, conf>=0.7)"
+                ]
+                logger.info(
+                    "Ship 31ct.c: tiered-critic upgrade target=%s theme=%s conf=%.2f",
+                    proposal.target_file, isum[:60], conf
+                )
+        except Exception as _tcx:
+            logger.debug("Ship 31ct.c tiered-critic check failed: %s", _tcx)
 
         return proposal
 

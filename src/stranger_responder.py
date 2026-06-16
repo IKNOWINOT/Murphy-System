@@ -1449,6 +1449,27 @@ def process_stranger_inquiries(limit: int = 5) -> Dict:
                 except Exception as _gate_exc:
                     logger.warning("Ship 31ba gate failed: %s", _gate_exc)
                 if _allow_bridge_31ba and _BRIDGE_AVAILABLE:
+                    # Ship 31cu — pre-drill DLFR injection
+                    # Shape the inbound message for drill before it plans.
+                    # This prevents drill from over-planning tiny casual probes.
+                    try:
+                        from src.predrill_dlfr_31cu import inject_predrill_context as _pdi_31cu
+                        _shape_31cu = _pdi_31cu(
+                            from_addr=from_addr,
+                            subject=subject,
+                            body=body,
+                            message_id=str(rid),
+                        )
+                        if _shape_31cu:
+                            logger.info(
+                                "Ship 31cu pre-drill shape: size=%s intent=%s sender=%s reply=%d-%d",
+                                _shape_31cu["size_tier"], _shape_31cu["intent_hint"],
+                                _shape_31cu["sender_tier"],
+                                _shape_31cu["recommended_reply_chars_min"],
+                                _shape_31cu["recommended_reply_chars_max"],
+                            )
+                    except Exception as _pdx_31cu:
+                        logger.debug("Ship 31cu pre-drill injection skipped: %s", _pdx_31cu)
                     try:
                         # Ship 31ao.LAUNCH B2 — turnover tracker around bridge call
                         _tc_31ao = _TC31ao.for_role("stranger_responder")
