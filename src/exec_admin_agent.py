@@ -758,7 +758,7 @@ class ExecAdminAgent(AgentBase):
                         to=[to],
                         subject=f"🎯 Murphy Executive Report — {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')} UTC",  # Ship 31be: gate-checked elsewhere
                         body=report,
-                        from_addr=os.environ.get("SMTP_FROM_EMAIL", "murphy@murphy.systems"),
+                        from_addr=os.environ.get("SMTP_FROM_EMAIL", "monitor@murphy.systems"),
                     ))
                 finally:
                     loop.close()
