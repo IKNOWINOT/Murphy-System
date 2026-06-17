@@ -953,6 +953,16 @@ def _queue_outbound(to_addr: str, subject: str, body: str, urgency: str = "norma
     except Exception:
         pass
 
+    # Ship 31cw — Loom-Lite turn wiring (snapshots around critics + precipitate at end)
+    _cw_corr = f"sr_{to_addr[:30]}"
+    try:
+        from src.loom_lite import ghost_snapshot as _cw_snap, psi_log as _cw_psi
+        _cw_snap(_cw_corr, "pre_critic", {
+            "to_addr": to_addr, "subject": subject[:200],
+            "body_chars": len(body or ""),
+        })
+    except Exception as _cwx:
+        pass
     try:
         from src.critique_loop_31bh import critique as _critique_31bq
         verdict = _critique_31bq(
@@ -1048,6 +1058,22 @@ def _queue_outbound(to_addr: str, subject: str, body: str, urgency: str = "norma
     except Exception as _cv2x:
         logger.warning("Ship 31cv critic_v2 failed open: %s", _cv2x)
     # ── end Ship 31cv ──
+
+    # Ship 31cw — post-critic snapshot + precipitate the turn
+    try:
+        from src.loom_lite import ghost_snapshot as _cw_snap2, crystallize as _cw_xtal
+        _cw_snap2(_cw_corr, "post_critic", {
+            "to_addr": to_addr, "subject": subject[:200],
+            "body_chars": len(body or ""),
+            "final_body_preview": (body or "")[:500],
+        })
+        _cw_pkg = _cw_xtal(_cw_corr, outcome="queued")
+        if _cw_pkg:
+            logger.info("Ship 31cw turn %s crystallized as DLF-Lite v2 package %s",
+                        _cw_corr, _cw_pkg)
+    except Exception as _cwx2:
+        logger.debug("Ship 31cw precipitate failed: %s", _cwx2)
+    # ── end Ship 31cw ──
 
     """Submit to outbound_email_queue. Returns queue_id on success.
 
