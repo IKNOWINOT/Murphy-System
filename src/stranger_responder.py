@@ -975,6 +975,80 @@ def _queue_outbound(to_addr: str, subject: str, body: str, urgency: str = "norma
         logger.warning("31bq critique failed open: %s", _cex)
     # ── end Ship 31bq pre-send wires ──
 
+    # ── Ship 31cv — Critic v2 wrapper (additive, runs AFTER 31bh PASS) ──
+    # Three parallel critics: shape-envelope, riff-vs-restate, pattern-match.
+    # On REVISE: re-prompt the LLM with writer-notes addendum (max 1 round).
+    # On HOLD:   block the send (same effect as 31bh hold).
+    # On PASS:   record as approved pattern for future pattern-critic use.
+    try:
+        from src.critic_v2_31cv import (
+            run_critic_v2 as _cv2_run,
+            record_approved_pattern as _cv2_record,
+        )
+        # Pull the predrill shape from rosetta_core.world_context if we wrote one
+        _cv2_shape = None
+        try:
+            from src.rosetta_core import get_rosetta_soul
+            import hashlib as _h_cv2, json as _j_cv2
+            _soul = get_rosetta_soul()
+            _key_hash = _h_cv2.sha1(f"{to_addr}|".encode()).hexdigest()[:12]
+            for _ctx_key, _ctx_val in (getattr(_soul, "world_context", {}) or {}).items():
+                if _ctx_key.startswith(f"inbound_email:") and _key_hash in _ctx_key:
+                    _cv2_shape = _j_cv2.loads(_ctx_val) if isinstance(_ctx_val, str) else _ctx_val
+                    break
+        except Exception:
+            pass
+        _cv2_result = _cv2_run(
+            body=body,
+            subject=subject,
+            inbound_body="",
+            shape=_cv2_shape,
+            correlation_id=f"sr_{to_addr[:30]}",
+            to_addr=to_addr,
+            iteration=0,
+        )
+        if _cv2_result["verdict"] == "hold":
+            logger.warning("Ship 31cv HOLD outbound to %s: %s",
+                           to_addr, _cv2_result["details"])
+            return None
+        if _cv2_result["verdict"] == "pass":
+            # Record approved pattern for future Pattern-Critic use
+            try:
+                _cv2_record(body=body, shape=_cv2_shape, notes="31cv pass")
+            except Exception:
+                pass
+            logger.info("Ship 31cv PASS outbound to %s", to_addr)
+        if _cv2_result["verdict"] == "revise" and _cv2_result.get("addendum_prompt"):
+            # One re-prompt round: feed addendum back to the LLM
+            try:
+                from src.llm_provider import call_llm_chat as _cv2_call
+                _revised = _cv2_call(
+                    messages=[
+                        {"role": "system", "content": "You are Murphy revising your own draft per writer notes. Output the revised draft only."},
+                        {"role": "user",   "content": _cv2_result["addendum_prompt"]},
+                    ],
+                    max_tokens=2000,
+                    temperature=0.4,
+                )
+                if _revised and isinstance(_revised, str) and len(_revised) > 50:
+                    body = _revised
+                    logger.info("Ship 31cv revised outbound to %s (writer-notes applied)",
+                                to_addr)
+                    # Re-check after revision (iteration 1) — but DON'T loop further
+                    _cv2_recheck = _cv2_run(
+                        body=body, subject=subject, inbound_body="",
+                        shape=_cv2_shape, correlation_id=f"sr_{to_addr[:30]}",
+                        to_addr=to_addr, iteration=1,
+                    )
+                    if _cv2_recheck["verdict"] == "hold":
+                        logger.warning("Ship 31cv post-revision HOLD to %s", to_addr)
+                        return None
+            except Exception as _rcx:
+                logger.warning("Ship 31cv re-prompt failed (sending original): %s", _rcx)
+    except Exception as _cv2x:
+        logger.warning("Ship 31cv critic_v2 failed open: %s", _cv2x)
+    # ── end Ship 31cv ──
+
     """Submit to outbound_email_queue. Returns queue_id on success.
 
     Ship 31al: renders the branded HTML body at queue time so the dispatcher
