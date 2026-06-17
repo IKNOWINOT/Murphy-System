@@ -1526,6 +1526,48 @@ def process_stranger_inquiries(limit: int = 5) -> Dict:
                 md = _magnify_drill_ambient(subject, body, principal_addr)
             else:
                 # Ship 31am: try the drill+rosetta+pipeline bridge first.
+                # Ship 31cx — forward ambient-gather detection
+                # If this is a multi-participant forward (not handled by 31g
+                # attachment-path), open an ambient-gather session and send
+                # a verification email to the forwarder. The drill+rosetta
+                # pipeline is SKIPPED for this turn — the verification IS the
+                # reply.
+                _cx_skip_pipeline = False
+                try:
+                    from src.forward_ambient_31cx import (
+                        is_forward as _cx_is_fwd,
+                        begin_session as _cx_begin,
+                        build_verification_email as _cx_build_verify,
+                        mark_verification_sent as _cx_mark_sent,
+                    )
+                    _g_handles_it = bool(
+                        attachment_ctx.get("forward", {}).get("is_forward")
+                        and attachment_ctx.get("attachment_summary")
+                    ) if isinstance(attachment_ctx, dict) else False
+                    if _cx_is_fwd(subject, body) and not _g_handles_it:
+                        _cx_session = _cx_begin(
+                            forwarder_addr=from_addr,
+                            inbound_id=rid,
+                            subject=subject,
+                            body=body,
+                        )
+                        _cx_verify = _cx_build_verify(_cx_session, from_addr)
+                        logger.info(
+                            "Ship 31cx: forward detected — opened session %s "
+                            "(%d participants, %d dates, %d items)",
+                            _cx_session["session_id"],
+                            len(_cx_session["participants"]),
+                            len(_cx_session["dates"]),
+                            len(_cx_session["action_items"]),
+                        )
+                        # Queue the verification email and skip the rest of the pipeline
+                        body = _cx_verify["body"]
+                        subject = _cx_verify["subject"]
+                        _cx_mark_sent(_cx_session["session_id"])
+                        _cx_skip_pipeline = True
+                except Exception as _cxx:
+                    logger.warning("Ship 31cx forward detection failed open: %s", _cxx)
+
                 # Ship 31ba.INTENT_GATE — only when the correspondent ASKED.
                 _bridge_used = False
                 _intent31ba = None
@@ -1548,7 +1590,7 @@ def process_stranger_inquiries(limit: int = 5) -> Dict:
                             )
                 except Exception as _gate_exc:
                     logger.warning("Ship 31ba gate failed: %s", _gate_exc)
-                if _allow_bridge_31ba and _BRIDGE_AVAILABLE:
+                if _allow_bridge_31ba and _BRIDGE_AVAILABLE and not _cx_skip_pipeline:
                     # Ship 31cu — pre-drill DLFR injection
                     # Shape the inbound message for drill before it plans.
                     # This prevents drill from over-planning tiny casual probes.
