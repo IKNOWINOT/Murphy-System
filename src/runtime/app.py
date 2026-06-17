@@ -42129,6 +42129,86 @@ except Exception as _p311b_exc:
 # END PATCH-311b
 # ═══════════════════════════════════════════════════════════════════════════════
 
+# ── Ship 31cy — /os/shape : one artifact, four faces ─────────────
+@app.get("/os/shape", response_class=HTMLResponse)
+async def os_shape_31cy(request: Request):
+    if not _is_owner_request(request):
+        return HTMLResponse("<h1>403 — owner only</h1>", status_code=403)
+    try:
+        from src.shape_walker_31cy import render_html as _r
+        return HTMLResponse(_r())
+    except Exception as e:
+        return HTMLResponse(f"<pre>shape error: {e}</pre>", status_code=500)
+
+
+@app.post("/api/shape/audit")
+async def api_shape_audit_31cy(request: Request):
+    if not _is_owner_request(request):
+        return JSONResponse({"error":"owner only"}, status_code=403)
+    from src.shape_walker_31cy import run_audit
+    return JSONResponse(run_audit("api"))
+
+
+@app.post("/api/shape/freeze")
+async def api_shape_freeze_31cy(request: Request):
+    if not _is_owner_request(request):
+        return JSONResponse({"error":"owner only"}, status_code=403)
+    from src.shape_walker_31cy import freeze
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    return JSONResponse(freeze(reason=body.get("reason","manual")))
+
+
+@app.post("/api/shape/unfreeze")
+async def api_shape_unfreeze_31cy(request: Request):
+    if not _is_owner_request(request):
+        return JSONResponse({"error":"owner only"}, status_code=403)
+    from src.shape_walker_31cy import unfreeze
+    return JSONResponse(unfreeze())
+
+
+@app.post("/api/shape/gap")
+async def api_shape_gap_31cy(request: Request):
+    if not _is_owner_request(request):
+        return JSONResponse({"error":"owner only"}, status_code=403)
+    import sqlite3 as _sq
+    from datetime import datetime as _dt, timezone as _tz
+    body = await request.json()
+    c = _sq.connect("/var/lib/murphy-production/shape_of_complete.db", timeout=10)
+    c.execute(
+        "INSERT INTO gap_decisions (decided_at,ship,head_hash,chose,over,why,closes_gap,opens_gap,author) VALUES (?,?,?,?,?,?,?,?,?)",
+        (_dt.now(_tz.utc).isoformat(),
+         body.get("ship"), body.get("head_hash"),
+         body.get("chose"), body.get("over"), body.get("why"),
+         body.get("closes_gap"), body.get("opens_gap"),
+         body.get("author","founder")),
+    )
+    c.commit(); c.close()
+    return JSONResponse({"ok": True})
+
+
+@app.post("/api/shape/end_goal")
+async def api_shape_end_goal_31cy(request: Request):
+    if not _is_owner_request(request):
+        return JSONResponse({"error":"owner only"}, status_code=403)
+    import sqlite3 as _sq
+    from datetime import datetime as _dt, timezone as _tz
+    body = await request.json()
+    c = _sq.connect("/var/lib/murphy-production/shape_of_complete.db", timeout=10)
+    c.execute(
+        "INSERT INTO end_goal (added_at,surface,capability,must_be_reachable_from,must_feed,must_be_gated_by,priority,status) VALUES (?,?,?,?,?,?,?,'open')",
+        (_dt.now(_tz.utc).isoformat(),
+         body["surface"], body["capability"],
+         body.get("must_be_reachable_from"), body.get("must_feed"),
+         body.get("must_be_gated_by"), body.get("priority",5)),
+    )
+    c.commit(); c.close()
+    return JSONResponse({"ok": True})
+# ── end Ship 31cy ──
+
+
 if __name__ == "__main__":
     # INC-06 / H-01: Print feature-availability summary based on env vars
     # PATCH-103: Start World State Engine background refresh loop
