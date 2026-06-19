@@ -1405,17 +1405,22 @@ def process_stranger_inquiries(limit: int = 5) -> Dict:
 
     cutoff = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
     placeholders = ",".join("?" * len(_ALLOWLIST_OWNED))
+    # Ship 31cz.F (2026-06-19): 'stranger_queued' = founder-approved-via-Review.
+    # Those bypass the 24h cutoff because the founder explicitly said send.
+    # NULL status still uses the cutoff (new inquiries only).
     rows = conn.execute(f"""
         SELECT id, from_addr, from_domain, subject, body_preview, intent_class,
                COALESCE(delivery_mode, 'direct') AS delivery_mode, cc_addrs,
                attachment_context
         FROM inbound_replies
-        WHERE intent_class IN ('inquiry')
+        WHERE (intent_class IN ('inquiry') OR auto_response_status = 'stranger_queued')
           AND (auto_response_status IS NULL OR auto_response_status = 'stranger_queued')
-          AND received_at > ?
+          AND (received_at > ? OR auto_response_status = 'stranger_queued')
           AND from_addr NOT IN ({placeholders})
           AND from_addr IS NOT NULL AND from_addr != ''
-        ORDER BY received_at DESC
+        ORDER BY
+          CASE WHEN auto_response_status = 'stranger_queued' THEN 0 ELSE 1 END,
+          received_at DESC
         LIMIT ?
     """, [cutoff, *_ALLOWLIST_OWNED, limit]).fetchall()
 
