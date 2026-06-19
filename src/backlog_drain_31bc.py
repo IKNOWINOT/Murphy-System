@@ -34,14 +34,29 @@ _DB = "/var/lib/murphy-production/inbound_replies.db"
 # Patterns for system mail — these are SAFE to mark as internal w/o LLM
 SYSTEM_FROM_PATTERNS = [
     r"@murphy\.systems$",          # Murphy talking to itself
-    r"^no-?reply@",                 # no-reply
-    r"^mailer-daemon@",             # bounces
+    # 2026-06-19 founder rule: 1-to-1 replies are OK; machine senders should
+    # never reach the Review queue. Broadened to catch noreply-*, dmarc,
+    # notifications, list-mail, daemons, system tooling.
+    r"^no-?reply[\-_+.]?",          # noreply / no-reply / noreply-anything
+    r"^mailer-daemon@",
     r"^postmaster@",
-    r"^bounce@",
+    r"^bounce[\-_+.@]",
     r"^abuse@",
-    r"^bounces?\+",                 # SES-style bounce
+    r"^bounces?\+",
     r"@bounces?\.",
-    r"^prvs=",                      # Microsoft prvs prefix
+    r"^prvs=",
+    r"^root@",                      # self-tests, cron output
+    r"^dmarc[\-_+.@]",              # dmarc-reports@, dmarc.support@, etc
+    r"-dmarc[\-_+@]",                # *-dmarc-support@*
+    r"@dmarc\.",
+    r"^notifications?[\-_+.@]",     # notifications@, notification-no-reply@
+    r"^do[\-_]not[\-_]reply[\-_+.@]",
+    r"^auto[\-_]?reply[\-_+.@]",
+    r"^support@(google|microsoft|amazon|github|gitlab|hetzner|cloudflare)\.com$",
+    r"^([\w.+-]+)@([\w.-]+)?lists?\.",   # mailing lists
+    r"@list\.",
+    r"^reports?[\-_+.@]",
+    r"@reports?\.",
 ]
 
 SYSTEM_SUBJECT_HINTS = [
