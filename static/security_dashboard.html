@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Security Dashboard — Murphy Control Systems</title>
+<style>
+  /* Gatsby Tech: ivory body, midnight bg, champagne gold accents */
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0;
+    background: #0b0e17;
+    color: #f5f0e1;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 14px; line-height: 1.5;
+  }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 32px; }
+  h1 { font-weight: 300; color: #d4af37; margin: 0 0 8px; font-size: 28px; letter-spacing: 0.5px; }
+  .sub { color: #8b8674; margin-bottom: 32px; font-size: 13px; }
+  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
+  .card { background: #131826; border: 1px solid #1f2433; border-radius: 4px; padding: 20px; }
+  .card h2 { font-weight: 400; color: #d4af37; margin: 0 0 12px; font-size: 16px;
+             border-bottom: 1px solid #1f2433; padding-bottom: 8px; }
+  .metric { display: flex; justify-content: space-between; padding: 6px 0; }
+  .metric .v { color: #d4af37; font-variant-numeric: tabular-nums; }
+  .ip-list { font-family: 'SF Mono', Consolas, monospace; font-size: 12px;
+             color: #b5af9f; max-height: 280px; overflow-y: auto; }
+  .ip-list .row { display: flex; justify-content: space-between; padding: 3px 0;
+                  border-bottom: 1px solid #1a1f2d; }
+  .err { color: #c44; font-style: italic; }
+  .ok { color: #6c9; }
+  .full { grid-column: 1 / -1; }
+  .meta { color: #6a6555; font-size: 11px; }
+  .refresh { background: transparent; border: 1px solid #d4af37; color: #d4af37;
+             padding: 6px 14px; border-radius: 3px; cursor: pointer; font-size: 12px;
+             letter-spacing: 0.5px; }
+  .refresh:hover { background: #d4af37; color: #0b0e17; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Security Dashboard</h1>
+  <div class="sub">Murphy Control Systems · live signals · refresh manually</div>
+  <button class="refresh" onclick="load()">↻ Refresh</button>
+  <div style="height:24px"></div>
+  <div class="grid" id="grid">
+    <div class="card full"><span class="meta">Loading…</span></div>
+  </div>
+</div>
+<script>
+async function load() {
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '<div class="card full"><span class="meta">Loading…</span></div>';
+  try {
+    const r = await fetch('/api/security/dashboard', { credentials: 'include' });
+    if (!r.ok) { grid.innerHTML = '<div class="card full err">'+r.status+' '+r.statusText+'</div>'; return; }
+    const d = await r.json();
+    let html = '';
+
+    // fail2ban
+    const f = d.fail2ban || {};
+    html += '<div class="card"><h2>fail2ban</h2>';
+    if (f.ok) {
+      html += '<div class="metric"><span>active jails</span><span class="v">'+f.active_jails+'</span></div>';
+      html += '<div class="metric"><span>currently banned</span><span class="v">'+f.total_currently_banned+'</span></div>';
+      html += '<div style="margin-top:12px"><div class="meta">jails:</div>';
+      (f.jails||[]).forEach(j => {
+        html += '<div class="metric"><span>'+j.jail+'</span><span class="v">'+(j.currently_banned||0)+'</span></div>';
+      });
+      html += '</div></div>';
+    } else { html += '<div class="err">'+(f.error||'unavailable')+'</div></div>'; }
+
+    // security_brain
+    const sb = d.security_brain || {};
+    html += '<div class="card"><h2>security brain</h2>';
+    if (sb.ok) {
+      const c = sb.counts || {};
+      html += '<div class="metric"><span>scan_memory</span><span class="v">'+(c.scan_memory||0)+'</span></div>';
+      html += '<div class="metric"><span>finding_library</span><span class="v">'+(c.finding_library||0)+'</span></div>';
+      html += '<div class="metric"><span>fix_log</span><span class="v">'+(c.fix_log||0)+'</span></div>';
+      html += '<div class="metric"><span>knowledge_base</span><span class="v">'+(c.knowledge_base||0)+'</span></div>';
+      html += '</div>';
+    } else { html += '<div class="err">'+(sb.error||'unavailable')+'</div></div>'; }
+
+    // antibody
+    const a = d.antibody || {};
+    html += '<div class="card"><h2>antibody (outbound)</h2>';
+    if (a.ok) {
+      html += '<div class="metric"><span>interventions 7d</span><span class="v">'+(a.interventions_7d||0)+'</span></div>';
+      if ((a.interventions_7d||0) === 0) {
+        html += '<div class="meta" style="margin-top:8px">No outbound content blocked in the last 7 days.</div>';
+      }
+      html += '</div>';
+    } else { html += '<div class="err">'+(a.error||'unavailable')+'</div></div>'; }
+
+    // top IPs
+    const n = d.nginx_traffic || {};
+    html += '<div class="card"><h2>top IPs · 24h</h2>';
+    if (n.ok && (n.top_ips_24h||[]).length) {
+      html += '<div class="ip-list">';
+      n.top_ips_24h.forEach(it => {
+        html += '<div class="row"><span>'+it.ip+'</span><span class="v">'+it.hits+'</span></div>';
+      });
+      html += '</div></div>';
+    } else {
+      html += '<div class="meta">no nginx traffic data</div></div>';
+    }
+
+    html += '<div class="card full"><div class="meta">generated '+(d.generated_at||'')+'</div></div>';
+    grid.innerHTML = html;
+  } catch (e) {
+    grid.innerHTML = '<div class="card full err">'+e.message+'</div>';
+  }
+}
+load();
+</script>
+</body>
+</html>

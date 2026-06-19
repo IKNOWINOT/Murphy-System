@@ -285,11 +285,14 @@ def _capability_check(surface: str, capability: str) -> dict:
         reach = "all_actors"
 
     elif surface == "loom_lite":
-        # was reasonable — keep but fall back to any snapshots table presence
+        # Loom-Lite captures when stranger_responder or chat-v2 fires.
+        # Use 168h window — production turn frequency is lumpy
+        # (backlog draining ≠ continuous), so 7d is a more honest measure
+        # of whether the capture pipeline is wired and working.
         wired = _file_exists("src/loom_lite/__init__.py")
         operating = _db_recent(
             "/var/lib/murphy-production/ghost_snapshots.db",
-            "snapshots", "created_at", 24)
+            "snapshots", "created_at", 168)
         reach = "all_generative"
 
     elif surface == "dlf_lite_v2":

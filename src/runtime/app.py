@@ -5302,6 +5302,18 @@ def create_app() -> FastAPI:
             )
 
     # ── Ship 31ab: /claim/{token} free-tier account claim ──
+    # ══════════════════════════════════════════════════════════════════════
+    # Ship 31cz.S — Security Dashboard wiring (2026-06-19)
+    # Sentinel: _SHIP_31cz_S_SECURITY_DASHBOARD_WIRED
+    # ══════════════════════════════════════════════════════════════════════
+    _SHIP_31cz_S_SECURITY_DASHBOARD_WIRED = True
+    try:
+        from src.security_dashboard_31cz_route import register_routes as _ship31cz_s_register
+        _ship31cz_s_register(app)
+        logger.info("Ship 31cz.S: /os/security + /api/security/dashboard wired")
+    except Exception as _s31cz_s_e:
+        logger.warning("Ship 31cz.S wiring failed: %s", _s31cz_s_e)
+
     @app.get("/claim/{token}", include_in_schema=False)
     async def murphy_claim_form(token: str, request: Request):
         """Ship 31ah: render password form for a valid token (do NOT consume)."""

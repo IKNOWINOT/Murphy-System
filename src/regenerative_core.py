@@ -553,6 +553,10 @@ class RegenerativeCore:
     # ── Monitor loop ──────────────────────────────────────────────────────────
 
     def _monitor_once(self) -> Dict[str, Any]:
+        import os as _os_rc
+        if _os_rc.environ.get('MURPHY_REGEN_CORE_DISABLED','0') == '1':
+            return
+
         import time as _t_g
         if _t_g.time() < getattr(self, "_startup_grace_until", 0):
             logger.info("[PATCH-361/402] Startup grace active — skipping probe (%.0fs left)", self._startup_grace_until - _t_g.time())
