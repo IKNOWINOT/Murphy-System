@@ -1594,19 +1594,43 @@ def create_app() -> FastAPI:
         try:
             if item_id.startswith("mail_"):
                 # staged_email — id is "mail_<rowid>"
-                # Ship 6 (2026-06-18): drop staged_at (column doesn't exist); status alone records decision
+                # Ship 31cz.D (2026-06-19): approve now ACTUALLY dispatches.
+                # Founder caught that approve was a no-op flag write. Now it
+                # generates a reply via stranger_responder and dispatches it
+                # via SMTP. Reject and revise still just mark status.
                 rowid = int(item_id.replace("mail_",""))
                 with _sq.connect("/var/lib/murphy-production/inbound_replies.db", timeout=5) as c:
-                    row = c.execute("SELECT id, from_addr, subject FROM inbound_replies WHERE id=?", (rowid,)).fetchone()
+                    row = c.execute("SELECT id, from_addr, subject, body_preview FROM inbound_replies WHERE id=?", (rowid,)).fetchone()
                     if not row:
                         return JSONResponse({"ok":False,"error":"mail item not found"}, status_code=404)
-                    status_map = {
-                        "approve": "founder_approved_send",
-                        "reject": "founder_rejected",
-                        "revise": "surfaced_for_review",
-                        "regenerate": "pending",
-                    }
-                    new_status = status_map[action]
+                    inb_id, from_addr, subject, body_preview = row
+
+                # APPROVE = signal stranger_responder to draft + send.
+                # Status 'stranger_queued' is what process_stranger_inquiries
+                # already picks up. The drafter generates, critic reviews,
+                # antibody logs, dispatcher sends. We do NOT generate here.
+                if action == "approve":
+                    with _sq.connect("/var/lib/murphy-production/inbound_replies.db", timeout=5) as c:
+                        c.execute(
+                            "UPDATE inbound_replies SET auto_response_status='stranger_queued' WHERE id=?",
+                            (rowid,),
+                        )
+                        c.commit()
+                    logger.info("Ship 31cz.E approve→queued: inb_id=%s from=%s subject=%r",
+                                inb_id, from_addr, (subject or "")[:80])
+                    return {"ok": True, "source": "staged_email", "id": item_id,
+                            "action": "approve", "new_status": "stranger_queued",
+                            "note": "queued for stranger_responder to draft + send on next cycle",
+                            "decided_by": decided_by, "decided_at": now}
+
+                                # REJECT / REVISE / REGENERATE — just status updates
+                status_map = {
+                    "reject": "founder_rejected",
+                    "revise": "surfaced_for_review",
+                    "regenerate": "pending",
+                }
+                new_status = status_map.get(action, "founder_approved_send")
+                with _sq.connect("/var/lib/murphy-production/inbound_replies.db", timeout=5) as c:
                     c.execute("UPDATE inbound_replies SET auto_response_status=? WHERE id=?", (new_status, rowid))
                     c.commit()
                 return {"ok":True, "source":"staged_email", "id":item_id, "action":action, "new_status":new_status, "decided_by":decided_by, "decided_at":now}
