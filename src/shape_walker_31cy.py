@@ -384,14 +384,18 @@ def _capability_check(surface: str, capability: str) -> dict:
         reach = "founder"
 
     elif surface == "abuse_reports":
-        # NEW BRANCH — was missing
-        wired = _file_exists("src/abuse_reports.py") or _file_exists(
-            "src/abuse_filer.py")
-        # not yet implemented — leave operating False with honest evidence
+        # Ship 31cz.B — module exists + summary fn returns ok
+        wired = _file_exists("src/abuse_reports.py")
         operating = False
-        ev.append("not yet wired — pending implementation")
-        reach = "external_cert"
-
+        evidence = ""
+        try:
+            from src.abuse_reports import summary_24h
+            s = summary_24h()
+            operating = bool(s.get("ok"))
+            evidence = f"abuse_reports_24h={s.get('total_24h', 0)}"
+        except Exception as e:
+            evidence = f"import_err={e}"
+        reach = "founder_security_dashboard"
     return {
         "wired": int(wired),
         "operating": int(operating),

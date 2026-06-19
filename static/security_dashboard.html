@@ -92,6 +92,25 @@ async function load() {
       html += '</div>';
     } else { html += '<div class="err">'+(a.error||'unavailable')+'</div></div>'; }
 
+    // abuse_reports
+    const ar = d.abuse_reports || {};
+    html += '<div class="card"><h2>abuse reports · 24h</h2>';
+    if (ar.ok) {
+      html += '<div class="metric"><span>total</span><span class="v">'+(ar.total_24h||0)+'</span></div>';
+      const bk = ar.by_kind || {};
+      Object.keys(bk).forEach(k => {
+        html += '<div class="metric"><span>'+k+'</span><span class="v">'+bk[k]+'</span></div>';
+      });
+      if ((ar.top_ips||[]).length) {
+        html += '<div style="margin-top:10px"><div class="meta">top IPs:</div>';
+        ar.top_ips.slice(0,5).forEach(ti => {
+          html += '<div class="metric"><span style="font-family:monospace;font-size:12px">'+ti.ip+'</span><span class="v">'+ti.count+'</span></div>';
+        });
+        html += '</div>';
+      }
+      html += '</div>';
+    } else { html += '<div class="err">'+(ar.error||'unavailable')+'</div></div>'; }
+
     // top IPs
     const n = d.nginx_traffic || {};
     html += '<div class="card"><h2>top IPs · 24h</h2>';

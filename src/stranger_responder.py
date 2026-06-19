@@ -1059,6 +1059,29 @@ def _queue_outbound(to_addr: str, subject: str, body: str, urgency: str = "norma
         logger.warning("Ship 31cv critic_v2 failed open: %s", _cv2x)
     # ── end Ship 31cv ──
 
+    # Ship 31cz.A — antibody intervention on outbound
+    # Extracts claims, classifies regulatory context, logs to ledger.
+    # Policy=log_only (never blocks for now); allow_send is always True.
+    try:
+        from src.antibody.intervene import intervene as _ab_intervene
+        _ab_res = _ab_intervene(
+            response_text=body or "",
+            prompt_text=f"to={to_addr} subject={subject[:200]}",
+            agent_name="stranger_responder",
+            policy="log_only",
+        )
+        if _ab_res.get("intervention_id"):
+            logger.info(
+                "Ship 31cz.A antibody intv=%s claims=%d refuted=%d action=%s",
+                _ab_res["intervention_id"],
+                _ab_res.get("claims_found", 0),
+                _ab_res.get("claims_refuted", 0),
+                _ab_res.get("action_taken", "?"),
+            )
+    except Exception as _abx:
+        logger.debug("Ship 31cz.A antibody failed (continuing): %s", _abx)
+    # ── end Ship 31cz.A ──
+
     # Ship 31cw — post-critic snapshot + precipitate the turn
     try:
         from src.loom_lite import ghost_snapshot as _cw_snap2, crystallize as _cw_xtal

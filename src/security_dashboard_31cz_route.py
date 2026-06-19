@@ -152,6 +152,16 @@ def _nginx_attack_signal_24h() -> dict:
         return {"ok": False, "error": str(e)}
 
 
+
+
+def _abuse_reports_summary() -> dict:
+    """Ship 31cz.B — recent abuse reports (bans, sprays, honeypot trips)."""
+    try:
+        from src.abuse_reports import summary_24h
+        return summary_24h()
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
 def get_security_dashboard() -> dict:
     """Aggregate everything for the dashboard."""
     return {
@@ -160,6 +170,7 @@ def get_security_dashboard() -> dict:
         "security_brain": _security_brain_summary(),
         "antibody": _antibody_summary(),
         "nginx_traffic": _nginx_attack_signal_24h(),
+        "abuse_reports": _abuse_reports_summary(),
     }
 
 # ── Route registration helper ──────────────────────────────────────────
