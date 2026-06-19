@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Forge · Deliverable Review · Murphy</title>
+<style>
+:root {
+  --ivory: #FAF7F0;
+  --midnight: #0A0E1A;
+  --midnight-2: #141828;
+  --champagne: #D4B872;
+  --teal: #5EE0C4;
+  --teal-2: #00E5A0;
+  --text: #E8E6E0;
+  --text-2: #8AA;
+  --border: rgba(212, 184, 114, 0.2);
+  --hitl-red: #E07A5F;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--midnight);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  padding: 16px;
+}
+.header {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+}
+.header h1 {
+  font-size: 20px;
+  color: var(--champagne);
+  margin: 0 0 4px 0;
+  font-weight: 600;
+}
+.header .sub { color: var(--text-2); font-size: 12px; }
+.section {
+  background: var(--midnight-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+}
+.section h2 {
+  margin: 0 0 10px 0;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--champagne);
+  font-weight: 600;
+}
+.kv { display: grid; grid-template-columns: 140px 1fr; gap: 6px 12px; font-size: 13px; }
+.kv .k { color: var(--text-2); }
+.kv .v { color: var(--text); }
+.agent-chip {
+  display: inline-block;
+  background: rgba(94, 224, 196, 0.1);
+  border: 1px solid rgba(94, 224, 196, 0.3);
+  color: var(--teal);
+  padding: 3px 10px;
+  border-radius: 14px;
+  font-size: 11px;
+  margin-right: 6px;
+  margin-bottom: 4px;
+}
+.cost-bar {
+  display: flex;
+  height: 24px;
+  border-radius: 4px;
+  overflow: hidden;
+  margin: 8px 0;
+  background: var(--midnight);
+}
+.cost-bar-human { background: var(--hitl-red); }
+.cost-bar-agent { background: var(--teal-2); }
+.cost-bar-overhead { background: var(--champagne); }
+.cost-legend { display: flex; gap: 12px; font-size: 11px; margin-top: 4px; }
+.cost-legend span { display: flex; align-items: center; gap: 4px; }
+.cost-legend .dot { width: 8px; height: 8px; border-radius: 50%; }
+.hitl-warning {
+  background: rgba(224, 122, 95, 0.1);
+  border: 1px solid rgba(224, 122, 95, 0.4);
+  color: var(--hitl-red);
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  margin-top: 8px;
+}
+.step {
+  border-left: 3px solid var(--teal);
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  background: rgba(255,255,255,0.02);
+  border-radius: 0 4px 4px 0;
+  font-size: 12px;
+}
+.step .step-name { font-weight: 600; color: var(--text); margin-bottom: 4px; }
+.step .step-meta { color: var(--text-2); font-size: 11px; }
+.rerun-box {
+  background: var(--midnight);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 12px;
+  margin-top: 8px;
+}
+.rerun-box textarea {
+  width: 100%;
+  min-height: 80px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 8px;
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 12px;
+  resize: vertical;
+  box-sizing: border-box;
+}
+.rerun-box label {
+  display: block;
+  font-size: 11px;
+  color: var(--text-2);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+button.action {
+  background: rgba(94, 224, 196, 0.15);
+  border: 1px solid var(--teal);
+  color: var(--teal);
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  margin-top: 8px;
+}
+button.action:hover { background: rgba(94, 224, 196, 0.25); }
+.list-item {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.list-item:hover { background: rgba(255,255,255,0.03); }
+.list-item .title { font-weight: 600; color: var(--text); font-size: 13px; }
+.list-item .meta { color: var(--text-2); font-size: 11px; margin-top: 2px; }
+.loading { color: var(--text-2); font-style: italic; padding: 20px; text-align: center; }
+.empty { color: var(--text-2); padding: 20px; text-align: center; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>⚒  Forge — Deliverable Review</h1>
+  <div class="sub" id="header-sub">Loading…</div>
+</div>
+<div id="content"><div class="loading">Loading deliverable…</div></div>
+
+<script>
+function $(id){return document.getElementById(id);}
+function fmt(n,d=2){return (n||0).toFixed(d);}
+function esc(s){return (s||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+const params = new URLSearchParams(window.location.search);
+const eventId = params.get('event');
+
+async function loadEventReview(eid) {
+  $('header-sub').textContent = `Event ${eid}`;
+  try {
+    const r = await fetch('/api/forge/review/' + encodeURIComponent(eid), {credentials:'include'});
+    const d = await r.json();
+    if (!d.event) {
+      $('content').innerHTML = '<div class="empty">Event not found.</div>';
+      return;
+    }
+    renderReview(d);
+  } catch(e) {
+    $('content').innerHTML = '<div class="empty">Error loading review: '+esc(e.message)+'</div>';
+  }
+}
+
+function renderReview(d) {
+  const ev = d.event || {};
+  const wf = d.workflow;
+  const cs = d.cost_summary || {};
+  const steps = d.steps || [];
+  const human = cs.human_replaced || 0;
+  const agent = cs.agent_compute || 0;
+  const over = cs.overhead || 0;
+  const total = human + agent + over;
+  const hPct = total ? (human/total*100) : 0;
+  const aPct = total ? (agent/total*100) : 0;
+  const oPct = total ? (over/total*100) : 0;
+
+  $('header-sub').textContent = ev.title || '';
+
+  let html = '';
+
+  // 1. Overview
+  html += `<div class="section">
+    <h2>What this is</h2>
+    <div class="kv">
+      <div class="k">Title</div><div class="v">${esc(ev.title)}</div>
+      <div class="k">Description</div><div class="v">${esc(ev.description||'—')}</div>
+      <div class="k">Status</div><div class="v">${esc(ev.status)} (${ev.progress_pct||0}%)</div>
+      <div class="k">Type</div><div class="v">${esc(ev.task_type||'—')}</div>
+      <div class="k">When</div><div class="v">${esc((ev.start||'').slice(0,16).replace('T',' '))}</div>
+    </div>
+  </div>`;
+
+  // 2. Who did it
+  const agents = ev.agents || [];
+  html += `<div class="section">
+    <h2>Who did it</h2>
+    <div>${agents.length ? agents.map(a=>`<span class="agent-chip">${esc(a)}</span>`).join('') : '<span class="empty" style="padding:0">No agents recorded</span>'}</div>
+  </div>`;
+
+  // 3. Cost breakdown — where the money went, highlighting HITL
+  html += `<div class="section">
+    <h2>Where the money went</h2>
+    <div class="cost-bar">
+      ${hPct>0 ? `<div class="cost-bar-human" style="width:${hPct}%" title="Human replaced: $${fmt(human)}"></div>` : ''}
+      ${aPct>0 ? `<div class="cost-bar-agent" style="width:${aPct}%" title="Agent compute: $${fmt(agent,4)}"></div>` : ''}
+      ${oPct>0 ? `<div class="cost-bar-overhead" style="width:${oPct}%" title="Overhead: $${fmt(over)}"></div>` : ''}
+    </div>
+    <div class="cost-legend">
+      <span><span class="dot" style="background:var(--hitl-red)"></span>Human replaced $${fmt(human)} (${fmt(hPct,0)}%)</span>
+      <span><span class="dot" style="background:var(--teal-2)"></span>Agent $${fmt(agent,4)}</span>
+      <span><span class="dot" style="background:var(--champagne)"></span>Overhead $${fmt(over)}</span>
+    </div>
+    ${cs.hitl_dominated ? `<div class="hitl-warning">⚠ This deliverable's cost is dominated by human time (HITL-heavy). Most of the value here is from replacing or augmenting human effort.</div>` : ''}
+    <div class="kv" style="margin-top:10px">
+      <div class="k">ROI</div><div class="v" style="color:var(--teal);font-weight:600">$${fmt(ev.roi)}</div>
+    </div>
+  </div>`;
+
+  // 4. Steps in the workflow
+  if (steps.length) {
+    html += `<div class="section"><h2>What happened, step by step</h2>`;
+    steps.forEach(s => {
+      html += `<div class="step">
+        <div class="step-name">${esc(s.name||s.node_id||'unnamed')}</div>
+        <div class="step-meta">${esc(s.node_type||'')} · ${esc(s.status||'')} ${s.finished_at?'· '+esc(s.finished_at.slice(11,19)):''}</div>
+        ${s.result_summary ? `<div style="margin-top:6px;font-family:monospace;font-size:11px;color:var(--text-2)">${esc(s.result_summary)}</div>` : ''}
+      </div>`;
+    });
+    html += `</div>`;
+  } else if (wf) {
+    html += `<div class="section"><h2>What happened</h2><div class="empty" style="padding:0">Workflow ${esc(wf.dag_id)} ran but step detail not available.</div></div>`;
+  }
+
+  // 5. Deliverable artifact
+  if (d.deliverable) {
+    html += `<div class="section">
+      <h2>The deliverable</h2>
+      <div class="kv">
+        <div class="k">Type</div><div class="v">${esc(d.deliverable.type||'—')}</div>
+        <div class="k">Title</div><div class="v">${esc(d.deliverable.title||'—')}</div>
+        <div class="k">Status</div><div class="v">${esc(d.deliverable.status||'—')}</div>
+        <div class="k">Delivered</div><div class="v">${esc(d.deliverable.delivered_at||'—')}</div>
+      </div>
+    </div>`;
+  }
+
+  // 6. Re-run with new info (the ISO drawing pattern)
+  if (d.rerun_available) {
+    html += `<div class="section">
+      <h2>Re-run with new info</h2>
+      <div style="color:var(--text-2);font-size:12px;margin-bottom:8px">
+        Use this workflow as a template. Same format, same branding, same agents — but with new source material.
+        Example: an ISO drawing workflow could re-render with new product specs.
+      </div>
+      <div class="rerun-box">
+        <label>New source material / instruction</label>
+        <textarea id="rerun-input" placeholder="What's the new input? Murphy will run the same workflow against it and produce a new deliverable in the same format."></textarea>
+        <button class="action" onclick="doRerun('${esc(ev.event_id)}')">↻ Run workflow against new input</button>
+        <div id="rerun-result" style="margin-top:8px;font-size:11px;color:var(--text-2)"></div>
+      </div>
+    </div>`;
+  }
+
+  $('content').innerHTML = html;
+}
+
+async function loadDefaultList() {
+  $('header-sub').textContent = 'Recent deliverables — tap one to review';
+  try {
+    const r = await fetch('/api/forge/review/list?limit=30', {credentials:'include'});
+    const d = await r.json();
+    const items = d.deliverables || [];
+    if (!items.length) {
+      $('content').innerHTML = '<div class="empty">No recent deliverables.</div>';
+      return;
+    }
+    $('content').innerHTML = `<div class="section">
+      <h2>Recent deliverables</h2>
+      ${items.map(it => `
+        <div class="list-item" onclick="window.location.search='?event=${encodeURIComponent(it.event_id)}'">
+          <div class="title">${esc(it.title||'(no title)')}</div>
+          <div class="meta">
+            ${esc((it.end||'').slice(0,16).replace('T',' '))} ·
+            ROI $${fmt(it.roi)} ·
+            agents: ${(it.agents||[]).slice(0,3).join(', ')||'—'}
+          </div>
+        </div>
+      `).join('')}
+    </div>`;
+  } catch(e) {
+    $('content').innerHTML = '<div class="empty">Error: '+esc(e.message)+'</div>';
+  }
+}
+
+async function doRerun(eventId) {
+  const ta = $('rerun-input');
+  const input = (ta?ta.value:'').trim();
+  if (!input) {
+    $('rerun-result').textContent = '⚠ Enter new source material above first.';
+    return;
+  }
+  $('rerun-result').textContent = '⏳ Queueing rerun (this lands in HITL/CITL for review when done)…';
+  // For now we POST to a re-run endpoint (Ship 14 work).
+  // This wires the UI; the rerun mechanic itself ships next.
+  try {
+    const r = await fetch('/api/forge/rerun', {
+      method:'POST', credentials:'include',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({event_id: eventId, new_input: input})
+    });
+    const d = await r.json();
+    if (d.ok) {
+      $('rerun-result').innerHTML = '✓ Queued as <code>'+esc(d.rerun_id||'pending')+'</code>. Watch the Review tab.';
+    } else {
+      $('rerun-result').textContent = '⚠ ' + (d.error || 'Rerun handler not wired yet (Ship 14).');
+    }
+  } catch(e) {
+    $('rerun-result').textContent = '⚠ Network error: ' + e.message;
+  }
+}
+
+// Boot
+if (eventId) {
+  loadEventReview(eventId);
+} else {
+  loadDefaultList();
+}
+</script>
+</body>
+</html>

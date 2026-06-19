@@ -155,7 +155,49 @@ textarea.field-input{resize:vertical;min-height:68px;}
   .stat-value,.kpi-value{font-size:1.4rem!important;}
 }
 </style>
-  <script src="/static/murphy-nav.js"></script>
+  <script src="/static/murphy-nav.js">
+// Ship 16 event-anchored canvas — fetch synthesized graph and render banner
+async function loadEventGraph(eventId) {
+  try {
+    const r = await fetch('/api/workflow/graph/' + encodeURIComponent(eventId), {credentials:'same-origin'});
+    const d = await r.json();
+    if (!d.ok) return;
+    const g = d.graph;
+    const ev = d.event;
+    const formula = d.roi_formula;
+    // Build a top banner above whatever workflow_canvas normally renders
+    const banner = document.createElement('div');
+    banner.style.cssText = 'background:#0e1820;border:1px solid #5ee0c4;border-radius:8px;padding:18px;margin:20px;color:#cde;font-family:-apple-system,BlinkMacSystemFont,sans-serif';
+    banner.innerHTML = `
+      <div style="font-size:14px;font-weight:600;color:#5ee0c4;margin-bottom:6px">${(ev.description||'').replace(/[<>]/g,'')}</div>
+      <div style="font-size:11px;color:#789;margin-bottom:14px">event ${ev.event_id} · ${g.synthesized?'auto-synthesized graph':'from real DAG'}</div>
+      <div style="display:flex;width:100%;height:72px;border-radius:6px;overflow:hidden;border:1px solid rgba(255,255,255,0.1);margin-bottom:10px">
+        ${g.nodes.map((n,i) => {
+          const sizes = g.nodes.map(nn => Math.max(nn.actual_minutes || nn.estimated_minutes || 1, 0.5));
+          const total = sizes.reduce((a,b)=>a+b,0);
+          const pct = (sizes[i]/total*100).toFixed(2);
+          const colors = {trigger:'#D4B872', agent:'#5EE0C4', hitl:'#E07A5F', output:'#888'};
+          const color = colors[n.kind] || '#666';
+          const tip = `${n.label}\n${n.kind}\nest ${(n.estimated_minutes||0).toFixed(1)}m${n.actual_minutes!=null?' · actual '+n.actual_minutes.toFixed(1)+'m':''}${n.cost_usd?' · $'+n.cost_usd.toFixed(2):''}`;
+          return `<div title="${tip.replace(/"/g,'&quot;')}" style="width:${pct}%;background:${color};display:flex;flex-direction:column;align-items:center;justify-content:center;color:#0a0e1a;font-size:11px;font-weight:600;padding:4px 6px;text-align:center;overflow:hidden">
+            <div style="font-size:10px;text-transform:uppercase;opacity:0.7">${n.kind}</div>
+            <div style="font-size:11px;line-height:1.2;margin-top:2px;text-overflow:ellipsis;overflow:hidden;white-space:nowrap;max-width:100%">${(n.label||'').slice(0,22)}</div>
+            <div style="font-size:9px;margin-top:2px;opacity:0.75">${(n.actual_minutes||n.estimated_minutes||0).toFixed(1)}m</div>
+          </div>`;
+        }).join('')}
+      </div>
+      <div style="font-size:12px;color:#cde;padding:8px 12px;background:rgba(94,224,196,0.05);border-radius:4px;font-family:monospace">${(formula||{}).label||''}</div>
+      <div style="display:flex;gap:8px;margin-top:14px">
+        <a href="/roi-calendar?event=${encodeURIComponent(eventId)}" style="background:#0d1428;border:1px solid #5ee0c4;color:#5ee0c4;padding:6px 12px;border-radius:4px;font-size:11px;text-decoration:none">→ See on ROI Calendar</a>
+        <a href="/forge?event=${encodeURIComponent(eventId)}" style="background:#0d1428;border:1px solid #5ee0c4;color:#5ee0c4;padding:6px 12px;border-radius:4px;font-size:11px;text-decoration:none">→ Open the Forge view</a>
+      </div>`;
+    document.body.insertBefore(banner, document.body.firstChild);
+  } catch (e) {
+    console.error('loadEventGraph failed:', e);
+  }
+}
+
+</script>
 </head>
 <body>
 
@@ -676,8 +718,12 @@ async function loadWorkflowById(id) {
   await loadWorkflowList();
   // Check for ?wf=id in URL
   const params = new URLSearchParams(location.search);
-  if (params.get('wf')) {
-    await loadWorkflowById(params.get('wf'));
+  // Ship 16 event-anchored canvas — when opened from /os pipeline drawer
+  if (params.get('event') && !params.get('wf')) {
+    await loadEventGraph(params.get('event'));
+  }
+
+  await loadWorkflowById(params.get('wf'));
   }
 })();
 </script>

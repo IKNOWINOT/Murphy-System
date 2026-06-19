@@ -714,6 +714,19 @@ def create_app() -> FastAPI:
 
     # Slug → filename mapping for known pages (hyphen ↔ underscore)
     # PATCH-142: Cleaned route map — removed dead/deleted pages
+    # ── Ship 13b — Dedicated /forge handler with deliverable-review branch ──
+    # Wins over the generic slug-map handler because it's registered first.
+    @app.get("/forge", include_in_schema=False)
+    async def _ship13b_forge_with_event(request: Request):
+        """Ship 13b forge review branch — if ?event= present, serve the
+        deliverable-review page; otherwise serve the existing code-gen Forge."""
+        from fastapi.responses import FileResponse as _FR_S13b
+        if request.query_params.get("event"):
+            return _FR_S13b("/opt/Murphy-System/static/forge_review.html",
+                            media_type="text/html")
+        return _FR_S13b("/opt/Murphy-System/forge.html",
+                        media_type="text/html")
+
     _UI_PAGE_MAP_132 = {
         # Core product
         "start":                   "start.html",
@@ -1452,18 +1465,215 @@ def create_app() -> FastAPI:
 
     @app.get("/api/hitl/queue", include_in_schema=False)
     async def hitl_queue_fresh(fresh: int = 0):
+        """SHIP 3 (2026-06-17): merges hitl_queue.db (real review items like
+        Rafael@AllQuotas follow-up) + hitl_jobs.db (R431 engagement jobs) +
+        inbound_replies staged_hitl (the 50 staged outbound emails) into one
+        review feed. Backward compatible — still returns 'jobs' key."""
         import sqlite3 as _sq
+        import json as _json
+        merged = []
+        # Source 1: hitl_queue.db (57 real review items)
         try:
-            conn = _sq.connect("/var/lib/murphy-production/hitl_jobs.db", timeout=5)
-            conn.row_factory = _sq.Row
+            c1 = _sq.connect("file:/var/lib/murphy-production/hitl_queue.db?mode=ro", timeout=3, uri=True)
+            c1.row_factory = _sq.Row
+            where = "status IN ('pending','expired')"
+            if fresh:
+                where = "status='pending'"
+            rows = c1.execute(f"SELECT * FROM hitl_queue WHERE {where} ORDER BY created_at DESC LIMIT 200").fetchall()
+            for r in rows:
+                d = dict(r)
+                state = {}
+                try: state = _json.loads(d.get("dag_state_json") or "{}")
+                except Exception: pass
+                merged.append({
+                    "id": d.get("hitl_id"),
+                    "source": "review_queue",
+                    "type": d.get("intent") or d.get("domain"),
+                    "title": d.get("dag_name") or d.get("blocked_node_name"),
+                    "summary": state.get("what") or state.get("draft","")[:200] or d.get("blocked_node_name"),
+                    "draft": state.get("draft"),
+                    "who": state.get("who") or d.get("account"),
+                    "stake": d.get("stake"),
+                    "status": d.get("status"),
+                    "created_at": d.get("created_at"),
+                    "expires_at": d.get("expires_at"),
+                })
+            c1.close()
+        except Exception as e:
+            merged.append({"source": "review_queue", "error": str(e)})
+        # Source 2: hitl_jobs.db (R431 engagement jobs — keep original behavior)
+        try:
+            c2 = _sq.connect("file:/var/lib/murphy-production/hitl_jobs.db?mode=ro", timeout=3, uri=True)
+            c2.row_factory = _sq.Row
             where = "status='open'"
             if fresh:
                 where += " AND created_at >= datetime('now','-1 day')"
-            rows = conn.execute(f"SELECT * FROM hitl_jobs WHERE {where} ORDER BY created_at DESC LIMIT 200").fetchall()
-            conn.close()
-            return {"ok": True, "jobs": [dict(r) for r in rows], "count": len(rows)}
+            rows = c2.execute(f"SELECT * FROM hitl_jobs WHERE {where} ORDER BY created_at DESC LIMIT 200").fetchall()
+            for r in rows:
+                d = dict(r)
+                d["source"] = "engagement_jobs"
+                merged.append(d)
+            c2.close()
         except Exception as e:
-            return {"ok": False, "error": str(e), "jobs": []}
+            merged.append({"source": "engagement_jobs", "error": str(e)})
+        # Source 3: staged outbound emails (50 inbound_replies awaiting decision)
+        try:
+            c3 = _sq.connect("file:/var/lib/murphy-production/inbound_replies.db?mode=ro", timeout=3, uri=True)
+            c3.row_factory = _sq.Row
+            rows = c3.execute(
+                "SELECT id, from_addr, subject, body_preview, received_at, mailbox "
+                "FROM inbound_replies WHERE auto_response_status='staged_hitl' "
+                "ORDER BY received_at DESC LIMIT 100"
+            ).fetchall()
+            for r in rows:
+                d = dict(r)
+                merged.append({
+                    "id": f"mail_{d.get('id')}",
+                    "source": "staged_email",
+                    "type": "inbound_reply_awaiting_send",
+                    "title": d.get("subject") or "(no subject)",
+                    "summary": (d.get("body_preview") or "")[:200],
+                    "who": d.get("from_addr"),
+                    "mailbox": d.get("mailbox"),
+                    "status": "pending",
+                    "created_at": d.get("received_at"),
+                })
+            c3.close()
+        except Exception as e:
+            merged.append({"source": "staged_email", "error": str(e)})
+        # Sort newest first
+        merged.sort(key=lambda x: (x.get("created_at") or ""), reverse=True)
+        return {"ok": True, "jobs": merged, "count": len(merged),
+                "sources": ["review_queue","engagement_jobs","staged_email"]}
+
+    @app.post("/api/review/decide", include_in_schema=False)
+    async def review_decide_ship4(request: Request):
+        """Ship 4 (2026-06-18): unified decide endpoint for the Review tab.
+        Routes by id prefix to the correct source DB and applies the action.
+        4 actions: approve, revise, regenerate, reject. No hold/skip — those
+        let work pile up indefinitely which is the failure mode we are fixing.
+        Auth: founder session cookie required."""
+        import sqlite3 as _sq
+        import json as _j
+        from datetime import datetime as _dt
+        try:
+            body = await request.json()
+        except Exception:
+            body = {}
+        item_id = body.get("item_id") or body.get("id") or ""
+        if not item_id:
+            return JSONResponse({"ok":False,"error":"item_id required in body"}, status_code=400)
+        action = (body.get("action") or "").lower()
+        if action not in ("approve","revise","regenerate","reject"):
+            return JSONResponse({"ok":False,"error":"action must be approve|revise|regenerate|reject"}, status_code=400)
+        decided_by = body.get("decided_by") or "cpost@murphy.systems"
+        now = _dt.utcnow().isoformat()
+
+        # Founder gate — minimal check via session cookie
+        # Ship 5b (2026-06-18): use the same cookie/session lookup as /os does
+        try:
+            from src import ship31ah_signup as _s
+            _sid = request.cookies.get(_s.COOKIE_NAME, "") or request.cookies.get("sid", "")
+            _sess = _s.lookup_session(_sid) if _sid else None
+        except Exception:
+            _sid = request.cookies.get("sid", "")
+            _sess = None
+        if not _sid or not _sess:
+            # Diagnostic: tell us which cookies arrived so we can fix
+            _cookie_names = list(request.cookies.keys())
+            return JSONResponse({
+                "ok": False,
+                "error": "auth required",
+                "diag_cookies_present": _cookie_names,
+                "diag_sid_len": len(_sid),
+                "diag_session_found": bool(_sess),
+                "diag_cookie_name_expected": getattr(_s, "COOKIE_NAME", "unknown") if "_s" in dir() else "import_failed"
+            }, status_code=401)
+
+        # Route by id prefix
+        try:
+            if item_id.startswith("mail_"):
+                # staged_email — id is "mail_<rowid>"
+                # Ship 6 (2026-06-18): drop staged_at (column doesn't exist); status alone records decision
+                rowid = int(item_id.replace("mail_",""))
+                with _sq.connect("/var/lib/murphy-production/inbound_replies.db", timeout=5) as c:
+                    row = c.execute("SELECT id, from_addr, subject FROM inbound_replies WHERE id=?", (rowid,)).fetchone()
+                    if not row:
+                        return JSONResponse({"ok":False,"error":"mail item not found"}, status_code=404)
+                    status_map = {
+                        "approve": "founder_approved_send",
+                        "reject": "founder_rejected",
+                        "revise": "surfaced_for_review",
+                        "regenerate": "pending",
+                    }
+                    new_status = status_map[action]
+                    c.execute("UPDATE inbound_replies SET auto_response_status=? WHERE id=?", (new_status, rowid))
+                    c.commit()
+                return {"ok":True, "source":"staged_email", "id":item_id, "action":action, "new_status":new_status, "decided_by":decided_by, "decided_at":now}
+
+            elif item_id.startswith("INB_") or item_id.startswith("R569_") or "_" in item_id:
+                # review_queue source — Ship 11: approve actually sends if draft present
+                revised_body = body.get("revised_body", "").strip()
+                send_result = None
+                with _sq.connect("/var/lib/murphy-production/hitl_queue.db", timeout=5) as c:
+                    row = c.execute("SELECT hitl_id, status, dag_state_json FROM hitl_queue WHERE hitl_id=?", (item_id,)).fetchone()
+                    if not row:
+                        return JSONResponse({"ok":False,"error":"review item not found"}, status_code=404)
+
+                    # Parse the payload to see if there's a sendable draft
+                    payload = {}
+                    try:
+                        payload = _j.loads(row[2] or "{}")
+                    except Exception:
+                        payload = {}
+
+                    if action == "approve":
+                        # Ship 11: if payload has a draft and a target, fire SMTP send
+                        draft = revised_body or payload.get("draft") or ""
+                        target = payload.get("to") or payload.get("from") or ""
+                        subject = payload.get("subject") or "Re: your inquiry"
+                        if draft and target and "@" in target:
+                            try:
+                                from src.inbound_responder import _send_via_sendmail
+                                send_result = _send_via_sendmail(target, subject, draft)
+                                # Update inbound_replies if we have an inbound_id
+                                inb_id = payload.get("inbound_id")
+                                if inb_id:
+                                    with _sq.connect("/var/lib/murphy-production/inbound_replies.db", timeout=5) as ci:
+                                        ci.execute(
+                                            "UPDATE inbound_replies SET auto_response_status='sent', auto_response_sent_at=?, auto_response_target=? WHERE id=?",
+                                            (now, target, inb_id)
+                                        )
+                                        ci.commit()
+                                new_status = "sent"
+                            except Exception as se:
+                                new_status = "approved_send_failed"
+                                send_result = {"ok": False, "error": str(se)}
+                        else:
+                            new_status = "approved"  # no draft to send — just mark approved
+                    else:
+                        new_status = {"reject":"rejected","revise":"revising","regenerate":"regenerating"}.get(action, "open")
+
+                    c.execute("UPDATE hitl_queue SET status=?, approved_by=?, resolved_at=? WHERE hitl_id=?",
+                              (new_status, decided_by, now, item_id))
+                    c.commit()
+                return {"ok":True, "source":"review_queue", "id":item_id, "action":action,
+                        "new_status":new_status, "send_result": send_result,
+                        "decided_by":decided_by, "decided_at":now}
+
+            else:
+                # engagement_jobs source — keep old R431 behavior
+                with _sq.connect("/var/lib/murphy-production/hitl_jobs.db", timeout=5) as c:
+                    row = c.execute("SELECT id, status FROM hitl_jobs WHERE id=?", (item_id,)).fetchone()
+                    if not row:
+                        return JSONResponse({"ok":False,"error":"job not found"}, status_code=404)
+                    new_status = "approved" if action == "approve" else ("rejected" if action == "reject" else "open")
+                    c.execute("UPDATE hitl_jobs SET status=?, resolved_at=? WHERE id=?", (new_status, now, item_id))
+                    c.commit()
+                return {"ok":True, "source":"engagement_jobs", "id":item_id, "action":action, "decided_at":now}
+
+        except Exception as e:
+            return JSONResponse({"ok":False,"error":str(e)}, status_code=500)
 
     # ══════════════════════════════════════════════════════════════════════
     # R431 — HITL ENGAGEMENT CONTRACT LAYER (honors Terms §1B)
@@ -5361,7 +5571,15 @@ def create_app() -> FastAPI:
             # Ship 31br — inject founder nav bar
             from src.founder_os_31br import inject_founder_nav
             with open(modern, "r", encoding="utf-8") as _fos:
-                return HTMLResponse(inject_founder_nav(_fos.read()))
+                _html = inject_founder_nav(_fos.read())
+                _resp = HTMLResponse(_html)
+                # Ship 4d-e (2026-06-18): no-cache + build id so browsers always see latest
+                _resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+                _resp.headers["Pragma"] = "no-cache"
+                _resp.headers["Expires"] = "0"
+                _resp.headers["X-Murphy-Build"] = "ship5-2026-06-18-credentials-include"
+                _resp.headers["X-Murphy-OS-SHA"] = "review_v1"
+                return _resp
         return HTMLResponse(
             "<h1>Inoni System</h1><p>Platform admin surface — "
             "OS dashboard not found.</p>"
@@ -9268,6 +9486,55 @@ font-weight:600;color:#c9d1d9}}</style></head><body>
         return JSONResponse({"success": True, "message": "Use /api/matrix/chat/rooms", "rooms_url": "/api/matrix/chat/rooms"})
 
         # ── Forge Items list (real data from SQLite) ──────────────────
+
+    # ── Ship 13 — Deliverable-Review Forge endpoints (ship13_forge_review_routes) ──
+    # ── Ship 17 batch graphs endpoint — used by ROI Calendar timeline ──
+    @app.post("/api/workflow/graph/batch", include_in_schema=False)
+    async def _ship17_workflow_graph_batch(request: Request):
+        """POST {event_ids: [..]} — returns {event_id: graph} mapping.
+        Lets the ROI Calendar fetch many timelines in one call."""
+        from src.workflow_graph_31d import get_graph_for_event
+        try:
+            body = await request.json()
+            ids = body.get("event_ids", []) or []
+            ids = [i for i in ids if isinstance(i, str)][:200]
+            out = {}
+            for eid in ids:
+                try:
+                    out[eid] = get_graph_for_event(eid)
+                except Exception:
+                    out[eid] = {"ok": False, "error": "synthesis_failed"}
+            return JSONResponse({"ok": True, "graphs": out, "count": len(out)})
+        except Exception as e:
+            return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+    # ── Ship 14 workflow graph endpoint ──
+    @app.get("/api/workflow/graph/{event_id}", include_in_schema=False)
+    async def _ship14_workflow_graph(event_id: str, request: Request):
+        from src.workflow_graph_31d import get_graph_for_event
+        try:
+            return JSONResponse(get_graph_for_event(event_id))
+        except Exception as e:
+            return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+    @app.get("/api/forge/review/list", include_in_schema=False)
+    async def _ship13_forge_review_list(request: Request, limit: int = 30):
+        """Recent deliverables for the Forge list view."""
+        from src.forge_review_31d import list_recent_deliverables
+        try:
+            return JSONResponse({"deliverables": list_recent_deliverables(limit)})
+        except Exception as e:
+            return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+    @app.get("/api/forge/review/{event_id}", include_in_schema=False)
+    async def _ship13_forge_review(event_id: str, request: Request):
+        """Return joined deliverable-review data for an ROI event."""
+        from src.forge_review_31d import get_deliverable_review
+        try:
+            return JSONResponse(get_deliverable_review(event_id))
+        except Exception as e:
+            return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
     @app.get("/api/forge/list")
     async def forge_list_items(item_type: str = "", limit: int = 20):
         import sqlite3 as _sq
@@ -42128,86 +42395,6 @@ except Exception as _p311b_exc:
 # ═══════════════════════════════════════════════════════════════════════════════
 # END PATCH-311b
 # ═══════════════════════════════════════════════════════════════════════════════
-
-# ── Ship 31cy — /os/shape : one artifact, four faces ─────────────
-@app.get("/os/shape", response_class=HTMLResponse)
-async def os_shape_31cy(request: Request):
-    if not _is_owner_request(request):
-        return HTMLResponse("<h1>403 — owner only</h1>", status_code=403)
-    try:
-        from src.shape_walker_31cy import render_html as _r
-        return HTMLResponse(_r())
-    except Exception as e:
-        return HTMLResponse(f"<pre>shape error: {e}</pre>", status_code=500)
-
-
-@app.post("/api/shape/audit")
-async def api_shape_audit_31cy(request: Request):
-    if not _is_owner_request(request):
-        return JSONResponse({"error":"owner only"}, status_code=403)
-    from src.shape_walker_31cy import run_audit
-    return JSONResponse(run_audit("api"))
-
-
-@app.post("/api/shape/freeze")
-async def api_shape_freeze_31cy(request: Request):
-    if not _is_owner_request(request):
-        return JSONResponse({"error":"owner only"}, status_code=403)
-    from src.shape_walker_31cy import freeze
-    try:
-        body = await request.json()
-    except Exception:
-        body = {}
-    return JSONResponse(freeze(reason=body.get("reason","manual")))
-
-
-@app.post("/api/shape/unfreeze")
-async def api_shape_unfreeze_31cy(request: Request):
-    if not _is_owner_request(request):
-        return JSONResponse({"error":"owner only"}, status_code=403)
-    from src.shape_walker_31cy import unfreeze
-    return JSONResponse(unfreeze())
-
-
-@app.post("/api/shape/gap")
-async def api_shape_gap_31cy(request: Request):
-    if not _is_owner_request(request):
-        return JSONResponse({"error":"owner only"}, status_code=403)
-    import sqlite3 as _sq
-    from datetime import datetime as _dt, timezone as _tz
-    body = await request.json()
-    c = _sq.connect("/var/lib/murphy-production/shape_of_complete.db", timeout=10)
-    c.execute(
-        "INSERT INTO gap_decisions (decided_at,ship,head_hash,chose,over,why,closes_gap,opens_gap,author) VALUES (?,?,?,?,?,?,?,?,?)",
-        (_dt.now(_tz.utc).isoformat(),
-         body.get("ship"), body.get("head_hash"),
-         body.get("chose"), body.get("over"), body.get("why"),
-         body.get("closes_gap"), body.get("opens_gap"),
-         body.get("author","founder")),
-    )
-    c.commit(); c.close()
-    return JSONResponse({"ok": True})
-
-
-@app.post("/api/shape/end_goal")
-async def api_shape_end_goal_31cy(request: Request):
-    if not _is_owner_request(request):
-        return JSONResponse({"error":"owner only"}, status_code=403)
-    import sqlite3 as _sq
-    from datetime import datetime as _dt, timezone as _tz
-    body = await request.json()
-    c = _sq.connect("/var/lib/murphy-production/shape_of_complete.db", timeout=10)
-    c.execute(
-        "INSERT INTO end_goal (added_at,surface,capability,must_be_reachable_from,must_feed,must_be_gated_by,priority,status) VALUES (?,?,?,?,?,?,?,'open')",
-        (_dt.now(_tz.utc).isoformat(),
-         body["surface"], body["capability"],
-         body.get("must_be_reachable_from"), body.get("must_feed"),
-         body.get("must_be_gated_by"), body.get("priority",5)),
-    )
-    c.commit(); c.close()
-    return JSONResponse({"ok": True})
-# ── end Ship 31cy ──
-
 
 if __name__ == "__main__":
     # INC-06 / H-01: Print feature-availability summary based on env vars

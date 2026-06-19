@@ -223,6 +223,12 @@ _EXEMPT_PREFIXES = (
     "/api/exec",
     "/api/prodops/",
     "/api/prodops",
+        "/api/review/decide",
+        "/api/forge/review/list",
+        "/api/review/",
+        # Ship 14 (2026-06-18): event-anchored review surfaces
+        "/api/workflow/graph/",
+        "/api/forge/review/",
 )
 
 
@@ -780,6 +786,9 @@ class OIDCAuthMiddleware(BaseHTTPMiddleware):
         # PATCH-099: PCC
         "/api/pcc/",
         "/api/pcc",
+        # Ship 17 — event-anchored review surfaces
+        "/api/workflow/graph/",
+        "/api/forge/review/",
     )
 
 

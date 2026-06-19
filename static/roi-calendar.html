@@ -4,31 +4,86 @@
   <meta charset="utf-8">
   <title>ROI Calendar · Murphy</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <script src="/static/components/murphy-readout.js"></script>
   <style>
-    body { background:#0a0f14; color:#cfe1ec; font-family:-apple-system,BlinkMacSystemFont,sans-serif;
-           margin:0; padding:0; }
-    header { background:#0e1820; border-bottom:1px solid #1f2a35; padding:14px 24px;
-             display:flex; justify-content:space-between; align-items:center; }
-    header h1 { margin:0; font-size:18px; color:#5ee0c4; }
+    :root {
+      --bg: #0a0f14;
+      --surface: #0e1820;
+      --border: #1f2a35;
+      --text: #cfe1ec;
+      --muted: #789;
+      --teal: #5EE0C4;
+      --champagne: #D4B872;
+      --hitl: #E07A5F;
+      --output: #888;
+    }
+    body { background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,sans-serif;
+           margin:0; padding:0; font-size:13px; line-height:1.5; }
+    header { background:var(--surface); border-bottom:1px solid var(--border); padding:14px 24px;
+             display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; }
+    header h1 { margin:0; font-size:18px; color:var(--teal); }
     .back { color:#7aafd1; text-decoration:none; font-size:13px; }
-    main { padding:24px; max-width:1200px; margin:0 auto; }
-    .summary { color:#789; font-size:13px; margin-bottom:14px; }
-    .totals { display:flex; gap:14px; margin-bottom:20px; }
-    .total { background:#0e1820; border:1px solid #1f2a35; border-radius:8px;
-             padding:14px 18px; flex:1; }
-    .total .label { font-size:11px; color:#789; text-transform:uppercase; letter-spacing:1px; }
-    .total .value { font-size:24px; color:#5ee0c4; font-weight:600; margin-top:4px; }
-    .timeline { background:#0e1820; border:1px solid #1f2a35; border-radius:8px; padding:14px; }
-    .event { display:flex; justify-content:space-between; padding:10px 8px;
-             border-bottom:1px solid #1a2530; font-size:13px; cursor:pointer; }
-    .event:last-child { border-bottom:none; }
-    .event:hover { background:#0a141c; }
-    .event .title { color:#cfe1ec; }
-    .event .roi { color:#5ee0c4; font-weight:600; }
-    .event .roi.negative { color:#ff7a7a; }
-    .event .when { color:#789; font-size:11px; }
-    .loading { color:#789; font-style:italic; padding:20px; }
+    main { padding:20px; max-width:1400px; margin:0 auto; }
+
+    /* Totals row */
+    .totals { display:flex; gap:12px; margin-bottom:16px; flex-wrap:wrap; }
+    .total { background:var(--surface); border:1px solid var(--border); border-radius:8px;
+             padding:12px 16px; flex:1; min-width:140px; }
+    .total .label { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; }
+    .total .value { font-size:22px; color:var(--teal); font-weight:600; margin-top:4px; }
+    .total .sub { font-size:11px; color:var(--muted); margin-top:2px; }
+
+    /* Legend */
+    .legend { display:flex; gap:14px; font-size:11px; color:var(--muted);
+              margin-bottom:14px; flex-wrap:wrap; align-items:center; }
+    .legend .dot { display:inline-block; width:10px; height:10px; border-radius:2px;
+                   vertical-align:middle; margin-right:4px; }
+
+    /* Week tabs */
+    .week-tabs { display:flex; gap:6px; margin-bottom:12px; overflow-x:auto; padding-bottom:4px; }
+    .week-tab { background:var(--surface); border:1px solid var(--border); color:var(--muted);
+                padding:6px 14px; border-radius:4px; cursor:pointer; font-size:11px;
+                white-space:nowrap; transition:all 0.15s; }
+    .week-tab:hover { color:var(--text); border-color:#2a3845; }
+    .week-tab.active { color:var(--teal); border-color:var(--teal); background:rgba(94,224,196,0.08); }
+
+    /* Timeline section */
+    .timeline { background:var(--surface); border:1px solid var(--border); border-radius:8px;
+                padding:14px; }
+    .event-row { padding:10px 8px; border-bottom:1px solid #1a2530; cursor:pointer;
+                 transition:background 0.1s; }
+    .event-row:last-child { border-bottom:none; }
+    .event-row:hover { background:#0a141c; }
+    .event-row.focused { background:rgba(94,224,196,0.06); outline:1px solid var(--teal); border-radius:4px; }
+
+    .event-head { display:flex; justify-content:space-between; align-items:baseline;
+                  gap:12px; margin-bottom:6px; }
+    .event-title { color:var(--text); font-size:13px; flex:1; min-width:0;
+                   white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .event-when { color:var(--muted); font-size:10px; white-space:nowrap; }
+    .event-roi { color:var(--teal); font-weight:600; white-space:nowrap; }
+    .event-roi.negative { color:#ff7a7a; }
+
+    /* The horizontal block strip — the core of the canon */
+    .block-strip { display:flex; height:24px; border-radius:3px; overflow:hidden;
+                   border:1px solid rgba(255,255,255,0.06); margin-top:4px; }
+    .block { display:flex; align-items:center; justify-content:center;
+             color:#0a0e1a; font-size:9px; font-weight:600; padding:0 4px;
+             white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+             min-width:14px; cursor:pointer; }
+    .block:hover { filter:brightness(1.15); }
+    .block + .block { border-left:1px solid rgba(10,14,26,0.4); }
+    .block.pending, .block.active { opacity:0.65; }
+    .block-trigger { background:var(--champagne); }
+    .block-agent   { background:var(--teal); }
+    .block-hitl    { background:var(--hitl); }
+    .block-output  { background:var(--output); }
+
+    .strip-meta { display:flex; justify-content:space-between; font-size:10px;
+                  color:var(--muted); margin-top:3px; }
+    .strip-meta .roi-formula { font-family:monospace; opacity:0.85; }
+
+    .loading { color:var(--muted); font-style:italic; padding:20px; text-align:center; }
+    .empty { color:var(--muted); padding:20px; text-align:center; font-size:12px; }
   </style>
 </head>
 <body>
@@ -37,63 +92,193 @@
     <a class="back" href="/os">← Back to OS</a>
   </header>
   <main>
-    <div class="summary">
-      Every cost-or-revenue event Murphy attributed in the last 30 days,
-      ranked by net impact.
-    </div>
     <div id="totals" class="totals">
-      <div class="total"><div class="label">Total events</div><div class="value" id="t-count">—</div></div>
-      <div class="total"><div class="label">Net ROI ($)</div><div class="value" id="t-roi">—</div></div>
-      <div class="total"><div class="label">Top event</div><div class="value" id="t-top" style="font-size:14px">—</div></div>
+      <div class="total"><div class="label">Events shown</div><div class="value" id="t-count">—</div></div>
+      <div class="total"><div class="label">Net ROI</div><div class="value" id="t-roi">—</div></div>
+      <div class="total"><div class="label">Hours saved</div><div class="value" id="t-hours">—</div><div class="sub" id="t-sub">human estimate − actual</div></div>
+      <div class="total"><div class="label">HITL events</div><div class="value" id="t-hitl">—</div><div class="sub">requiring human review</div></div>
     </div>
+
+    <div class="legend">
+      <span><span class="dot" style="background:var(--champagne)"></span>Trigger</span>
+      <span><span class="dot" style="background:var(--teal)"></span>Agent (shrinks vs estimate)</span>
+      <span><span class="dot" style="background:var(--hitl)"></span>HITL (balloons to actual review time)</span>
+      <span><span class="dot" style="background:var(--output)"></span>Output</span>
+      <span style="margin-left:auto; opacity:0.75">Block widths ∝ time</span>
+    </div>
+
+    <div id="week-tabs" class="week-tabs"></div>
     <div id="timeline" class="timeline"><div class="loading">Loading events…</div></div>
-    <div id="readout" style="margin-top:20px"></div>
   </main>
 
-  <script>
-    async function load() {
-      const tl = document.getElementById('timeline');
-      try {
-        const r = await fetch('/api/roi-calendar/events', { credentials: 'include' });
-        const j = await r.json();
-        const events = (j.events || j.items || []).slice(0, 200);
-        const totalROI = events.reduce((s, e) => s + (Number(e.roi) || 0), 0);
-        const top = [...events].sort((a,b) => (Number(b.roi)||0) - (Number(a.roi)||0))[0];
+<script>
+const PARAMS = new URLSearchParams(location.search);
+const FOCUS_EVENT = PARAMS.get('event');
 
-        document.getElementById('t-count').textContent = events.length;
-        document.getElementById('t-roi').textContent = '$' + totalROI.toFixed(0);
-        document.getElementById('t-top').textContent = top ? (top.title || top.event_id || '—').slice(0,30) : '—';
+function esc(s) {
+  if (s == null) return '';
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
 
-        if (!events.length) {
-          tl.innerHTML = '<div class="loading">No events in the last 30 days.</div>';
-          return;
-        }
-        tl.innerHTML = events.map(e => {
-          const roi = Number(e.roi) || 0;
-          return '<div class="event" onclick="showReadout(\'' + escape(e.result_id || e.event_id || 'preview') + '\')">' +
-            '<div>' +
-              '<div class="title">' + escape((e.title || e.action_name || 'event').slice(0,80)) + '</div>' +
-              '<div class="when">' + escape(e.timestamp || e.when || '') + '</div>' +
-            '</div>' +
-            '<div class="roi ' + (roi < 0 ? 'negative' : '') + '">$' + roi.toFixed(0) + '</div>' +
-          '</div>';
-        }).join('');
-      } catch (e) {
-        tl.innerHTML = '<div class="loading">Could not load events.</div>';
-      }
+function fmtDate(iso) {
+  if (!iso) return '';
+  try {
+    const d = new Date(iso);
+    return d.toLocaleDateString(undefined, {month:'short', day:'numeric'}) + ' ' +
+           d.toLocaleTimeString(undefined, {hour:'numeric', minute:'2-digit'});
+  } catch(e) { return String(iso).slice(0,16); }
+}
+
+function weekKey(iso) {
+  if (!iso) return 'unknown';
+  try {
+    const d = new Date(iso);
+    // Monday of that week
+    const day = (d.getDay() + 6) % 7;
+    const monday = new Date(d); monday.setDate(d.getDate() - day);
+    monday.setHours(0,0,0,0);
+    return monday.toISOString().slice(0,10);
+  } catch(e) { return 'unknown'; }
+}
+
+function weekLabel(key) {
+  if (key === 'unknown') return 'No date';
+  try {
+    const d = new Date(key + 'T00:00:00');
+    const end = new Date(d); end.setDate(d.getDate() + 6);
+    return d.toLocaleDateString(undefined, {month:'short', day:'numeric'}) +
+           ' – ' + end.toLocaleDateString(undefined, {month:'short', day:'numeric'});
+  } catch(e) { return key; }
+}
+
+function renderBlockStrip(graph, eventId) {
+  if (!graph || !graph.nodes) return '<div style="color:#789;font-size:10px">no graph</div>';
+  const nodes = graph.nodes;
+  const sizes = nodes.map(n => Math.max(n.actual_minutes || n.estimated_minutes || 0.5, 0.5));
+  const total = sizes.reduce((a,b)=>a+b, 0) || 1;
+  const strip = nodes.map((n, i) => {
+    const pct = (sizes[i] / total * 100).toFixed(2);
+    const cls = 'block block-' + (n.kind || 'agent') + ' ' + (n.status || '');
+    const est = (n.estimated_minutes || 0).toFixed(1);
+    const actual = n.actual_minutes != null ? n.actual_minutes.toFixed(1) : '—';
+    const tip = `${n.label}\n${n.kind} · est ${est}m · actual ${actual}m${n.cost_usd ? ' · $'+n.cost_usd.toFixed(2) : ''}`;
+    const label = (n.label || '').slice(0, 16);
+    return `<div class="${cls}" style="width:${pct}%" title="${esc(tip)}">${esc(label)}</div>`;
+  }).join('');
+  return '<div class="block-strip">' + strip + '</div>';
+}
+
+function renderEventRow(ev, graph) {
+  const roi = Number(ev.roi) || 0;
+  const isFocused = (ev.event_id === FOCUS_EVENT);
+  const formula = (graph && graph.roi_formula) ? graph.roi_formula.label : '';
+  return `
+    <div class="event-row${isFocused?' focused':''}" data-event-id="${esc(ev.event_id)}">
+      <div class="event-head">
+        <div class="event-title">${esc((ev.title||ev.description||'event').slice(0,90))}</div>
+        <div class="event-when">${esc(fmtDate(ev.start || ev.end))}</div>
+        <div class="event-roi ${roi<0?'negative':''}">$${roi.toFixed(0)}</div>
+      </div>
+      ${renderBlockStrip(graph && graph.graph, ev.event_id)}
+      <div class="strip-meta">
+        <span>${(graph && graph.graph && graph.graph.synthesized) ? '[synthesized]' : '[from DAG]'}</span>
+        <span class="roi-formula">${esc(formula)}</span>
+      </div>
+    </div>`;
+}
+
+async function load() {
+  const tl = document.getElementById('timeline');
+  let events = [];
+
+  try {
+    const r = await fetch('/api/roi-calendar/live-v2', {credentials:'include'});
+    const j = await r.json();
+    events = (j.events || []).slice(0, 100);
+  } catch (e) {
+    tl.innerHTML = '<div class="empty">Could not load events.</div>';
+    return;
+  }
+
+  if (!events.length) {
+    tl.innerHTML = '<div class="empty">No events.</div>';
+    return;
+  }
+
+  // Group by week
+  const weeks = {};
+  events.forEach(ev => {
+    const wk = weekKey(ev.start || ev.end);
+    (weeks[wk] = weeks[wk] || []).push(ev);
+  });
+  const weekKeys = Object.keys(weeks).sort().reverse();
+
+  // Pick the week containing the focused event, or the most recent
+  let activeWeek = weekKeys[0];
+  if (FOCUS_EVENT) {
+    const focusEv = events.find(e => e.event_id === FOCUS_EVENT);
+    if (focusEv) activeWeek = weekKey(focusEv.start || focusEv.end);
+  }
+
+  // Render week tabs
+  const tabsEl = document.getElementById('week-tabs');
+  tabsEl.innerHTML = weekKeys.map(k => `
+    <div class="week-tab ${k===activeWeek?'active':''}" data-week="${k}">
+      ${esc(weekLabel(k))}
+      <span style="opacity:0.6;margin-left:6px">${weeks[k].length}</span>
+    </div>`).join('');
+  tabsEl.querySelectorAll('.week-tab').forEach(t => {
+    t.addEventListener('click', () => {
+      tabsEl.querySelectorAll('.week-tab').forEach(x => x.classList.remove('active'));
+      t.classList.add('active');
+      renderWeek(t.dataset.week);
+    });
+  });
+
+  // Fetch graphs for the active week in batch
+  await renderWeek(activeWeek);
+
+  // Update totals (over all events in view)
+  const totalROI = events.reduce((s,e) => s + (Number(e.roi)||0), 0);
+  const hitlEvents = events.filter(e => /draft|review|compose|approve|compile/i.test(e.description || e.title || '')).length;
+  document.getElementById('t-count').textContent = events.length;
+  document.getElementById('t-roi').textContent = '$' + totalROI.toFixed(0);
+  document.getElementById('t-hours').textContent = (events.reduce((s,e) => s + (Number(e.human_time_estimate_hours)||0), 0)).toFixed(0) + 'h';
+  document.getElementById('t-hitl').textContent = hitlEvents;
+
+  async function renderWeek(wk) {
+    const weekEvents = weeks[wk] || [];
+    if (!weekEvents.length) {
+      tl.innerHTML = '<div class="empty">No events this week.</div>';
+      return;
+    }
+    tl.innerHTML = '<div class="loading">Building timelines…</div>';
+
+    // Batch fetch graphs
+    let graphMap = {};
+    try {
+      const r = await fetch('/api/workflow/graph/batch', {
+        method: 'POST', credentials:'include',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({event_ids: weekEvents.map(e => e.event_id)})
+      });
+      const j = await r.json();
+      graphMap = j.graphs || {};
+    } catch (e) {
+      console.error('batch graph fetch failed', e);
     }
 
-    function showReadout(rid) {
-      const out = document.getElementById('readout');
-      out.innerHTML = '<murphy-readout result-id="' + escape(rid) + '" expanded="1"></murphy-readout>';
-    }
+    tl.innerHTML = weekEvents.map(ev => renderEventRow(ev, graphMap[ev.event_id])).join('');
 
-    function escape(s) {
-      if (s == null) return '';
-      return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    // Scroll focused event into view
+    if (FOCUS_EVENT) {
+      const el = tl.querySelector('[data-event-id="' + FOCUS_EVENT + '"]');
+      if (el) setTimeout(() => el.scrollIntoView({behavior:'smooth', block:'center'}), 100);
     }
+  }
+}
 
-    load();
-  </script>
+load();
+</script>
 </body>
 </html>
