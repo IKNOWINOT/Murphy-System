@@ -586,9 +586,37 @@ class EmailStore:
             "thread_id": thread_id or eid,
             "created": _now_iso(),
             "read_by": [],
-            "status": "sent",
+            "status": "pending",  # will be set truthfully below
             "automod": _check_automod(f"{subject} {body}"),
         }
+        # Ship 31cz.G (2026-06-19): ACTUALLY DISPATCH. Founder caught that
+        # this method was writing status='sent' without ever calling SMTP.
+        # 8 callers across ai_comms_orchestrator + comms_hub_routes were
+        # silently producing fake-success rows. Now each row reflects real
+        # SMTP outcome. NEVER raise — keep the legacy try/except contract.
+        delivery_attempts = []
+        all_recipients = list(recipients or []) + list(cc or []) + list(bcc or [])
+        # Skip "internal" addresses (xxx@system, xxx@murphy.systems internal loopback)
+        real_recipients = [r for r in all_recipients
+                           if r and "@" in r and not r.endswith("@system")]
+        any_sent = False
+        if real_recipients:
+            try:
+                from src.stranger_responder import _send_sendmail as _ship_send
+                for to_addr in real_recipients:
+                    try:
+                        ok = _ship_send(to_addr, subject, body)
+                        delivery_attempts.append({"to": to_addr, "ok": bool(ok)})
+                        if ok:
+                            any_sent = True
+                    except Exception as send_err:
+                        delivery_attempts.append({"to": to_addr, "ok": False, "err": str(send_err)[:120]})
+                        logger.warning("compose_and_send: dispatch failed for %s: %s", to_addr, send_err)
+            except Exception as imp_err:
+                logger.warning("compose_and_send: SMTP import failed (no dispatch occurred): %s", imp_err)
+        email["status"] = "sent" if any_sent else "no_recipient" if not real_recipients else "send_failed"
+        email["delivery_attempts"] = delivery_attempts
+        # ── end Ship 31cz.G ──
         db = _get_db_session()
         if db is not None:
             try:
