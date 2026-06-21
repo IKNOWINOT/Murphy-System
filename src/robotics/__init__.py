@@ -12,11 +12,24 @@ from robotics.actuator_engine import ActuatorEngine
 from robotics.protocol_clients import ProtocolClient, create_client
 from robotics.robot_registry import RobotRegistry
 from robotics.robotics_models import (
+    ActuatorCommand,
+    ActuatorResult,
+    ConnectionConfig,
     RobotConfig,
     RobotStatus,
     RobotType,
+    SensorReading,
 )
 from robotics.sensor_engine import SensorEngine
+from robotics.pulse_controller import (
+    CommandStatus,
+    PulseConfig,
+    PulseContext,
+    PulseController,
+    PulsePhase,
+    PulseReport,
+    QueuedCommand,
+)
 
 # Phase 1 — Foundation
 from robotics.kinematics_engine import KinematicsEngine
@@ -40,13 +53,24 @@ from robotics.picarx_butler import PiCarXButler
 
 __all__ = [
     # Core
+    "ActuatorCommand",
     "ActuatorEngine",
+    "ActuatorResult",
+    "CommandStatus",
+    "ConnectionConfig",
     "ProtocolClient",
+    "PulseConfig",
+    "PulseContext",
+    "PulseController",
+    "PulsePhase",
+    "PulseReport",
+    "QueuedCommand",
     "RobotConfig",
     "RobotRegistry",
     "RobotStatus",
     "RobotType",
     "SensorEngine",
+    "SensorReading",
     "create_client",
     # Phase 1
     "KinematicsEngine",

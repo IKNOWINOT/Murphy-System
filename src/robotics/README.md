@@ -17,6 +17,7 @@ The robotics package provides a hardware-agnostic abstraction over physical robo
 | `actuator_engine.py` | `ActuatorEngine` — command dispatch to robot actuators |
 | `protocol_clients.py` | `ProtocolClient` base class and `create_client` factory for all platforms |
 | `robotics_models.py` | `RobotConfig`, `RobotStatus`, `RobotType` |
+| `pulse_controller.py` | `PulseController` — deterministic scan/flow/constraint/action nervous-system loop for safe agent-to-robot control |
 
 ## Usage
 
@@ -29,6 +30,10 @@ registry.add(RobotConfig(robot_id="arm-01", type=RobotType.INDUSTRIAL_ARM, host=
 sensor_engine = SensorEngine(registry=registry)
 readings = sensor_engine.poll_all()
 ```
+
+## Pulse Controller Playbook
+
+The `PulseController` coordinates robots through a deterministic pulse loop: `SCAN` refreshes perception, `FLOW` routes context through agent memory, `CONSTRAINT` applies safety gates, and `ACTION` dispatches only approved actuator commands. See `docs/robotics/PULSE_CONTROLLER_PLAYBOOK.md` for the play-by-play contract other AI agents should follow when working through the controller.
 
 ---
 *Copyright © 2020 Inoni Limited Liability Company · Creator: Corey Post · License: BSL 1.1*
