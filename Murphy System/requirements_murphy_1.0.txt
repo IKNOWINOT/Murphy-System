@@ -153,7 +153,7 @@ websocket-client>=1.6.0,<2.0.0
 # Multi-exchange abstraction — CCXT (MIT Licensed)
 ccxt>=4.5.0,<6.0.0
 # EVM wallet signing — required for SoftwareWallet.sign_transaction
-web3>=7.0.0,<9.0.0
+web3>=7.16.0,<9.0.0
 # Bitcoin wallet utilities
 bitcoin-utils>=0.6.0,<1.0.0
 # Alpaca Markets (stocks + crypto, free paper trading API)
